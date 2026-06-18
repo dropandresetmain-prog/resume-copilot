@@ -169,6 +169,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     setIsApproving(true);
     setError(null);
     try {
+      // Draft-specific mutation only — updates generated_resume_drafts; never inventory.
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
         content: draft.content,
         status: "approved",

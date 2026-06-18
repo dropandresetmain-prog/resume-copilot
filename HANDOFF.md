@@ -34,6 +34,11 @@ Secondary: Edit Resume Details → `/resume-preview/[draftId]/edit`
 
 **Assessment**
 - **Resume–Job Fit** score (role match) separate from **Layout Fit (One Page)**
+- Preview score uses provisional `preview-fit-heuristic-v1` — target rubric in `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`)
+
+**Draft edit safety**
+- Generated resume preview/edit saves only to `generated_resume_drafts` — never mutates inventory
+- Allowed inventory changes: enrichment review flow, future `/inventory` manual editing
 
 ## Roadmap
 

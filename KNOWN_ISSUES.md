@@ -11,3 +11,11 @@
 
 - Delete is permanent (no soft-delete/archive yet).
 - Duplicate Company — Role labels append date/time in UI only.
+- Draft edits (review/approve) persist to `generated_resume_drafts` only — verified by `npm run test:draft-inventory-safety`.
+
+## Fit score (preview)
+
+- **Resume–Job Fit** in preview uses `preview-fit-heuristic-v1` — a provisional penalty/bonus model on draft content.
+- Target specification: `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`) — hygiene gates, jdScore 0–90, profileFit 0–10, verdict bands.
+- Full rubric **not implemented yet** — do not treat preview score as final qualification fit.
+- **Layout Fit (One Page)** is separate (`estimatePageFit`) and unrelated to job match.

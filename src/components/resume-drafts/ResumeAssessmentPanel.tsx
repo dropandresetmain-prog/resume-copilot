@@ -19,7 +19,7 @@ export function ResumeAssessmentPanel({
   return (
     <SetupCard
       title="Resume Assessment"
-      description="Role match and one-page layout fit are shown separately."
+      description="Resume–Job Fit uses preview-fit-heuristic-v1 (provisional). Layout fit is separate. See docs/FIT_SCORE_RUBRIC.md."
     >
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

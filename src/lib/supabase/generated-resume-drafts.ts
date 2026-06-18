@@ -161,6 +161,11 @@ export type UpdateGeneratedResumeDraftInput = {
   status?: string;
 };
 
+/**
+ * Persist generated draft edits only (`generated_resume_drafts`).
+ * Draft-specific mutation — source inventory, parsed bullets, collated inventory,
+ * approved keyword bank, and enrichment state must remain unchanged.
+ */
 export async function updateGeneratedResumeDraftInCloud(
   id: string,
   input: UpdateGeneratedResumeDraftInput,
@@ -192,6 +197,7 @@ export async function updateGeneratedResumeDraftInCloud(
   return mapped;
 }
 
+/** Removes one generated draft row only — never touches `resume_inventories`. */
 export async function deleteGeneratedResumeDraftFromCloud(id: string): Promise<void> {
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();

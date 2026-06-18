@@ -80,8 +80,15 @@ export type PageFitEstimate = {
   bodyFontPx: number;
 };
 
+/** Target rubric version — see docs/FIT_SCORE_RUBRIC.md (not fully implemented yet). */
+export const FIT_SCORE_RUBRIC_VERSION = "fit-rubric-v1";
+
+/** Provisional preview heuristic — penalty/bonus on draft content; not the full rubric. */
+export const PREVIEW_FIT_HEURISTIC_VERSION = "preview-fit-heuristic-v1";
+
 export type ResumeFitAssessment = {
   fitScore: number;
+  heuristicVersion: typeof PREVIEW_FIT_HEURISTIC_VERSION;
   optimizedFor: string[];
   scoreRationale: string;
   keyStrengths: string[];
@@ -408,6 +415,12 @@ export function estimatePageFit(
   };
 }
 
+/**
+ * Preview-only resume–job fit heuristic (`preview-fit-heuristic-v1`).
+ *
+ * TODO(fit-rubric-v1): Replace with deterministic jdScore + profileFit from
+ * docs/FIT_SCORE_RUBRIC.md. AI may explain; code must compute all numeric scores.
+ */
 export function calculateFitScore(
   content: ResumeDraftContent,
   rationale?: ResumeDraftRationale,
@@ -464,6 +477,7 @@ export function calculateFitScore(
 
   return {
     fitScore: score,
+    heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
     optimizedFor,
     scoreRationale:
       rationale?.overall ??

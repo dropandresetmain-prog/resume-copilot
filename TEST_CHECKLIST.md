@@ -27,6 +27,14 @@
 ## Assessment
 
 - [ ] Resume–Job Fit and Layout Fit shown separately
+- [ ] Preview fit uses `preview-fit-heuristic-v1` (provisional — see `docs/FIT_SCORE_RUBRIC.md`)
+
+## Draft edit safety (inventory non-mutation)
+
+- [ ] Edit resume details / mark reviewed saves only to `generated_resume_drafts`
+- [ ] Approve for Export does not change career inventory or enrichment
+- [ ] Delete generated draft does not remove or alter uploaded resumes
+- [ ] `npm run test:draft-inventory-safety` passes
 
 ## Capitalization
 
