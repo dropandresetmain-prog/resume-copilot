@@ -2,47 +2,38 @@
 
 ## Current milestone
 
-**v0.6.0 — Resume DOCX Export**
+**v0.6.1 — DOCX Export Fidelity Fixes**
 
-Approved generated drafts export to Word (.docx) via a shared `ResumeDocumentModel`. Preview and DOCX both consume the same canonical layout from `buildFinalResumeLayout()` wrapped by `buildResumeDocumentModel()`.
+DOCX export now uses Gill Sans MT, explicit 10pt+ font mapping, borderless tables for alignment, company-descriptor styling, corrected filenames, and no Professional Summary in resume output.
 
-## Product flow (target)
+## Product flow
 
 ```
 Paste JD → Generate Resume → One-page preview → Approve for Export → Download DOCX
 ```
 
-PDF export is next (v0.6.1). Cover letters deferred (v0.7.0). Manual inventory editing deferred.
+PDF export (v0.6.2+) waits on manual DOCX recheck. Cover letters deferred.
 
-## v0.6.0 highlights
+## v0.6.1 highlights
 
-**Shared document model**
-- `buildResumeDocumentModel()` — single source for preview + DOCX (+ future PDF)
-- Wraps `FinalResumeLayout` + layout settings + font metadata + filename
+**Filename:** `<FULL NAME> - Resume_<COMPANY>_<ROLE>.docx`
 
-**DOCX export**
-- `POST /api/export/resume-docx` — auth via `Authorization: Bearer <access_token>`
-- Requires draft status `approved`
-- Generates DOCX with `docx` npm package
-- Uploads to Supabase `generated-documents` bucket: `{userId}/resumes/{draftId}/{fileName}.docx`
-- Returns signed download URL (falls back to direct file response if storage upload fails)
+**Fonts:** Gill Sans MT preferred; every DOCX text run sets font explicitly (no Times New Roman leakage)
 
-**UI**
-- Resume Preview: **Download DOCX** after approve; disabled PDF placeholder
-- Records → Generated Drafts: **Download DOCX** for approved drafts
+**Font sizes:** Preview 11px → DOCX 10pt body; headers +0.5pt max
 
-**Filename**
-- `<FULL NAME> - Resume _<COMPANY> _<ROLE>.docx` or `<FULL NAME> - Resume.docx`
+**Layout:** Borderless two-column tables for work/education left/right rows; company bold, descriptor normal
+
+**Professional Summary:** Not part of resume — schema field stays empty; cover letter future use only
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.5.5 — Header & education rendering | Complete |
-| **v0.6.0 — DOCX export** | **Current** |
-| v0.6.1 — PDF export | Next |
+| v0.6.0 — DOCX export | Complete |
+| **v0.6.1 — DOCX fidelity fixes** | **Current** |
+| v0.6.2 — PDF export (after DOCX recheck) | Next |
 | v0.7.0 — Cover letter generation | Later |
-| Manual inventory editing | Deferred |
 
 ## Run
 

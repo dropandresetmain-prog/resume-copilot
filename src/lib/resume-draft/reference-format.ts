@@ -8,8 +8,7 @@ import {
 const KEYWORD_COLON_PATTERN = /^[^:]{1,40}:\s+/;
 
 /**
- * Font detection from DOCX is not available yet — use Word-style professional default.
- * Filename heuristics may hint serif vs sans in future parser work.
+ * Prefer Gill Sans MT to match common reference resumes; fallback to professional sans-serif stack.
  */
 export function detectResumeFontFamily(_resume: ParsedResume): string {
   void _resume;

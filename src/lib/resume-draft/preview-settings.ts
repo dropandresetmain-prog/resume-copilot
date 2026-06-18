@@ -1,6 +1,6 @@
-/** Default professional sans-serif stack (Word-style resume default). */
+/** Default resume font stack — Gill Sans MT preferred for reference/export parity. */
 export const DEFAULT_RESUME_FONT_FAMILY =
-  'Calibri, "Segoe UI", Aptos, Arial, Helvetica, sans-serif';
+  '"Gill Sans MT", Calibri, Aptos, Arial, Helvetica, sans-serif';
 
 /** Body font size slider — 0.5px steps. */
 export const PREVIEW_BODY_FONT_MIN_PX = 7;

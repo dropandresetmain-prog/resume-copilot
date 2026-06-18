@@ -20,7 +20,7 @@ export type ResumeDocxFileNameInput = {
 };
 
 /**
- * `<FULL NAME> - Resume _<COMPANY> _<ROLE>.docx` or `<FULL NAME> - Resume.docx`
+ * `<FULL NAME> - Resume_<COMPANY>_<ROLE>.docx` or `<FULL NAME> - Resume.docx`
  */
 export function buildResumeDocxFileName(input: ResumeDocxFileNameInput): string {
   const fullName = sanitizeFileNamePart(input.fullName) || "Resume";
@@ -28,7 +28,7 @@ export function buildResumeDocxFileName(input: ResumeDocxFileNameInput): string 
   const role = sanitizeFileNamePart(input.roleTitle);
 
   if (company && role) {
-    return `${fullName} - Resume _${company} _${role}.docx`;
+    return `${fullName} - Resume_${company}_${role}.docx`;
   }
 
   return `${fullName} - Resume.docx`;

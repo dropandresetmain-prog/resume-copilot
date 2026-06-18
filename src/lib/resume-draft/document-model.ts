@@ -69,7 +69,7 @@ function resolveLayoutSettings(
 
 /**
  * Canonical resume document model — single source for preview, DOCX, and future PDF.
- * Built from generated draft content + layout settings; does not mutate inventory.
+ * Resume layout excludes Professional Summary; empty professionalSummary in content is valid.
  */
 export function buildResumeDocumentModel(
   input: BuildResumeDocumentModelInput,

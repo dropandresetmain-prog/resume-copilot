@@ -5,31 +5,37 @@ import {
   LevelFormat,
   Packer,
   Paragraph,
-  Tab,
-  TabStopType,
+  Table,
+  TableCell,
+  TableRow,
   TextRun,
   UnderlineType,
+  WidthType,
   convertMillimetersToTwip,
 } from "docx";
 
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
-import { formatCompanyLine } from "@/lib/resume-draft/layout";
+import { resolveDocxFontSizes } from "@/lib/resume-draft/docx-font";
+import { buildCompanyLineSegments } from "@/lib/resume-draft/docx-layout-helpers";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-const RIGHT_TAB_POSITION = convertMillimetersToTwip(170);
+const NO_BORDER = {
+  style: BorderStyle.NONE,
+  size: 0,
+  color: "FFFFFF",
+};
 
-function cssPxToHalfPoints(px: number): number {
-  return Math.round(px * 0.75 * 2);
-}
+const NO_BORDERS = {
+  top: NO_BORDER,
+  bottom: NO_BORDER,
+  left: NO_BORDER,
+  right: NO_BORDER,
+};
 
 function remToTwip(rem: number): number {
-  return Math.round(rem * 16 * 15);
-}
-
-function resolvePrimaryFontFamily(fontFamily: string): string {
-  return fontFamily.split(",")[0]?.replace(/['"]/g, "").trim() || "Calibri";
+  return Math.round(rem * 12 * 20);
 }
 
 function lineSpacingMultiple(value: number) {
@@ -39,32 +45,83 @@ function lineSpacingMultiple(value: number) {
   };
 }
 
-function sectionSpacingTwip(sectionSpacingRem: number) {
-  return remToTwip(sectionSpacingRem * 0.65);
+function sectionSpacingBefore(sectionSpacingRem: number): number {
+  return remToTwip(sectionSpacingRem * 0.55);
 }
 
-function twoColumnParagraph(
-  leftRuns: TextRun[],
-  rightText: string | undefined,
-  options?: { spacingAfter?: number },
-): Paragraph {
-  const children: Array<TextRun | Tab> = [...leftRuns];
-  if (rightText?.trim()) {
-    children.push(new Tab());
-    children.push(new TextRun({ text: rightText.trim() }));
-  }
-
-  return new Paragraph({
-    tabStops: [{ type: TabStopType.RIGHT, position: RIGHT_TAB_POSITION }],
-    spacing: options?.spacingAfter ? { after: options.spacingAfter } : undefined,
-    children,
+function makeRun(
+  text: string,
+  font: string,
+  sizeHalfPoints: number,
+  options?: {
+    bold?: boolean;
+    italics?: boolean;
+    underline?: boolean;
+  },
+): TextRun {
+  return new TextRun({
+    text,
+    font,
+    size: sizeHalfPoints,
+    bold: options?.bold,
+    italics: options?.italics,
+    underline: options?.underline ? { type: UnderlineType.SINGLE } : undefined,
   });
 }
 
-function sectionHeading(text: string, halfPoints: number, font: string, spacingBefore: number): Paragraph {
+function twoColumnTable(
+  leftRuns: TextRun[],
+  rightText: string | undefined,
+  font: string,
+  sizeHalfPoints: number,
+  options?: { spacingAfter?: number },
+): Table {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: NO_BORDERS,
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 72, type: WidthType.PERCENTAGE },
+            borders: NO_BORDERS,
+            margins: { top: 0, bottom: 0, left: 0, right: 80 },
+            children: [
+              new Paragraph({
+                spacing: options?.spacingAfter ? { after: options.spacingAfter } : { after: 0 },
+                children: leftRuns,
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 28, type: WidthType.PERCENTAGE },
+            borders: NO_BORDERS,
+            margins: { top: 0, bottom: 0, left: 80, right: 0 },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: options?.spacingAfter ? { after: options.spacingAfter } : { after: 0 },
+                children: rightText?.trim()
+                  ? [makeRun(rightText.trim(), font, sizeHalfPoints)]
+                  : [],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+function sectionHeading(
+  text: string,
+  headerHalfPoints: number,
+  font: string,
+  spacingBefore: number,
+): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.LEFT,
-    spacing: { before: spacingBefore, after: 80 },
+    spacing: { before: spacingBefore, after: 60 },
     border: {
       bottom: {
         color: "999999",
@@ -74,12 +131,7 @@ function sectionHeading(text: string, halfPoints: number, font: string, spacingB
       },
     },
     children: [
-      new TextRun({
-        text: text.toUpperCase(),
-        bold: true,
-        size: halfPoints,
-        font,
-      }),
+      makeRun(text.toUpperCase(), font, headerHalfPoints, { bold: true }),
     ],
   });
 }
@@ -87,24 +139,16 @@ function sectionHeading(text: string, halfPoints: number, font: string, spacingB
 function keywordBulletParagraph(
   keyword: string,
   statement: string,
-  halfPoints: number,
+  bodyHalfPoints: number,
   font: string,
+  lineSpacing: number,
 ): Paragraph {
   return new Paragraph({
     numbering: { reference: "resume-bullets", level: 0 },
-    spacing: lineSpacingMultiple(1),
+    spacing: { ...lineSpacingMultiple(lineSpacing), after: 20 },
     children: [
-      new TextRun({
-        text: `${keyword}:`,
-        underline: { type: UnderlineType.SINGLE },
-        size: halfPoints,
-        font,
-      }),
-      new TextRun({
-        text: ` ${statement}`,
-        size: halfPoints,
-        font,
-      }),
+      makeRun(`${keyword}:`, font, bodyHalfPoints, { underline: true }),
+      makeRun(` ${statement}`, font, bodyHalfPoints),
     ],
   });
 }
@@ -113,27 +157,20 @@ function achievementBulletParagraph(
   prefix: string | undefined,
   underlinePrefix: boolean,
   text: string,
-  halfPoints: number,
+  bodyHalfPoints: number,
   font: string,
+  lineSpacing: number,
 ): Paragraph {
-  const children: TextRun[] = [];
-  if (prefix) {
-    children.push(
-      new TextRun({
-        text: prefix,
-        underline: underlinePrefix ? { type: UnderlineType.SINGLE } : undefined,
-        size: halfPoints,
-        font,
-      }),
-    );
-    children.push(new TextRun({ text: ` ${text}`, size: halfPoints, font }));
-  } else {
-    children.push(new TextRun({ text, size: halfPoints, font }));
-  }
+  const children: TextRun[] = prefix
+    ? [
+        makeRun(prefix, font, bodyHalfPoints, { underline: underlinePrefix }),
+        makeRun(` ${text}`, font, bodyHalfPoints),
+      ]
+    : [makeRun(text, font, bodyHalfPoints)];
 
   return new Paragraph({
     numbering: { reference: "resume-bullets", level: 0 },
-    spacing: lineSpacingMultiple(1),
+    spacing: { ...lineSpacingMultiple(lineSpacing), after: 20 },
     children,
   });
 }
@@ -141,150 +178,138 @@ function achievementBulletParagraph(
 function labeledCompactParagraph(
   label: string,
   value: string,
-  halfPoints: number,
+  bodyHalfPoints: number,
   font: string,
+  lineSpacing: number,
 ): Paragraph {
   return new Paragraph({
-    spacing: lineSpacingMultiple(1),
+    spacing: { ...lineSpacingMultiple(lineSpacing), after: 20 },
     children: [
-      new TextRun({
-        text: `${label}:`,
-        underline: { type: UnderlineType.SINGLE },
-        size: halfPoints,
-        font,
-      }),
-      new TextRun({ text: ` ${value}`, size: halfPoints, font }),
+      makeRun(`${label}:`, font, bodyHalfPoints, { underline: true }),
+      makeRun(` ${value}`, font, bodyHalfPoints),
     ],
   });
 }
 
+function companyLineRuns(
+  company: string,
+  companyDescriptor: string | undefined,
+  bodyHalfPoints: number,
+  font: string,
+): TextRun[] {
+  return buildCompanyLineSegments(company, companyDescriptor).map((segment) =>
+    makeRun(segment.text, font, bodyHalfPoints, { bold: segment.bold }),
+  );
+}
+
+type DocxBlock = Paragraph | Table;
+
 /** Generate DOCX bytes from the canonical resume document model. */
 export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Promise<Buffer> {
-  const { layout, layoutSettings, fontSizes } = model;
-  const font = resolvePrimaryFontFamily(model.fontFamily);
-  const bodyHalfPoints = cssPxToHalfPoints(fontSizes.bodyPx);
-  const sectionHalfPoints = cssPxToHalfPoints(fontSizes.sectionPx);
-  const sectionBefore = sectionSpacingTwip(layoutSettings.sectionSpacing);
+  const { layout, layoutSettings } = model;
+  const fonts = resolveDocxFontSizes(layoutSettings.bodyFontPx, model.fontFamily);
+  const { font, bodyHalfPoints, headerHalfPoints } = fonts;
+  const sectionBefore = sectionSpacingBefore(layoutSettings.sectionSpacing);
   const headerAlignment =
     model.headerAlignment === "center" ? AlignmentType.CENTER : AlignmentType.LEFT;
 
-  const children: Paragraph[] = [];
+  const blocks: DocxBlock[] = [];
 
   if (layout.header.fullName) {
-    children.push(
+    blocks.push(
       new Paragraph({
         alignment: headerAlignment,
-        spacing: { after: 60 },
-        children: [
-          new TextRun({
-            text: layout.header.fullName,
-            bold: true,
-            size: sectionHalfPoints,
-            font,
-          }),
-        ],
+        spacing: { after: 40 },
+        children: [makeRun(layout.header.fullName, font, headerHalfPoints, { bold: true })],
       }),
     );
   }
 
   if (layout.header.contactLine) {
-    children.push(
+    blocks.push(
       new Paragraph({
         alignment: headerAlignment,
-        spacing: { after: 120 },
-        children: [
-          new TextRun({
-            text: layout.header.contactLine,
-            size: bodyHalfPoints,
-            font,
-          }),
-        ],
+        spacing: { after: 100 },
+        children: [makeRun(layout.header.contactLine, font, bodyHalfPoints)],
       }),
     );
   }
 
   if (layout.workExperience.length > 0) {
-    children.push(sectionHeading("Work Experience", sectionHalfPoints, font, sectionBefore));
+    blocks.push(sectionHeading("Work Experience", headerHalfPoints, font, sectionBefore));
 
     for (const experience of layout.workExperience) {
-      children.push(
-        twoColumnParagraph(
-          [
-            new TextRun({
-              text: formatCompanyLine(experience.company, experience.companyDescriptor),
-              bold: true,
-              size: bodyHalfPoints,
-              font,
-            }),
-          ],
+      blocks.push(
+        twoColumnTable(
+          companyLineRuns(
+            experience.company,
+            experience.companyDescriptor,
+            bodyHalfPoints,
+            font,
+          ),
           experience.location,
+          font,
+          bodyHalfPoints,
         ),
       );
-      children.push(
-        twoColumnParagraph(
-          [
-            new TextRun({
-              text: experience.role,
-              italics: true,
-              size: bodyHalfPoints,
-              font,
-            }),
-          ],
+      blocks.push(
+        twoColumnTable(
+          [makeRun(experience.role, font, bodyHalfPoints, { italics: true })],
           experience.dateRange,
-          { spacingAfter: 60 },
+          font,
+          bodyHalfPoints,
+          { spacingAfter: 40 },
         ),
       );
 
       for (const bullet of experience.bullets) {
-        children.push(
-          keywordBulletParagraph(bullet.keyword, bullet.statement, bodyHalfPoints, font),
+        blocks.push(
+          keywordBulletParagraph(
+            bullet.keyword,
+            bullet.statement,
+            bodyHalfPoints,
+            font,
+            layoutSettings.lineSpacing,
+          ),
         );
       }
     }
   }
 
   if (layout.education.length > 0) {
-    children.push(sectionHeading("Education", sectionHalfPoints, font, sectionBefore));
+    blocks.push(sectionHeading("Education", headerHalfPoints, font, sectionBefore));
 
     for (const education of layout.education) {
-      children.push(
-        twoColumnParagraph(
-          [
-            new TextRun({
-              text: education.institutionLine,
-              bold: true,
-              size: bodyHalfPoints,
-              font,
-            }),
-          ],
+      blocks.push(
+        twoColumnTable(
+          [makeRun(education.institutionLine, font, bodyHalfPoints, { bold: true })],
           education.location,
+          font,
+          bodyHalfPoints,
         ),
       );
 
       for (const degree of education.degreeLines) {
-        children.push(
-          twoColumnParagraph(
-            [
-              new TextRun({
-                text: degree.text,
-                italics: true,
-                size: bodyHalfPoints,
-                font,
-              }),
-            ],
+        blocks.push(
+          twoColumnTable(
+            [makeRun(degree.text, font, bodyHalfPoints, { italics: true })],
             degree.dateRange,
+            font,
+            bodyHalfPoints,
+            { spacingAfter: 20 },
           ),
         );
       }
 
       for (const bullet of education.achievementBullets) {
-        children.push(
+        blocks.push(
           achievementBulletParagraph(
             bullet.prefix,
             bullet.underlinePrefix,
             bullet.text,
             bodyHalfPoints,
             font,
+            layoutSettings.lineSpacing,
           ),
         );
       }
@@ -292,17 +317,11 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
   }
 
   if (layout.additionalExperienceLine) {
-    children.push(sectionHeading("Additional Experience", sectionHalfPoints, font, sectionBefore));
-    children.push(
+    blocks.push(sectionHeading("Additional Experience", headerHalfPoints, font, sectionBefore));
+    blocks.push(
       new Paragraph({
-        spacing: lineSpacingMultiple(layoutSettings.lineSpacing),
-        children: [
-          new TextRun({
-            text: layout.additionalExperienceLine,
-            size: bodyHalfPoints,
-            font,
-          }),
-        ],
+        spacing: { ...lineSpacingMultiple(layoutSettings.lineSpacing), after: 40 },
+        children: [makeRun(layout.additionalExperienceLine, font, bodyHalfPoints)],
       }),
     );
   }
@@ -313,27 +332,68 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
     layout.languagesLine ||
     layout.interestsLine
   ) {
-    children.push(sectionHeading("Skills & Interests", sectionHalfPoints, font, sectionBefore));
+    blocks.push(sectionHeading("Skills & Interests", headerHalfPoints, font, sectionBefore));
 
     if (layout.techLine) {
-      children.push(labeledCompactParagraph("Tech", layout.techLine, bodyHalfPoints, font));
+      blocks.push(
+        labeledCompactParagraph(
+          "Tech",
+          layout.techLine,
+          bodyHalfPoints,
+          font,
+          layoutSettings.lineSpacing,
+        ),
+      );
     }
     if (layout.skillsLine) {
-      children.push(labeledCompactParagraph("Skills", layout.skillsLine, bodyHalfPoints, font));
+      blocks.push(
+        labeledCompactParagraph(
+          "Skills",
+          layout.skillsLine,
+          bodyHalfPoints,
+          font,
+          layoutSettings.lineSpacing,
+        ),
+      );
     }
     if (layout.languagesLine) {
-      children.push(
-        labeledCompactParagraph("Languages", layout.languagesLine, bodyHalfPoints, font),
+      blocks.push(
+        labeledCompactParagraph(
+          "Languages",
+          layout.languagesLine,
+          bodyHalfPoints,
+          font,
+          layoutSettings.lineSpacing,
+        ),
       );
     }
     if (layout.interestsLine) {
-      children.push(
-        labeledCompactParagraph("Interests", layout.interestsLine, bodyHalfPoints, font),
+      blocks.push(
+        labeledCompactParagraph(
+          "Interests",
+          layout.interestsLine,
+          bodyHalfPoints,
+          font,
+          layoutSettings.lineSpacing,
+        ),
       );
     }
   }
 
   const document = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font,
+            size: bodyHalfPoints,
+          },
+          paragraph: {
+            spacing: { after: 0, line: lineSpacingMultiple(layoutSettings.lineSpacing).line },
+          },
+        },
+      },
+    },
     numbering: {
       config: [
         {
@@ -345,8 +405,16 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
               text: "•",
               alignment: AlignmentType.LEFT,
               style: {
+                run: {
+                  font,
+                  size: bodyHalfPoints,
+                },
                 paragraph: {
-                  indent: { left: convertMillimetersToTwip(5), hanging: convertMillimetersToTwip(2) },
+                  indent: {
+                    left: convertMillimetersToTwip(4),
+                    hanging: convertMillimetersToTwip(2),
+                  },
+                  spacing: lineSpacingMultiple(layoutSettings.lineSpacing),
                 },
               },
             },
@@ -370,7 +438,7 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
             },
           },
         },
-        children,
+        children: blocks,
       },
     ],
   });
@@ -378,4 +446,4 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
   return Buffer.from(await Packer.toBuffer(document));
 }
 
-export { DOCX_MIME };
+export { DOCX_MIME, companyLineRuns, twoColumnTable };

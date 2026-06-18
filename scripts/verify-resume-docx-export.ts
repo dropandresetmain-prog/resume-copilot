@@ -6,7 +6,23 @@ import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../src/lib/resume-draft/payload";
 import { buildResumeDocumentModel } from "../src/lib/resume-draft/document-model";
-import { generateResumeDocxBuffer } from "../src/lib/resume-draft/docx-export";
+import {
+  companyLineRuns,
+  generateResumeDocxBuffer,
+} from "../src/lib/resume-draft/docx-export";
+import {
+  DOCX_BODY_FONT_MIN_PT,
+  PREFERRED_RESUME_DOCX_FONT,
+  mapPreviewBodyPxToDocxHalfPoints,
+  mapPreviewBodyPxToDocxPt,
+  mapPreviewHeaderPxToDocxHalfPoints,
+  resolveDocxFontFamily,
+  resolveDocxFontSizes,
+} from "../src/lib/resume-draft/docx-font";
+import {
+  buildCompanyLineSegments,
+  DOCX_TWO_COLUMN_LAYOUT,
+} from "../src/lib/resume-draft/docx-layout-helpers";
 import {
   buildResumeDocxFileName,
   buildResumeDocxStoragePath,
@@ -17,6 +33,8 @@ import {
   parseResumeDocxExportRequestBody,
 } from "../src/lib/resume-draft/export-request";
 import { layoutIncludesProfessionalSummary } from "../src/lib/resume-draft/layout";
+import { mapResumeDraftPayload } from "../src/lib/resume-draft/parse";
+import { PREVIEW_BODY_FONT_DEFAULT_PX } from "../src/lib/resume-draft/preview-settings";
 import type { ResumeDraftEducationItem } from "../src/types/resume-draft";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
@@ -120,6 +138,7 @@ async function main() {
   const contentWithEducation = {
     ...mockDraft.content,
     education: [ntuEducation],
+    professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
   };
 
   const documentModel = buildResumeDocumentModel({
@@ -133,6 +152,9 @@ async function main() {
 
   const docxBuffer = await generateResumeDocxBuffer(documentModel);
   const exportRoutePath = join(process.cwd(), "src/app/api/export/resume-docx/route.ts");
+  const docxFonts = resolveDocxFontSizes(PREVIEW_BODY_FONT_DEFAULT_PX);
+  const companySegments = buildCompanyLineSegments("Acme", "Global fintech");
+  const companyRuns = companyLineRuns("Acme", "Global fintech", docxFonts.bodyHalfPoints, docxFonts.font);
 
   let requestValidationThrows = false;
   try {
@@ -146,6 +168,19 @@ async function main() {
     layoutSettings: { bodyFontPx: 11, marginMm: 12 },
   });
 
+  const payloadWithoutSummary = mapResumeDraftPayload(
+    JSON.parse(`{
+      "schemaVersion": 1,
+      "header": { "includeHeader": true },
+      "skills": { "groups": [{ "label": "Skills", "items": ["SQL"] }], "jdAlignment": [], "riskFlags": [] },
+      "experience": [{ "company": "Acme", "role": "PM", "bullets": [], "riskFlags": [] }],
+      "education": [],
+      "additionalExperience": [],
+      "globalRiskFlags": [],
+      "rationale": { "overall": "ok", "omissions": [], "keywordUsage": [] }
+    }`),
+  );
+
   const checks: [string, boolean][] = [
     [
       "filename convention with company and role",
@@ -153,7 +188,7 @@ async function main() {
         fullName: "Hset Min Htet",
         companyName: "Pave Bank",
         roleTitle: "Product Manager",
-      }) === "Hset Min Htet - Resume _Pave Bank _Product Manager.docx",
+      }) === "Hset Min Htet - Resume_Pave Bank_Product Manager.docx",
     ],
     [
       "filename fallback without company role",
@@ -189,11 +224,37 @@ async function main() {
         documentModel.layout.interestsLine.length > 0,
     ],
     ["no professional summary in model", !layoutIncludesProfessionalSummary(contentWithEducation)],
+    [
+      "parse accepts missing professional summary",
+      payloadWithoutSummary.content.professionalSummary.text === "",
+    ],
     ["approved status helper", isApprovedDraftStatus("approved")],
     ["export request requires draftId", requestValidationThrows],
     ["export request parses layout settings", parsedRequest.draftId === "draft-1"],
     ["docx buffer generated", docxBuffer.byteLength > 500],
     ["export route file exists", existsSync(exportRoutePath)],
+    ["default docx body font >= 10pt", mapPreviewBodyPxToDocxPt(11) >= DOCX_BODY_FONT_MIN_PT],
+    [
+      "preview 11px maps to 10pt body",
+      mapPreviewBodyPxToDocxPt(PREVIEW_BODY_FONT_DEFAULT_PX) === 10,
+    ],
+    [
+      "header one step above body in docx",
+      mapPreviewHeaderPxToDocxHalfPoints(11) === mapPreviewBodyPxToDocxHalfPoints(11) + 1,
+    ],
+    [
+      "preferred docx font is Gill Sans MT",
+      resolveDocxFontFamily('"Gill Sans MT", Calibri') === PREFERRED_RESUME_DOCX_FONT,
+    ],
+    [
+      "company descriptor not bold",
+      companySegments.length === 2 &&
+        companySegments[0]?.bold === true &&
+        companySegments[1]?.bold === false,
+    ],
+    ["docx uses borderless table layout", DOCX_TWO_COLUMN_LAYOUT === "borderless-table"],
+    ["company runs include explicit font", companyRuns.length >= 2],
+    ["canonical layout excludes summary section", !layoutIncludesProfessionalSummary(contentWithEducation)],
   ];
 
   for (const [name, ok] of checks) {

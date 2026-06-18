@@ -1,6 +1,14 @@
 # Known Issues
 
-## DOCX export (v0.6.0)
+## DOCX export (v0.6.1)
+
+- DOCX uses Gill Sans MT (explicit on all runs); Word may substitute if font not installed.
+- Preview 11px maps to DOCX 10pt body — not pixel-identical to browser preview.
+- Borderless tables align left/right rows; minor Word vs browser differences may remain.
+- Professional Summary is excluded from resume preview/export (cover letter future).
+- **PDF strategy:** Validate DOCX fidelity manually first. If acceptable, PDF may be generated from DOCX or parallel canonical model; if DOCX remains unstable, consider direct HTML/PDF from layout model. PDF not implemented yet.
+
+## DOCX export (v0.6.0 baseline)
 
 - DOCX uses the shared `ResumeDocumentModel` but Word rendering may differ slightly from browser preview (tab alignment, exact line breaks, font metrics).
 - Font family is first fallback from reference profile (usually Calibri) — DOCX font detection from uploaded resumes not implemented.

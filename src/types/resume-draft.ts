@@ -76,6 +76,7 @@ export type ResumeDraftContent = {
   schemaVersion: typeof RESUME_DRAFT_SCHEMA_VERSION;
   targetRoleTitle?: string;
   header: ResumeDraftHeader;
+  /** Legacy schema field — always empty for resumes; cover letter use only (future). */
   professionalSummary: ResumeDraftProfessionalSummary;
   skills: ResumeDraftSkillsSection;
   experience: ResumeDraftExperienceSection[];

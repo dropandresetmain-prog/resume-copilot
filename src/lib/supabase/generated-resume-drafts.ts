@@ -18,8 +18,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
 function parseResumeDraftContent(value: unknown): ResumeDraftContent | null {
   if (!isObject(value)) return null;
   if (value.schemaVersion !== RESUME_DRAFT_SCHEMA_VERSION) return null;
-  if (!isObject(value.professionalSummary)) return null;
-  return value as unknown as ResumeDraftContent;
+  if (!isObject(value.header)) return null;
+
+  const raw = value as Record<string, unknown>;
+  if (!isObject(raw.professionalSummary)) {
+    raw.professionalSummary = { text: "", jdAlignment: [], riskFlags: [] };
+  }
+
+  return raw as unknown as ResumeDraftContent;
 }
 
 function parseResumeDraftRationale(value: unknown): ResumeDraftRationale | undefined {

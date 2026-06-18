@@ -312,7 +312,7 @@ function main() {
     ["overflow content test id exported", RESUME_OVERFLOW_VISIBLE_TEST_ID === "resume-overflow-visible"],
     ["a4 boundary test id exported", A4_PAGE_BOUNDARY_TEST_ID === "a4-page-boundary"],
     ["reference font fallback", referenceFont === DEFAULT_RESUME_FONT_FAMILY],
-    ["format profile includes font family", Boolean(formatProfile.fontFamily?.includes("Calibri"))],
+    ["format profile includes font family", Boolean(formatProfile.fontFamily?.includes("Gill Sans MT"))],
     ["smaller font increases max lines", tightPageFit.maxLinesOnePage > loosePageFit.maxLinesOnePage],
     ["page fit includes overflow lines", typeof tightPageFit.overflowLines === "number"],
     ["page fit reacts to body font size", computeMaxLinesOnePage({
