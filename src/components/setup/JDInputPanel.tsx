@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { EmptyState, SetupCard, formFieldClassName, labelClassName, primaryButtonClassName, secondaryButtonClassName, destructiveButtonClassName } from "@/components/setup/ui";
+import {
+  extractJobMetadataFromText,
+  mergeExtractedJobMetadata,
+} from "@/lib/jd/extract-metadata";
 import { findDuplicateJobDescription } from "@/lib/jd/persistence";
+import { formatSavedJobLabel } from "@/lib/jd/labels";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 
 type JDInputPanelProps = {
@@ -26,16 +31,6 @@ const EMPTY_FORM: JobDescriptionInput = {
   jobUrl: "",
 };
 
-function formatLabel(jd: StoredJobDescription): string {
-  if (jd.roleTitle && jd.companyName) {
-    return `${jd.roleTitle} · ${jd.companyName}`;
-  }
-  if (jd.roleTitle) return jd.roleTitle;
-  if (jd.companyName) return jd.companyName;
-  const preview = jd.rawText.trim().split(/\s+/).slice(0, 8).join(" ");
-  return preview.length > 60 ? `${preview.slice(0, 60)}…` : preview || "Untitled JD";
-}
-
 export function JDInputPanel({
   jobDescriptions,
   onSave,
@@ -50,12 +45,39 @@ export function JDInputPanel({
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const companyTouchedRef = useRef(false);
+  const roleTouchedRef = useRef(false);
 
   function updateField<K extends keyof JobDescriptionInput>(
     field: K,
     value: JobDescriptionInput[K],
   ) {
+    if (field === "companyName") companyTouchedRef.current = true;
+    if (field === "roleTitle") roleTouchedRef.current = true;
     setForm((current) => ({ ...current, [field]: value }));
+    if (validationError) setValidationError(null);
+    if (duplicateWarning) setDuplicateWarning(null);
+    if (saveError) setSaveError(null);
+  }
+
+  function applyExtractedMetadata(rawText: string, current: JobDescriptionInput): JobDescriptionInput {
+    const extracted = extractJobMetadataFromText(rawText);
+    return mergeExtractedJobMetadata(
+      {
+        ...current,
+        rawText,
+        companyName: companyTouchedRef.current ? current.companyName : current.companyName,
+        roleTitle: roleTouchedRef.current ? current.roleTitle : current.roleTitle,
+      },
+      {
+        companyName: companyTouchedRef.current ? undefined : extracted.companyName,
+        roleTitle: roleTouchedRef.current ? undefined : extracted.roleTitle,
+      },
+    );
+  }
+
+  function handleRawTextChange(rawText: string) {
+    setForm((current) => applyExtractedMetadata(rawText, current));
     if (validationError) setValidationError(null);
     if (duplicateWarning) setDuplicateWarning(null);
     if (saveError) setSaveError(null);
@@ -67,6 +89,8 @@ export function JDInputPanel({
     setValidationError(null);
     setDuplicateWarning(null);
     setSaveError(null);
+    companyTouchedRef.current = false;
+    roleTouchedRef.current = false;
   }
 
   function handleEdit(jd: StoredJobDescription) {
@@ -77,6 +101,8 @@ export function JDInputPanel({
       roleTitle: jd.roleTitle ?? "",
       jobUrl: jd.jobUrl ?? "",
     });
+    companyTouchedRef.current = Boolean(jd.companyName?.trim());
+    roleTouchedRef.current = Boolean(jd.roleTitle?.trim());
     setValidationError(null);
     setDuplicateWarning(null);
     setSaveError(null);
@@ -98,12 +124,10 @@ export function JDInputPanel({
     let allowDuplicate = false;
     if (duplicate) {
       const proceed = window.confirm(
-        `A similar saved job description already exists (${formatLabel(duplicate)}). Save anyway?`,
+        `A similar saved job already exists (${formatSavedJobLabel(duplicate)}). Save anyway?`,
       );
       if (!proceed) {
-        setDuplicateWarning(
-          "Save cancelled. A matching saved job description already exists.",
-        );
+        setDuplicateWarning("Save cancelled. A matching saved job already exists.");
         return;
       }
       allowDuplicate = true;
@@ -115,7 +139,7 @@ export function JDInputPanel({
       await onSave(form, editingId, allowDuplicate ? { allowDuplicate: true } : undefined);
       if (duplicate) {
         setDuplicateWarning(
-          `Saved with duplicate notice: similar to "${formatLabel(duplicate)}".`,
+          `Saved with duplicate notice: similar to "${formatSavedJobLabel(duplicate)}".`,
         );
       }
       clearForm();
@@ -130,7 +154,7 @@ export function JDInputPanel({
 
   async function handleDelete(id: string) {
     if (disabled) return;
-    const confirmed = window.confirm("Delete this saved job description?");
+    const confirmed = window.confirm("Delete this saved job?");
     if (!confirmed) return;
     if (editingId === id) {
       clearForm();
@@ -147,7 +171,7 @@ export function JDInputPanel({
   return (
     <SetupCard
       title="Job description intake"
-      description="Paste a job description and optional metadata. Raw pasted text is the source of truth. Saved job descriptions sync through Supabase. No matching or generation yet."
+      description="Paste a job description and optional metadata. Raw pasted text is the source of truth. Saved jobs sync through Supabase."
     >
       {disabled && disabledReason ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -163,7 +187,7 @@ export function JDInputPanel({
           <textarea
             id="jd-raw-text"
             value={form.rawText}
-            onChange={(event) => updateField("rawText", event.target.value)}
+            onChange={(event) => handleRawTextChange(event.target.value)}
             rows={10}
             disabled={disabled}
             placeholder="Paste the full job description here…"
@@ -239,7 +263,7 @@ export function JDInputPanel({
             {isSaving
               ? "Saving…"
               : editingId
-                ? "Update saved JD"
+                ? "Update saved job"
                 : "Save job description"}
           </button>
           <button
@@ -256,7 +280,7 @@ export function JDInputPanel({
       <div className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-slate-900">
-            Saved job descriptions ({jobDescriptions.length})
+            Saved Jobs ({jobDescriptions.length})
           </h3>
           <button
             type="button"
@@ -264,14 +288,14 @@ export function JDInputPanel({
             disabled={jobDescriptions.length === 0 || disabled}
             className={destructiveButtonClassName}
           >
-            Clear saved job descriptions
+            Clear saved jobs
           </button>
         </div>
 
         {jobDescriptions.length === 0 ? (
           <div className="mt-3">
             <EmptyState
-              title="No saved job descriptions"
+              title="No saved jobs"
               description="Sign in and paste a job description above to save it to Supabase."
             />
           </div>
@@ -288,7 +312,7 @@ export function JDInputPanel({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900">{formatLabel(jd)}</p>
+                    <p className="font-medium text-slate-900">{formatSavedJobLabel(jd)}</p>
                     <p className="mt-1 text-xs text-slate-500">
                       Created {new Date(jd.createdAt).toLocaleString()} · Updated{" "}
                       {new Date(jd.updatedAt).toLocaleString()}

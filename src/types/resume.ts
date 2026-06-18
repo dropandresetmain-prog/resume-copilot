@@ -71,10 +71,21 @@ export type ParsedSkillsSection = {
   parseWarnings: string[];
 };
 
+export type ParsedProfileContact = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  rawText: string;
+  parseWarnings: string[];
+};
+
 export type ParsedResume = {
   id: string;
   filename: string;
   uploadedAt: string;
+  profile?: ParsedProfileContact;
   workExperiences: ParsedExperience[];
   education: ParsedEducationItem[];
   additionalExperience: ParsedTextSection;

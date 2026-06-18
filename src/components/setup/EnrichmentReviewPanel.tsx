@@ -616,7 +616,7 @@ export function EnrichmentReviewPanel({
           disabled={!hasBullets || isEnriching}
           className="rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isEnriching ? "Enriching…" : "Enrich missing items only"}
+          {isEnriching ? "Enriching…" : "Enrich new/changed items only"}
         </button>
         <button
           type="button"
@@ -624,7 +624,7 @@ export function EnrichmentReviewPanel({
           disabled={!hasBullets || isEnriching}
           className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Re-run full enrichment
+          Re-run full enrichment (advanced)
         </button>
         <button
           type="button"
@@ -682,8 +682,8 @@ export function EnrichmentReviewPanel({
       </p>
 
       <p className="mt-2 text-sm text-zinc-600">
-        Default enrichment skips bullets you already reviewed. Full re-run may create
-        new suggestions for the entire inventory — use only when you want a fresh pass.
+        Default enrichment skips unchanged items you already reviewed or enriched.
+        Full re-run is advanced and may create new suggestions for the entire inventory.
       </p>
 
       <ProviderConfigDisplay

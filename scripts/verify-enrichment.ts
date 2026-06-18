@@ -21,9 +21,11 @@ import {
   mergeTestBatchIntoMain,
   migrateEnrichmentSuggestions,
   resolveSuggestionResolution,
+  shouldSkipBulletForEnrichment,
   updateSuggestionStatus,
   upsertKeywordBankItem,
 } from "../src/lib/enrichment/state";
+import { hashEnrichmentSourceText } from "../src/lib/enrichment/source-hash";
 import {
   createExportPayload,
   enrichInventory,
@@ -187,7 +189,19 @@ Product Manager                                                                 
     ),
   };
   const remerged = mergeEnrichmentResult(reviewedState, apiResponse);
-  const incrementalInput = filterIncrementalEnrichmentInput(input, reviewedState);
+  const reviewedWithHashes = {
+    ...reviewedState,
+    enrichedBulletHashes: Object.fromEntries(
+      input.bullets.map((bullet) => [
+        bullet.bulletKey,
+        hashEnrichmentSourceText(bullet.description),
+      ]),
+    ),
+  };
+  const incrementalInput = filterIncrementalEnrichmentInput(input, reviewedWithHashes);
+  const skipUnchanged = input.bullets.some((bullet) =>
+    shouldSkipBulletForEnrichment(bullet, reviewedWithHashes),
+  );
   const stats = getEnrichmentReviewStats(reviewedState);
   const duplicateKeywordBank = upsertKeywordBankItem(
     reviewedState.keywordBank,
@@ -344,8 +358,8 @@ Product Manager                                                                 
         : true,
     ],
     [
-      "incremental input skips reviewed bullets",
-      incrementalInput.bullets.length < input.bullets.length,
+      "incremental input skips unchanged reviewed bullets",
+      skipUnchanged && incrementalInput.bullets.length < input.bullets.length,
     ],
     [
       "merge does not duplicate reviewed suggestions",

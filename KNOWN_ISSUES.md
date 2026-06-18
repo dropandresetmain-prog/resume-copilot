@@ -1,5 +1,18 @@
 # Known Issues
 
+## Profile backfill (v0.4.3)
+
+- Legacy inventories parsed before v0.4.2 may lack `profile` on `ParsedResume`.
+- Use **Backfill profile/contact from existing resumes** on `/setup` — not automatic on load.
+- Backfill only reads preserved unparsed/preamble text; it does not re-upload or re-parse DOCX files.
+- If backfill cannot confidently extract contact info, it skips that resume.
+
+## Enrichment review (v0.4.2)
+
+- Default **Enrich new/changed items only** skips bullets with unchanged source text that were already enriched or reviewed (`enrichedBulletHashes`).
+- **Re-run full enrichment (advanced)** requires confirmation.
+- Changing bullet text creates a new enrichment key and re-opens the bullet for enrichment.
+
 ## Enrichment review (v0.4.1)
 
 - Default **Enrich missing items only** skips bullets with any reviewed suggestion.
@@ -11,7 +24,7 @@
 ## Generated resume drafts (4A)
 
 - Drafts are **derived artifacts** stored in `generated_resume_drafts`; source inventory is not modified.
-- Generation uses inventory + approved keywords + saved JD + reference resume.
+- Generation uses inventory + approved keywords + saved job + reference resume.
 - Draft review, regeneration, and export are not implemented yet.
 - Run `supabase db push` so `supabase/migrations/20260619_add_resume_draft_metadata.sql` is applied on existing Supabase projects.
 

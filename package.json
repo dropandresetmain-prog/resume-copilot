@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,9 @@
     "test:files": "tsx scripts/verify-files.ts",
     "test:supabase": "tsx scripts/verify-supabase.ts",
     "test:resume-draft": "tsx scripts/verify-resume-draft.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft"
+    "test:profile-contact": "tsx scripts/verify-profile-contact.ts",
+    "test:profile-backfill": "tsx scripts/verify-profile-backfill.ts",
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

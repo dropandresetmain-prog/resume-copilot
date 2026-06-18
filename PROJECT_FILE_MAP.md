@@ -18,7 +18,7 @@
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
 | `src/components/setup/ResumeDraftPanel.tsx` | Generate resume draft (4A) |
-| `src/components/setup/JDInputPanel.tsx` | Job description intake and saved JD list |
+| `src/components/setup/JDInputPanel.tsx` | Job description intake and Saved Jobs list |
 | `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
 | `src/components/setup/ResumeList.tsx` | Uploaded resume management |
@@ -91,7 +91,11 @@
 | `src/lib/enrichment/payload.ts` | Collated inventory → AI input |
 | `src/lib/enrichment/prompt.ts` | AI prompt instructions |
 | `src/lib/enrichment/normalize.ts` | Legacy enrichment field migration |
-| `src/lib/enrichment/client.ts` | Browser client for enrichment API |
+| `src/lib/parser/profile-contact.ts` | Resume profile/contact parsing from preamble |
+| `src/lib/jd/labels.ts` | Saved job display label (`Company — Role`) |
+| `src/lib/jd/extract-metadata.ts` | Heuristic company/role extraction from pasted JD |
+| `src/lib/inventory/backfill-profile-contact.ts` | Safe profile/contact backfill for legacy inventories |
+| `src/components/setup/ProfileContactBackfillPanel.tsx` | Manual backfill UI (v0.4.3) |
 
 ## AI resume draft (4A)
 

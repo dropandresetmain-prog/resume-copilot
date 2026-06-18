@@ -2,76 +2,53 @@
 
 ## Current milestone
 
-**v0.4.1 — Auth + Enrichment Review Hardening**
+**v0.4.3 — Profile Contact Backfill**
 
-Magic link sign-in is visible on mobile. Enrichment duplicate review shows existing vs AI wording with explicit resolution actions. Default enrichment is incremental; full re-run requires confirmation.
+Safe one-time backfill adds missing `profile` (`ParsedProfileContact`) to existing saved inventories using preserved unparsed/preamble text only. Does not re-parse resumes or touch cleaned experience data.
 
-**v0.4.0 / 4A** (resume draft generation) remains complete. **4B not started.**
+**4B not started.**
 
-## Completed in v0.4.1
+## Completed in v0.4.3
 
-- AuthPanel: always-visible Password / Magic link / Sign up tabs
-- Duplicate/similar enrichment: side-by-side comparison, Keep existing / Use AI suggestion / Reject / Ignore
-- Incremental enrichment default (`Enrich missing items only`)
-- Full re-run with confirmation dialog
-- Merge dedupes reviewed suggestions and duplicate groups client-side
-- `resolveSuggestionResolution` stores derived `acceptedWording` without mutating parsed resumes
+- `backfillProfileContactForInventory()` in `src/lib/inventory/backfill-profile-contact.ts`
+- Setup UI: **Backfill profile/contact from existing resumes** (manual action, not on load)
+- Saves to Supabase only when changed and signed in
 
-## Storage model
+## Completed earlier
 
-| Layer | What |
-|-------|------|
-| Supabase Postgres | Inventory JSON, JDs, generated resume drafts |
-| Supabase Storage | Original resume files |
-| In-memory | Session-only when signed out |
+- v0.4.2 — Profile parsing, Saved Jobs UX, enrichment stability
+- v0.4.1 — Auth + enrichment review hardening
+- v0.4.0 / 4A — AI resume draft generation
 
-## Known risks
+## Backfill behavior
 
-- Manual merge/edit for enrichment suggestions is deferred (see KNOWN_ISSUES.md).
-- Incremental enrichment skips entire bullets with any reviewed suggestion — not per-issue-type yet.
-- Resume draft API is not session-authenticated (same as enrichment API).
-- Run `supabase db push` (or apply `supabase/migrations/20260619_add_resume_draft_metadata.sql`) on existing Supabase projects if not done.
+Sources (conservative):
 
-## What not to change
+- Unparsed `Document preamble` sections
+- Unparsed sections whose title looks like a person name (e.g. `HSET MIN HTET`)
 
-- Do not mutate `resume_inventories` parsed resume text from enrichment or draft generation.
-- No service role key in frontend.
+Skips when:
 
-## Next milestones
+- `resume.profile.fullName` already exists
+- No confident profile from preserved text
 
-1. **4B — Resume Draft Review UI**
-2. **4C — Draft Management**
-3. **3D — Application Records**
+Mutates only per resume:
+
+- `profile` (add)
+- `unparsedSections` (remove matched header section only)
+- `parseWarnings` (remove matched preamble/unknown-section warnings)
+
+Never mutates: experiences, education, skills, enrichment, keyword bank.
 
 ## Project SOPs
 
-### Migration and artifact naming
-
-Supabase CLI requires migration filenames to match:
-
-`<timestamp>_human_readable_name.sql`
-
-Example: `20260619_add_resume_draft_metadata.sql`
-
-Use names that describe the business or technical change. Milestone labels (4A, 3C, etc.) belong in planning docs — not in filenames.
-
-**Do**
-
-- `20260619_add_resume_draft_metadata.sql`
-- `20260620_add_application_records_status_fields.sql`
-
-**Do not**
-
-- `004a_resume_draft_extensions.sql` (internal milestone shorthand; ignored by `supabase db push`)
-- `m4a.sql`
-- `phase_3c_patch.sql`
+Migration filenames must match Supabase CLI format: `<timestamp>_human_readable_name.sql`
 
 ## Run
 
 ```bash
-cp .env.example .env.local
 npm run dev
 npm run test
 ```
 
-Set `AI_PROVIDER=mock` for local enrichment and draft generation without Gemini.
+After deploying, open `/setup`, sign in, click **Backfill profile/contact from existing resumes** once if your cloud inventory predates v0.4.2.

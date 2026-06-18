@@ -23,6 +23,7 @@ import type {
   InventoryState,
   ParsedEducationItem,
   ParsedExperience,
+  ParsedProfileContact,
   ParsedResume,
   PersistedInventory,
 } from "@/types/resume";
@@ -261,6 +262,25 @@ function migrateUnparsedSections(value: unknown): ParsedResume["unparsedSections
   if (!Array.isArray(value)) return [];
   return value.filter(isParsedUnparsedSection) as ParsedResume["unparsedSections"];
 }
+
+function migrateProfileContact(value: unknown): ParsedProfileContact | undefined {
+  if (!isObject(value)) return undefined;
+  const rawText = typeof value.rawText === "string" ? value.rawText : "";
+  if (!rawText.trim()) return undefined;
+
+  return {
+    fullName: typeof value.fullName === "string" ? value.fullName : undefined,
+    email: typeof value.email === "string" ? value.email : undefined,
+    phone: typeof value.phone === "string" ? value.phone : undefined,
+    location: typeof value.location === "string" ? value.location : undefined,
+    linkedin: typeof value.linkedin === "string" ? value.linkedin : undefined,
+    rawText,
+    parseWarnings: Array.isArray(value.parseWarnings)
+      ? value.parseWarnings.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
 function isParsedEducationItem(value: unknown): boolean {
   const migrated = migrateEducationItem(value);
   return migrated !== null;
@@ -331,6 +351,13 @@ function migrateEnrichmentState(value: unknown): EnrichmentState {
       typeof value.providerLabel === "string" ? value.providerLabel : undefined,
     lastRunMetadata: migrateRunMetadata(value.lastRunMetadata),
     testBatch: migrateTestBatch(value.testBatch),
+    enrichedBulletHashes: isObject(value.enrichedBulletHashes)
+      ? (Object.fromEntries(
+          Object.entries(value.enrichedBulletHashes).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        ) as Record<string, string>)
+      : undefined,
   };
 }
 
@@ -367,6 +394,7 @@ function normalizeResume(value: unknown): ParsedResume | null {
 
   return enrichResume({
     ...(value as ParsedResume),
+    profile: migrateProfileContact(value.profile),
     education,
     additionalExperience: migrateTextSection(value.additionalExperience),
     skills: migrateSkillsSection(value.skills),

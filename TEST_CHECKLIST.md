@@ -1,3 +1,41 @@
+# Test Checklist — v0.4.3 Profile Contact Backfill
+
+## Manual backfill
+
+- [ ] Sign in with legacy inventory (parsed before v0.4.2, missing `profile`)
+- [ ] Confirm experiences / enrichment / keyword bank unchanged before backfill
+- [ ] Click **Backfill profile/contact from existing resumes**
+- [ ] Summary shows profiles added and filenames updated
+- [ ] Inventory saves to Supabase when changed
+- [ ] Re-run backfill — skipped (already had profile)
+- [ ] Experiences and enrichment still unchanged
+
+---
+
+# Test Checklist — v0.4.2 Profile + Saved Jobs + Enrichment Stability
+
+## Profile / contact parsing
+
+- [ ] Upload resume with name header + email/phone before `WORK EXPERIENCE`
+- [ ] Parsed profile includes `fullName`, `email`, `phone`
+- [ ] Name line is not an unknown unparsed section
+- [ ] No preamble warning when profile is confidently detected
+
+## Saved Jobs UX
+
+- [ ] UI says **Saved Jobs** (not “Saved JD”)
+- [ ] List items display as `Company — Role`
+- [ ] Paste JD with blank company/role — heuristics may pre-fill empty fields only
+- [ ] Manually entered company/role are not overwritten on paste edits
+
+## Enrichment stability
+
+- [ ] Default: **Enrich new/changed items only**
+- [ ] Re-run on unchanged reviewed bullets does not duplicate suggestions
+- [ ] **Re-run full enrichment (advanced)** shows confirmation
+
+---
+
 # Test Checklist — v0.4.1 Auth + Enrichment Hardening
 
 ## Auth (mobile)
@@ -17,7 +55,7 @@
 
 ## Enrichment rerun
 
-- [ ] Default button is **Enrich missing items only**
+- [ ] Default button is **Enrich new/changed items only**
 - [ ] **Re-run full enrichment** shows confirmation dialog
 - [ ] Re-running does not duplicate approved keywords or reviewed suggestions
 - [ ] Review counts display (approved, pending, ignored, rejected)
@@ -25,7 +63,7 @@
 ## Resume draft generation (4A)
 
 - [ ] Run `supabase db push` so `20260619_add_resume_draft_metadata.sql` is applied
-- [ ] Sign in with inventory and saved JD
+- [ ] Sign in with inventory and saved job
 - [ ] Select JD and reference resume in Resume Draft panel
 - [ ] Approved keyword count displays
 - [ ] Generate Resume Draft works with `AI_PROVIDER=mock`

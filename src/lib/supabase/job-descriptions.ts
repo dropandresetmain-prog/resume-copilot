@@ -56,7 +56,7 @@ export async function createJobDescriptionInCloud(
     const duplicate = findDuplicateJobDescription(existing, input);
     if (duplicate) {
       throw new Error(
-        `A similar saved job description already exists (${duplicate.roleTitle ?? duplicate.companyName ?? "saved JD"}).`,
+        `A similar saved job already exists (${duplicate.roleTitle ?? duplicate.companyName ?? "saved job"}).`,
       );
     }
   }
@@ -89,7 +89,7 @@ export async function updateJobDescriptionInCloud(
     const duplicate = findDuplicateJobDescription(existing, input, id);
     if (duplicate) {
       throw new Error(
-        `A similar saved job description already exists (${duplicate.roleTitle ?? duplicate.companyName ?? "saved JD"}).`,
+        `A similar saved job already exists (${duplicate.roleTitle ?? duplicate.companyName ?? "saved job"}).`,
       );
     }
   }

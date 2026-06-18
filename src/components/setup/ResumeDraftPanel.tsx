@@ -20,6 +20,7 @@ import {
   type ResumeDraftClientError,
 } from "@/lib/resume-draft/client";
 import { createGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
+import { formatSavedJobLabel } from "@/lib/jd/labels";
 import type { InventoryState } from "@/types/resume";
 import type { StoredJobDescription } from "@/types/jd";
 import type {
@@ -162,7 +163,7 @@ export function ResumeDraftPanel({
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="resume-draft-jd" className={labelClassName}>
-            Saved job description
+            Saved job
           </label>
           <select
             id="resume-draft-jd"
@@ -172,11 +173,11 @@ export function ResumeDraftPanel({
             className={formFieldClassName}
           >
             {jobDescriptions.length === 0 ? (
-              <option value="">No saved job descriptions</option>
+              <option value="">No saved jobs</option>
             ) : (
               jobDescriptions.map((jd) => (
                 <option key={jd.id} value={jd.id}>
-                  {jd.roleTitle || jd.companyName || "Saved JD"}
+                  {formatSavedJobLabel(jd)}
                 </option>
               ))
             )}

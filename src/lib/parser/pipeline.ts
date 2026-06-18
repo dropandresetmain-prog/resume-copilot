@@ -10,6 +10,10 @@ import {
 } from "@/lib/parser/experience-parser";
 import type { ParsedExperienceBlock } from "@/lib/parser/heuristics";
 import {
+  isConfidentProfileContact,
+  parseProfileContact,
+} from "@/lib/parser/profile-contact";
+import {
   detectResumeSections,
   type DetectedSection,
 } from "@/lib/parser/section-detection";
@@ -23,6 +27,7 @@ import {
 import type {
   ParsedEducationItem,
   ParsedExperience,
+  ParsedProfileContact,
   ParsedResume,
   ParsedSkillsSection,
   ParsedTextSection,
@@ -205,6 +210,34 @@ function educationNeedsReview(items: ParsedEducationItem[]): boolean {
   return items.some((item) => item.parseWarnings.length > 0);
 }
 
+function applyProfileContactParsing(
+  preambleLines: string[],
+  parseWarnings: string[],
+  unparsedSections: ParsedUnparsedSection[],
+  resumeId: string,
+  createId: CreateId,
+): ParsedProfileContact | undefined {
+  const profile = parseProfileContact(preambleLines);
+  if (!isConfidentProfileContact(profile)) {
+    if (preambleLines.length > 0) {
+      unparsedSections.push(
+        createUnparsedSection(
+          "Document preamble",
+          preambleLines,
+          resumeId,
+          createId,
+          ["Content appeared before the first detected section header."],
+        ),
+      );
+      parseWarnings.push("Content found before the first section header.");
+    }
+    return undefined;
+  }
+
+  parseWarnings.push(...profile.parseWarnings);
+  return profile;
+}
+
 export function parseResumeContent(
   text: string,
   resumeId: string,
@@ -221,19 +254,13 @@ export function parseResumeContent(
     createId,
   );
   let skills: ParsedSkillsSection = emptySkillsSection(resumeId, createId);
-
-  if (preambleLines.length > 0) {
-    unparsedSections.push(
-      createUnparsedSection(
-        "Document preamble",
-        preambleLines,
-        resumeId,
-        createId,
-        ["Content appeared before the first detected section header."],
-      ),
-    );
-    parseWarnings.push("Content found before the first section header.");
-  }
+  const profile = applyProfileContactParsing(
+    preambleLines,
+    parseWarnings,
+    unparsedSections,
+    resumeId,
+    createId,
+  );
 
   if (sections.length === 0) {
     parseWarnings.push(
@@ -262,6 +289,7 @@ export function parseResumeContent(
     }
 
     return {
+      profile,
       workExperiences,
       education: educationItems,
       additionalExperience,
@@ -329,6 +357,7 @@ export function parseResumeContent(
   }
 
   return {
+    profile,
     workExperiences,
     education: educationItems,
     additionalExperience,

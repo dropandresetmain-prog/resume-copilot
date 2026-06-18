@@ -5,6 +5,8 @@
  * are preserved under `unparsed` so text is never discarded.
  */
 
+import { looksLikePersonNameHeader } from "@/lib/parser/profile-contact";
+
 export type SectionKey =
   | "work_experience"
   | "education"
@@ -110,6 +112,8 @@ export function matchSectionHeader(line: string): {
 }
 
 export function looksLikeUnknownSectionHeader(line: string): boolean {
+  if (looksLikePersonNameHeader(line)) return false;
+
   const trimmed = line.trim();
   if (trimmed.length < 3 || trimmed.length > 80) return false;
   if (parseBulletLikeHeader(trimmed)) return false;
@@ -126,6 +130,8 @@ export function looksLikeUnknownSectionHeader(line: string): boolean {
 
   return false;
 }
+
+export { looksLikePersonNameHeader };
 
 function parseBulletLikeHeader(line: string): boolean {
   return /^[\s]*(?:[•●▪‣◦\-–—*►▸]|\d+[.)])/.test(line);

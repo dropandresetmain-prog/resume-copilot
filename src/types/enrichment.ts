@@ -120,6 +120,8 @@ export type EnrichmentState = {
   suggestions: BulletEnrichmentSuggestion[];
   duplicateGroups: DuplicateGroupSuggestion[];
   keywordBank: KeywordBankItem[];
+  /** Last known source-text hash per bulletKey after enrichment or review. */
+  enrichedBulletHashes?: Record<string, string>;
   lastEnrichedAt?: string;
   providerId?: AIProviderId;
   isMockProvider?: boolean;

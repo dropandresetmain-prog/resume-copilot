@@ -12,6 +12,7 @@ import type {
   SuggestionStatus,
 } from "@/types/enrichment";
 import type { EnrichmentInventoryInput } from "@/lib/enrichment/payload";
+import { hashEnrichmentSourceText } from "@/lib/enrichment/source-hash";
 import { normalizeStoredSuggestion } from "@/lib/enrichment/normalize";
 
 function createId(): string {
@@ -50,14 +51,60 @@ export function getReviewedBulletKeys(state: EnrichmentState): Set<string> {
   return keys;
 }
 
-/** Limit AI input to bullets not yet reviewed (incremental enrichment). */
+function bulletHasReviewedSuggestion(
+  state: EnrichmentState,
+  bulletKey: string,
+): boolean {
+  return state.suggestions.some(
+    (suggestion) =>
+      suggestion.bulletKey === bulletKey && suggestion.status !== "pending",
+  );
+}
+
+/** Skip bullets already enriched/reviewed at the same source text hash. */
+export function shouldSkipBulletForEnrichment(
+  bullet: EnrichmentInventoryInput["bullets"][number],
+  enrichment: EnrichmentState,
+): boolean {
+  const hash = hashEnrichmentSourceText(bullet.description);
+  const storedHash = enrichment.enrichedBulletHashes?.[bullet.bulletKey];
+  const hasSuggestions = enrichment.suggestions.some(
+    (suggestion) => suggestion.bulletKey === bullet.bulletKey,
+  );
+
+  if (!hasSuggestions) return false;
+
+  if (storedHash !== hash) {
+    return false;
+  }
+
+  if (bulletHasReviewedSuggestion(enrichment, bullet.bulletKey)) {
+    return true;
+  }
+
+  return hasSuggestions;
+}
+
+function recordBulletHashes(
+  current: Record<string, string> | undefined,
+  entries: Array<{ bulletKey: string; sourceText: string }>,
+): Record<string, string> {
+  const next = { ...current };
+  for (const entry of entries) {
+    next[entry.bulletKey] = hashEnrichmentSourceText(entry.sourceText);
+  }
+  return next;
+}
+
+/** Limit AI input to new/changed bullets not already enriched at the same hash. */
 export function filterIncrementalEnrichmentInput(
   input: EnrichmentInventoryInput,
   enrichment: EnrichmentState,
 ): EnrichmentInventoryInput {
-  const reviewedKeys = getReviewedBulletKeys(enrichment);
   return {
-    bullets: input.bullets.filter((bullet) => !reviewedKeys.has(bullet.bulletKey)),
+    bullets: input.bullets.filter(
+      (bullet) => !shouldSkipBulletForEnrichment(bullet, enrichment),
+    ),
   };
 }
 
@@ -241,6 +288,16 @@ export function mergeEnrichmentResult(
     ...current,
     suggestions: [...reviewed, ...keptPending, ...incomingSuggestions],
     duplicateGroups: [...reviewedGroups, ...keptPendingGroups, ...incomingGroups],
+    enrichedBulletHashes: recordBulletHashes(current.enrichedBulletHashes, [
+      ...incomingSuggestions.map((suggestion) => ({
+        bulletKey: suggestion.bulletKey,
+        sourceText: suggestion.beforeText,
+      })),
+      ...result.suggestions.map((suggestion) => ({
+        bulletKey: suggestion.bulletKey,
+        sourceText: suggestion.beforeText ?? suggestion.bulletDescription ?? "",
+      })),
+    ]),
     lastEnrichedAt: now,
     providerId: result.provider,
     isMockProvider: result.isMock,
@@ -420,10 +477,20 @@ export function resolveSuggestionResolution(
     };
   });
 
+  const resolvedSuggestion = suggestions.find((item) => item.id === suggestionId);
+
   return {
     ...state,
     suggestions,
     keywordBank,
+    enrichedBulletHashes: resolvedSuggestion
+      ? recordBulletHashes(state.enrichedBulletHashes, [
+          {
+            bulletKey: resolvedSuggestion.bulletKey,
+            sourceText: resolvedSuggestion.beforeText,
+          },
+        ])
+      : state.enrichedBulletHashes,
   };
 }
 

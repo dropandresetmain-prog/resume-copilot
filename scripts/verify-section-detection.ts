@@ -30,6 +30,10 @@ const checks: [string, boolean][] = [
     "section colon header",
     matchSectionHeader("EDUCATION:")?.key === "education",
   ],
+  [
+    "person name is not section header",
+    matchSectionHeader("HSET MIN HTET") === null,
+  ],
 ];
 
 const layeredResume = `

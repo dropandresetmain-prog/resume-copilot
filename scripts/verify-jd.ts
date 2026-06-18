@@ -14,6 +14,8 @@ import {
   upsertJobDescriptionInList,
   validateStoredJobDescription,
 } from "../src/lib/jd/persistence";
+import { extractJobMetadataFromText, mergeExtractedJobMetadata } from "../src/lib/jd/extract-metadata";
+import { formatSavedJobLabel } from "../src/lib/jd/labels";
 import { parseResumeTextForTest } from "../src/lib/parser/docx-parser";
 import type { InventoryState } from "../src/types/resume";
 
@@ -94,6 +96,18 @@ function main() {
   const importedMalformedJds = parseImportedInventory(
     JSON.stringify(malformedJdExport),
   );
+  const extracted = extractJobMetadataFromText(
+    "Senior Product Manager\nAcme Corp\n\nAbout the role\nLead product strategy.",
+  );
+  const mergedExtract = mergeExtractedJobMetadata(
+    { rawText: "Senior Product Manager\nAcme Corp", companyName: "Manual Co", roleTitle: "" },
+    extracted,
+  );
+  const savedLabel = formatSavedJobLabel({
+    companyName: "Acme Corp",
+    roleTitle: "Product Manager",
+    rawText: "ignored",
+  });
 
   const checks: [string, boolean][] = [
     ["create jd id", created.id.length > 0],
@@ -132,6 +146,13 @@ function main() {
       "malformed import jds skipped",
       importedMalformedJds.jobDescriptions.length === 0,
     ],
+    ["extract role from jd text", extracted.roleTitle === "Senior Product Manager"],
+    ["extract company from jd text", extracted.companyName === "Acme Corp"],
+    [
+      "merge metadata keeps manual company",
+      mergedExtract.companyName === "Manual Co" && mergedExtract.roleTitle === "Senior Product Manager",
+    ],
+    ["saved job label company role", savedLabel === "Acme Corp — Product Manager"],
   ];
 
   for (const [name, ok] of checks) {

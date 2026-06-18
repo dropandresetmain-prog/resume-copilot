@@ -7,6 +7,7 @@ import { AuthPanel } from "@/components/setup/AuthPanel";
 import { CloudFileStoragePanel } from "@/components/setup/CloudFileStoragePanel";
 import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView";
 import { JDInputPanel } from "@/components/setup/JDInputPanel";
+import { ProfileContactBackfillPanel } from "@/components/setup/ProfileContactBackfillPanel";
 import { ResumeDraftPanel } from "@/components/setup/ResumeDraftPanel";
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
 import { ResumeList } from "@/components/setup/ResumeList";
@@ -570,12 +571,32 @@ export function SetupPageClient() {
     skipCloudSaveRef.current = false;
   }
 
+  async function handleProfileContactBackfill(nextInventory: InventoryState) {
+    if (!user || !cloudEnabled) {
+      updateInventory(nextInventory);
+      return;
+    }
+
+    setCloudSaveError(null);
+    try {
+      await saveResumeInventoryToCloud(nextInventory);
+      updateInventory(nextInventory);
+    } catch (error) {
+      setCloudSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save profile/contact backfill to Supabase.",
+      );
+      throw error;
+    }
+  }
+
   return (
     <div className="min-h-full bg-slate-50 text-slate-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 lg:px-8">
         <header className="space-y-2">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-            v0.4.1 · Auth + Enrichment Hardening
+            v0.4.3 · Profile Contact Backfill
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             Career Resume Copilot
@@ -620,6 +641,13 @@ export function SetupPageClient() {
           onClearAll={handleClearSavedJobDescriptions}
           disabled={cloudEnabled && !isSignedIn}
           disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
+        />
+
+        <ProfileContactBackfillPanel
+          inventory={inventory}
+          isSignedIn={isSignedIn}
+          disabled={cloudEnabled && !isSignedIn}
+          onApply={handleProfileContactBackfill}
         />
 
         <ResumeDraftPanel
