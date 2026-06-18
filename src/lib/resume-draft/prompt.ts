@@ -46,6 +46,15 @@ Additional experience:
 - Projects, certifications, past relevant roles, notable professional items only.
 - Do NOT put languages, interests, or skills here.
 
+Education:
+- Put the institution (and any special programme such as REP) on the institution field / first programme slot only.
+- List each degree as a separate programme entry — do NOT repeat the institution for every degree.
+- Example institution line: "Nanyang Technological University, Renaissance Engineering Programme"
+- Example degree lines: "Master of Science in Technology Management", "Bachelor of Engineering Science (Mechanical Engineering)"
+- When multiple degrees share one date range, provide dateRange once on the education item (applies to first degree in layout).
+- Keep original degree wording from inventory/reference where possible.
+- Do NOT duplicate institution names like "University, University, ..."
+
 Skills & Interests groups:
 - Tech: programming, IT, AI/tooling, software, technical tools.
 - Skills: business/non-technical skills; avoid repeating keywords already dominant in work bullets.

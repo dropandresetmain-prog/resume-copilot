@@ -128,7 +128,7 @@ export function FinalResumeLayoutPreview({
               {layout.header.fullName ? (
                 <h1
                   className="font-bold tracking-wide"
-                  style={{ fontSize: `${sizes.headerPx}px`, marginBottom: "0.15rem" }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, marginBottom: "0.15rem" }}
                 >
                   {layout.header.fullName}
                 </h1>
@@ -192,23 +192,21 @@ export function FinalResumeLayoutPreview({
                 <div className="mt-1.5 space-y-2.5">
                   {layout.education.map((item, itemIndex) => (
                     <div key={`education-${itemIndex}`}>
-                      {item.degreeBlocks.map((block, blockIndex) => (
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 flex-1 font-bold">{item.institutionLine}</p>
+                        {item.location ? (
+                          <p className="shrink-0 text-right tabular-nums">{item.location}</p>
+                        ) : null}
+                      </div>
+                      {item.degreeLines.map((degree, degreeIndex) => (
                         <div
-                          key={`${block.titleLine}-${blockIndex}`}
-                          className={blockIndex > 0 ? "mt-1.5" : undefined}
+                          key={`${degree.text}-${degreeIndex}`}
+                          className="flex items-baseline justify-between gap-3"
                         >
-                          <div className="flex items-baseline justify-between gap-3">
-                            <p className="min-w-0 flex-1 font-bold">{block.titleLine}</p>
-                            {block.location ? (
-                              <p className="shrink-0 text-right tabular-nums">{block.location}</p>
-                            ) : null}
-                          </div>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <p className="min-w-0 flex-1 italic">{block.degreeLine}</p>
-                            {block.dateRange ? (
-                              <p className="shrink-0 text-right tabular-nums">{block.dateRange}</p>
-                            ) : null}
-                          </div>
+                          <p className="min-w-0 flex-1 italic">{degree.text}</p>
+                          {degree.dateRange ? (
+                            <p className="shrink-0 text-right tabular-nums">{degree.dateRange}</p>
+                          ) : null}
                         </div>
                       ))}
                       {item.achievementBullets.length > 0 ? (

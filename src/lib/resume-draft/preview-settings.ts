@@ -40,11 +40,17 @@ export type PreviewFontSizes = {
 /** Header and section titles are one step above body (same step size as slider). */
 export function resolvePreviewFontSizes(bodyFontPx: number): PreviewFontSizes {
   const step = PREVIEW_BODY_FONT_STEP_PX;
+  const sectionPx = bodyFontPx + step;
   return {
     bodyPx: bodyFontPx,
-    headerPx: bodyFontPx + step,
-    sectionPx: bodyFontPx + step,
+    headerPx: sectionPx,
+    sectionPx,
   };
+}
+
+/** Candidate name matches section header size (body + one step). */
+export function resolveCandidateNameFontPx(bodyFontPx: number): number {
+  return resolvePreviewFontSizes(bodyFontPx).sectionPx;
 }
 
 export function clampPreviewBodyFontPx(value: number): number {

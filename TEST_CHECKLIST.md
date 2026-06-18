@@ -1,41 +1,26 @@
-# Test Checklist — v0.5.4 Draft Records + One-Page Optimization
+# Test Checklist — v0.5.5 Header and Education Rendering Fixes
 
-## Records / Generated Drafts
+## Header sizing
 
-- [ ] Section title reads **Generated Drafts**
-- [ ] **Edit** opens `/resume-preview/[draftId]`
-- [ ] **Delete** confirms, removes draft from Supabase and UI
-- [ ] Delete failure shows visible error
-- [ ] Draft row shows Company — Role, timestamp, status, provider
+- [ ] Candidate name renders at section-header size (body + 0.5px), not body size
+- [ ] Name size matches Work Experience / Education section title size
+- [ ] Header stays compact and respects reference alignment (center/left)
 
-## One-page optimization
+## Education rendering (NTU-style double degree)
 
-- [ ] First preview load uses auto-optimized settings (starts 11px)
-- [ ] Preview fits one page for typical mock draft without manual sliders
-- [ ] Overflow warning + layout fit panel when still over one page
+- [ ] Line 1: institution + special programme bold left, location right
+- [ ] Line 2+: each degree italic left; date range only on first degree when shared
+- [ ] No duplicate institution text (e.g. no `NTU, NTU` or repeated full university name)
+- [ ] Degree names are not bolded
 
-## Keyword bullets
+## Regression
 
-- [ ] No generic `Experience:` keyword in work bullets when specific keyword available
+- [ ] Work experience layout unchanged
+- [ ] One-page auto-optimization still runs on preview load
+- [ ] Draft edit/delete still does not mutate inventory
 
-## Skills section
+## Automated
 
-- [ ] **Tech:** line for programming/tools
-- [ ] **Skills:** line for business skills
-- [ ] **Languages:** and **Interests:** lines present when data exists
-
-## Assessment
-
-- [ ] Resume–Job Fit and Layout Fit shown separately
-- [ ] Preview fit uses `preview-fit-heuristic-v1` (provisional — see `docs/FIT_SCORE_RUBRIC.md`)
-
-## Draft edit safety (inventory non-mutation)
-
-- [ ] Edit resume details / mark reviewed saves only to `generated_resume_drafts`
-- [ ] Approve for Export does not change career inventory or enrichment
-- [ ] Delete generated draft does not remove or alter uploaded resumes
-- [ ] `npm run test:draft-inventory-safety` passes
-
-## Capitalization
-
-- [ ] **Saved Jobs**, **Generated Drafts** section titles use title case
+- [ ] `npm run test` passes (includes layout + education normalization checks)
+- [ ] `npm run lint` passes
+- [ ] `npm run build` passes

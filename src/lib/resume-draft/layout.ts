@@ -17,6 +17,7 @@ import {
   PREVIEW_SECTION_SPACING_DEFAULT,
 } from "@/lib/resume-draft/preview-settings";
 import { getDateRangeEndSortKey } from "@/lib/date/duration";
+import { normalizeEducationForLayout } from "@/lib/resume-draft/education-layout";
 
 /** Canonical final resume section order for preview and future export. */
 export const FINAL_RESUME_SECTION_ORDER = [
@@ -36,6 +37,12 @@ export type WorkExperienceLayoutEntry = {
   bullets: Array<{ keyword: string; statement: string; rawText: string }>;
 };
 
+export type EducationDegreeLine = {
+  text: string;
+  dateRange?: string;
+};
+
+/** @deprecated Use institutionLine + degreeLines — kept for type migration reference. */
 export type EducationDegreeBlock = {
   titleLine: string;
   degreeLine: string;
@@ -44,7 +51,9 @@ export type EducationDegreeBlock = {
 };
 
 export type EducationLayoutEntry = {
-  degreeBlocks: EducationDegreeBlock[];
+  institutionLine: string;
+  location?: string;
+  degreeLines: EducationDegreeLine[];
   achievementBullets: Array<{
     prefix?: string;
     underlinePrefix: boolean;
@@ -288,17 +297,12 @@ export function buildWorkExperienceLayoutEntry(
 export function buildEducationLayoutEntry(
   item: ResumeDraftEducationItem,
 ): EducationLayoutEntry {
-  const programmes = item.programmes.length > 0 ? item.programmes : [""];
+  const normalized = normalizeEducationForLayout(item);
 
   return {
-    degreeBlocks: programmes.map((programme, index) => ({
-      titleLine: programme
-        ? `${item.institution} · ${programme}`
-        : item.institution,
-      degreeLine: programme || item.institution,
-      location: item.location,
-      dateRange: index === 0 ? item.dateRange : undefined,
-    })),
+    institutionLine: normalized.institutionLine,
+    location: normalized.location,
+    degreeLines: normalized.degreeLines,
     achievementBullets: item.bullets.map((bullet) => {
       const parsed = parseAchievementBullet(bullet);
       return {
@@ -375,7 +379,8 @@ export function estimatePageFit(
   }
 
   for (const education of layout.education) {
-    lines += education.degreeBlocks.length * 1.75;
+    lines += 1;
+    lines += education.degreeLines.length;
     lines += education.achievementBullets.length * lineSpacing;
     lines += sectionSpacing * 0.35;
   }

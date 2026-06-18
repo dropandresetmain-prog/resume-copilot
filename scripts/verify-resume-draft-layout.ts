@@ -39,6 +39,7 @@ import {
   PREVIEW_MARGIN_MIN_MM,
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
   PREVIEW_SECTION_SPACING_MIN,
+  resolveCandidateNameFontPx,
   resolvePreviewFontSizes,
 } from "../src/lib/resume-draft/preview-settings";
 import {
@@ -46,10 +47,12 @@ import {
   detectResumeFontFamily,
 } from "../src/lib/resume-draft/reference-format";
 import { buildDraftListDisplays, formatDraftStatusLabel } from "../src/lib/resume-draft/draft-labels";
+import { normalizeEducationForLayout } from "../src/lib/resume-draft/education-layout";
 import { repairKeywordBullet } from "../src/lib/resume-draft/keyword-repair";
 import { optimizeResumePreviewSettings } from "../src/lib/resume-draft/preview-optimizer";
 import { extractSkillsTechLanguagesInterests, isTechSkillItem } from "../src/lib/resume-draft/skills-section";
 import { deleteGeneratedResumeDraftFromCloud } from "../src/lib/supabase/generated-resume-drafts";
+import type { ResumeDraftEducationItem } from "../src/types/resume-draft";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 
@@ -154,6 +157,23 @@ function main() {
   const assessment = calculateFitScore(mockDraft.content, mockDraft.rationale);
   const workEntry = buildWorkExperienceLayoutEntry(mockDraft.content.experience[0]!);
   const educationEntry = buildEducationLayoutEntry(mockDraft.content.education[0]!);
+
+  const ntuEducation: ResumeDraftEducationItem = {
+    institution: "Nanyang Technological University",
+    location: "Singapore",
+    programmes: [
+      "Nanyang Technological University, Renaissance Engineering Programme",
+      "Nanyang Technological University",
+      "Master of Science in Technology Management",
+      "Bachelor of Engineering Science (Mechanical Engineering)",
+    ],
+    dateRange: "Aug 2014 – Dec 2018",
+    bullets: ["Achievement: Premier Scholars Programme"],
+    riskFlags: [],
+  };
+  const ntuNormalized = normalizeEducationForLayout(ntuEducation);
+  const ntuLayoutEntry = buildEducationLayoutEntry(ntuEducation);
+
   const parsedBullet = parseKeywordBullet(
     "Operations: Built and rolled out a division-wide CRM workflow.",
   );
@@ -249,8 +269,17 @@ function main() {
     ["work entry has company descriptor", workEntry.companyDescriptor === "Global fintech"],
     ["work entry company line helper", companyLine === "Acme (Global fintech)"],
     ["work entry role on separate layout field", workEntry.role === "Product Manager"],
-    ["education entry has location", educationEntry.degreeBlocks[0]?.location === "Singapore"],
-    ["education double degree omits repeated date", educationEntry.degreeBlocks[1]?.dateRange === undefined],
+    ["education entry has location", educationEntry.location === "Singapore"],
+    ["education double degree omits repeated date", educationEntry.degreeLines[1]?.dateRange === undefined],
+    ["ntu institution line includes rep", ntuNormalized.institutionLine.includes("Renaissance Engineering Programme")],
+    ["ntu institution line has no duplicate institution", !/Nanyang Technological University,\s*Nanyang Technological University/i.test(ntuNormalized.institutionLine)],
+    ["ntu degrees listed separately", ntuNormalized.degreeLines.length === 2],
+    ["ntu first degree is msc", ntuNormalized.degreeLines[0]?.text.includes("Master of Science") ?? false],
+    ["ntu second degree is beng", ntuNormalized.degreeLines[1]?.text.includes("Bachelor of Engineering") ?? false],
+    ["ntu date range shown once", ntuNormalized.degreeLines[0]?.dateRange === "Aug 2014 – Dec 2018" && !ntuNormalized.degreeLines[1]?.dateRange],
+    ["ntu degrees not on institution line", !ntuLayoutEntry.institutionLine.includes("Master of Science")],
+    ["name font size equals section header", resolveCandidateNameFontPx(PREVIEW_BODY_FONT_DEFAULT_PX) === fontSizes.sectionPx],
+    ["name font size one step above body", resolveCandidateNameFontPx(PREVIEW_BODY_FONT_DEFAULT_PX) === fontSizes.bodyPx + 0.5],
     ["achievement underline handling", achievement.underlinePrefix && achievement.prefix === "Achievement:"],
     ["exclude language from additional experience", shouldExcludeFromAdditionalExperience({ category: "Languages", text: "Japanese" })],
     ["exclude interest category from additional experience", shouldExcludeFromAdditionalExperience({ category: "Interests", text: "Pickleball" })],

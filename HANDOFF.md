@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**v0.5.4 — Draft Records + One-Page Optimization**
+**v0.5.5 — Header and Education Rendering Fixes**
 
-Generated drafts are manageable from Records (Edit/Delete). First preview load auto-optimizes layout for one-page fit starting at 11px body font. Keyword bullets are repaired when the model uses generic `Experience:` prefixes. Skills section splits into Tech, Skills, Languages, and Interests.
+Candidate name renders at section-header size (body + 0.5px). Education uses render-time normalization: one bold institution/special-programme line, separate italic degree lines, location on institution row, shared date range once.
 
 ## Product flow (target)
 
@@ -14,7 +14,18 @@ Paste JD → Generate Resume → Format-optimized one-page preview → Approve f
 
 Secondary: Edit Resume Details → `/resume-preview/[draftId]/edit`
 
-## v0.5.4 highlights
+## v0.5.5 highlights
+
+**Header**
+- Candidate name uses `sectionPx` (body + 0.5px) — same as Work Experience / Education section headers
+
+**Education rendering**
+- `normalizeEducationForLayout()` — render-time only; stored draft content unchanged
+- Institution + special programme on one bold line; degrees on separate italic lines
+- Location right-aligned on institution line; date range on first degree only
+- Strips accidental duplicate institution names from parser/model output
+
+## v0.5.4 highlights (recent)
 
 **Records / Generated Drafts**
 - **Edit** → `/resume-preview/[draftId]`
@@ -45,7 +56,8 @@ Secondary: Edit Resume Details → `/resume-preview/[draftId]/edit`
 | Milestone | Status |
 |-----------|--------|
 | v0.5.3 — Preview fit & ordering | Complete |
-| **v0.5.4 — Draft records + one-page optimization** | **Current** |
+| **v0.5.5 — Header & education rendering** | **Current** |
+| v0.5.4 — Draft records + one-page optimization | Complete |
 | v0.5.5 — Manual inventory editing | Planned |
 | v0.6.0 — DOCX export | Next |
 | v0.6.1 — PDF export | After DOCX |
