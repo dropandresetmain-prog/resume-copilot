@@ -1,0 +1,75 @@
+"use client";
+
+import { useState } from "react";
+
+import { secondaryButtonClassName } from "@/components/setup/ui";
+import {
+  exportResumePdfFromApi,
+  triggerBrowserDownload,
+} from "@/lib/resume-draft/export-client";
+import type { ResumeLayoutSettings } from "@/lib/resume-draft/document-model";
+
+type DownloadResumePdfButtonProps = {
+  draftId: string;
+  layoutSettings?: Partial<ResumeLayoutSettings>;
+  disabled?: boolean;
+  disabledReason?: string;
+  className?: string;
+  onWarning?: (message: string) => void;
+};
+
+export function DownloadResumePdfButton({
+  draftId,
+  layoutSettings,
+  disabled = false,
+  disabledReason,
+  className,
+  onWarning,
+}: DownloadResumePdfButtonProps) {
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDownload() {
+    setIsExporting(true);
+    setError(null);
+    try {
+      const result = await exportResumePdfFromApi({ draftId, layoutSettings });
+      if (!result.downloadUrl) {
+        throw new Error("Export did not return a download URL.");
+      }
+      triggerBrowserDownload(result.fileName, result.downloadUrl);
+      if (result.warnings?.length) {
+        onWarning?.(result.warnings.join(" "));
+      }
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Failed to export resume PDF.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  const isDisabled = disabled || isExporting;
+  const buttonClassName = className ?? secondaryButtonClassName;
+
+  return (
+    <div className="inline-flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => void handleDownload()}
+        disabled={isDisabled}
+        className={buttonClassName}
+        title={disabled ? disabledReason : undefined}
+      >
+        {isExporting ? "Generating PDF…" : "Download PDF"}
+      </button>
+      {disabled && disabledReason ? (
+        <span className="text-xs text-slate-500">{disabledReason}</span>
+      ) : null}
+      {error ? <span className="text-xs text-red-700">{error}</span> : null}
+    </div>
+  );
+}

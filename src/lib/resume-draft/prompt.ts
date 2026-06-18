@@ -19,8 +19,9 @@ Content rules:
 - Approved keywords may be incorporated only when truthful for the candidate's inventory.
 
 One-page discipline (critical):
-- Target one A4 page. Resumes must NOT include a Professional Summary section.
-- Professional Summary is for future cover letter generation only — always leave professionalSummary.text empty.
+- Target one A4 page. Resumes must NOT include a Professional Summary section in preview or export.
+- The professionalSummary JSON field is kept empty for resumes — backward compatibility and future cover letter generation only. Do not treat it as a critical resume output rule.
+- Always leave professionalSummary.text empty for resume drafts.
 - Current/primary roles: 2–3 bullets; max 4 only when highly relevant.
 - Older/less relevant roles: 1–2 bullets.
 - Use concise bullets. Combine overlapping points. Remove weak or low-relevance bullets.

@@ -18,7 +18,7 @@ export function AppNav() {
           <Link href="/" className="text-sm font-semibold text-slate-900">
             Career Resume Copilot
           </Link>
-          <p className="text-xs text-slate-500">v0.6.1</p>
+          <p className="text-xs text-slate-500">v0.6.2</p>
         </div>
         <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
           {APP_NAV_ITEMS.map((item) => {

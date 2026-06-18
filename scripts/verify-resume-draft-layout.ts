@@ -11,6 +11,7 @@ import {
   A4_PAGE_PREVIEW_TEST_ID,
   RESUME_OVERFLOW_VISIBLE_TEST_ID,
 } from "../src/components/resume-drafts/FinalResumeLayoutPreview";
+import { buildCompanyLineSegments } from "../src/lib/resume-draft/docx-layout-helpers";
 import {
   buildEducationLayoutEntry,
   buildFinalResumeLayout,
@@ -268,6 +269,13 @@ function main() {
     ["format keyword bullet", formattedBullet.startsWith("Strategy:")],
     ["work entry has company descriptor", workEntry.companyDescriptor === "Global fintech"],
     ["work entry company line helper", companyLine === "Acme (Global fintech)"],
+    [
+      "company descriptor not bold in segments",
+      (() => {
+        const segments = buildCompanyLineSegments("Drop & Reset", "pickleball social club");
+        return segments.length === 2 && segments[0]?.bold === true && segments[1]?.bold === false;
+      })(),
+    ],
     ["work entry role on separate layout field", workEntry.role === "Product Manager"],
     ["education entry has location", educationEntry.location === "Singapore"],
     ["education double degree omits repeated date", educationEntry.degreeLines[1]?.dateRange === undefined],
@@ -279,7 +287,7 @@ function main() {
     ["ntu date range shown once", ntuNormalized.degreeLines[0]?.dateRange === "Aug 2014 – Dec 2018" && !ntuNormalized.degreeLines[1]?.dateRange],
     ["ntu degrees not on institution line", !ntuLayoutEntry.institutionLine.includes("Master of Science")],
     ["name font size equals section header", resolveCandidateNameFontPx(PREVIEW_BODY_FONT_DEFAULT_PX) === fontSizes.sectionPx],
-    ["name font size one step above body", resolveCandidateNameFontPx(PREVIEW_BODY_FONT_DEFAULT_PX) === fontSizes.bodyPx + 0.5],
+    ["name font size one step above body", resolveCandidateNameFontPx(PREVIEW_BODY_FONT_DEFAULT_PX) === fontSizes.bodyPx + 1],
     ["achievement underline handling", achievement.underlinePrefix && achievement.prefix === "Achievement:"],
     ["exclude language from additional experience", shouldExcludeFromAdditionalExperience({ category: "Languages", text: "Japanese" })],
     ["exclude interest category from additional experience", shouldExcludeFromAdditionalExperience({ category: "Interests", text: "Pickleball" })],
@@ -304,8 +312,8 @@ function main() {
     ["2025 item sorts before 2022 item", sortedByYear[0]?.label === "2025 role"],
     ["undated additional phrase stays after dated", sortedAdditional[0]?.includes("2023") ?? false],
     ["undated additional phrase last", sortedAdditional[sortedAdditional.length - 1] === "Volunteer tutor"],
-    ["header one step above body", fontSizes.headerPx === fontSizes.bodyPx + 0.5],
-    ["section one step above body", fontSizes.sectionPx === fontSizes.bodyPx + 0.5],
+    ["header one step above body", fontSizes.headerPx === fontSizes.bodyPx + 1],
+    ["section one step above body", fontSizes.sectionPx === fontSizes.bodyPx + 1],
     ["body font min clamp", clampPreviewBodyFontPx(5) === PREVIEW_BODY_FONT_MIN_PX],
     ["margin slider min lowered", PREVIEW_MARGIN_MIN_MM === 8],
     ["section spacing min lowered", PREVIEW_SECTION_SPACING_MIN === 0.35],

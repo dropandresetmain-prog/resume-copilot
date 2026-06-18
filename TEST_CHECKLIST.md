@@ -1,26 +1,37 @@
-# Test Checklist — v0.6.1 DOCX Export Fidelity Fixes
+# Test Checklist — v0.6.2 Direct Resume PDF Export
 
 ## Filename
 
-- [ ] Export filename: `<Name> - Resume_<Company>_<Role>.docx`
-- [ ] Fallback: `<Name> - Resume.docx`
+- [ ] DOCX: `<Name> - Resume_<Company>_<Role>.docx`
+- [ ] PDF: `<Name> - Resume_<Company>_<Role>.pdf` (same stem)
 
-## DOCX fidelity (manual in Word)
+## Preview page (`/resume-preview/[draftId]`)
 
-- [ ] Body font ~10pt (not ~8.5pt)
-- [ ] Font is Gill Sans MT (or installed fallback), not Calibri/Times mix
-- [ ] Location/date same font as body
-- [ ] Company name bold; `(descriptor)` normal weight
-- [ ] Work/education left/right rows align cleanly
+- [ ] Approve → Download DOCX works
+- [ ] Approve → Download PDF works
+- [ ] Before approval: both disabled with helper text
+- [ ] Company name bold; descriptor normal weight
+- [ ] Header/section size visibly one step above body (+1px)
 - [ ] No Professional Summary section
-- [ ] Compare against browser preview
+- [ ] Overflow warning on PDF export if preview exceeds one page
 
-## Preview page
+## Records page
 
-- [ ] Approve → Download DOCX still works
-- [ ] PDF placeholder still disabled
+- [ ] Approved drafts show Download DOCX and Download PDF
+
+## PDF manual check
+
+- [ ] Open PDF — Gill Sans MT or fallback sans-serif
+- [ ] A4 one-page layout matches browser preview more closely than DOCX
+- [ ] Work/education left/right rows aligned
+- [ ] Keyword bullets underlined
+
+## DOCX (unchanged path)
+
+- [ ] DOCX still works; Word may differ from preview/PDF
 
 ## Automated
 
+- [ ] `npm run test:resume-pdf-export` passes
 - [ ] `npm run test:resume-docx-export` passes
 - [ ] `npm run test` / `lint` / `build` pass

@@ -13,6 +13,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
+import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import { buildResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
 import {
@@ -49,6 +50,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
   const [manualSettings, setManualSettings] = useState<{
@@ -362,14 +364,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           disabled={!isApproved}
           disabledReason="Approve for Export before downloading."
         />
-        <button
-          type="button"
-          disabled
-          className={`${secondaryButtonClassName} opacity-60`}
-          title="PDF export coming next"
-        >
-          PDF export coming next
-        </button>
+        <DownloadResumePdfButton
+          draftId={draftId}
+          layoutSettings={{
+            bodyFontPx,
+            marginMm,
+            marginTopMm,
+            lineSpacing,
+            sectionSpacing,
+          }}
+          disabled={!isApproved}
+          disabledReason="Approve for Export before downloading."
+          onWarning={setExportWarning}
+        />
         <Link
           href={`/resume-preview/${draftId}/edit`}
           className={`inline-flex ${secondaryButtonClassName}`}
@@ -380,6 +387,12 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           Back to Generate
         </Link>
       </div>
+
+      {exportWarning ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {exportWarning}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">

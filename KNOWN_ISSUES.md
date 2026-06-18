@@ -1,12 +1,21 @@
 # Known Issues
 
+## PDF export (v0.6.2)
+
+- PDF is generated **directly from `ResumeDocumentModel` HTML** via `puppeteer-core` + `@sparticuz/chromium` — not from DOCX.
+- Vercel: Chromium bundle adds deploy size (~50MB class); route uses `maxDuration: 60` and `runtime: nodejs`.
+- Local dev: requires Google Chrome or `LOCAL_CHROME_PATH` / `CHROME_EXECUTABLE_PATH`.
+- Gill Sans MT renders only if installed on the machine generating PDF; otherwise fallback sans-serif applies.
+- If preview exceeds one-page target, PDF still exports with a warning — content is not auto-shrunk at export time.
+- If Supabase storage upload fails, API returns raw PDF bytes (same fallback as DOCX).
+
 ## DOCX export (v0.6.1)
 
 - DOCX uses Gill Sans MT (explicit on all runs); Word may substitute if font not installed.
-- Preview 11px maps to DOCX 10pt body — not pixel-identical to browser preview.
+- Preview 11px maps to DOCX 10pt body — not pixel-identical to browser preview or PDF.
+- DOCX may overshoot one page in MS Word even when preview fits; prefer PDF for layout parity with preview.
 - Borderless tables align left/right rows; minor Word vs browser differences may remain.
-- Professional Summary is excluded from resume preview/export (cover letter future).
-- **PDF strategy:** Validate DOCX fidelity manually first. If acceptable, PDF may be generated from DOCX or parallel canonical model; if DOCX remains unstable, consider direct HTML/PDF from layout model. PDF not implemented yet.
+- Professional Summary is excluded from resume preview/export (schema field kept for backward compatibility / future cover letters).
 
 ## DOCX export (v0.6.0 baseline)
 
@@ -15,7 +24,6 @@
 - Export API uses client access token in `Authorization` header — no service role; storage upload requires Supabase RLS policies on `generated-documents` and `stored_files`.
 - If storage upload fails, API returns the DOCX file directly without persisting to bucket.
 - Rich exported-file ↔ draft linkage in DB is deferred; each export inserts a new `stored_files` row.
-- PDF export not built yet (v0.6.1).
 
 ## Layout preview (v0.5.x)
 

@@ -37,10 +37,11 @@ export type PreviewFontSizes = {
   sectionPx: number;
 };
 
-/** Header and section titles are one step above body (same step size as slider). */
+/** Name/section headers are body + 1px in preview (mirrors DOCX body + 1pt hierarchy). */
+export const PREVIEW_HEADER_OFFSET_PX = 1;
+
 export function resolvePreviewFontSizes(bodyFontPx: number): PreviewFontSizes {
-  const step = PREVIEW_BODY_FONT_STEP_PX;
-  const sectionPx = bodyFontPx + step;
+  const sectionPx = bodyFontPx + PREVIEW_HEADER_OFFSET_PX;
   return {
     bodyPx: bodyFontPx,
     headerPx: sectionPx,
@@ -48,7 +49,7 @@ export function resolvePreviewFontSizes(bodyFontPx: number): PreviewFontSizes {
   };
 }
 
-/** Candidate name matches section header size (body + one step). */
+/** Candidate name matches section header size (body + 1px). */
 export function resolveCandidateNameFontPx(bodyFontPx: number): number {
   return resolvePreviewFontSizes(bodyFontPx).sectionPx;
 }

@@ -15,7 +15,7 @@ import {
   resolvePreviewFontSizes,
   type PreviewFontSizes,
 } from "@/lib/resume-draft/preview-settings";
-import { buildResumeDocxFileName } from "@/lib/resume-draft/export-filename";
+import { buildResumeDocxFileName, buildResumePdfFileName } from "@/lib/resume-draft/export-filename";
 import type { ResumeDraftContent } from "@/types/resume-draft";
 
 /** Shared layout settings consumed by preview and export. */
@@ -37,6 +37,7 @@ export type ResumeDocumentModel = {
   fontFamily: string;
   headerAlignment: "center" | "left";
   fileName: string;
+  pdfFileName: string;
   companyName?: string;
   roleTitle?: string;
 };
@@ -68,7 +69,7 @@ function resolveLayoutSettings(
 }
 
 /**
- * Canonical resume document model — single source for preview, DOCX, and future PDF.
+ * Canonical resume document model — single source for preview, DOCX, and PDF.
  * Resume layout excludes Professional Summary; empty professionalSummary in content is valid.
  */
 export function buildResumeDocumentModel(
@@ -80,6 +81,12 @@ export function buildResumeDocumentModel(
   const fontSizes = resolvePreviewFontSizes(layoutSettings.bodyFontPx);
   const fullName = input.fullName?.trim() || input.content.header.fullName?.trim() || "Candidate";
 
+  const exportNames = {
+    fullName,
+    companyName: input.companyName,
+    roleTitle: input.roleTitle,
+  };
+
   return {
     draftId: input.draftId,
     draftStatus: input.draftStatus,
@@ -89,11 +96,8 @@ export function buildResumeDocumentModel(
     pageFit,
     fontFamily: input.fontFamily ?? DEFAULT_RESUME_FONT_FAMILY,
     headerAlignment: input.headerAlignment ?? "center",
-    fileName: buildResumeDocxFileName({
-      fullName,
-      companyName: input.companyName,
-      roleTitle: input.roleTitle,
-    }),
+    fileName: buildResumeDocxFileName(exportNames),
+    pdfFileName: buildResumePdfFileName(exportNames),
     companyName: input.companyName,
     roleTitle: input.roleTitle,
   };

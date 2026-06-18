@@ -13,25 +13,37 @@ export function sanitizeFileNamePart(value: string | undefined | null): string {
     .trim();
 }
 
-export type ResumeDocxFileNameInput = {
+export type ResumeExportFileNameInput = {
   fullName?: string | null;
   companyName?: string | null;
   roleTitle?: string | null;
 };
 
-/**
- * `<FULL NAME> - Resume_<COMPANY>_<ROLE>.docx` or `<FULL NAME> - Resume.docx`
- */
-export function buildResumeDocxFileName(input: ResumeDocxFileNameInput): string {
+/** Shared stem: `<FULL NAME> - Resume_<COMPANY>_<ROLE>` or `<FULL NAME> - Resume` */
+export function buildResumeExportFileStem(input: ResumeExportFileNameInput): string {
   const fullName = sanitizeFileNamePart(input.fullName) || "Resume";
   const company = sanitizeFileNamePart(input.companyName);
   const role = sanitizeFileNamePart(input.roleTitle);
 
   if (company && role) {
-    return `${fullName} - Resume_${company}_${role}.docx`;
+    return `${fullName} - Resume_${company}_${role}`;
   }
 
-  return `${fullName} - Resume.docx`;
+  return `${fullName} - Resume`;
+}
+
+/**
+ * `<FULL NAME> - Resume_<COMPANY>_<ROLE>.docx` or `<FULL NAME> - Resume.docx`
+ */
+export function buildResumeDocxFileName(input: ResumeExportFileNameInput): string {
+  return `${buildResumeExportFileStem(input)}.docx`;
+}
+
+/**
+ * `<FULL NAME> - Resume_<COMPANY>_<ROLE>.pdf` or `<FULL NAME> - Resume.pdf`
+ */
+export function buildResumePdfFileName(input: ResumeExportFileNameInput): string {
+  return `${buildResumeExportFileStem(input)}.pdf`;
 }
 
 export function buildResumeDocxStoragePath(
@@ -41,4 +53,13 @@ export function buildResumeDocxStoragePath(
 ): string {
   const safeName = sanitizeFileNamePart(fileName.replace(/\.docx$/i, "")) || "Resume";
   return `${userId}/resumes/${draftId}/${safeName}.docx`;
+}
+
+export function buildResumePdfStoragePath(
+  userId: string,
+  draftId: string,
+  fileName: string,
+): string {
+  const safeName = sanitizeFileNamePart(fileName.replace(/\.pdf$/i, "")) || "Resume";
+  return `${userId}/resumes/${draftId}/${safeName}.pdf`;
 }

@@ -240,7 +240,7 @@ async function main() {
     ],
     [
       "header one step above body in docx",
-      mapPreviewHeaderPxToDocxHalfPoints(11) === mapPreviewBodyPxToDocxHalfPoints(11) + 1,
+      mapPreviewHeaderPxToDocxHalfPoints(11) === mapPreviewBodyPxToDocxHalfPoints(11) + 2,
     ],
     [
       "preferred docx font is Gill Sans MT",

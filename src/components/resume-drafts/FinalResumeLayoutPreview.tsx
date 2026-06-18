@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCompanyLine } from "@/lib/resume-draft/layout";
+import { buildCompanyLineSegments } from "@/lib/resume-draft/docx-layout-helpers";
 import type { FinalResumeLayout, PageFitEstimate } from "@/lib/resume-draft/layout";
 import {
   A4_HEIGHT_MM,
@@ -152,8 +152,18 @@ export function FinalResumeLayoutPreview({
                       key={`${experience.company}-${experience.role}-${experience.dateRange ?? ""}`}
                     >
                       <div className="flex items-baseline justify-between gap-3">
-                        <p className="min-w-0 flex-1 font-bold">
-                          {formatCompanyLine(experience.company, experience.companyDescriptor)}
+                        <p className="min-w-0 flex-1">
+                          {buildCompanyLineSegments(
+                            experience.company,
+                            experience.companyDescriptor,
+                          ).map((segment, segmentIndex) => (
+                            <span
+                              key={`${segment.text}-${segmentIndex}`}
+                              className={segment.bold ? "font-bold" : undefined}
+                            >
+                              {segment.text}
+                            </span>
+                          ))}
                         </p>
                         {experience.location ? (
                           <p className="shrink-0 text-right tabular-nums">{experience.location}</p>

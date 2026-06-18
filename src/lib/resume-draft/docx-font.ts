@@ -34,10 +34,10 @@ export function mapPreviewBodyPxToDocxHalfPoints(bodyFontPx: number): number {
   return Math.round(mapPreviewBodyPxToDocxPt(bodyFontPx) * 2);
 }
 
-/** Name/section headers: one small step above body (max ~0.5pt). */
+/** Name/section headers: body + 1pt in DOCX terms. */
 export function mapPreviewHeaderPxToDocxHalfPoints(bodyFontPx: number): number {
   const bodyPt = mapPreviewBodyPxToDocxPt(bodyFontPx);
-  return Math.round(Math.min(bodyPt + 0.5, 11) * 2);
+  return Math.round((bodyPt + 1) * 2);
 }
 
 export type DocxFontSizes = {
@@ -53,7 +53,7 @@ export function resolveDocxFontSizes(
   fontFamily?: string,
 ): DocxFontSizes {
   const bodyPt = mapPreviewBodyPxToDocxPt(bodyFontPx);
-  const headerPt = Math.min(bodyPt + 0.5, 11);
+  const headerPt = bodyPt + 1;
   return {
     bodyPt,
     headerPt,

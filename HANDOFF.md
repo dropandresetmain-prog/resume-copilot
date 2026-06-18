@@ -2,38 +2,39 @@
 
 ## Current milestone
 
-**v0.6.1 — DOCX Export Fidelity Fixes**
+**v0.6.2 — Direct Resume PDF Export**
 
-DOCX export now uses Gill Sans MT, explicit 10pt+ font mapping, borderless tables for alignment, company-descriptor styling, corrected filenames, and no Professional Summary in resume output.
+Approved drafts can download **DOCX** (Word) or **PDF** (direct HTML→PDF from canonical layout model). PDF does not depend on DOCX.
 
 ## Product flow
 
 ```
-Paste JD → Generate Resume → One-page preview → Approve for Export → Download DOCX
+Paste JD → Generate Resume → One-page preview → Approve for Export → Download DOCX / Download PDF
 ```
 
-PDF export (v0.6.2+) waits on manual DOCX recheck. Cover letters deferred.
+Cover letters and manual inventory editing deferred.
 
-## v0.6.1 highlights
+## v0.6.2 highlights
 
-**Filename:** `<FULL NAME> - Resume_<COMPANY>_<ROLE>.docx`
+**PDF strategy:** `ResumeDocumentModel` → `renderResumePdfHtml()` → Puppeteer (`puppeteer-core` + `@sparticuz/chromium` on Vercel; local Chrome fallback)
 
-**Fonts:** Gill Sans MT preferred; every DOCX text run sets font explicitly (no Times New Roman leakage)
+**Filename:** `<FULL NAME> - Resume_<COMPANY>_<ROLE>.pdf` (same stem as DOCX)
 
-**Font sizes:** Preview 11px → DOCX 10pt body; headers +0.5pt max
+**Font hierarchy:** Header/name/section = body + 1pt (DOCX) / body + 1px (preview/PDF HTML)
 
-**Layout:** Borderless two-column tables for work/education left/right rows; company bold, descriptor normal
+**Company line:** Company bold; `(descriptor)` normal in preview, DOCX, and PDF
 
-**Professional Summary:** Not part of resume — schema field stays empty; cover letter future use only
+**Professional Summary:** Not rendered in resume preview/export; schema field kept empty for backward compatibility / future cover letters
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
 | v0.6.0 — DOCX export | Complete |
-| **v0.6.1 — DOCX fidelity fixes** | **Current** |
-| v0.6.2 — PDF export (after DOCX recheck) | Next |
-| v0.7.0 — Cover letter generation | Later |
+| v0.6.1 — DOCX fidelity fixes | Complete |
+| **v0.6.2 — Direct PDF export** | **Current** |
+| v0.7.0 — Cover letter generation | Next |
+| Manual inventory editing | Deferred |
 
 ## Run
 
@@ -41,3 +42,7 @@ PDF export (v0.6.2+) waits on manual DOCX recheck. Cover letters deferred.
 npm run dev
 npm run test
 ```
+
+## PDF local dev
+
+Set `LOCAL_CHROME_PATH` or install Google Chrome. On Vercel, `@sparticuz/chromium` is used automatically.

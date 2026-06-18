@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { buildDraftListDisplays } from "@/lib/resume-draft/draft-labels";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
+import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import {
   deleteGeneratedResumeDraftFromCloud,
   listGeneratedResumeDraftsFromCloud,
@@ -143,14 +144,15 @@ export function DraftHistoryPanel({
                         : "Approve for Export before downloading."
                     }
                   />
-                  <button
-                    type="button"
-                    disabled
-                    className={`${secondaryButtonClassName} opacity-60`}
-                    title="PDF export coming next"
-                  >
-                    PDF coming next
-                  </button>
+                  <DownloadResumePdfButton
+                    draftId={draft.id}
+                    disabled={draft.status !== "approved"}
+                    disabledReason={
+                      draft.status === "approved"
+                        ? undefined
+                        : "Approve for Export before downloading."
+                    }
+                  />
                   <button
                     type="button"
                     onClick={() => void handleDeleteDraft(draft)}

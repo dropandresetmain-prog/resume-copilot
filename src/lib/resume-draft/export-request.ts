@@ -11,19 +11,19 @@ import {
   PREVIEW_SECTION_SPACING_MIN,
 } from "@/lib/resume-draft/preview-settings";
 
-export type ResumeDocxExportRequestBody = {
+export type ResumeExportRequestBody = {
   draftId?: string;
   layoutSettings?: Partial<ResumeLayoutSettings>;
 };
 
-export function parseResumeDocxExportRequestBody(
+export function parseResumeExportRequestBody(
   body: unknown,
 ): { draftId: string; layoutSettings?: Partial<ResumeLayoutSettings> } {
   if (!body || typeof body !== "object") {
     throw new Error("Invalid export request body.");
   }
 
-  const record = body as ResumeDocxExportRequestBody;
+  const record = body as ResumeExportRequestBody;
   const draftId = record.draftId?.trim();
   if (!draftId) {
     throw new Error("draftId is required.");
@@ -34,6 +34,11 @@ export function parseResumeDocxExportRequestBody(
     layoutSettings: sanitizeLayoutSettings(record.layoutSettings),
   };
 }
+
+/** @deprecated Use parseResumeExportRequestBody */
+export const parseResumeDocxExportRequestBody = parseResumeExportRequestBody;
+
+export const parseResumePdfExportRequestBody = parseResumeExportRequestBody;
 
 function sanitizeLayoutSettings(
   value: Partial<ResumeLayoutSettings> | undefined,
