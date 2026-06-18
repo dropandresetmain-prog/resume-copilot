@@ -219,7 +219,7 @@ Product Manager                                                                 
       "legacy migration does not crash",
       migratedLegacy.length === 1 && migratedLegacy[0]?.beforeText.includes("Growth"),
     ],
-    ["export schema v2", exportPayload.schemaVersion === 2],
+    ["export schema v3", exportPayload.schemaVersion === 3],
     [
       "export includes enrichment",
       exportPayload.inventory.enrichment.suggestions.length >= 2,

@@ -1,11 +1,13 @@
 import { calculateExperienceDuration } from "@/lib/date/duration";
 import { createEmptyEnrichmentState, migrateEnrichmentSuggestions } from "@/lib/enrichment/state";
+import { validateStoredJobDescription } from "@/lib/jd/persistence";
 import type {
   DuplicateGroupSuggestion,
   EnrichmentRunMetadata,
   EnrichmentState,
   EnrichmentTestBatch,
 } from "@/types/enrichment";
+import type { StoredJobDescription } from "@/types/jd";
 import type {
   ExportedInventory,
   InventoryState,
@@ -143,32 +145,6 @@ export function parsePersistedInventory(raw: string): {
       warning: "Stored inventory data could not be parsed. It was ignored.",
     };
   }
-}
-
-export function loadInventoryFromStorage(): {
-  inventory: InventoryState | null;
-  warning: string | null;
-} {
-  if (typeof window === "undefined") {
-    return { inventory: null, warning: null };
-  }
-
-  const raw = window.localStorage.getItem(INVENTORY_STORAGE_KEY);
-  if (!raw) {
-    return { inventory: null, warning: null };
-  }
-
-  return parsePersistedInventory(raw);
-}
-
-export function saveInventoryToStorage(inventory: InventoryState): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(INVENTORY_STORAGE_KEY, serializeInventory(inventory));
-}
-
-export function clearInventoryStorage(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(INVENTORY_STORAGE_KEY);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -410,8 +386,48 @@ export function validateInventoryState(value: unknown): InventoryState | null {
 
 function validateSchemaVersion(value: unknown): number | null {
   if (!isObject(value)) return null;
-  if (typeof value.schemaVersion === "number") return value.schemaVersion;
-  return null;
+  if (typeof value.schemaVersion !== "number") return null;
+  if (![1, 2, INVENTORY_SCHEMA_VERSION].includes(value.schemaVersion)) {
+    return null;
+  }
+  return value.schemaVersion;
+}
+
+function parseExportJobDescriptions(value: unknown): {
+  jobDescriptions: StoredJobDescription[];
+  warning: string | null;
+} {
+  if (!isObject(value) || !("jobDescriptions" in value)) {
+    return { jobDescriptions: [], warning: null };
+  }
+
+  const source = value.jobDescriptions;
+  if (!Array.isArray(source)) {
+    return {
+      jobDescriptions: [],
+      warning: "Imported job descriptions were malformed and were skipped.",
+    };
+  }
+
+  const jobDescriptions = source
+    .map((item) => validateStoredJobDescription(item))
+    .filter((item): item is StoredJobDescription => item !== null);
+
+  if (source.length > 0 && jobDescriptions.length === 0) {
+    return {
+      jobDescriptions: [],
+      warning: "Imported job descriptions could not be validated and were skipped.",
+    };
+  }
+
+  if (jobDescriptions.length < source.length) {
+    return {
+      jobDescriptions,
+      warning: "Some imported job descriptions were invalid and were skipped.",
+    };
+  }
+
+  return { jobDescriptions, warning: null };
 }
 
 export function validateInventoryPayload(
@@ -420,7 +436,7 @@ export function validateInventoryPayload(
   if (!isObject(value)) return null;
 
   const schemaVersion = validateSchemaVersion(value);
-  if (schemaVersion !== 1 && schemaVersion !== INVENTORY_SCHEMA_VERSION) {
+  if (schemaVersion === null) {
     return null;
   }
 
@@ -431,17 +447,25 @@ export function validateInventoryPayload(
   return validateInventoryState(value);
 }
 
-export function createExportPayload(inventory: InventoryState): ExportedInventory {
+export function createExportPayload(
+  inventory: InventoryState,
+  jobDescriptions: StoredJobDescription[] = [],
+): ExportedInventory {
+  // JSON export is legacy backup only. Supabase is source-of-truth.
+  // TODO(Milestone 4+): optional export bundle could include Supabase Storage blobs.
   return {
     schemaVersion: INVENTORY_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     inventory,
+    jobDescriptions,
   };
 }
 
 export function parseImportedInventory(raw: string): {
   inventory: InventoryState | null;
+  jobDescriptions: StoredJobDescription[];
   error: string | null;
+  warning: string | null;
 } {
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -449,20 +473,33 @@ export function parseImportedInventory(raw: string): {
     if (!validated) {
       return {
         inventory: null,
+        jobDescriptions: [],
         error: "Import file is not a valid inventory JSON export.",
+        warning: null,
       };
     }
-    return { inventory: enrichInventory(validated), error: null };
+    const { jobDescriptions, warning } = parseExportJobDescriptions(parsed);
+    return {
+      inventory: enrichInventory(validated),
+      jobDescriptions,
+      error: null,
+      warning,
+    };
   } catch {
     return {
       inventory: null,
+      jobDescriptions: [],
       error: "Import file could not be parsed as JSON.",
+      warning: null,
     };
   }
 }
 
-export function downloadInventoryJson(inventory: InventoryState): void {
-  const payload = createExportPayload(inventory);
+export function downloadInventoryJson(
+  inventory: InventoryState,
+  jobDescriptions: StoredJobDescription[] = [],
+): void {
+  const payload = createExportPayload(inventory, jobDescriptions);
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
   });

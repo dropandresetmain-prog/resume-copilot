@@ -89,6 +89,7 @@ export type ParseFailure = {
 };
 
 import type { EnrichmentState } from "@/types/enrichment";
+import type { StoredJobDescription } from "@/types/jd";
 
 export type InventoryState = {
   resumes: ParsedResume[];
@@ -96,10 +97,10 @@ export type InventoryState = {
   enrichment: EnrichmentState;
 };
 
-export const INVENTORY_SCHEMA_VERSION = 2 as const;
+export const INVENTORY_SCHEMA_VERSION = 3 as const;
 
 export type PersistedInventory = {
-  schemaVersion: typeof INVENTORY_SCHEMA_VERSION;
+  schemaVersion: number;
   savedAt: string;
   inventory: InventoryState;
 };
@@ -108,4 +109,5 @@ export type ExportedInventory = {
   schemaVersion: typeof INVENTORY_SCHEMA_VERSION;
   exportedAt: string;
   inventory: InventoryState;
+  jobDescriptions?: StoredJobDescription[];
 };

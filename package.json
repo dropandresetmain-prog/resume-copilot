@@ -14,9 +14,13 @@
     "test:education": "tsx scripts/verify-education.ts",
     "test:sections": "tsx scripts/verify-section-detection.ts",
     "test:enrichment": "tsx scripts/verify-enrichment.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:enrichment"
+    "test:jd": "tsx scripts/verify-jd.ts",
+    "test:files": "tsx scripts/verify-files.ts",
+    "test:supabase": "tsx scripts/verify-supabase.ts",
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "mammoth": "^1.12.0",
     "next": "16.2.9",
     "react": "19.2.4",

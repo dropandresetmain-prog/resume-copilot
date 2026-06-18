@@ -1,4 +1,31 @@
-# Test Checklist — Milestone 2
+# Test Checklist — Milestone 3C
+
+## Supabase auth and sync
+
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`
+- [ ] Sign in with email/password works
+- [ ] Magic link sign-in works (if enabled in Supabase)
+- [ ] Signed-in email displays; sign out works
+- [ ] Signed-out state shows “Sign in to save and sync data across devices”
+- [ ] Upload and JD save disabled when signed out (if Supabase configured)
+- [ ] Resume inventory loads from Supabase after sign-in
+- [ ] Saved job descriptions load from Supabase after sign-in
+- [ ] Legacy localStorage warning appears once if old data keys exist
+
+## Upload and file storage
+
+- [ ] DOCX parse still works in browser
+- [ ] Parsed inventory saves to Supabase after upload (signed in)
+- [ ] Original file uploads to private `original-resume-files` bucket
+- [ ] File upload failure shows warning but keeps parsed inventory
+- [ ] Inventory save failure shows visible error
+- [ ] Cloud file storage panel lists uploaded originals
+
+## Job descriptions
+
+- [ ] Save / edit / delete / clear JDs via Supabase
+- [ ] Duplicate-save warning still works
+- [ ] `rawText` remains source of truth
 
 ## AI enrichment
 

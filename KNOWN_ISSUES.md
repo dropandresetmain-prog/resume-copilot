@@ -25,9 +25,11 @@ Education is preserved as institution → programme(s) → date range → bullet
 
 Experiences merge on normalized company + role. Near-identical bullets within the same experience are deduplicated; meaningfully different wording is kept as separate bullets.
 
-## Client-side only
+## Client-side parsing; Supabase for persistence
 
-No server database. Use export/import JSON to move inventory between browsers.
+Resume parsing runs in the browser. Parsed inventory, job descriptions, and uploaded files sync through **Supabase** when signed in. Sign in is required for save/sync when Supabase is configured.
+
+Older versions stored data in `localStorage` only. The app shows a one-time warning if legacy keys are detected; there is no automatic migration.
 
 ## AI enrichment
 

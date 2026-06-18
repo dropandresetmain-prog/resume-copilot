@@ -12,9 +12,12 @@
 
 | File | Purpose |
 |------|---------|
-| `src/components/SetupPageClient.tsx` | State, tabs, persistence, export/import, enrichment |
+| `src/components/SetupPageClient.tsx` | State, tabs, Supabase sync, enrichment |
+| `src/components/setup/AuthPanel.tsx` | Sign in / sign out |
+| `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original file storage status |
+| `src/components/setup/JDInputPanel.tsx` | Job description intake and saved JD list |
 | `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
-| `src/components/setup/UploadCard.tsx` | Upload dropzone + actions |
+| `src/components/setup/UploadCard.tsx` | Upload dropzone + clear inventory |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
 | `src/components/setup/ResumeList.tsx` | Uploaded resume management |
 | `src/components/setup/CollatedInventoryView.tsx` | Default collated working view |
@@ -31,9 +34,41 @@
 
 | File | Purpose |
 |------|---------|
-| `src/types/resume.ts` | Parsed resume / inventory types (schema v2) |
+| `src/types/resume.ts` | Parsed resume / inventory types |
 | `src/types/collated.ts` | Derived collated inventory types |
 | `src/types/enrichment.ts` | AI enrichment and keyword bank types |
+| `src/types/jd.ts` | Job description intake types |
+| `src/types/files.ts` | Stored file metadata types |
+
+## Supabase
+
+| File | Purpose |
+|------|---------|
+| `supabase/schema.sql` | Tables, RLS, storage buckets and policies |
+| `src/lib/supabase/client.ts` | Browser Supabase client |
+| `src/lib/supabase/auth.ts` | Auth helpers |
+| `src/lib/supabase/types.ts` | Row/record types, bucket constants |
+| `src/lib/supabase/resume-inventories.ts` | Cloud inventory load/save/delete |
+| `src/lib/supabase/job-descriptions.ts` | Cloud JD CRUD |
+| `src/lib/supabase/files.ts` | Storage upload/download/list/delete |
+
+## Legacy / pure persistence helpers
+
+| File | Purpose |
+|------|---------|
+| `src/lib/inventory/persistence.ts` | Validation, enrich, export/import helpers (tests) |
+| `src/lib/jd/persistence.ts` | JD validation, duplicate detection, list helpers |
+| `src/lib/legacy/local-data.ts` | One-time legacy localStorage detection |
+| `src/lib/storage/file-hash.ts` | SHA-256 hash helper |
+| `src/lib/storage/file-metadata.ts` | Metadata normalization and display helpers |
+
+## Job descriptions
+
+| File | Purpose |
+|------|---------|
+| `src/lib/jd/persistence.ts` | Pure helpers (duplicate detection, list transforms) |
+| `src/lib/supabase/job-descriptions.ts` | Cloud CRUD |
+| `src/components/setup/JDInputPanel.tsx` | Paste/save/edit/delete JD UI |
 
 ## AI enrichment
 
@@ -54,7 +89,7 @@
 | File | Purpose |
 |------|---------|
 | `src/lib/inventory/inventory.ts` | Upsert, delete, counts |
-| `src/lib/inventory/persistence.ts` | localStorage, export/import |
+| `src/lib/inventory/persistence.ts` | Validation, export/import helpers |
 | `src/lib/inventory/collation.ts` | Build collated inventory |
 | `src/lib/inventory/split-items.ts` | Atomic splitting for additional experience and skills |
 | `src/lib/inventory/normalize.ts` | Merge keys, bullet similarity |
@@ -78,8 +113,10 @@
 |------|---------|
 | `scripts/verify-parser.ts` | Parser smoke tests |
 | `scripts/verify-inventory.ts` | Inventory CRUD |
-| `scripts/verify-duration.ts` | Duration + persistence |
+| `scripts/verify-duration.ts` | Duration + persistence helpers |
 | `scripts/verify-collation.ts` | Collation + splitting |
 | `scripts/verify-education.ts` | Structured education parsing + collation |
 | `scripts/verify-section-detection.ts` | Layered section detection + unparsed fallbacks |
-| `scripts/verify-enrichment.ts` | AI provider, keyword bank, export/import |
+| `scripts/verify-jd.ts` | JD pure helpers, export/import v3 |
+| `scripts/verify-files.ts` | File hash + metadata normalization |
+| `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |
