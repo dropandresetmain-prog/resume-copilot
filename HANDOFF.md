@@ -2,49 +2,49 @@
 
 ## Current milestone
 
-**v0.5.3 — Resume Preview Fit and Ordering Fixes**
+**v0.5.4 — Draft Records + One-Page Optimization**
 
-Preview ordering, typography, spacing, and overflow visibility tuned for export readiness. Work/education/additional experience render reverse-chronological at layout layer. Full resume content remains visible below the A4 one-page cutoff.
+Generated drafts are manageable from Records (Edit/Delete). First preview load auto-optimizes layout for one-page fit starting at 11px body font. Keyword bullets are repaired when the model uses generic `Experience:` prefixes. Skills section splits into Tech, Skills, Languages, and Interests.
 
-## Product flow
+## Product flow (target)
 
 ```
-Generate → Final Resume Layout Preview → Approve for Export → (future DOCX/PDF)
-                              ↘ Edit Resume Details → /resume-preview/[draftId]/edit
+Paste JD → Generate Resume → Format-optimized one-page preview → Approve for Export → (future download)
 ```
 
-## Preview fit (v0.5.3)
+Secondary: Edit Resume Details → `/resume-preview/[draftId]/edit`
 
-- **Reverse chronological:** Work Experience, Education, Additional Experience (dated phrases) sorted latest-first at `buildFinalResumeLayout()` — source draft/inventory order unchanged.
-- **Font size slider:** Body 7–12px (0.5px steps); header/section titles +0.5px only.
-- **Tighter defaults:** Margins 12mm (top 9mm), line spacing 1.05, section spacing 0.6rem.
-- **Lower slider mins:** Margins from 8mm, line spacing from 1.0, section spacing from 0.35rem.
-- **Overflow visible:** A4 page grows with content; dashed boundary at 297mm marks one-page cutoff.
-- **Reference font:** `buildReferenceResumeFormatProfile()` sets `fontFamily` (Calibri/Arial fallback until DOCX font parsing exists).
+## v0.5.4 highlights
 
-## Layout fidelity (v0.5.2)
+**Records / Generated Drafts**
+- **Edit** → `/resume-preview/[draftId]`
+- **Delete** → removes row from Supabase `generated_resume_drafts` (with confirm)
+- Labels: Company — Role, timestamp, status (Generated/Reviewed/Approved), provider/model
 
-Work/education line structure, bullet markers, underlined keyword labels, Skills/Languages/Interests compact lines — see prior milestone notes.
+**One-page optimization**
+- `optimizeResumePreviewSettings()` runs on preview load
+- Starts 11px body font, tightens margins/spacing, then reduces font in 0.5px steps if needed
+- Sliders remain for manual override
 
-## Reference resume (formatting only)
+**Keyword repair**
+- `repairKeywordBullet()` fixes `Experience: Specific Keyword: statement` patterns
 
-Reference resume is a **formatting/template reference**, not a content source. Generated content comes from inventory, approved keywords, and job description.
+**Skills section**
+- Final layout: **Tech**, **Skills**, **Languages**, **Interests** (compact underlined labels)
+
+**Assessment**
+- **Resume–Job Fit** score (role match) separate from **Layout Fit (One Page)**
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.5.1 — Final layout preview | Complete |
-| v0.5.2 — Layout fidelity fixes | Complete |
-| **v0.5.3 — Preview fit & ordering** | **Current** |
-| v0.5.4 — Manual inventory editing | Planned (next) |
-| v0.6.0 — DOCX export | Planned |
-| v0.6.1 — PDF export | Planned |
-| v0.7.0 — Cover letter generation | Planned |
-
-## Approval
-
-**Approve for Export** sets `generated_resume_drafts.status` to `approved` and saves draft content. Export not implemented yet.
+| v0.5.3 — Preview fit & ordering | Complete |
+| **v0.5.4 — Draft records + one-page optimization** | **Current** |
+| v0.5.5 — Manual inventory editing | Planned |
+| v0.6.0 — DOCX export | Next |
+| v0.6.1 — PDF export | After DOCX |
+| v0.7.0 — Cover letter generation | After export quality validated |
 
 ## Run
 

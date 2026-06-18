@@ -50,7 +50,7 @@ const EMPTY_FORM: JobDescriptionInput = {
 const DEFAULT_INTAKE_TITLE = "Add a job to tailor your resume";
 const DEFAULT_INTAKE_DESCRIPTION =
   "Paste the job description here. We'll save it, extract the company and role where possible, and use it to generate a tailored resume.";
-const DEFAULT_MANAGE_TITLE = "Manage saved jobs";
+const DEFAULT_MANAGE_TITLE = "Manage Saved Jobs";
 const DEFAULT_MANAGE_DESCRIPTION =
   "View, edit, or delete jobs you saved while tailoring resumes. Paste new jobs on the Generate page.";
 
@@ -82,7 +82,7 @@ export function JDInputPanel({
   const resolvedDescription =
     description ??
     (showIntakeForm ? DEFAULT_INTAKE_DESCRIPTION : DEFAULT_MANAGE_DESCRIPTION);
-  const resolvedListTitle = listTitle ?? `Saved jobs (${jobDescriptions.length})`;
+  const resolvedListTitle = listTitle ?? `Saved Jobs (${jobDescriptions.length})`;
   const showForm = showIntakeForm || editingId !== null;
 
   function updateField<K extends keyof JobDescriptionInput>(
@@ -331,14 +331,14 @@ export function JDInputPanel({
               disabled={jobDescriptions.length === 0 || disabled}
               className={destructiveButtonClassName}
             >
-              Clear saved jobs
+              Clear Saved Jobs
             </button>
           </div>
 
           {jobDescriptions.length === 0 ? (
             <div className="mt-3">
               <EmptyState
-                title="No saved jobs yet"
+                title="No Saved Jobs Yet"
                 description={
                   showIntakeForm
                     ? "Paste a job description above and save it to get started."

@@ -1,3 +1,4 @@
+import { repairBulletText } from "@/lib/resume-draft/keyword-repair";
 import {
   RESUME_DRAFT_SCHEMA_VERSION,
   type ResumeDraftConfidence,
@@ -108,7 +109,7 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
         dateRange: asString(entry.dateRange),
         bullets: Array.isArray(entry.bullets)
           ? entry.bullets.filter(isObject).map((bullet) => ({
-              text: asString(bullet.text) ?? "",
+              text: repairBulletText(asString(bullet.text) ?? ""),
               sourceRefs: mapSourceRefs(bullet.sourceRefs),
               jdAlignmentReason: asString(bullet.jdAlignmentReason),
               confidence: asConfidence(bullet.confidence),

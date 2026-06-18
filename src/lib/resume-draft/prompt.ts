@@ -17,31 +17,40 @@ Content rules:
 - If the job description asks for unsupported experience, add risk flags and list omissions in rationale.
 - Every experience bullet must include sourceRefs when matching inventory bullets exist.
 - Approved keywords may be incorporated only when truthful for the candidate's inventory.
-- Aim for one A4 page: prefer 2–4 strong, job-relevant bullets per role; avoid filler bullets.
-- Do not auto-delete inventory content — omit only when unsupported, and note omissions in rationale.
+
+One-page discipline (critical):
+- Target one A4 page. No Professional Summary.
+- Current/primary roles: 2–3 bullets; max 4 only when highly relevant.
+- Older/less relevant roles: 1–2 bullets.
+- Use concise bullets. Combine overlapping points. Remove weak or low-relevance bullets.
+- Do not repeat skills already obvious from bullets.
+- Additional Experience: one compact comma-separated line.
+- Skills section groups must stay compact.
+- Prefer stronger selection over exhaustive listing.
 
 Resume structure (exact order):
 1. Header — Name, then "Phone | Email" on the next line. No professional summary.
 2. Work Experience
 3. Education
-4. Additional Experience — compact comma-separated line(s) for projects, certifications, past roles, extracurriculars
-5. Skills & Interests — labeled groups: Skills, Languages (if available), Interests
+4. Additional Experience — compact comma-separated line(s)
+5. Skills & Interests — labeled groups: Tech, Skills, Languages (if available), Interests
 
 Work experience bullet format:
-- Use "Keyword: Experience statement" (keyword colon space statement).
-- Example: "Strategy: Supported 50+ companies with market entry initiatives across multiple regions."
+- Use "Specific Keyword: Experience statement" — NEVER use generic keywords like "Experience:", "Work Experience:", or "Achievement:" in Work Experience.
+- Good: "Financial Operations: Managed S$200k–300k monthly cash reconciliation..."
+- Good: "CRM Implementation: Built a division-wide CRM workflow..."
+- Bad: "Experience: Financial Operations: ..."
 - Include companyDescriptor when inventory provides a company descriptor.
-- Preview renders bullets with visible bullet markers and underlined "Keyword:" labels.
 
 Additional experience:
-- Include projects, certifications, past relevant roles, and notable professional items.
-- Do NOT put languages, interests, or technical skills here — those belong in Skills & Interests.
-- Combine into compact comma-separated phrases, e.g. "Advanced Open Water Diver, Former Band Vocalist".
+- Projects, certifications, past relevant roles, notable professional items only.
+- Do NOT put languages, interests, or skills here.
 
-Skills & Interests:
-- Skills group: comma-separated skill phrases.
-- Languages group: comma-separated languages when inventory has them.
-- Interests group: comma-separated interests (required when inventory has interests).`;
+Skills & Interests groups:
+- Tech: programming, IT, AI/tooling, software, technical tools.
+- Skills: business/non-technical skills; avoid repeating keywords already dominant in work bullets.
+- Languages: spoken/written languages.
+- Interests: hobbies/interests.`;
 
 export function buildResumeDraftPrompt(input: ResumeDraftGenerationInput): string {
   return `${RESUME_DRAFT_SYSTEM_INSTRUCTIONS}
@@ -66,6 +75,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
   },
   "skills": {
     "groups": [
+      { "label": "Tech", "items": ["string"] },
       { "label": "Skills", "items": ["string"] },
       { "label": "Languages", "items": ["string"] },
       { "label": "Interests", "items": ["string"] }
@@ -82,7 +92,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
       "dateRange": "string | null",
       "bullets": [
         {
-          "text": "Keyword: Experience statement",
+          "text": "Specific Keyword: Experience statement",
           "sourceRefs": [
             {
               "collatedBulletId": "string | null",

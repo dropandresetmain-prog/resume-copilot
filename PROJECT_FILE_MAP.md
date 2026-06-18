@@ -143,7 +143,11 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
 | `src/lib/resume-draft/layout.ts` | Final layout model, sort, page-fit estimate, fit score (v0.5.1+) |
-| `src/lib/resume-draft/preview-settings.ts` | Preview font/spacing constants and font-size helpers (v0.5.3) |
+| `src/lib/resume-draft/keyword-repair.ts` | Generic `Experience:` bullet repair (v0.5.4) |
+| `src/lib/resume-draft/preview-optimizer.ts` | Auto one-page preview settings (v0.5.4) |
+| `src/lib/resume-draft/skills-section.ts` | Tech/Skills/Languages/Interests extraction (v0.5.4) |
+| `src/lib/resume-draft/draft-labels.ts` | Generated draft list labels (v0.5.4) |
+| `src/lib/resume-draft/preview-settings.ts` | Preview font/spacing constants (v0.5.3+) |
 | `src/lib/resume-draft/reference-format.ts` | Reference resume formatting profile (no content) |
 | `src/components/resume-drafts/FinalResumeLayoutPreview.tsx` | Canonical A4 resume preview |
 | `src/components/resume-drafts/ResumeAssessmentPanel.tsx` | Fit score + rationale panel |

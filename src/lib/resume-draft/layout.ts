@@ -6,7 +6,8 @@ import type {
   ResumeDraftExperienceSection,
   ResumeDraftRationale,
 } from "@/types/resume-draft";
-import { getDateRangeEndSortKey } from "@/lib/date/duration";
+import { extractSkillsTechLanguagesInterests } from "@/lib/resume-draft/skills-section";
+import { repairKeywordBullet } from "@/lib/resume-draft/keyword-repair";
 import {
   computeMaxLinesOnePage,
   PREVIEW_BODY_FONT_DEFAULT_PX,
@@ -15,6 +16,7 @@ import {
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
   PREVIEW_SECTION_SPACING_DEFAULT,
 } from "@/lib/resume-draft/preview-settings";
+import { getDateRangeEndSortKey } from "@/lib/date/duration";
 
 /** Canonical final resume section order for preview and future export. */
 export const FINAL_RESUME_SECTION_ORDER = [
@@ -59,6 +61,7 @@ export type FinalResumeLayout = {
   workExperience: WorkExperienceLayoutEntry[];
   education: EducationLayoutEntry[];
   additionalExperienceLine: string;
+  techLine: string;
   skillsLine: string;
   languagesLine: string;
   interestsLine: string;
@@ -245,32 +248,12 @@ export function compactAdditionalExperience(
 }
 
 function extractSkillsLanguagesAndInterests(content: ResumeDraftContent): {
+  techLine: string;
   skillsLine: string;
   languagesLine: string;
   interestsLine: string;
 } {
-  const groups = content.skills.groups;
-  const skillsGroup =
-    groups.find((group) => /^skills$/i.test(group.label.trim())) ??
-    groups.find((group) => /skill/i.test(group.label) && !/interest|language/i.test(group.label)) ??
-    groups[0];
-  const languagesGroup = groups.find((group) => /language/i.test(group.label));
-  const interestsGroup = groups.find((group) => /interest/i.test(group.label));
-
-  const skillsItems = skillsGroup?.items.filter(Boolean) ?? [];
-  const languagesItems = languagesGroup?.items.filter(Boolean) ?? [];
-  const interestsItems =
-    interestsGroup?.items.filter(Boolean) ??
-    groups
-      .filter((group) => group !== skillsGroup && group !== languagesGroup)
-      .flatMap((group) => group.items)
-      .filter(Boolean);
-
-  return {
-    skillsLine: skillsItems.join(", "),
-    languagesLine: languagesItems.join(", "),
-    interestsLine: interestsItems.join(", "),
-  };
+  return extractSkillsTechLanguagesInterests(content);
 }
 
 export function buildWorkExperienceLayoutEntry(
@@ -284,7 +267,7 @@ export function buildWorkExperienceLayoutEntry(
     dateRange: experience.dateRange,
     bullets: experience.bullets
       .map((bullet: ResumeDraftExperienceBullet) => {
-        const parsed = parseKeywordBullet(bullet.text);
+        const parsed = repairKeywordBullet(bullet.text);
         return {
           keyword: parsed.keyword,
           statement: parsed.statement,
@@ -323,7 +306,7 @@ export function buildEducationLayoutEntry(
 
 /** Build canonical one-page-oriented layout from generated draft content. */
 export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResumeLayout {
-  const { skillsLine, languagesLine, interestsLine } =
+  const { techLine, skillsLine, languagesLine, interestsLine } =
     extractSkillsLanguagesAndInterests(content);
 
   const sortedExperience = sortReverseChronological(
@@ -343,6 +326,7 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
     workExperience: sortedExperience.map(buildWorkExperienceLayoutEntry),
     education: sortedEducation.map(buildEducationLayoutEntry),
     additionalExperienceLine: compactAdditionalExperience(content.additionalExperience),
+    techLine,
     skillsLine,
     languagesLine,
     interestsLine,
@@ -394,6 +378,9 @@ export function estimatePageFit(
     lines += sectionSpacing * 0.35;
   }
 
+  if (layout.techLine) {
+    lines += 1.25 * lineSpacing;
+  }
   if (layout.skillsLine) {
     lines += 1.25 * lineSpacing;
   }
@@ -445,19 +432,13 @@ export function calculateFitScore(
     score += 4;
   }
 
-  const layout = buildFinalResumeLayout(content);
-  const pageFit = estimatePageFit(layout);
-  if (pageFit.exceedsOnePage) {
-    score -= 12;
-  }
-
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   const optimizedFor = [
     ...(keywordUsage.slice(0, 3).map((keyword) => `Highlighted ${keyword} from approved keywords`)),
-    "Prioritized 2–4 strong bullets per role for one-page fit",
-    "Used compact Additional Experience and Skills & Interests lines",
-    "Applied keyword-colon bullet formatting with visible bullet markers",
+    "Selected strongest job-relevant bullets for one-page discipline",
+    "Used compact Additional Experience and Skills/Tech/Languages/Interests lines",
+    "Applied specific keyword-colon bullet formatting",
   ]
     .filter(Boolean)
     .slice(0, 5);
@@ -469,9 +450,6 @@ export function calculateFitScore(
   if (keywordUsage.length > 0) {
     keyStrengths.push("Relevant approved keywords incorporated");
   }
-  if (!pageFit.exceedsOnePage) {
-    keyStrengths.push("Draft fits one-page target estimate");
-  }
   if (keyStrengths.length === 0) {
     keyStrengths.push("Inventory-backed experience included");
   }
@@ -482,11 +460,6 @@ export function calculateFitScore(
     ...(lowConfidenceBullets > 0
       ? [`${lowConfidenceBullets} low-confidence bullet(s) need review`]
       : []),
-    ...(pageFit.exceedsOnePage
-      ? [
-          `Draft may exceed one page by ~${pageFit.overflowLines} line(s) — reduce font size, spacing, or bullets`,
-        ]
-      : []),
   ].slice(0, 6);
 
   return {
@@ -494,7 +467,7 @@ export function calculateFitScore(
     optimizedFor,
     scoreRationale:
       rationale?.overall ??
-      "Score reflects JD alignment, approved keyword usage, confidence levels, omissions, and one-page fit estimate.",
+      "Score reflects job-description alignment, approved keyword usage, confidence levels, and stated omissions.",
     keyStrengths,
     riskFlags,
   };

@@ -3,11 +3,14 @@ import {
   filterAdditionalExperienceItems,
   formatKeywordBullet,
 } from "@/lib/resume-draft/layout";
+import { repairBulletText } from "@/lib/resume-draft/keyword-repair";
+import { isTechSkillItem } from "@/lib/resume-draft/skills-section";
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
 import type { ResumeDraftGenerationResult } from "@/types/resume-draft";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "@/types/resume-draft";
 
-const MAX_BULLETS_PER_ROLE = 4;
+const MAX_BULLETS_PRIMARY = 3;
+const MAX_BULLETS_SECONDARY = 2;
 
 function buildHeader(input: ResumeDraftGenerationInput) {
   const contact = input.referenceResume.headerContact;
@@ -23,7 +26,7 @@ function buildHeader(input: ResumeDraftGenerationInput) {
 }
 
 function buildSkillsGroups(input: ResumeDraftGenerationInput) {
-  const skillItems = input.skills
+  const inventorySkillItems = input.skills
     .filter((item) => /technical skill/i.test(item.category))
     .map((item) => item.text)
     .filter(Boolean);
@@ -36,21 +39,25 @@ function buildSkillsGroups(input: ResumeDraftGenerationInput) {
     .map((item) => item.text)
     .filter(Boolean);
 
+  const keywordItems = input.approvedKeywords.slice(0, 8).map((item) => item.keyword);
+  const techItems = [
+    ...inventorySkillItems.filter(isTechSkillItem),
+    ...keywordItems.filter(isTechSkillItem),
+  ].slice(0, 10);
+  const businessSkills = [
+    ...keywordItems.filter((item) => !isTechSkillItem(item)),
+    ...inventorySkillItems.filter((item) => !isTechSkillItem(item)),
+  ].slice(0, 10);
+
   const groups = [];
-  if (skillItems.length > 0 || input.approvedKeywords.length > 0) {
-    groups.push({
-      label: "Skills",
-      items: [
-        ...input.approvedKeywords.slice(0, 8).map((item) => item.keyword),
-        ...skillItems,
-      ].slice(0, 12),
-    });
+  if (techItems.length > 0) {
+    groups.push({ label: "Tech", items: techItems });
+  }
+  if (businessSkills.length > 0) {
+    groups.push({ label: "Skills", items: businessSkills });
   }
   if (languageItems.length > 0) {
-    groups.push({
-      label: "Languages",
-      items: languageItems.slice(0, 8),
-    });
+    groups.push({ label: "Languages", items: languageItems.slice(0, 8) });
   }
   groups.push({
     label: "Interests",
@@ -71,30 +78,33 @@ export function generateMockResumeDraft(
     input.jobDescription.companyName?.trim() ||
     "Target Role";
 
-  const experience = input.experiences.slice(0, 3).map((entry) => ({
-    company: entry.company,
-    companyDescriptor: entry.companyDescriptor,
-    role: entry.role,
-    location: entry.location,
-    dateRange: entry.dateRange,
-    bullets: entry.bullets.slice(0, MAX_BULLETS_PER_ROLE).map((bullet) => {
-      const keyword = bullet.keyword?.trim() || "Operations";
-      const statement = bullet.description.trim();
-      return {
-        text: formatKeywordBullet(keyword, statement),
-        sourceRefs: bullet.sourceCitations.map((citation) => ({
-          collatedBulletId: bullet.collatedBulletId,
-          bulletKey: bullet.bulletKey,
-          resumeId: citation.resumeId,
-          filename: citation.filename,
-        })),
-        jdAlignmentReason: `Aligned to JD emphasis for ${targetRole} using inventory bullet.`,
-        confidence: "high" as const,
-        riskFlags: [],
-      };
-    }),
-    riskFlags: [],
-  }));
+  const experience = input.experiences.slice(0, 3).map((entry, index) => {
+    const maxBullets = index === 0 ? MAX_BULLETS_PRIMARY : MAX_BULLETS_SECONDARY;
+    return {
+      company: entry.company,
+      companyDescriptor: entry.companyDescriptor,
+      role: entry.role,
+      location: entry.location,
+      dateRange: entry.dateRange,
+      bullets: entry.bullets.slice(0, maxBullets).map((bullet) => {
+        const keyword = bullet.keyword?.trim() || "Operations";
+        const statement = bullet.description.trim();
+        return {
+          text: repairBulletText(formatKeywordBullet(keyword, statement)),
+          sourceRefs: bullet.sourceCitations.map((citation) => ({
+            collatedBulletId: bullet.collatedBulletId,
+            bulletKey: bullet.bulletKey,
+            resumeId: citation.resumeId,
+            filename: citation.filename,
+          })),
+          jdAlignmentReason: `Aligned to JD emphasis for ${targetRole} using inventory bullet.`,
+          confidence: "high" as const,
+          riskFlags: [],
+        };
+      }),
+      riskFlags: [],
+    };
+  });
 
   const additionalItems = filterAdditionalExperienceItems(
     input.additionalExperience.map((item) => ({
@@ -139,7 +149,7 @@ export function generateMockResumeDraft(
     },
     rationale: {
       overall: `Draft tailored for ${targetRole} using inventory content only. Reference resume (${input.referenceResume.filename}) informed layout and bullet style.`,
-      toneNotes: `Bullet style: ${input.referenceResume.bulletStyle}. Prefer 2–4 bullets per role for one-page fit.`,
+      toneNotes: `One-page discipline: 2–3 bullets on primary roles, compact skills section.`,
       omissions: [],
       keywordUsage: input.approvedKeywords.map((item) => item.keyword),
     },

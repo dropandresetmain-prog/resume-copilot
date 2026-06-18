@@ -19,9 +19,9 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.4.5 · Records"
+        milestone="v0.5.4 · Records"
         title="Records"
-        description="Review saved jobs and generated resume history. Paste new jobs on Generate."
+        description="Review Saved Jobs and Generated Drafts. Paste new jobs on Generate."
       />
 
       <JDInputPanel

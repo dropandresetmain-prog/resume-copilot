@@ -12,6 +12,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { formatRiskFlagLabel, reviewStatusClassName, reviewStatusLabel } from "@/lib/resume-draft/preview-helpers";
+import { optimizeResumePreviewSettings } from "@/lib/resume-draft/preview-optimizer";
 import {
   buildFinalResumeLayout,
   estimatePageFit,
@@ -52,7 +53,21 @@ export function ResumeDraftReviewWorkspace({
     [draft.content, reviewState],
   );
   const finalLayout = useMemo(() => buildFinalResumeLayout(previewContent), [previewContent]);
-  const pageFit = useMemo(() => estimatePageFit(finalLayout), [finalLayout]);
+  const autoSettings = useMemo(
+    () => optimizeResumePreviewSettings(previewContent),
+    [previewContent],
+  );
+  const pageFit = useMemo(
+    () =>
+      estimatePageFit(finalLayout, {
+        bodyFontPx: autoSettings.bodyFontPx,
+        marginMm: autoSettings.marginMm,
+        marginTopMm: autoSettings.marginTopMm,
+        lineSpacing: autoSettings.lineSpacing,
+        sectionSpacing: autoSettings.sectionSpacing,
+      }),
+    [finalLayout, autoSettings],
+  );
   const showProfessionalSummary = Boolean(draft.content.professionalSummary.text?.trim());
 
   const reviewCounts = useMemo(() => countReviewDecisions(reviewState), [reviewState]);
@@ -100,7 +115,12 @@ export function ResumeDraftReviewWorkspace({
           <span>Omitted: {reviewCounts.rejected}</span>
         </div>
 
-        <FinalResumeLayoutPreview layout={finalLayout} pageFit={pageFit} className="mt-4" />
+        <FinalResumeLayoutPreview
+          layout={finalLayout}
+          pageFit={pageFit}
+          bodyFontPx={autoSettings.bodyFontPx}
+          className="mt-4"
+        />
 
         <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">

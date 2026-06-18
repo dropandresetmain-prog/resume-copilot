@@ -1,31 +1,33 @@
-# Test Checklist — v0.5.3 Resume Preview Fit and Ordering Fixes
+# Test Checklist — v0.5.4 Draft Records + One-Page Optimization
 
-## Ordering
+## Records / Generated Drafts
 
-- [ ] Work Experience shows Present/latest roles first
-- [ ] Education shows latest degree first
-- [ ] Additional Experience dated items appear before undated phrases
+- [ ] Section title reads **Generated Drafts**
+- [ ] **Edit** opens `/resume-preview/[draftId]`
+- [ ] **Delete** confirms, removes draft from Supabase and UI
+- [ ] Delete failure shows visible error
+- [ ] Draft row shows Company — Role, timestamp, status, provider
 
-## Typography & spacing
+## One-page optimization
 
-- [ ] Body font slider (7–12px, 0.5px steps) scales entire resume
-- [ ] Name and section headers only slightly larger than body (+0.5px)
-- [ ] Margin slider goes down to 8mm
-- [ ] Line spacing and section spacing sliders reach tighter minimums
-- [ ] Default top margin feels compact (name not far from page top)
+- [ ] First preview load uses auto-optimized settings (starts 11px)
+- [ ] Preview fits one page for typical mock draft without manual sliders
+- [ ] Overflow warning + layout fit panel when still over one page
 
-## A4 preview
+## Keyword bullets
 
-- [ ] Preview centered in panel
-- [ ] Dashed line at one-page height (297mm)
-- [ ] Content below dashed line remains visible (not clipped)
-- [ ] Overflow warning shows estimated lines/pages and overflow amount
+- [ ] No generic `Experience:` keyword in work bullets when specific keyword available
 
-## Font
+## Skills section
 
-- [ ] Preview uses reference format profile font fallback (Calibri/Arial stack)
+- [ ] **Tech:** line for programming/tools
+- [ ] **Skills:** line for business skills
+- [ ] **Languages:** and **Interests:** lines present when data exists
 
-## Edit & approval
+## Assessment
 
-- [ ] **Edit Resume Details** opens `/resume-preview/[draftId]/edit`
-- [ ] **Approve for Export** sets status to `approved`
+- [ ] Resume–Job Fit and Layout Fit shown separately
+
+## Capitalization
+
+- [ ] **Saved Jobs**, **Generated Drafts** section titles use title case

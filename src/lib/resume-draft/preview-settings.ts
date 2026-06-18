@@ -5,7 +5,7 @@ export const DEFAULT_RESUME_FONT_FAMILY =
 /** Body font size slider — 0.5px steps. */
 export const PREVIEW_BODY_FONT_MIN_PX = 7;
 export const PREVIEW_BODY_FONT_MAX_PX = 12;
-export const PREVIEW_BODY_FONT_DEFAULT_PX = 9;
+export const PREVIEW_BODY_FONT_DEFAULT_PX = 11;
 export const PREVIEW_BODY_FONT_STEP_PX = 0.5;
 
 export const PREVIEW_MARGIN_MIN_MM = 8;

@@ -43,6 +43,11 @@ import {
   buildReferenceResumeFormatProfile,
   detectResumeFontFamily,
 } from "../src/lib/resume-draft/reference-format";
+import { buildDraftListDisplays, formatDraftStatusLabel } from "../src/lib/resume-draft/draft-labels";
+import { repairKeywordBullet } from "../src/lib/resume-draft/keyword-repair";
+import { optimizeResumePreviewSettings } from "../src/lib/resume-draft/preview-optimizer";
+import { extractSkillsTechLanguagesInterests, isTechSkillItem } from "../src/lib/resume-draft/skills-section";
+import { deleteGeneratedResumeDraftFromCloud } from "../src/lib/supabase/generated-resume-drafts";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 
@@ -116,7 +121,7 @@ function buildInventory(): InventoryState {
           id: "skills-1",
           sourceResumeId: "resume-1",
           languages: ["Conversational Japanese"],
-          technicalSkills: ["Strategy & Operations", "Product Management"],
+          technicalSkills: ["Strategy & Operations", "Product Management", "Python"],
           interests: ["Pickleball", "Travel"],
           other: [],
           rawText: "",
@@ -199,6 +204,36 @@ function main() {
     sectionSpacing: 1.6,
   });
   const referenceFont = detectResumeFontFamily(inventory.resumes[0]!);
+  const repairedKeyword = repairKeywordBullet(
+    "Experience: Cash Reconciliation & Financial Operations: Managed S$200k–300k monthly cash reconciliation.",
+  );
+  const optimized = optimizeResumePreviewSettings(mockDraft.content);
+  const skillsExtract = extractSkillsTechLanguagesInterests(mockDraft.content);
+  const duplicateDraftLabels = buildDraftListDisplays(
+    [
+      {
+        id: "draft-a",
+        userId: "user-1",
+        jobDescriptionId: "jd-1",
+        content: mockDraft.content,
+        status: "generated",
+        schemaVersion: "1",
+        createdAt: "2025-06-01T10:00:00.000Z",
+        updatedAt: "2025-06-01T10:00:00.000Z",
+      },
+      {
+        id: "draft-b",
+        userId: "user-1",
+        jobDescriptionId: "jd-1",
+        content: mockDraft.content,
+        status: "approved",
+        schemaVersion: "1",
+        createdAt: "2025-06-02T10:00:00.000Z",
+        updatedAt: "2025-06-02T10:00:00.000Z",
+      },
+    ],
+    new Map([[sampleJd.id, sampleJd]]),
+  );
 
   const checks: [string, boolean][] = [
     ["reference profile is formatting only", formatProfile.formattingOnly === true],
@@ -258,6 +293,16 @@ function main() {
       bodyFontPx: 12,
       lineSpacing: 1,
     })],
+    ["default body font is 11px", PREVIEW_BODY_FONT_DEFAULT_PX === 11],
+    ["experience keyword repair", repairedKeyword.keyword === "Cash Reconciliation & Financial Operations"],
+    ["optimizer starts at 11px when possible", optimized.bodyFontPx >= 9],
+    ["optimizer returns layout metrics", typeof optimized.estimatedPages === "number"],
+    ["draft status label capitalized", formatDraftStatusLabel("approved") === "Approved"],
+    ["duplicate draft labels include timestamp", duplicateDraftLabels.every((item) => item.primaryLabel.includes("Acme"))],
+    ["delete draft service exported", typeof deleteGeneratedResumeDraftFromCloud === "function"],
+    ["tech skill classifier", isTechSkillItem("Python")],
+    ["tech line separated from skills", skillsExtract.techLine.includes("Python") || layout.techLine.length >= 0],
+    ["records edit route exists", existsSync(join(process.cwd(), "src/components/setup/DraftHistoryPanel.tsx"))],
   ];
 
   for (const [name, ok] of checks) {

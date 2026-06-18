@@ -37,6 +37,7 @@ import {
   PREVIEW_SECTION_SPACING_MIN,
 } from "@/lib/resume-draft/preview-settings";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
+import { optimizeResumePreviewSettings } from "@/lib/resume-draft/preview-optimizer";
 import {
   getGeneratedResumeDraftFromCloud,
   updateGeneratedResumeDraftInCloud,
@@ -53,10 +54,14 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
-  const [marginMm, setMarginMm] = useState(PREVIEW_MARGIN_DEFAULT_MM);
-  const [lineSpacing, setLineSpacing] = useState(PREVIEW_LINE_SPACING_DEFAULT);
-  const [sectionSpacing, setSectionSpacing] = useState(PREVIEW_SECTION_SPACING_DEFAULT);
-  const [bodyFontPx, setBodyFontPx] = useState(PREVIEW_BODY_FONT_DEFAULT_PX);
+  const [manualSettings, setManualSettings] = useState<{
+    draftId: string;
+    bodyFontPx: number;
+    marginMm: number;
+    marginTopMm: number;
+    lineSpacing: number;
+    sectionSpacing: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,18 +116,47 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     [draft],
   );
 
+  const autoSettings = useMemo(
+    () => (draft ? optimizeResumePreviewSettings(draft.content) : null),
+    [draft],
+  );
+
+  const settingsOverride =
+    manualSettings?.draftId === draftId ? manualSettings : null;
+  const activeSettings = settingsOverride ?? autoSettings;
+  const bodyFontPx = activeSettings?.bodyFontPx ?? PREVIEW_BODY_FONT_DEFAULT_PX;
+  const marginMm = activeSettings?.marginMm ?? PREVIEW_MARGIN_DEFAULT_MM;
+  const lineSpacing = activeSettings?.lineSpacing ?? PREVIEW_LINE_SPACING_DEFAULT;
+  const sectionSpacing = activeSettings?.sectionSpacing ?? PREVIEW_SECTION_SPACING_DEFAULT;
+  const marginTopMm = activeSettings?.marginTopMm ?? PREVIEW_MARGIN_TOP_DEFAULT_MM;
+  const optimizationNote =
+    settingsOverride === null
+      ? autoSettings?.optimizationNote ?? autoSettings?.warning
+      : undefined;
+
+  function updateManualSettings(next: {
+    bodyFontPx: number;
+    marginMm: number;
+    marginTopMm: number;
+    lineSpacing: number;
+    sectionSpacing: number;
+  }) {
+    if (!draftId) return;
+    setManualSettings({ draftId, ...next });
+  }
+
   const pageFit = useMemo(
     () =>
       layout
         ? estimatePageFit(layout, {
             marginMm,
-            marginTopMm: PREVIEW_MARGIN_TOP_DEFAULT_MM,
+            marginTopMm,
             lineSpacing,
             sectionSpacing,
             bodyFontPx,
           })
         : null,
-    [layout, marginMm, lineSpacing, sectionSpacing, bodyFontPx],
+    [layout, marginMm, marginTopMm, lineSpacing, sectionSpacing, bodyFontPx],
   );
 
   const assessment = useMemo(
@@ -178,9 +212,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.5.3 · Resume Preview Fit and Ordering Fixes"
-        title="Final resume layout preview"
-        description="Validate A4 formatting, density, and one-page fit before export. Latest roles and education appear first."
+        milestone="v0.5.4 · Draft Records + One-Page Optimization"
+        title="Resume Preview"
+        description="Format-optimized one-page preview. Adjust layout only if needed, then approve for export."
       />
 
       <p className="text-xs text-slate-500">
@@ -197,12 +231,16 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             step={1}
             value={Math.round((bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
             onChange={(event) =>
-              setBodyFontPx(
-                clampPreviewBodyFontPx(
+              updateManualSettings({
+                bodyFontPx: clampPreviewBodyFontPx(
                   PREVIEW_BODY_FONT_MIN_PX +
                     Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
                 ),
-              )
+                marginMm,
+                marginTopMm,
+                lineSpacing,
+                sectionSpacing,
+              })
             }
             className="mt-1 block w-full"
           />
@@ -214,7 +252,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             min={PREVIEW_MARGIN_MIN_MM}
             max={PREVIEW_MARGIN_MAX_MM}
             value={marginMm}
-            onChange={(event) => setMarginMm(Number(event.target.value))}
+            onChange={(event) =>
+              updateManualSettings({
+                bodyFontPx,
+                marginMm: Number(event.target.value),
+                marginTopMm,
+                lineSpacing,
+                sectionSpacing,
+              })
+            }
             className="mt-1 block w-full"
           />
         </label>
@@ -225,7 +271,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
             max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
             value={Math.round(lineSpacing * 100)}
-            onChange={(event) => setLineSpacing(Number(event.target.value) / 100)}
+            onChange={(event) =>
+              updateManualSettings({
+                bodyFontPx,
+                marginMm,
+                marginTopMm,
+                lineSpacing: Number(event.target.value) / 100,
+                sectionSpacing,
+              })
+            }
             className="mt-1 block w-full"
           />
         </label>
@@ -236,7 +290,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
             max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
             value={Math.round(sectionSpacing * 100)}
-            onChange={(event) => setSectionSpacing(Number(event.target.value) / 100)}
+            onChange={(event) =>
+              updateManualSettings({
+                bodyFontPx,
+                marginMm,
+                marginTopMm,
+                lineSpacing,
+                sectionSpacing: Number(event.target.value) / 100,
+              })
+            }
             className="mt-1 block w-full"
           />
         </label>
@@ -250,7 +312,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           bodyFontPx={bodyFontPx}
           headerAlignment={headerAlignment}
         />
-        <ResumeAssessmentPanel assessment={assessment} />
+        <ResumeAssessmentPanel
+          assessment={assessment}
+          pageFit={pageFit}
+          optimizationNote={optimizationNote}
+        />
       </div>
 
       <div className="flex flex-wrap gap-3">
