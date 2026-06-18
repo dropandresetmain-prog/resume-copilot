@@ -160,16 +160,26 @@ create table if not exists public.generated_resume_drafts (
   user_id uuid not null references auth.users(id) on delete cascade,
   application_id uuid references public.application_records(id) on delete cascade,
   job_description_id uuid references public.job_descriptions(id) on delete set null,
+  reference_resume_id text,
   content jsonb not null,
   rationale jsonb,
+  input_snapshot jsonb,
   provider text,
   model_name text,
+  status text not null default 'generated',
+  schema_version text not null default 'v1',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists generated_resume_drafts_user_id_idx
   on public.generated_resume_drafts(user_id);
+
+create index if not exists generated_resume_drafts_jd_id_idx
+  on public.generated_resume_drafts(job_description_id);
+
+create index if not exists generated_resume_drafts_status_idx
+  on public.generated_resume_drafts(user_id, status);
 
 drop trigger if exists generated_resume_drafts_set_updated_at on public.generated_resume_drafts;
 create trigger generated_resume_drafts_set_updated_at

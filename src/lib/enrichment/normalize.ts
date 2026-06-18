@@ -147,6 +147,9 @@ export function normalizeStoredSuggestion(
     ...draft,
     id: raw.id,
     status: raw.status,
+    resolution: raw.resolution,
+    acceptedWording:
+      typeof raw.acceptedWording === "string" ? raw.acceptedWording : undefined,
     createdAt: raw.createdAt,
     reviewedAt: typeof raw.reviewedAt === "string" ? raw.reviewedAt : undefined,
   };

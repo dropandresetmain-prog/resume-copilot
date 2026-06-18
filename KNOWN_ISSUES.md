@@ -1,5 +1,20 @@
 # Known Issues
 
+## Enrichment review (v0.4.1)
+
+- Default **Enrich missing items only** skips bullets with any reviewed suggestion.
+- **Re-run full enrichment** requires confirmation and may refresh pending suggestions.
+- Duplicate/similar cards show existing vs AI wording side by side.
+- **Manual merge/edit** for enrichment suggestions is not implemented yet — use Keep existing or Use AI suggestion.
+- Accepted wording is stored on enrichment suggestions (`acceptedWording`); parsed resume bullets are never overwritten.
+
+## Generated resume drafts (4A)
+
+- Drafts are **derived artifacts** stored in `generated_resume_drafts`; source inventory is not modified.
+- Generation uses inventory + approved keywords + saved JD + reference resume.
+- Draft review, regeneration, and export are not implemented yet.
+- Run `supabase db push` so `supabase/migrations/20260619_add_resume_draft_metadata.sql` is applied on existing Supabase projects.
+
 ## Supabase persistence
 
 - **Sign-in required** for save/sync when Supabase env vars are configured.

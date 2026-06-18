@@ -7,6 +7,7 @@ import { AuthPanel } from "@/components/setup/AuthPanel";
 import { CloudFileStoragePanel } from "@/components/setup/CloudFileStoragePanel";
 import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView";
 import { JDInputPanel } from "@/components/setup/JDInputPanel";
+import { ResumeDraftPanel } from "@/components/setup/ResumeDraftPanel";
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
 import { ResumeList } from "@/components/setup/ResumeList";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
@@ -25,6 +26,7 @@ import {
   createEmptyEnrichmentState,
   mergeEnrichmentResult,
   mergeTestBatchIntoMain,
+  resolveSuggestionResolution,
   updateDuplicateGroupStatus,
   updateSuggestionStatus,
   updateTestBatchSuggestionStatus,
@@ -61,6 +63,7 @@ import type { InventoryState } from "@/types/resume";
 import type {
   DuplicateGroupSuggestion,
   ProviderStatusResponse,
+  SuggestionResolution,
   SuggestionStatus,
 } from "@/types/enrichment";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
@@ -316,13 +319,46 @@ export function SetupPageClient() {
     }
   }
 
-  async function handleEnrichInventory() {
+  async function handleEnrichMissing() {
     setEnrichError(null);
     setEnrichDebugRaw(null);
     setIsEnriching(true);
 
     try {
-      const result = await requestInventoryEnrichment(collated, { mode: "full" });
+      const result = await requestInventoryEnrichment(collated, inventory.enrichment, {
+        mode: "full",
+        incremental: true,
+      });
+      updateInventory({
+        ...inventory,
+        enrichment: mergeEnrichmentResult(inventory.enrichment, result),
+      });
+    } catch (error) {
+      const clientError = error as EnrichmentClientError;
+      const message =
+        clientError instanceof Error ? clientError.message : "AI enrichment failed.";
+      setEnrichError(message);
+      setEnrichDebugRaw(clientError.rawModelResponse ?? null);
+    } finally {
+      setIsEnriching(false);
+    }
+  }
+
+  async function handleFullRerunEnrich() {
+    const confirmed = window.confirm(
+      "This may create new suggestions and re-process existing inventory. Continue?",
+    );
+    if (!confirmed) return;
+
+    setEnrichError(null);
+    setEnrichDebugRaw(null);
+    setIsEnriching(true);
+
+    try {
+      const result = await requestInventoryEnrichment(collated, inventory.enrichment, {
+        mode: "full",
+        incremental: false,
+      });
       updateInventory({
         ...inventory,
         enrichment: mergeEnrichmentResult(inventory.enrichment, result),
@@ -405,6 +441,20 @@ export function SetupPageClient() {
         inventory.enrichment,
         suggestionId,
         status,
+      ),
+    });
+  }
+
+  function handleResolveSuggestion(
+    suggestionId: string,
+    resolution: SuggestionResolution,
+  ) {
+    updateInventory({
+      ...inventory,
+      enrichment: resolveSuggestionResolution(
+        inventory.enrichment,
+        suggestionId,
+        resolution,
       ),
     });
   }
@@ -525,7 +575,7 @@ export function SetupPageClient() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 lg:px-8">
         <header className="space-y-2">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-            v0.3.0 · Supabase
+            v0.4.1 · Auth + Enrichment Hardening
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             Career Resume Copilot
@@ -572,6 +622,14 @@ export function SetupPageClient() {
           disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
         />
 
+        <ResumeDraftPanel
+          inventory={inventory}
+          jobDescriptions={jobDescriptions}
+          isSignedIn={isSignedIn}
+          disabled={cloudEnabled && !isSignedIn}
+          disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
+        />
+
         <EnrichmentReviewPanel
           collated={collated}
           enrichment={inventory.enrichment}
@@ -579,11 +637,13 @@ export function SetupPageClient() {
           isEnriching={isEnriching}
           enrichError={enrichError}
           enrichDebugRaw={enrichDebugRaw}
-          onEnrich={handleEnrichInventory}
+          onEnrichMissing={handleEnrichMissing}
+          onFullRerunEnrich={handleFullRerunEnrich}
           onTestBatchEnrich={handleTestBatchEnrich}
           onMergeTestBatch={handleMergeTestBatch}
           onClearTestBatch={handleClearTestBatch}
           onSuggestionStatus={handleSuggestionStatus}
+          onResolveSuggestion={handleResolveSuggestion}
           onTestBatchSuggestionStatus={handleTestBatchSuggestionStatus}
           onDuplicateGroupStatus={handleDuplicateGroupStatus}
         />

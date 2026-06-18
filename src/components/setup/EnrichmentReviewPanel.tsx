@@ -7,10 +7,12 @@ import type {
   EnrichmentRunMetadata,
   EnrichmentState,
   ProviderStatusResponse,
+  SuggestionResolution,
   SuggestionStatus,
 } from "@/types/enrichment";
 
 import { SMALL_BATCH_DEFAULT_SIZE } from "@/lib/enrichment/batch";
+import { getEnrichmentReviewStats } from "@/lib/enrichment/state";
 
 import {
   CollapsibleSection,
@@ -26,11 +28,16 @@ type EnrichmentReviewPanelProps = {
   isEnriching: boolean;
   enrichError: string | null;
   enrichDebugRaw: string | null;
-  onEnrich: () => void;
+  onEnrichMissing: () => void;
+  onFullRerunEnrich: () => void;
   onTestBatchEnrich: () => void;
   onMergeTestBatch: () => void;
   onClearTestBatch: () => void;
   onSuggestionStatus: (suggestionId: string, status: SuggestionStatus) => void;
+  onResolveSuggestion: (
+    suggestionId: string,
+    resolution: SuggestionResolution,
+  ) => void;
   onTestBatchSuggestionStatus: (
     suggestionId: string,
     status: SuggestionStatus,
@@ -215,15 +222,62 @@ function ReviewSection({
   );
 }
 
+function ComparisonColumn({
+  label,
+  text,
+  tone,
+}: {
+  label: string;
+  text: string;
+  tone: "existing" | "suggested";
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        tone === "existing"
+          ? "border-slate-200 bg-white"
+          : "border-violet-200 bg-violet-50/60"
+      }`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-2 text-sm leading-6 text-zinc-900">{text}</p>
+    </div>
+  );
+}
+
+function isComparisonSuggestion(suggestion: BulletEnrichmentSuggestion): boolean {
+  return (
+    suggestion.issueType === "possible_duplicate" ||
+    suggestion.issueType === "alternative_wording" ||
+    Boolean(suggestion.duplicateGroupId) ||
+    Boolean(suggestion.suggestedAfterText)
+  );
+}
+
 function SuggestionCard({
   suggestion,
+  duplicateGroup,
   onStatus,
+  onResolve,
 }: {
   suggestion: BulletEnrichmentSuggestion;
+  duplicateGroup?: DuplicateGroupSuggestion;
   onStatus: (status: SuggestionStatus) => void;
+  onResolve: (resolution: SuggestionResolution) => void;
 }) {
   const isPending = suggestion.status === "pending";
   const beforeText = suggestion.beforeText || suggestion.bulletDescription || "";
+  const suggestedText =
+    suggestion.suggestedAfterText ||
+    suggestion.alternativeBulletWordings?.[0] ||
+    "";
+  const siblingTexts =
+    duplicateGroup?.bulletDescriptions.filter(
+      (description) => description.trim() !== beforeText.trim(),
+    ) ?? [];
+  const showComparison = isComparisonSuggestion(suggestion);
 
   return (
     <article
@@ -250,18 +304,55 @@ function SuggestionCard({
           </p>
         </div>
         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-600">
-          {suggestion.status}
+          {suggestion.resolution ?? suggestion.status}
         </span>
       </div>
 
       <div className="mt-4 space-y-4">
-        <ReviewSection title="Before">
-          <p className="leading-6">{beforeText}</p>
-        </ReviewSection>
+        {showComparison ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <ComparisonColumn label="Existing inventory" text={beforeText} tone="existing" />
+            <ComparisonColumn
+              label="AI suggested"
+              text={
+                suggestedText ||
+                siblingTexts[0] ||
+                "Similar wording flagged — review variants below."
+              }
+              tone="suggested"
+            />
+          </div>
+        ) : (
+          <ReviewSection title="Before">
+            <p className="leading-6">{beforeText}</p>
+          </ReviewSection>
+        )}
 
-        {suggestion.suggestedAfterText ? (
+        {!showComparison && suggestion.suggestedAfterText ? (
           <ReviewSection title="Suggested after">
             <p className="leading-6">{suggestion.suggestedAfterText}</p>
+          </ReviewSection>
+        ) : null}
+
+        {suggestion.duplicateReason ? (
+          <ReviewSection title="Why flagged as duplicate/similar">
+            <p className="leading-6">{suggestion.duplicateReason}</p>
+          </ReviewSection>
+        ) : null}
+
+        {siblingTexts.length > 0 ? (
+          <ReviewSection title="Other variants in this group">
+            <ul className="list-disc space-y-1 pl-5">
+              {siblingTexts.map((description) => (
+                <li key={description}>{description}</li>
+              ))}
+            </ul>
+          </ReviewSection>
+        ) : null}
+
+        {suggestion.acceptedWording ? (
+          <ReviewSection title="Accepted derived wording">
+            <p className="leading-6">{suggestion.acceptedWording}</p>
           </ReviewSection>
         ) : null}
 
@@ -327,12 +418,130 @@ function SuggestionCard({
 
       {isPending ? (
         <div className="mt-4 flex flex-wrap gap-2">
+          {showComparison ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onResolve("keep_existing")}
+                className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                Keep existing
+              </button>
+              <button
+                type="button"
+                onClick={() => onResolve("use_suggestion")}
+                className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600"
+              >
+                Use AI suggestion
+              </button>
+              <button
+                type="button"
+                onClick={() => onResolve("rejected")}
+                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => onResolve("ignored")}
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Ignore for now
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onStatus("accepted")}
+                className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={() => onStatus("rejected")}
+                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => onStatus("ignored")}
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Ignore for now
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function DuplicateGroupCard({
+  group,
+  onStatus,
+}: {
+  group: DuplicateGroupSuggestion;
+  onStatus: (status: DuplicateGroupSuggestion["status"]) => void;
+}) {
+  const isPending = group.status === "pending";
+  const primary = group.bulletDescriptions[0] ?? "";
+  const variants = group.bulletDescriptions.slice(1);
+
+  return (
+    <article className="rounded-lg border border-violet-200 bg-violet-50/40 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        possible duplicate
+      </p>
+      <h4 className="mt-1 text-base font-semibold text-zinc-900">
+        Possible duplicate group
+      </h4>
+      <p className="mt-2 text-sm leading-6 text-zinc-700">{group.reason}</p>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <ComparisonColumn label="Existing inventory" text={primary} tone="existing" />
+        <ComparisonColumn
+          label="AI suggested variant"
+          text={variants[0] ?? "Additional variant wording flagged by AI."}
+          tone="suggested"
+        />
+      </div>
+
+      {variants.length > 1 ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Additional variants
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-zinc-800">
+            {variants.slice(1).map((description) => (
+              <li key={description}>{description}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
+        Status: {group.status}
+      </p>
+
+      {isPending ? (
+        <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => onStatus("accepted")}
+            onClick={() => onStatus("keep_all")}
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+          >
+            Keep existing
+          </button>
+          <button
+            type="button"
+            onClick={() => onStatus("group_variants")}
             className="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-600"
           >
-            Accept
+            Use AI suggestion
           </button>
           <button
             type="button"
@@ -354,69 +563,6 @@ function SuggestionCard({
   );
 }
 
-function DuplicateGroupCard({
-  group,
-  onStatus,
-}: {
-  group: DuplicateGroupSuggestion;
-  onStatus: (status: DuplicateGroupSuggestion["status"]) => void;
-}) {
-  const isReviewed = group.status !== "pending";
-
-  return (
-    <article className="rounded-lg border border-violet-200 bg-violet-50/40 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        possible duplicate
-      </p>
-      <h4 className="mt-1 text-base font-semibold text-zinc-900">
-        Possible duplicate group
-      </h4>
-      <p className="mt-2 text-sm leading-6 text-zinc-700">{group.reason}</p>
-
-      <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Bullets in group
-        </p>
-        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-zinc-800">
-          {group.bulletDescriptions.map((description) => (
-            <li key={description}>{description}</li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
-        Status: {group.status}
-      </p>
-
-      {!isReviewed ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onStatus("keep_all")}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            Keep all
-          </button>
-          <button
-            type="button"
-            onClick={() => onStatus("group_variants")}
-            className="rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-800 hover:bg-violet-50"
-          >
-            Group as variants
-          </button>
-          <button
-            type="button"
-            onClick={() => onStatus("rejected")}
-            className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
-          >
-            Reject grouping
-          </button>
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
 export function EnrichmentReviewPanel({
   collated,
   enrichment,
@@ -424,16 +570,22 @@ export function EnrichmentReviewPanel({
   isEnriching,
   enrichError,
   enrichDebugRaw,
-  onEnrich,
+  onEnrichMissing,
+  onFullRerunEnrich,
   onTestBatchEnrich,
   onMergeTestBatch,
   onClearTestBatch,
   onSuggestionStatus,
+  onResolveSuggestion,
   onTestBatchSuggestionStatus,
   onDuplicateGroupStatus,
 }: EnrichmentReviewPanelProps) {
   const hasBullets = collated.experiences.some(
     (experience) => experience.bullets.length > 0,
+  );
+  const stats = getEnrichmentReviewStats(enrichment);
+  const duplicateGroupById = new Map(
+    enrichment.duplicateGroups.map((group) => [group.id, group]),
   );
   const pendingSuggestions = enrichment.suggestions.filter(
     (item) => item.status === "pending",
@@ -460,11 +612,19 @@ export function EnrichmentReviewPanel({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={onEnrich}
+          onClick={onEnrichMissing}
           disabled={!hasBullets || isEnriching}
           className="rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isEnriching ? "Enriching…" : "Enrich Inventory with AI"}
+          {isEnriching ? "Enriching…" : "Enrich missing items only"}
+        </button>
+        <button
+          type="button"
+          onClick={onFullRerunEnrich}
+          disabled={!hasBullets || isEnriching}
+          className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Re-run full enrichment
         </button>
         <button
           type="button"
@@ -474,18 +634,56 @@ export function EnrichmentReviewPanel({
         >
           {isEnriching ? "Testing…" : "Test Gemini on small batch"}
         </button>
-        {enrichment.lastEnrichedAt && (
-          <p className="text-sm text-zinc-500">
-            Last full enrich {new Date(enrichment.lastEnrichedAt).toLocaleString()}
-            {enrichment.providerLabel ? ` · ${enrichment.providerLabel}` : ""}
+      </div>
+
+      <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+        <p className="font-medium text-zinc-900">Enrichment review counts</p>
+        <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">
+              Approved keywords
+            </dt>
+            <dd>{stats.approvedKeywords}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">Pending</dt>
+            <dd>{stats.pendingSuggestions}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">Ignored</dt>
+            <dd>{stats.ignoredSuggestions}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">Rejected</dt>
+            <dd>{stats.rejectedSuggestions}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">Accepted</dt>
+            <dd>{stats.acceptedSuggestions}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">
+              Pending duplicate groups
+            </dt>
+            <dd>{stats.pendingDuplicateGroups}</dd>
+          </div>
+        </dl>
+        {stats.lastEnrichedAt ? (
+          <p className="mt-2 text-xs text-zinc-500">
+            Last enrichment run {new Date(stats.lastEnrichedAt).toLocaleString()}
           </p>
-        )}
+        ) : null}
       </div>
 
       <p className="mt-2 text-sm text-zinc-600">
         Small-batch test sends the first {SMALL_BATCH_DEFAULT_SIZE} work experience
-        bullets only. Results are stored separately until you choose to merge them
-        into main enrichment.
+        bullets only. Results are stored separately until you merge them into main
+        enrichment.
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-600">
+        Default enrichment skips bullets you already reviewed. Full re-run may create
+        new suggestions for the entire inventory — use only when you want a fresh pass.
       </p>
 
       <ProviderConfigDisplay
@@ -551,8 +749,21 @@ export function EnrichmentReviewPanel({
                 <SuggestionCard
                   key={suggestion.id}
                   suggestion={suggestion}
+                  duplicateGroup={
+                    suggestion.duplicateGroupId
+                      ? duplicateGroupById.get(suggestion.duplicateGroupId)
+                      : undefined
+                  }
                   onStatus={(status) =>
                     onTestBatchSuggestionStatus(suggestion.id, status)
+                  }
+                  onResolve={(resolution) =>
+                    onTestBatchSuggestionStatus(
+                      suggestion.id,
+                      resolution === "use_suggestion" || resolution === "keep_existing"
+                        ? "accepted"
+                        : resolution,
+                    )
                   }
                 />
               ))}
@@ -575,7 +786,15 @@ export function EnrichmentReviewPanel({
                 <SuggestionCard
                   key={suggestion.id}
                   suggestion={suggestion}
+                  duplicateGroup={
+                    suggestion.duplicateGroupId
+                      ? duplicateGroupById.get(suggestion.duplicateGroupId)
+                      : undefined
+                  }
                   onStatus={(status) => onSuggestionStatus(suggestion.id, status)}
+                  onResolve={(resolution) =>
+                    onResolveSuggestion(suggestion.id, resolution)
+                  }
                 />
               ))}
             </div>
@@ -643,7 +862,15 @@ export function EnrichmentReviewPanel({
                 <SuggestionCard
                   key={suggestion.id}
                   suggestion={suggestion}
+                  duplicateGroup={
+                    suggestion.duplicateGroupId
+                      ? duplicateGroupById.get(suggestion.duplicateGroupId)
+                      : undefined
+                  }
                   onStatus={(status) => onSuggestionStatus(suggestion.id, status)}
+                  onResolve={(resolution) =>
+                    onResolveSuggestion(suggestion.id, resolution)
+                  }
                 />
               ))}
             </div>

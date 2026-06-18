@@ -2,87 +2,76 @@
 
 ## Current milestone
 
-**v0.3.0 — Supabase Foundation** (internal milestone 3C)
+**v0.4.1 — Auth + Enrichment Review Hardening**
 
-Supabase-first persistence is complete. The app requires sign-in for cloud sync when Supabase is configured.
+Magic link sign-in is visible on mobile. Enrichment duplicate review shows existing vs AI wording with explicit resolution actions. Default enrichment is incremental; full re-run requires confirmation.
 
-## Completed
+**v0.4.0 / 4A** (resume draft generation) remains complete. **4B not started.**
 
-- Milestone 1: DOCX parsing, collated inventory, layered parser
-- Milestone 2 / 2.1: AI enrichment (mock + Gemini), review cards, keyword bank, small-batch test
-- Milestone 3A–3B: Job description intake, duplicate warnings, separate clear actions
-- **v0.3.0 Supabase Foundation**:
-  - `@supabase/supabase-js` browser client
-  - `supabase/schema.sql` — Postgres tables, RLS, private storage buckets
-  - Auth panel (email/password, magic link, sign out)
-  - Cloud services: resume inventories, job descriptions, stored files
-  - Upload: parse → save inventory → upload original file (warn on file failure)
-  - JD CRUD via Supabase
-  - Removed localStorage/IndexedDB as active persistence
-  - Legacy browser-data warning only (no migration)
-  - Export/import removed from UI; JSON helpers kept for unit tests only
+## Completed in v0.4.1
+
+- AuthPanel: always-visible Password / Magic link / Sign up tabs
+- Duplicate/similar enrichment: side-by-side comparison, Keep existing / Use AI suggestion / Reject / Ignore
+- Incremental enrichment default (`Enrich missing items only`)
+- Full re-run with confirmation dialog
+- Merge dedupes reviewed suggestions and duplicate groups client-side
+- `resolveSuggestionResolution` stores derived `acceptedWording` without mutating parsed resumes
 
 ## Storage model
 
-| Layer | What | Source of truth? |
-|-------|------|------------------|
-| Supabase Postgres | Inventory JSON, saved JDs, schema-ready application/draft tables | Yes (signed-in users) |
-| Supabase Storage | Original resume files; future generated documents | Yes (private buckets + RLS) |
-| In-memory | Session state while signed out or Supabase unconfigured | Temporary only |
+| Layer | What |
+|-------|------|
+| Supabase Postgres | Inventory JSON, JDs, generated resume drafts |
+| Supabase Storage | Original resume files |
+| In-memory | Session-only when signed out |
 
 ## Known risks
 
-- Resume parsing is heuristic-based; unfamiliar formats may fail.
-- Mock enrichment is test-only; real AI needs `AI_PROVIDER=gemini` + API key.
-- **Manual Supabase setup required**: run `schema.sql`, configure auth redirect URLs, set env vars.
-- **RLS and storage policies** must be verified manually after schema deploy.
-- **No automatic migration** from pre-Supabase `localStorage` data.
-- **Deleting a parsed resume** does not yet delete its Supabase Storage blob (orphan files possible).
-- **`application_records`** — schema only, not wired to UI.
-- **`generated_resume_drafts` / `generated_cover_letter_drafts`** — schema only.
-- **`generated-documents` bucket** — schema only; no DOCX/PDF generation yet.
-- AI resume generation, cover letter generation, and document export are **not built**.
+- Manual merge/edit for enrichment suggestions is deferred (see KNOWN_ISSUES.md).
+- Incremental enrichment skips entire bullets with any reviewed suggestion — not per-issue-type yet.
+- Resume draft API is not session-authenticated (same as enrichment API).
+- Run `supabase db push` (or apply `supabase/migrations/20260619_add_resume_draft_metadata.sql`) on existing Supabase projects if not done.
 
 ## What not to change
 
-- Do not overwrite raw parsed resume text with AI suggestions.
-- Do not add JD enrichment/review cards — JD intake is raw text only for now.
-- Do not store private resumes in Git.
-- Do not expose the Supabase **service role** key in the frontend.
+- Do not mutate `resume_inventories` parsed resume text from enrichment or draft generation.
+- No service role key in frontend.
 
 ## Next milestones
 
-1. **3D — Application Records UI** — wire `application_records` to the setup flow (link saved JD, status, notes).
-2. **4A — AI Resume Draft Generation** — use inventory + JD to produce reviewable resume drafts.
+1. **4B — Resume Draft Review UI**
+2. **4C — Draft Management**
+3. **3D — Application Records**
 
-## Key files
+## Project SOPs
 
-| Area | Path |
-|------|------|
-| Schema | `supabase/schema.sql` |
-| Supabase client | `src/lib/supabase/client.ts` |
-| Cloud inventory | `src/lib/supabase/resume-inventories.ts` |
-| Cloud JDs | `src/lib/supabase/job-descriptions.ts` |
-| Cloud files | `src/lib/supabase/files.ts` |
-| Auth UI | `src/components/setup/AuthPanel.tsx` |
-| Main orchestration | `src/components/SetupPageClient.tsx` |
-| Validation helpers (tests) | `src/lib/inventory/persistence.ts`, `src/lib/jd/persistence.ts` |
-| Legacy detection | `src/lib/legacy/local-data.ts` |
+### Migration and artifact naming
 
-## Removed (do not restore as active persistence)
+Supabase CLI requires migration filenames to match:
 
-- `src/lib/storage/indexed-db.ts` (Dexie)
-- `src/components/setup/FileStorageStatusPanel.tsx`
+`<timestamp>_human_readable_name.sql`
+
+Example: `20260619_add_resume_draft_metadata.sql`
+
+Use names that describe the business or technical change. Milestone labels (4A, 3C, etc.) belong in planning docs — not in filenames.
+
+**Do**
+
+- `20260619_add_resume_draft_metadata.sql`
+- `20260620_add_application_records_status_fields.sql`
+
+**Do not**
+
+- `004a_resume_draft_extensions.sql` (internal milestone shorthand; ignored by `supabase db push`)
+- `m4a.sql`
+- `phase_3c_patch.sql`
 
 ## Run
 
 ```bash
 cp .env.example .env.local
-# Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
 npm run dev
 npm run test
 ```
 
-`test:supabase` covers pure helpers only. Live Supabase integration requires a configured project and authenticated session.
-
-Set `AI_PROVIDER=mock` in `.env.local` for development without API keys.
+Set `AI_PROVIDER=mock` for local enrichment and draft generation without Gemini.

@@ -7,6 +7,7 @@
 | `/` | `src/app/page.tsx` | Landing page |
 | `/setup` | `src/app/setup/page.tsx` | Main setup UI (renders `SetupPageClient`) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
+| `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
 
 ## Setup page components
 
@@ -16,6 +17,7 @@
 | `src/components/setup/AuthPanel.tsx` | Sign in / sign up / magic link / sign out |
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
+| `src/components/setup/ResumeDraftPanel.tsx` | Generate resume draft (4A) |
 | `src/components/setup/JDInputPanel.tsx` | Job description intake and saved JD list |
 | `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
@@ -32,9 +34,13 @@
 
 ## Supabase (active persistence)
 
+**Migration naming (SOP):** Files under `supabase/migrations/` must match Supabase CLI format `<timestamp>_human_readable_name.sql` (e.g. `20260619_add_resume_draft_metadata.sql`). Avoid milestone codes like `004a` or `4A` — those are skipped by `supabase db push`. See **Project SOPs** in `HANDOFF.md`.
+
 | File | Purpose |
 |------|---------|
 | `supabase/schema.sql` | Tables, RLS, storage buckets and policies |
+| `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes (`reference_resume_id`, `input_snapshot`, `status`, `schema_version`) |
+| `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
 | `src/lib/supabase/client.ts` | Browser Supabase client + env validation |
 | `src/lib/supabase/auth.ts` | Password, magic link, sign out |
 | `src/lib/supabase/types.ts` | Row/record types, bucket constants |
@@ -50,6 +56,7 @@
 | `src/types/collated.ts` | Derived collated inventory types |
 | `src/types/enrichment.ts` | AI enrichment and keyword bank types |
 | `src/types/jd.ts` | Job description types |
+| `src/types/resume-draft.ts` | Generated resume draft types (4A) |
 | `src/types/files.ts` | Stored file metadata types |
 
 ## Pure helpers (not active persistence)
@@ -80,11 +87,23 @@
 | `src/lib/ai/mock.ts` | Mock provider (tests) |
 | `src/lib/ai/gemini.ts` | Gemini provider |
 | `src/lib/ai/openai.ts` | OpenAI placeholder |
-| `src/lib/enrichment/state.ts` | Suggestion review and keyword bank |
+| `src/lib/enrichment/state.ts` | Suggestion review, keyword bank, incremental merge |
 | `src/lib/enrichment/payload.ts` | Collated inventory → AI input |
 | `src/lib/enrichment/prompt.ts` | AI prompt instructions |
 | `src/lib/enrichment/normalize.ts` | Legacy enrichment field migration |
 | `src/lib/enrichment/client.ts` | Browser client for enrichment API |
+
+## AI resume draft (4A)
+
+| File | Purpose |
+|------|---------|
+| `src/lib/ai/resume-draft-provider.ts` | Resume draft provider selection |
+| `src/lib/ai/resume-draft-mock.ts` | Mock resume draft provider |
+| `src/lib/ai/resume-draft-gemini.ts` | Gemini resume draft provider |
+| `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot |
+| `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
+| `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
+| `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 
 ## Inventory and parser
 
@@ -116,4 +135,5 @@
 | `scripts/verify-enrichment.ts` | Enrichment state + JSON round-trip (test helpers) |
 | `scripts/verify-jd.ts` | JD pure helpers + JSON round-trip (test helpers) |
 | `scripts/verify-files.ts` | File hash + metadata |
+| `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |

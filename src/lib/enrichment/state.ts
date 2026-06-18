@@ -2,13 +2,16 @@ import type {
   BulletEnrichmentSuggestion,
   DuplicateGroupSuggestion,
   EnrichmentApiResponse,
+  EnrichmentReviewStats,
   EnrichmentRunMetadata,
   EnrichmentState,
   EnrichmentSuggestionDraft,
   KeywordBankItem,
   KeywordCategory,
+  SuggestionResolution,
   SuggestionStatus,
 } from "@/types/enrichment";
+import type { EnrichmentInventoryInput } from "@/lib/enrichment/payload";
 import { normalizeStoredSuggestion } from "@/lib/enrichment/normalize";
 
 function createId(): string {
@@ -28,6 +31,54 @@ function suggestionFingerprint(suggestion: {
   issueType: string;
 }): string {
   return `${suggestion.bulletKey}::${suggestion.issueType}`;
+}
+
+function duplicateGroupFingerprint(group: {
+  bulletKeys: string[];
+}): string {
+  return [...group.bulletKeys].sort().join("||");
+}
+
+/** Bullet keys that already have at least one reviewed suggestion. */
+export function getReviewedBulletKeys(state: EnrichmentState): Set<string> {
+  const keys = new Set<string>();
+  for (const suggestion of state.suggestions) {
+    if (suggestion.status !== "pending") {
+      keys.add(suggestion.bulletKey);
+    }
+  }
+  return keys;
+}
+
+/** Limit AI input to bullets not yet reviewed (incremental enrichment). */
+export function filterIncrementalEnrichmentInput(
+  input: EnrichmentInventoryInput,
+  enrichment: EnrichmentState,
+): EnrichmentInventoryInput {
+  const reviewedKeys = getReviewedBulletKeys(enrichment);
+  return {
+    bullets: input.bullets.filter((bullet) => !reviewedKeys.has(bullet.bulletKey)),
+  };
+}
+
+export function getEnrichmentReviewStats(
+  state: EnrichmentState,
+): EnrichmentReviewStats {
+  return {
+    approvedKeywords: state.keywordBank.filter((item) => item.approved).length,
+    pendingSuggestions: state.suggestions.filter((item) => item.status === "pending")
+      .length,
+    ignoredSuggestions: state.suggestions.filter((item) => item.status === "ignored")
+      .length,
+    rejectedSuggestions: state.suggestions.filter((item) => item.status === "rejected")
+      .length,
+    acceptedSuggestions: state.suggestions.filter((item) => item.status === "accepted")
+      .length,
+    pendingDuplicateGroups: state.duplicateGroups.filter(
+      (group) => group.status === "pending",
+    ).length,
+    lastEnrichedAt: state.lastEnrichedAt,
+  };
 }
 
 function categorizeKeyword(keyword: string): KeywordCategory {
@@ -135,15 +186,18 @@ export function mergeEnrichmentResult(
   result: EnrichmentApiResponse,
 ): EnrichmentState {
   const now = new Date().toISOString();
-  const preserved = current.suggestions.filter(
-    (item) => item.status === "accepted" || item.status === "rejected",
+
+  // Preserve all reviewed suggestions — never recreate accepted/rejected/ignored items.
+  const reviewed = current.suggestions.filter((item) => item.status !== "pending");
+  const reviewedFingerprints = new Set(
+    reviewed.map((item) => suggestionFingerprint(item)),
   );
-  const preservedFingerprints = new Set(
-    preserved.map((item) => suggestionFingerprint(item)),
+  const incomingFingerprints = new Set(
+    result.suggestions.map((item) => suggestionFingerprint(item)),
   );
 
   const incomingSuggestions: BulletEnrichmentSuggestion[] = result.suggestions
-    .filter((suggestion) => !preservedFingerprints.has(suggestionFingerprint(suggestion)))
+    .filter((suggestion) => !reviewedFingerprints.has(suggestionFingerprint(suggestion)))
     .map((suggestion) => ({
       ...suggestion,
       id: createId(),
@@ -151,22 +205,42 @@ export function mergeEnrichmentResult(
       createdAt: now,
     }));
 
-  const preservedGroups = current.duplicateGroups.filter(
+  // Drop stale pending suggestions replaced by a fresh run for the same fingerprint.
+  const keptPending = current.suggestions.filter(
+    (item) =>
+      item.status === "pending" &&
+      !incomingFingerprints.has(suggestionFingerprint(item)),
+  );
+
+  const reviewedGroups = current.duplicateGroups.filter(
     (group) => group.status !== "pending",
   );
-  const preservedGroupIds = new Set(preservedGroups.map((group) => group.id));
+  const reviewedGroupFingerprints = new Set(
+    reviewedGroups.map((group) => duplicateGroupFingerprint(group)),
+  );
 
   const incomingGroups: DuplicateGroupSuggestion[] = result.duplicateGroups
-    .filter((group) => !preservedGroupIds.has(group.id))
+    .filter(
+      (group) => !reviewedGroupFingerprints.has(duplicateGroupFingerprint(group)),
+    )
     .map((group) => ({
       ...group,
       status: "pending" as const,
     }));
 
+  const keptPendingGroups = current.duplicateGroups.filter(
+    (group) =>
+      group.status === "pending" &&
+      !result.duplicateGroups.some(
+        (incoming) =>
+          duplicateGroupFingerprint(incoming) === duplicateGroupFingerprint(group),
+      ),
+  );
+
   return {
     ...current,
-    suggestions: [...preserved, ...incomingSuggestions],
-    duplicateGroups: [...preservedGroups, ...incomingGroups],
+    suggestions: [...reviewed, ...keptPending, ...incomingSuggestions],
+    duplicateGroups: [...reviewedGroups, ...keptPendingGroups, ...incomingGroups],
     lastEnrichedAt: now,
     providerId: result.provider,
     isMockProvider: result.isMock,
@@ -269,12 +343,57 @@ export function updateSuggestionStatus(
   suggestionId: string,
   status: SuggestionStatus,
 ): EnrichmentState {
+  return resolveSuggestionResolution(state, suggestionId, mapStatusToResolution(status));
+}
+
+function mapStatusToResolution(status: SuggestionStatus): SuggestionResolution {
+  switch (status) {
+    case "accepted":
+      return "use_suggestion";
+    case "rejected":
+      return "rejected";
+    case "ignored":
+      return "ignored";
+    default:
+      return "ignored";
+  }
+}
+
+function mapResolutionToStatus(resolution: SuggestionResolution): SuggestionStatus {
+  switch (resolution) {
+    case "keep_existing":
+    case "use_suggestion":
+      return "accepted";
+    case "rejected":
+      return "rejected";
+    case "ignored":
+      return "ignored";
+  }
+}
+
+/**
+ * Resolve a suggestion with explicit user intent.
+ * Never mutates parsed resume inventory — only enrichment review state and keyword bank.
+ */
+export function resolveSuggestionResolution(
+  state: EnrichmentState,
+  suggestionId: string,
+  resolution: SuggestionResolution,
+  manualWording?: string,
+): EnrichmentState {
   const now = new Date().toISOString();
   let keywordBank = state.keywordBank;
 
   const suggestions = state.suggestions.map((suggestion) => {
     if (suggestion.id !== suggestionId) return suggestion;
-    if (status === "accepted" && suggestion.issueType === "keyword_suggestion") {
+
+    const status = mapResolutionToStatus(resolution);
+
+    // Apply keyword bank updates only when user explicitly chooses the AI suggestion.
+    if (
+      resolution === "use_suggestion" &&
+      suggestion.issueType === "keyword_suggestion"
+    ) {
       for (const keyword of suggestion.suggestedKeywords) {
         keywordBank = upsertKeywordBankItem(
           keywordBank,
@@ -284,9 +403,19 @@ export function updateSuggestionStatus(
         );
       }
     }
+
+    const acceptedWording =
+      resolution === "use_suggestion"
+        ? manualWording?.trim() ||
+          suggestion.suggestedAfterText?.trim() ||
+          undefined
+        : undefined;
+
     return {
       ...suggestion,
       status,
+      resolution,
+      acceptedWording,
       reviewedAt: now,
     };
   });

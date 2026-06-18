@@ -50,3 +50,20 @@ export type StoredFileRecord = {
   fileHash?: string;
   createdAt: string;
 };
+
+export type GeneratedResumeDraftRow = {
+  id: string;
+  user_id: string;
+  application_id: string | null;
+  job_description_id: string | null;
+  reference_resume_id: string | null;
+  content: unknown;
+  rationale: unknown | null;
+  input_snapshot: unknown | null;
+  provider: string | null;
+  model_name: string | null;
+  status: string;
+  schema_version: string;
+  created_at: string;
+  updated_at: string;
+};

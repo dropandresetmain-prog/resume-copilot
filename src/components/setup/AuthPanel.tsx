@@ -21,15 +21,21 @@ import {
 } from "@/lib/supabase/auth";
 import type { User } from "@supabase/supabase-js";
 
+type AuthMode = "sign_in" | "magic_link" | "sign_up";
+
 type AuthPanelProps = {
   user: User | null;
   onAuthChange?: () => void;
 };
 
+const modeTabs: { id: AuthMode; label: string }[] = [
+  { id: "sign_in", label: "Password" },
+  { id: "magic_link", label: "Magic link" },
+  { id: "sign_up", label: "Sign up" },
+];
+
 export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
-  const [mode, setMode] = useState<"sign_in" | "sign_up" | "magic_link">(
-    "sign_in",
-  );
+  const [mode, setMode] = useState<AuthMode>("sign_in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -37,6 +43,12 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const configError = getSupabaseConfigError();
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setError(null);
+    setMessage(null);
+  }
 
   async function handleSignOut() {
     setError(null);
@@ -63,7 +75,7 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
     try {
       if (mode === "magic_link") {
         await signInWithMagicLink(email);
-        setMessage("Check your email for a magic sign-in link.");
+        setMessage("Check your email for the sign-in link.");
       } else if (mode === "sign_up") {
         await signUpWithPassword(email, password);
         setMessage("Account created. Check your email if confirmation is required.");
@@ -119,11 +131,41 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
   return (
     <SetupCard
       title="Sign in"
-      description="Sign in to save and sync data across devices. Parsed inventory, saved job descriptions, and original resume files are stored in Supabase."
+      description="Sign in to save and sync data across devices. Use password or magic link — no password required for magic link accounts."
     >
-      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-        Sign in to save and sync data across devices.
-      </p>
+      <div
+        role="tablist"
+        aria-label="Sign-in method"
+        className="mt-4 grid grid-cols-3 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1"
+      >
+        {modeTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === tab.id}
+            onClick={() => switchMode(tab.id)}
+            className={`rounded-md px-2 py-2.5 text-sm font-medium transition ${
+              mode === tab.id
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "magic_link" ? (
+        <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          No password needed. Enter your email and we will send a one-time sign-in
+          link. Use this if you signed up with magic link only.
+        </p>
+      ) : (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Sign in to save and sync data across devices.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
         <div>
@@ -174,40 +216,19 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
           </p>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={primaryButtonClassName}
-          >
-            {isSubmitting
-              ? "Working…"
-              : mode === "sign_up"
-                ? "Create account"
-                : mode === "magic_link"
-                  ? "Send magic link"
-                  : "Sign in"}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setMode((current) =>
-                current === "sign_in"
-                  ? "sign_up"
-                  : current === "sign_up"
-                    ? "magic_link"
-                    : "sign_in",
-              )
-            }
-            className={secondaryButtonClassName}
-          >
-            {mode === "sign_in"
-              ? "Use sign up"
-              : mode === "sign_up"
-                ? "Use magic link"
-                : "Use password sign in"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`${primaryButtonClassName} w-full sm:w-auto`}
+        >
+          {isSubmitting
+            ? "Working…"
+            : mode === "sign_up"
+              ? "Create account"
+              : mode === "magic_link"
+                ? "Send magic link"
+                : "Sign in"}
+        </button>
       </form>
     </SetupCard>
   );

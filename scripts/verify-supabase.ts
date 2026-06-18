@@ -1,3 +1,4 @@
+import { signInWithMagicLink } from "../src/lib/supabase/auth";
 import { detectLegacyLocalData } from "../src/lib/legacy/local-data";
 import { jobDescriptionFingerprint } from "../src/lib/supabase/job-descriptions";
 import {
@@ -24,6 +25,10 @@ const checks: [string, boolean][] = [
   [
     "detectLegacyLocalData returns null without window",
     detectLegacyLocalData() === null,
+  ],
+  [
+    "signInWithMagicLink helper is callable",
+    typeof signInWithMagicLink === "function",
   ],
 ];
 

@@ -15,9 +15,12 @@ import { buildEnrichmentInput } from "../src/lib/enrichment/payload";
 import {
   applyTestBatchResult,
   createEmptyEnrichmentState,
+  filterIncrementalEnrichmentInput,
+  getEnrichmentReviewStats,
   mergeEnrichmentResult,
   mergeTestBatchIntoMain,
   migrateEnrichmentSuggestions,
+  resolveSuggestionResolution,
   updateSuggestionStatus,
   upsertKeywordBankItem,
 } from "../src/lib/enrichment/state";
@@ -141,6 +144,63 @@ Product Manager                                                                 
     },
   ]);
 
+  const wordingSuggestion = enrichedInventory.enrichment.suggestions.find(
+    (item) => item.issueType === "alternative_wording",
+  );
+  const keptExisting = wordingSuggestion
+    ? resolveSuggestionResolution(
+        enrichedInventory.enrichment,
+        wordingSuggestion.id,
+        "keep_existing",
+      )
+    : enrichedInventory.enrichment;
+  const usedSuggestion = wordingSuggestion
+    ? resolveSuggestionResolution(
+        keptExisting,
+        wordingSuggestion.id,
+        "use_suggestion",
+      )
+    : keptExisting;
+  const ignoredSuggestion = enrichedInventory.enrichment.suggestions.find(
+    (item) => item.issueType === "capability_suggestion",
+  );
+  const ignored = ignoredSuggestion
+    ? resolveSuggestionResolution(
+        enrichedInventory.enrichment,
+        ignoredSuggestion.id,
+        "ignored",
+      )
+    : enrichedInventory.enrichment;
+  const rejectedResolution = ignoredSuggestion
+    ? resolveSuggestionResolution(
+        ignored,
+        ignoredSuggestion.id,
+        "rejected",
+      )
+    : ignored;
+  const reviewedState = {
+    ...rejected,
+    suggestions: rejected.suggestions.map((item) =>
+      item.id === keywordSuggestion.id
+        ? { ...item, status: "accepted" as const, resolution: "use_suggestion" as const }
+        : item,
+    ),
+  };
+  const remerged = mergeEnrichmentResult(reviewedState, apiResponse);
+  const incrementalInput = filterIncrementalEnrichmentInput(input, reviewedState);
+  const stats = getEnrichmentReviewStats(reviewedState);
+  const duplicateKeywordBank = upsertKeywordBankItem(
+    reviewedState.keywordBank,
+    keywordSuggestion.suggestedKeywords[0] ?? "Revenue Growth",
+    "ai_suggested",
+    true,
+  );
+  const duplicateKeywordCount = duplicateKeywordBank.filter(
+    (item) =>
+      item.keyword.toLowerCase() ===
+      (keywordSuggestion.suggestedKeywords[0] ?? "revenue growth").toLowerCase(),
+  ).length;
+
   const checks: [string, boolean][] = [
     ["mock provider id", mockResult.providerId === "mock"],
     ["api response provider metadata", apiResponse.provider === "mock"],
@@ -241,6 +301,63 @@ Product Manager                                                                 
       "enrichInventory keeps resume count",
       enrichInventory(inventoryBefore).resumes.length ===
         inventoryBefore.resumes.length,
+    ],
+    [
+      "keep existing does not add keywords",
+      wordingSuggestion
+        ? keptExisting.keywordBank.length === enrichedInventory.enrichment.keywordBank.length
+        : true,
+    ],
+    [
+      "use suggestion stores derived wording",
+      wordingSuggestion
+        ? Boolean(
+            usedSuggestion.suggestions.find((item) => item.id === wordingSuggestion.id)
+              ?.acceptedWording,
+          )
+        : true,
+    ],
+    [
+      "use suggestion does not mutate parsed resumes",
+      inventorySnapshot === JSON.stringify(inventoryBefore),
+    ],
+    [
+      "reject marks rejected resolution",
+      ignoredSuggestion
+        ? rejectedResolution.suggestions.some(
+            (item) =>
+              item.id === ignoredSuggestion.id &&
+              item.status === "rejected" &&
+              item.resolution === "rejected",
+          )
+        : true,
+    ],
+    [
+      "ignore marks ignored resolution",
+      ignoredSuggestion
+        ? ignored.suggestions.some(
+            (item) =>
+              item.id === ignoredSuggestion.id &&
+              item.status === "ignored" &&
+              item.resolution === "ignored",
+          )
+        : true,
+    ],
+    [
+      "incremental input skips reviewed bullets",
+      incrementalInput.bullets.length < input.bullets.length,
+    ],
+    [
+      "merge does not duplicate reviewed suggestions",
+      remerged.suggestions.filter((item) => item.id === keywordSuggestion.id).length === 1,
+    ],
+    [
+      "approved keywords are not duplicated",
+      duplicateKeywordCount === 1,
+    ],
+    [
+      "review stats include counts",
+      stats.approvedKeywords >= 1 && stats.rejectedSuggestions >= 0,
     ],
   ];
 

@@ -27,7 +27,15 @@ export type DuplicateGroupStatus =
   | "pending"
   | "keep_all"
   | "group_variants"
-  | "rejected";
+  | "rejected"
+  | "ignored";
+
+/** How the user resolved a reviewed suggestion (does not mutate parsed resume text). */
+export type SuggestionResolution =
+  | "keep_existing"
+  | "use_suggestion"
+  | "rejected"
+  | "ignored";
 
 export type EnrichmentIssueType =
   | "keyword_suggestion"
@@ -87,6 +95,10 @@ export type BulletEnrichmentSuggestion = {
   duplicateGroupId?: string;
   duplicateReason?: string;
   status: SuggestionStatus;
+  /** User's explicit resolution when reviewing duplicate/similar suggestions. */
+  resolution?: SuggestionResolution;
+  /** Derived enriched wording accepted by user; never overwrites parsed resume bullets. */
+  acceptedWording?: string;
   createdAt: string;
   reviewedAt?: string;
   /** @deprecated Use beforeText */
@@ -136,6 +148,16 @@ export type EnrichmentApiResponse = EnrichmentResult & {
   bulletsSent: number;
   suggestionsReturned: number;
   timestamp: string;
+};
+
+export type EnrichmentReviewStats = {
+  approvedKeywords: number;
+  pendingSuggestions: number;
+  ignoredSuggestions: number;
+  rejectedSuggestions: number;
+  acceptedSuggestions: number;
+  pendingDuplicateGroups: number;
+  lastEnrichedAt?: string;
 };
 
 export type EnrichmentApiErrorResponse = {

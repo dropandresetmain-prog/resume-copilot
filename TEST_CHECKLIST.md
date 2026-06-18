@@ -1,4 +1,38 @@
-# Test Checklist — v0.3.0 Supabase Foundation
+# Test Checklist — v0.4.1 Auth + Enrichment Hardening
+
+## Auth (mobile)
+
+- [ ] Open `/setup` at mobile width
+- [ ] Password / Magic link / Sign up tabs are visible without cycling hidden buttons
+- [ ] Magic link tab shows email-only form and **Send magic link** button
+- [ ] Success message: **Check your email for the sign-in link**
+- [ ] Sign in with magic link on a passwordless account
+
+## Enrichment duplicate review
+
+- [ ] Duplicate/similar suggestions show existing vs AI wording side by side
+- [ ] **Keep existing** does not change keyword bank or parsed resumes
+- [ ] **Use AI suggestion** stores derived wording on suggestion only
+- [ ] Reject / Ignore update suggestion status without mutating inventory
+
+## Enrichment rerun
+
+- [ ] Default button is **Enrich missing items only**
+- [ ] **Re-run full enrichment** shows confirmation dialog
+- [ ] Re-running does not duplicate approved keywords or reviewed suggestions
+- [ ] Review counts display (approved, pending, ignored, rejected)
+
+## Resume draft generation (4A)
+
+- [ ] Run `supabase db push` so `20260619_add_resume_draft_metadata.sql` is applied
+- [ ] Sign in with inventory and saved JD
+- [ ] Select JD and reference resume in Resume Draft panel
+- [ ] Approved keyword count displays
+- [ ] Generate Resume Draft works with `AI_PROVIDER=mock`
+- [ ] Draft row appears in `generated_resume_drafts`
+- [ ] Source `resume_inventories` data unchanged after generation
+- [ ] UI shows draft ID and section summary
+- [ ] Malformed Gemini JSON shows error + raw response (if testing Gemini)
 
 ## Supabase auth and sync
 

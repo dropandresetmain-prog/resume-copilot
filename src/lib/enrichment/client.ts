@@ -1,15 +1,19 @@
 import { buildEnrichmentInput } from "@/lib/enrichment/payload";
+import { filterIncrementalEnrichmentInput } from "@/lib/enrichment/state";
 import type { EnrichmentBatchMode } from "@/lib/enrichment/batch";
 import type { CollatedInventory } from "@/types/collated";
 import type {
   EnrichmentApiErrorResponse,
   EnrichmentApiResponse,
+  EnrichmentState,
   ProviderStatusResponse,
 } from "@/types/enrichment";
 
 export type EnrichmentRequestOptions = {
   mode?: EnrichmentBatchMode;
   maxBullets?: number;
+  /** When true, only bullets without reviewed suggestions are sent to the API. */
+  incremental?: boolean;
 };
 
 export type EnrichmentClientError = Error & {
@@ -33,9 +37,19 @@ export async function fetchProviderStatus(): Promise<ProviderStatusResponse> {
 
 export async function requestInventoryEnrichment(
   collated: CollatedInventory,
-  options: EnrichmentRequestOptions = {},
+  enrichmentOrOptions: EnrichmentState | EnrichmentRequestOptions = {},
+  maybeOptions: EnrichmentRequestOptions = {},
 ): Promise<EnrichmentApiResponse> {
-  const input = buildEnrichmentInput(collated);
+  const enrichment =
+    "suggestions" in enrichmentOrOptions ? enrichmentOrOptions : undefined;
+  const options =
+    "suggestions" in enrichmentOrOptions ? maybeOptions : enrichmentOrOptions;
+
+  let input = buildEnrichmentInput(collated);
+  if (options.incremental && enrichment) {
+    input = filterIncrementalEnrichmentInput(input, enrichment);
+  }
+
   const response = await fetch("/api/ai/enrich", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
