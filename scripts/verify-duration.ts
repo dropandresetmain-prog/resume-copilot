@@ -3,6 +3,7 @@ import {
   formatDuration,
   parseMonthYear,
 } from "../src/lib/date/duration";
+import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import {
   createExportPayload,
   parseImportedInventory,
@@ -51,6 +52,7 @@ const durationChecks: [string, boolean][] = [
 const sampleInventory: InventoryState = {
   resumes: [parseResumeTextForTest("WORK EXPERIENCE\nAcme\nRole\nJan 2020 – Present\n• A: B", "r1")],
   failures: [],
+  enrichment: createEmptyEnrichmentState(),
 };
 
 const serialized = serializeInventory(sampleInventory);

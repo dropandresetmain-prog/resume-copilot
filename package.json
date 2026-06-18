@@ -13,7 +13,8 @@
     "test:collation": "tsx scripts/verify-collation.ts",
     "test:education": "tsx scripts/verify-education.ts",
     "test:sections": "tsx scripts/verify-section-detection.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections"
+    "test:enrichment": "tsx scripts/verify-enrichment.ts",
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:enrichment"
   },
   "dependencies": {
     "mammoth": "^1.12.0",

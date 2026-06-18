@@ -1,3 +1,4 @@
+import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import {
   clearAllResumes,
   countInventory,
@@ -19,7 +20,11 @@ function makeResume(filename: string, id: string): ParsedResume {
   return { ...parsed, filename, id };
 }
 
-let inventory: InventoryState = { resumes: [], failures: [] };
+let inventory: InventoryState = {
+  resumes: [],
+  failures: [],
+  enrichment: createEmptyEnrichmentState(),
+};
 
 const resumeA = makeResume("resume-a.docx", "a");
 const resumeB = makeResume("resume-b.docx", "b");

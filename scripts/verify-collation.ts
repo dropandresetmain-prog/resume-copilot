@@ -4,6 +4,7 @@ import {
   splitAdditionalExperienceSegments,
   splitSkillAtomicItems,
 } from "../src/lib/inventory/split-items";
+import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { parseResumeTextForTest } from "../src/lib/parser/docx-parser";
 import type { InventoryState } from "../src/types/resume";
 
@@ -60,6 +61,7 @@ resumeB.filename = "resume-b.docx";
 const inventoryBefore: InventoryState = {
   resumes: structuredClone([resumeA, resumeB]),
   failures: [],
+  enrichment: createEmptyEnrichmentState(),
 };
 
 const inventorySnapshot = JSON.stringify(inventoryBefore);

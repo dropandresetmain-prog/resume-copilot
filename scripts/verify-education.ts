@@ -1,5 +1,6 @@
 import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import { parseEducationLines } from "../src/lib/parser/education";
+import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { parseResumeTextForTest } from "../src/lib/parser/docx-parser";
 import type { InventoryState } from "../src/types/resume";
 
@@ -53,6 +54,7 @@ const berkeleyParsed = berkeleyResume.education[0];
 const duplicateInventory: InventoryState = {
   resumes: structuredClone([ntuResume, { ...ntuResume, id: "ntu-copy" }]),
   failures: [],
+  enrichment: createEmptyEnrichmentState(),
 };
 
 const collatedDuplicate = buildCollatedInventory(duplicateInventory);
@@ -79,6 +81,7 @@ const differentBulletsInventory: InventoryState = {
     },
   ],
   failures: [],
+  enrichment: createEmptyEnrichmentState(),
 };
 
 const collatedVariants = buildCollatedInventory(differentBulletsInventory);

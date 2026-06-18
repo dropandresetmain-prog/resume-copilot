@@ -1,4 +1,6 @@
 import { calculateExperienceDuration } from "@/lib/date/duration";
+import { createEmptyEnrichmentState, migrateEnrichmentSuggestions } from "@/lib/enrichment/state";
+import type { EnrichmentState } from "@/types/enrichment";
 import type {
   ExportedInventory,
   InventoryState,
@@ -102,6 +104,7 @@ export function enrichInventory(inventory: InventoryState): InventoryState {
   return {
     ...inventory,
     resumes: inventory.resumes.map(enrichResume),
+    enrichment: inventory.enrichment ?? createEmptyEnrichmentState(),
   };
 }
 
@@ -267,6 +270,34 @@ function isParsedEducationItem(value: unknown): boolean {
   return migrated !== null;
 }
 
+function migrateEnrichmentState(value: unknown): EnrichmentState {
+  if (!isObject(value)) {
+    return createEmptyEnrichmentState();
+  }
+
+  return {
+    suggestions: migrateEnrichmentSuggestions(value.suggestions),
+    duplicateGroups: Array.isArray(value.duplicateGroups)
+      ? (value.duplicateGroups as EnrichmentState["duplicateGroups"])
+      : [],
+    keywordBank: Array.isArray(value.keywordBank)
+      ? (value.keywordBank as EnrichmentState["keywordBank"])
+      : [],
+    lastEnrichedAt:
+      typeof value.lastEnrichedAt === "string" ? value.lastEnrichedAt : undefined,
+    providerId:
+      value.providerId === "mock" ||
+      value.providerId === "gemini" ||
+      value.providerId === "openai"
+        ? value.providerId
+        : undefined,
+    isMockProvider:
+      typeof value.isMockProvider === "boolean" ? value.isMockProvider : value.providerId === "mock",
+    providerLabel:
+      typeof value.providerLabel === "string" ? value.providerLabel : undefined,
+  };
+}
+
 function isParsedResume(value: unknown): boolean {
   if (!isObject(value)) return false;
   if (typeof value.id !== "string") return false;
@@ -328,14 +359,25 @@ export function validateInventoryState(value: unknown): InventoryState | null {
       .map((resume) => normalizeResume(resume))
       .filter((resume): resume is ParsedResume => resume !== null),
     failures: value.failures as InventoryState["failures"],
+    enrichment: migrateEnrichmentState(value.enrichment),
   };
+}
+
+function validateSchemaVersion(value: unknown): number | null {
+  if (!isObject(value)) return null;
+  if (typeof value.schemaVersion === "number") return value.schemaVersion;
+  return null;
 }
 
 export function validateInventoryPayload(
   value: unknown,
 ): InventoryState | null {
   if (!isObject(value)) return null;
-  if (value.schemaVersion !== INVENTORY_SCHEMA_VERSION) return null;
+
+  const schemaVersion = validateSchemaVersion(value);
+  if (schemaVersion !== 1 && schemaVersion !== INVENTORY_SCHEMA_VERSION) {
+    return null;
+  }
 
   if ("inventory" in value) {
     return validateInventoryState(value.inventory);

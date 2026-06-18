@@ -88,12 +88,15 @@ export type ParseFailure = {
   message: string;
 };
 
+import type { EnrichmentState } from "@/types/enrichment";
+
 export type InventoryState = {
   resumes: ParsedResume[];
   failures: ParseFailure[];
+  enrichment: EnrichmentState;
 };
 
-export const INVENTORY_SCHEMA_VERSION = 1 as const;
+export const INVENTORY_SCHEMA_VERSION = 2 as const;
 
 export type PersistedInventory = {
   schemaVersion: typeof INVENTORY_SCHEMA_VERSION;

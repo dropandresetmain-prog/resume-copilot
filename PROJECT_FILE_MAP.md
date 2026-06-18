@@ -6,12 +6,14 @@
 |------|------|
 | `/` | `src/app/page.tsx` |
 | `/setup` | `src/app/setup/page.tsx` |
+| `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` |
 
 ## Setup page
 
 | File | Purpose |
 |------|---------|
-| `src/components/SetupPageClient.tsx` | State, tabs, persistence, export/import |
+| `src/components/SetupPageClient.tsx` | State, tabs, persistence, export/import, enrichment |
+| `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
 | `src/components/setup/UploadCard.tsx` | Upload dropzone + actions |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
 | `src/components/setup/ResumeList.tsx` | Uploaded resume management |
@@ -29,8 +31,23 @@
 
 | File | Purpose |
 |------|---------|
-| `src/types/resume.ts` | Parsed resume / inventory types |
+| `src/types/resume.ts` | Parsed resume / inventory types (schema v2) |
 | `src/types/collated.ts` | Derived collated inventory types |
+| `src/types/enrichment.ts` | AI enrichment and keyword bank types |
+
+## AI enrichment
+
+| File | Purpose |
+|------|---------|
+| `src/lib/ai/provider.ts` | Provider selection and enrichment entry point |
+| `src/lib/ai/mock.ts` | Mock provider for local testing |
+| `src/lib/ai/gemini.ts` | Gemini provider |
+| `src/lib/ai/openai.ts` | OpenAI placeholder |
+| `src/lib/enrichment/state.ts` | Suggestion review and keyword bank |
+| `src/lib/enrichment/payload.ts` | Collated inventory → AI input |
+| `src/lib/enrichment/prompt.ts` | AI prompt instructions |
+| `src/lib/enrichment/normalize.ts` | Legacy → review-card field migration |
+| `src/lib/enrichment/client.ts` | Browser client for enrichment API |
 
 ## Inventory logic
 
@@ -65,3 +82,4 @@
 | `scripts/verify-collation.ts` | Collation + splitting |
 | `scripts/verify-education.ts` | Structured education parsing + collation |
 | `scripts/verify-section-detection.ts` | Layered section detection + unparsed fallbacks |
+| `scripts/verify-enrichment.ts` | AI provider, keyword bank, export/import |

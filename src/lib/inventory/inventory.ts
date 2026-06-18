@@ -1,4 +1,5 @@
 import type { InventoryState, ParsedResume } from "@/types/resume";
+import { createEmptyEnrichmentState } from "@/lib/enrichment/state";
 import { countSkillCategories } from "@/lib/parser/sections";
 
 export type InventoryCounts = {
@@ -92,5 +93,6 @@ export function clearAllResumes(): InventoryState {
   return {
     resumes: [],
     failures: [],
+    enrichment: createEmptyEnrichmentState(),
   };
 }

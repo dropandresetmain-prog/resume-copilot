@@ -29,6 +29,17 @@ Experiences merge on normalized company + role. Near-identical bullets within th
 
 No server database. Use export/import JSON to move inventory between browsers.
 
+## AI enrichment
+
+- Suggestions are reviewable metadata stored in `inventory.enrichment`, separate from parsed resumes.
+- Each suggestion is a review card: issue title, before text, optional suggested after, changes, rationale, and risk warnings.
+- **Mock provider is test-only** (rule-based local output). It is not real AI analysis. A banner in the enrichment panel labels mock mode clearly.
+- **Cursor does not perform enrichment.** Real enrichment requires `AI_PROVIDER=gemini` or `openai` plus the matching API key on the app server.
+- Gemini requires `GEMINI_API_KEY` and `AI_PROVIDER=gemini`.
+- Enrichment uses stable `bulletKey` values because collated bullet IDs change when inventory is rebuilt.
+- Accepted keyword suggestions add to the keyword bank; rejected/ignored suggestions remain visible in review history.
+- Legacy enrichment exports without review-card fields are migrated on load and do not crash the UI.
+
 ## Mammoth limitations
 
 Plain-text DOCX extraction may affect section and line structure.
