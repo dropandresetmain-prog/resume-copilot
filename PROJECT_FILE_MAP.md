@@ -129,7 +129,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/inventory/backfill-profile-contact.ts` | Safe profile/contact backfill for legacy inventories |
 | `src/components/setup/ProfileContactBackfillPanel.tsx` | Manual backfill UI (Dev Tools) |
 
-## AI resume draft (4A)
+## AI resume draft (4A / 4B)
 
 | File | Purpose |
 |------|---------|
@@ -140,6 +140,13 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
+| `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
+| `src/lib/resume-draft/preview-helpers.ts` | Risk/confidence/source label helpers |
+| `src/components/resume-drafts/ResumeDraftPreview.tsx` | Readable resume preview (4B) |
+| `src/components/resume-drafts/ResumeDraftReviewWorkspace.tsx` | Preview + review + mark reviewed (4B) |
+| `src/components/resume-drafts/ResumeDraftSectionCard.tsx` | Review section wrapper |
+| `src/components/resume-drafts/ResumeDraftBulletCard.tsx` | Experience bullet review card |
+| `src/components/resume-drafts/ResumeDraftReviewPanel.tsx` | Re-export of review workspace |
 
 ## Inventory and parser
 
@@ -172,4 +179,5 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-jd.ts` | JD pure helpers + JSON round-trip (test helpers) |
 | `scripts/verify-files.ts` | File hash + metadata |
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
+| `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |

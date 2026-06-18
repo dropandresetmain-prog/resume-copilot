@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { ResumeDraftPreview } from "@/components/resume-drafts/ResumeDraftPreview";
 import { formatSavedJobLabel } from "@/lib/jd/labels";
 import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import type { StoredJobDescription } from "@/types/jd";
@@ -20,6 +21,7 @@ export function DraftHistoryPanel({
 }: DraftHistoryPanelProps) {
   const [drafts, setDrafts] = useState<GeneratedResumeDraftRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -58,7 +60,7 @@ export function DraftHistoryPanel({
   return (
     <SetupCard
       title="Generated draft history"
-      description="Recently saved resume drafts from Generate. Full draft review UI is planned for a later milestone."
+      description="Saved resume drafts from Generate. Open a draft to read the preview. Full draft management is planned for a later milestone."
     >
       {!isSignedIn ? (
         <p className="mt-3 text-sm text-slate-600">
@@ -69,10 +71,10 @@ export function DraftHistoryPanel({
       ) : visibleDrafts.length === 0 ? (
         <EmptyState
           title="No saved drafts yet"
-          description="Generate a resume draft on the Generate page to see history here."
+          description="Generate a resume on the Generate page to see history here."
         />
       ) : (
-        <ul className="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <ul className="mt-4 space-y-3">
           {visibleDrafts.map((draft) => {
             const job = draft.jobDescriptionId
               ? jobById.get(draft.jobDescriptionId)
@@ -81,9 +83,13 @@ export function DraftHistoryPanel({
               ? formatSavedJobLabel(job)
               : draft.jobDescriptionId ?? "Unknown job";
             const summary = draft.content.professionalSummary?.text?.slice(0, 120);
+            const isExpanded = expandedDraftId === draft.id;
 
             return (
-              <li key={draft.id} className="px-4 py-3 text-sm">
+              <li
+                key={draft.id}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm"
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="font-medium text-slate-900">{jobLabel}</p>
                   <p className="text-xs text-slate-500">
@@ -99,6 +105,16 @@ export function DraftHistoryPanel({
                     {summary}
                     {(draft.content.professionalSummary?.text?.length ?? 0) > 120 ? "…" : ""}
                   </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setExpandedDraftId(isExpanded ? null : draft.id)}
+                  className="mt-2 text-sm font-medium text-violet-700 hover:underline"
+                >
+                  {isExpanded ? "Hide preview" : "View resume preview"}
+                </button>
+                {isExpanded ? (
+                  <ResumeDraftPreview content={draft.content} className="mt-3" />
                 ) : null}
               </li>
             );

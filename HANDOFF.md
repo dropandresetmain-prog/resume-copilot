@@ -2,49 +2,44 @@
 
 ## Current milestone
 
-**v0.4.5 — Generate Page Flow Fixes and Saved Job Detail UX**
+**v0.5.0 — Resume Draft Review UI (4B)**
 
-Generate owns job intake for resume tailoring. Records owns saved job/draft history. Landing page has one primary CTA. **4B (Resume Draft Review UI) is not started.**
+Generated resume drafts now render as a readable preview with section-by-section review, inline edits, rationale/risk flags, and **Mark as reviewed** persistence to Supabase. Source inventory is never modified.
 
-## Generate page flow
+## Review flow (`/generate`)
 
-1. Paste job description on `/generate` (**Add a job to tailor your resume**)
-2. Save job (company/role heuristics + heuristic summary)
-3. Select saved job + reference resume
-4. **Tailor resume from saved job** → **Generate resume**
+1. Paste/save job → generate resume
+2. Readable **Generated resume preview** (default, not JSON)
+3. **Review generated sections** — accept / edit / omit per item
+4. **Mark as reviewed** → saves edited `content` + `status: reviewed` to `generated_resume_drafts`
 
-Records (`/records`) is secondary: **Manage saved jobs** + draft history. No primary paste intake there.
+## Roadmap status
 
-## Landing CTA
+| Milestone | Status |
+|-----------|--------|
+| 4A — AI resume draft generation | Complete |
+| 4B — Resume draft review UI | **Complete (v0.5.0)** |
+| 4C — Draft management | Not started |
+| 5A — Cover letter generation | Not started |
+| 6A/6B/6C — PDF/DOCX export | Not started |
 
-Single button: **Customize your resume now**
+## Review model
 
-- Signed out or no inventory → `/setup` (Manage Uploads)
-- Signed in with inventory → `/generate`
+- Local `ResumeDraftReviewState` tracks per-item status: `pending` \| `accepted` \| `edited` \| `rejected`
+- Preview uses `applyReviewStateToContent()` — rejected items omitted, edits applied
+- On **Mark as reviewed**, reviewed content is written to the draft row only
+- Parsed resume inventory and enrichment are untouched
 
-## Saved jobs
+## Records (`/records`)
 
-- Collapsed cards: Company — Role, dates, heuristic `summary` preview
-- **View full job description** expands full `rawText` with line breaks preserved
-- Migration: `supabase/migrations/20260620_add_saved_job_summary.sql` (`summary text`)
+- Draft history list with **View resume preview** (read-only preview)
+- Full draft management (4C) deferred
 
-## Navigation (unchanged from v0.4.4)
+## Prior milestones
 
-Generate → Inventory → Records → Manage Uploads → Dev Tools
-
-## Completed in v0.4.4
-
-Page split, shared `WorkspaceProvider`, app shell navigation.
-
-## Completed earlier
-
-- v0.4.3 — Profile contact backfill (Dev Tools)
-- v0.4.2 — Profile parsing, Saved Jobs UX, enrichment stability
-- v0.4.0 / 4A — AI resume draft generation
-
-## Project SOPs
-
-Migration filenames: `<timestamp>_human_readable_name.sql`
+- v0.4.5 — Generate page flow + saved job UX
+- v0.4.4 — Page split + navigation
+- v0.4.0–4A — Resume draft generation pipeline
 
 ## Run
 
@@ -52,5 +47,3 @@ Migration filenames: `<timestamp>_human_readable_name.sql`
 npm run dev
 npm run test
 ```
-
-After deploy, run `supabase db push` if `20260620_add_saved_job_summary.sql` is not yet applied.

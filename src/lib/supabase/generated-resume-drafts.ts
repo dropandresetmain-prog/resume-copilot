@@ -156,6 +156,42 @@ export async function getGeneratedResumeDraftFromCloud(
   return mapGeneratedResumeDraftRow(data as GeneratedResumeDraftRow);
 }
 
+export type UpdateGeneratedResumeDraftInput = {
+  content: ResumeDraftContent;
+  status?: string;
+};
+
+export async function updateGeneratedResumeDraftInCloud(
+  id: string,
+  input: UpdateGeneratedResumeDraftInput,
+): Promise<GeneratedResumeDraftRecord> {
+  const user = await getCurrentUser();
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("generated_resume_drafts")
+    .update({
+      content: input.content,
+      status: input.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to update generated resume draft.");
+  }
+
+  const mapped = mapGeneratedResumeDraftRow(data as GeneratedResumeDraftRow);
+  if (!mapped) {
+    throw new Error("Updated generated resume draft has invalid content.");
+  }
+
+  return mapped;
+}
+
 export async function deleteGeneratedResumeDraftFromCloud(id: string): Promise<void> {
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();

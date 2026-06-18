@@ -1,3 +1,43 @@
+# Test Checklist — v0.5.0 Resume Draft Review UI (4B)
+
+## Generate + preview
+
+- [ ] Generate resume on `/generate` shows readable preview (not JSON by default)
+- [ ] Debug JSON available in collapsed section only
+- [ ] Latest draft for selected job loads when switching saved jobs
+
+## Section review
+
+- [ ] Accept / Edit / Omit on experience bullets
+- [ ] Professional summary accept/edit/omit works
+- [ ] Skills group edit (one item per line) updates preview
+- [ ] Rationale panel shows overall, keywords, omissions
+- [ ] Risk flags visible on bullets and globally
+
+## Source traceability
+
+- [ ] Source refs shown when `sourceRefs` populated (filename, bullet key)
+- [ ] No fake source claims when refs empty
+
+## Mark as reviewed
+
+- [ ] **Mark as reviewed** saves edited content to Supabase
+- [ ] Status becomes `reviewed`
+- [ ] Source `resume_inventories` unchanged after review save
+
+## Records
+
+- [ ] Draft history **View resume preview** expands read-only preview
+- [ ] No full 4C draft management yet
+
+## Deferred
+
+- [ ] 4C draft management
+- [ ] 5A cover letters
+- [ ] 6A–6C export
+
+---
+
 # Test Checklist — v0.4.5 Generate Page Flow + Saved Job UX
 
 ## Generate page
@@ -34,9 +74,9 @@
 - [ ] `supabase db push` applies `20260620_add_saved_job_summary.sql`
 - [ ] Saving a job stores `summary` in Supabase
 
-## 4B
+## 4C / later
 
-- [ ] Not started
+- [ ] Full draft management (4C) not started
 
 ---
 
@@ -81,9 +121,9 @@
 - [ ] Profile/contact backfill panel
 - [ ] Test Gemini small batch controls
 
-## 4B
+## 4C / later
 
-- [ ] Not started — no full draft review UI
+- [ ] Full draft management (4C) not started — review UI is in v0.5.0 checklist above
 
 ---
 

@@ -33,7 +33,7 @@ export function GeneratePageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.4.5 · Generate"
+        milestone="v0.5.0 · Generate"
         title="Generate tailored resume"
         description="Paste a job description, save it, then tailor a resume from your career inventory and approved keywords."
       />

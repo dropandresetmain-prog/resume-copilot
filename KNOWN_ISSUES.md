@@ -1,18 +1,25 @@
 # Known Issues
 
+## Resume draft review (v0.5.0 / 4B)
+
+- Review edits apply to **generated draft content only** — source inventory is never modified.
+- **Mark as reviewed** saves edited content + `status: reviewed` to `generated_resume_drafts`.
+- Pending items are included as-is when marking reviewed; explicit **Omit** removes them from saved content.
+- Records page shows read-only preview; full draft management (4C) not built yet.
+- Cover letter generation (5A) and PDF/DOCX export (6A–6C) not started.
+
 ## Generate flow (v0.4.5)
 
 - **Generate** (`/generate`) is where users paste and save jobs for tailoring.
 - **Records** (`/records`) is for managing saved jobs and viewing draft history — not primary intake.
 - Saved job `summary` is heuristic only (no AI). Run `supabase db push` for `20260620_add_saved_job_summary.sql` on existing projects.
 - Landing page has one CTA; route depends on sign-in + inventory state.
-- **4B** not started.
 
 ## Page split (v0.4.4)
 
 - **Manage Uploads** (`/setup`) is the first-time entry point; **Generate** (`/generate`) is the main product page once inventory exists.
 - **Dev Tools** (`/dev-tools`) is for maintenance (profile backfill, Gemini small-batch test) — not part of normal resume generation flow.
-- **4B** (full draft review UI) is not started; Records shows a basic draft history list only.
+- Records shows draft history with read-only preview; full 4C management not built yet.
 - Landing CTA is **Customize your resume now** (not “Setup”).
 
 ## Profile backfill (v0.4.3)
