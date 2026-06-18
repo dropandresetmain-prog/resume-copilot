@@ -4,9 +4,13 @@ import type { CollatedInventory } from "@/types/collated";
 import type {
   BulletEnrichmentSuggestion,
   DuplicateGroupSuggestion,
+  EnrichmentRunMetadata,
   EnrichmentState,
+  ProviderStatusResponse,
   SuggestionStatus,
 } from "@/types/enrichment";
+
+import { SMALL_BATCH_DEFAULT_SIZE } from "@/lib/enrichment/batch";
 
 import {
   CollapsibleSection,
@@ -18,21 +22,114 @@ import {
 type EnrichmentReviewPanelProps = {
   collated: CollatedInventory;
   enrichment: EnrichmentState;
+  providerStatus: ProviderStatusResponse | null;
   isEnriching: boolean;
   enrichError: string | null;
+  enrichDebugRaw: string | null;
   onEnrich: () => void;
+  onTestBatchEnrich: () => void;
+  onMergeTestBatch: () => void;
+  onClearTestBatch: () => void;
   onSuggestionStatus: (suggestionId: string, status: SuggestionStatus) => void;
+  onTestBatchSuggestionStatus: (
+    suggestionId: string,
+    status: SuggestionStatus,
+  ) => void;
   onDuplicateGroupStatus: (
     groupId: string,
     status: DuplicateGroupSuggestion["status"],
   ) => void;
 };
 
+function ProviderConfigDisplay({
+  providerStatus,
+  runMetadata,
+}: {
+  providerStatus: ProviderStatusResponse | null;
+  runMetadata?: EnrichmentRunMetadata;
+}) {
+  const provider = runMetadata?.provider ?? providerStatus?.provider ?? "mock";
+  const isMock = runMetadata?.isMock ?? providerStatus?.isMock ?? true;
+  const providerLabel =
+    runMetadata?.providerLabel ??
+    providerStatus?.providerLabel ??
+    "Mock enrichment";
+
+  return (
+    <div className="mt-4 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-700">
+      <p className="font-medium text-zinc-900">Provider configuration</p>
+      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-zinc-500">Provider</dt>
+          <dd>{providerLabel} ({provider})</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-zinc-500">Mode</dt>
+          <dd>{isMock ? "Mock / test output" : "Live AI provider"}</dd>
+        </div>
+        {(runMetadata?.modelName ?? providerStatus?.modelName) && (
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-zinc-500">Model</dt>
+            <dd>{runMetadata?.modelName ?? providerStatus?.modelName}</dd>
+          </div>
+        )}
+        {runMetadata ? (
+          <>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Batch mode
+              </dt>
+              <dd>
+                {runMetadata.batchMode === "small_batch_test"
+                  ? "Small batch test"
+                  : "Full inventory"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Bullets sent
+              </dt>
+              <dd>{runMetadata.bulletsSent}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Suggestions returned
+              </dt>
+              <dd>{runMetadata.suggestionsReturned}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Timestamp
+              </dt>
+              <dd>{new Date(runMetadata.timestamp).toLocaleString()}</dd>
+            </div>
+          </>
+        ) : null}
+      </dl>
+      {providerStatus && !providerStatus.configured && providerStatus.configurationError ? (
+        <p className="mt-2 text-amber-800">{providerStatus.configurationError}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function EnrichmentDebugPanel({ rawText }: { rawText: string }) {
+  return (
+    <CollapsibleSection title="Raw model response (debug)" defaultOpen>
+      <pre className="max-h-64 overflow-auto rounded-lg bg-zinc-900 p-3 text-xs text-zinc-100">
+        {rawText}
+      </pre>
+    </CollapsibleSection>
+  );
+}
+
 function ProviderStatusBanner({
   enrichment,
+  providerStatus,
   enrichError,
 }: {
   enrichment: EnrichmentState;
+  providerStatus: ProviderStatusResponse | null;
   enrichError: string | null;
 }) {
   if (enrichError) {
@@ -40,11 +137,20 @@ function ProviderStatusBanner({
       <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
         <p className="font-medium">Enrichment provider unavailable</p>
         <p className="mt-1">{enrichError}</p>
+        {providerStatus && !providerStatus.configured ? (
+          <p className="mt-2">{providerStatus.configurationError}</p>
+        ) : null}
       </div>
     );
   }
 
-  if (enrichment.isMockProvider || enrichment.providerId === "mock") {
+  const activeProvider = providerStatus?.provider ?? enrichment.providerId ?? "mock";
+  const isMock =
+    providerStatus?.isMock ??
+    enrichment.isMockProvider ??
+    activeProvider === "mock";
+
+  if (isMock) {
     return (
       <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <p className="font-medium">Using mock enrichment</p>
@@ -58,7 +164,7 @@ function ProviderStatusBanner({
     );
   }
 
-  if (enrichment.providerId === "gemini") {
+  if (activeProvider === "gemini") {
     return (
       <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
         <p className="font-medium">Using Gemini enrichment</p>
@@ -70,7 +176,7 @@ function ProviderStatusBanner({
     );
   }
 
-  if (enrichment.providerId === "openai") {
+  if (activeProvider === "openai") {
     return (
       <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
         <p className="font-medium">Using OpenAI enrichment</p>
@@ -314,10 +420,16 @@ function DuplicateGroupCard({
 export function EnrichmentReviewPanel({
   collated,
   enrichment,
+  providerStatus,
   isEnriching,
   enrichError,
+  enrichDebugRaw,
   onEnrich,
+  onTestBatchEnrich,
+  onMergeTestBatch,
+  onClearTestBatch,
   onSuggestionStatus,
+  onTestBatchSuggestionStatus,
   onDuplicateGroupStatus,
 }: EnrichmentReviewPanelProps) {
   const hasBullets = collated.experiences.some(
@@ -333,11 +445,17 @@ export function EnrichmentReviewPanel({
     (group) => group.status === "pending",
   );
   const approvedKeywords = enrichment.keywordBank.filter((item) => item.approved);
+  const testBatch = enrichment.testBatch;
+  const testBatchPending = testBatch?.suggestions.filter(
+    (item) => item.status === "pending",
+  ) ?? [];
+  const configuredForLive =
+    providerStatus?.configured ?? providerStatus?.isMock ?? true;
 
   return (
     <SetupCard
       title="AI enrichment review"
-      description="Review cards show issue, before text, suggested changes, rationale, and risks. Accepting only updates review metadata and the keyword bank — never the parsed resume source data."
+      description="Review cards show issue, before text, suggested changes, rationale, and risks. Use small-batch test mode to inspect Gemini output before enriching the full inventory."
     >
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -348,15 +466,49 @@ export function EnrichmentReviewPanel({
         >
           {isEnriching ? "Enriching…" : "Enrich Inventory with AI"}
         </button>
+        <button
+          type="button"
+          onClick={onTestBatchEnrich}
+          disabled={!hasBullets || isEnriching}
+          className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isEnriching ? "Testing…" : "Test Gemini on small batch"}
+        </button>
         {enrichment.lastEnrichedAt && (
           <p className="text-sm text-zinc-500">
-            Last enriched {new Date(enrichment.lastEnrichedAt).toLocaleString()}
+            Last full enrich {new Date(enrichment.lastEnrichedAt).toLocaleString()}
             {enrichment.providerLabel ? ` · ${enrichment.providerLabel}` : ""}
           </p>
         )}
       </div>
 
-      <ProviderStatusBanner enrichment={enrichment} enrichError={enrichError} />
+      <p className="mt-2 text-sm text-zinc-600">
+        Small-batch test sends the first {SMALL_BATCH_DEFAULT_SIZE} work experience
+        bullets only. Results are stored separately until you choose to merge them
+        into main enrichment.
+      </p>
+
+      <ProviderConfigDisplay
+        providerStatus={providerStatus}
+        runMetadata={enrichment.lastRunMetadata}
+      />
+
+      <ProviderStatusBanner
+        enrichment={enrichment}
+        providerStatus={providerStatus}
+        enrichError={enrichError}
+      />
+
+      {enrichDebugRaw ? <EnrichmentDebugPanel rawText={enrichDebugRaw} /> : null}
+
+      {!configuredForLive && providerStatus && !providerStatus.isMock ? (
+        <p className="mt-3 text-sm text-amber-800">
+          Live provider is selected but not configured. Set{" "}
+          <code className="rounded bg-amber-100 px-1">GEMINI_API_KEY</code> in{" "}
+          <code className="rounded bg-amber-100 px-1">.env.local</code> and restart
+          the dev server.
+        </p>
+      ) : null}
 
       {!hasBullets && (
         <p className="mt-3 text-sm text-zinc-500">
@@ -365,6 +517,49 @@ export function EnrichmentReviewPanel({
       )}
 
       <div className="mt-6 space-y-4">
+        {testBatch ? (
+          <CollapsibleSection
+            title={`Small-batch test results (${testBatchPending.length} pending)`}
+            defaultOpen
+          >
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              <p className="font-medium">Test mode — not merged into main enrichment</p>
+              <p className="mt-1">
+                These suggestions were generated from a small batch (
+                {testBatch.runMetadata.bulletsSent} bullets). Review quality here
+                before merging or running full enrichment.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onMergeTestBatch}
+                  className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
+                >
+                  Merge into main enrichment
+                </button>
+                <button
+                  type="button"
+                  onClick={onClearTestBatch}
+                  className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
+                >
+                  Discard test batch
+                </button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {testBatch.suggestions.map((suggestion) => (
+                <SuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  onStatus={(status) =>
+                    onTestBatchSuggestionStatus(suggestion.id, status)
+                  }
+                />
+              ))}
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
         <CollapsibleSection
           title={`Pending suggestions (${pendingSuggestions.length})`}
           defaultOpen

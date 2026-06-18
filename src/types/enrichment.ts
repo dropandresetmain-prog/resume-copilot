@@ -39,6 +39,34 @@ export type EnrichmentIssueType =
 
 export type AIProviderId = "mock" | "gemini" | "openai";
 
+export type EnrichmentBatchMode = "full" | "small_batch_test";
+
+export type EnrichmentRunMetadata = {
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  batchMode: EnrichmentBatchMode;
+  bulletsSent: number;
+  suggestionsReturned: number;
+  timestamp: string;
+};
+
+export type ProviderStatusResponse = {
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  configured: boolean;
+  configurationError?: string;
+};
+
+export type EnrichmentTestBatch = {
+  suggestions: BulletEnrichmentSuggestion[];
+  duplicateGroups: DuplicateGroupSuggestion[];
+  runMetadata: EnrichmentRunMetadata;
+};
+
 export type BulletEnrichmentSuggestion = {
   id: string;
   bulletKey: string;
@@ -84,6 +112,8 @@ export type EnrichmentState = {
   providerId?: AIProviderId;
   isMockProvider?: boolean;
   providerLabel?: string;
+  lastRunMetadata?: EnrichmentRunMetadata;
+  testBatch?: EnrichmentTestBatch;
 };
 
 export type EnrichmentSuggestionDraft = Omit<
@@ -101,4 +131,21 @@ export type EnrichmentApiResponse = EnrichmentResult & {
   provider: AIProviderId;
   isMock: boolean;
   providerLabel: string;
+  modelName?: string;
+  batchMode: EnrichmentBatchMode;
+  bulletsSent: number;
+  suggestionsReturned: number;
+  timestamp: string;
+};
+
+export type EnrichmentApiErrorResponse = {
+  error: string;
+  rawModelResponse?: string;
+  provider?: AIProviderId;
+  isMock?: boolean;
+  providerLabel?: string;
+  modelName?: string;
+  batchMode?: EnrichmentBatchMode;
+  bulletsSent?: number;
+  timestamp?: string;
 };

@@ -16,8 +16,28 @@
 - [ ] Accept / reject / ignore controls work
 - [ ] Accepted keyword suggestions appear in keyword bank as approved
 - [ ] Rejected/ignored suggestions remain visible with status badge
-- [ ] Legacy enrichment data (without review fields) still renders without crashing
+- [ ] "Test Gemini on small batch" button available in enrichment panel
+- [ ] Small-batch test results stored separately from main enrichment
 - [ ] Raw parsed resume data is unchanged after enrichment
+
+## Gemini small-batch testing
+
+When testing with `AI_PROVIDER=gemini` and `GEMINI_API_KEY` in `.env.local`:
+
+- [ ] Provider config panel shows Gemini provider and model name
+- [ ] "Test Gemini on small batch" sends only 3–5 bullets (not full inventory)
+- [ ] Test results appear in separate small-batch section (not main enrichment)
+- [ ] Provider metadata shows bullets sent, suggestions returned, and timestamp
+- [ ] Merge into main enrichment requires confirmation
+- [ ] Discard test batch clears test results without affecting main enrichment
+- [ ] JSON parses correctly from Gemini response
+- [ ] Suggestions are specific to the bullets sent
+- [ ] Keywords are real industry terms (Strategy, Operations, Product, etc.)
+- [ ] No invented experience or metrics beyond bullet text
+- [ ] Rationale makes sense for each suggestion
+- [ ] Risk warnings are useful when scope could be overstated
+- [ ] Invalid JSON shows error with collapsible raw model response (app does not crash)
+- [ ] No API key exposed in browser network tab or UI
 
 ## Collated inventory (default tab)
 

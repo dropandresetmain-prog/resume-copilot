@@ -1,14 +1,15 @@
+import { GEMINI_MODEL } from "@/lib/ai/config";
+import { mapEnrichmentPayload } from "@/lib/ai/map-enrichment-result";
+import {
+  EnrichmentParseError,
+  parseEnrichmentJson,
+} from "@/lib/ai/parse-enrichment-response";
 import { buildEnrichmentPrompt } from "@/lib/enrichment/prompt";
 import type { EnrichmentInventoryInput } from "@/lib/enrichment/payload";
-import { normalizeSuggestionDraft } from "@/lib/enrichment/normalize";
 import type { EnrichmentResult } from "@/types/enrichment";
 import type { AIProvider } from "@/lib/ai/types";
 
-function extractJson(text: string): unknown {
-  const fenced = text.match(/```json\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1]?.trim() ?? text.trim();
-  return JSON.parse(candidate);
-}
+export { GEMINI_MODEL };
 
 export function createGeminiProvider(apiKey: string): AIProvider {
   return {
@@ -17,7 +18,7 @@ export function createGeminiProvider(apiKey: string): AIProvider {
     async enrichInventory(input: EnrichmentInventoryInput): Promise<EnrichmentResult> {
       const prompt = buildEnrichmentPrompt(input);
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -45,72 +46,15 @@ export function createGeminiProvider(apiKey: string): AIProvider {
         throw new Error("Gemini API returned no content.");
       }
 
-      const parsed = extractJson(text) as {
-        suggestions?: Array<Record<string, unknown>>;
-        duplicateGroups?: EnrichmentResult["duplicateGroups"];
-      };
+      const parsed = parseEnrichmentJson(text);
+      if (!parsed.ok) {
+        throw new EnrichmentParseError(parsed.error, parsed.rawText);
+      }
 
-      const bulletByKey = new Map(input.bullets.map((bullet) => [bullet.bulletKey, bullet]));
-
+      const mapped = mapEnrichmentPayload(parsed.value, input);
       return {
+        ...mapped,
         providerId: "gemini",
-        suggestions: (parsed.suggestions ?? []).map((suggestion) => {
-          const source = bulletByKey.get(String(suggestion.bulletKey ?? ""));
-          return normalizeSuggestionDraft({
-            bulletKey: String(suggestion.bulletKey ?? source?.bulletKey ?? ""),
-            bulletId: source?.bulletId,
-            company: source?.company ?? "",
-            role: source?.role ?? "",
-            issueType: suggestion.issueType as EnrichmentResult["suggestions"][number]["issueType"],
-            issueTitle: typeof suggestion.issueTitle === "string" ? suggestion.issueTitle : undefined,
-            beforeText:
-              typeof suggestion.beforeText === "string"
-                ? suggestion.beforeText
-                : source?.description,
-            suggestedAfterText:
-              typeof suggestion.suggestedAfterText === "string"
-                ? suggestion.suggestedAfterText
-                : undefined,
-            suggestedKeywords: Array.isArray(suggestion.suggestedKeywords)
-              ? suggestion.suggestedKeywords.filter((item): item is string => typeof item === "string")
-              : [],
-            suggestedCapabilities: Array.isArray(suggestion.suggestedCapabilities)
-              ? suggestion.suggestedCapabilities.filter((item): item is string => typeof item === "string")
-              : [],
-            suggestedRoleTypes: Array.isArray(suggestion.suggestedRoleTypes)
-              ? suggestion.suggestedRoleTypes.filter((item): item is string => typeof item === "string")
-              : [],
-            changes: Array.isArray(suggestion.changes)
-              ? suggestion.changes.filter((item): item is string => typeof item === "string")
-              : undefined,
-            rationale:
-              typeof suggestion.rationale === "string" ? suggestion.rationale : undefined,
-            riskWarnings: Array.isArray(suggestion.riskWarnings)
-              ? suggestion.riskWarnings.filter((item): item is string => typeof item === "string")
-              : [],
-            sourceCitations: source?.sourceCitations,
-            duplicateGroupId:
-              typeof suggestion.duplicateGroupId === "string"
-                ? suggestion.duplicateGroupId
-                : undefined,
-            duplicateReason:
-              typeof suggestion.duplicateReason === "string"
-                ? suggestion.duplicateReason
-                : undefined,
-          });
-        }),
-        duplicateGroups: (parsed.duplicateGroups ?? []).map((group) => ({
-          id: group.id,
-          bulletKeys: group.bulletKeys ?? [],
-          bulletDescriptions: (group.bulletKeys ?? [])
-            .flatMap((key) => {
-              const bullet = bulletByKey.get(key);
-              if (!bullet) return [];
-              if (bullet.rawTexts.length > 1) return bullet.rawTexts;
-              return [bullet.description];
-            }),
-          reason: group.reason ?? "Possible duplicate bullets detected.",
-        })),
       };
     },
   };

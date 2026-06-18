@@ -10,12 +10,20 @@ import { SourceResumesView } from "@/components/setup/SourceResumesView";
 import { SummaryCards } from "@/components/setup/SummaryCards";
 import { UploadCard } from "@/components/setup/UploadCard";
 import { ViewTabs } from "@/components/setup/ui";
-import { requestInventoryEnrichment } from "@/lib/enrichment/client";
 import {
+  fetchProviderStatus,
+  requestInventoryEnrichment,
+  type EnrichmentClientError,
+} from "@/lib/enrichment/client";
+import {
+  applyTestBatchResult,
+  clearTestBatch,
   createEmptyEnrichmentState,
   mergeEnrichmentResult,
+  mergeTestBatchIntoMain,
   updateDuplicateGroupStatus,
   updateSuggestionStatus,
+  updateTestBatchSuggestionStatus,
 } from "@/lib/enrichment/state";
 import {
   clearAllResumes,
@@ -36,6 +44,7 @@ import { parseDocxResume } from "@/lib/parser/docx-parser";
 import type { InventoryState } from "@/types/resume";
 import type {
   DuplicateGroupSuggestion,
+  ProviderStatusResponse,
   SuggestionStatus,
 } from "@/types/enrichment";
 
@@ -50,6 +59,9 @@ export function SetupPageClient() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [enrichDebugRaw, setEnrichDebugRaw] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] =
+    useState<ProviderStatusResponse | null>(null);
   const [persistenceWarning, setPersistenceWarning] = useState<string | null>(
     null,
   );
@@ -83,6 +95,14 @@ export function SetupPageClient() {
     }
     setStorageReady(true);
     /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    fetchProviderStatus()
+      .then(setProviderStatus)
+      .catch(() => {
+        setProviderStatus(null);
+      });
   }, []);
 
   useEffect(() => {
@@ -125,21 +145,81 @@ export function SetupPageClient() {
 
   async function handleEnrichInventory() {
     setEnrichError(null);
+    setEnrichDebugRaw(null);
     setIsEnriching(true);
 
     try {
-      const result = await requestInventoryEnrichment(collated);
+      const result = await requestInventoryEnrichment(collated, { mode: "full" });
       updateInventory({
         ...inventory,
         enrichment: mergeEnrichmentResult(inventory.enrichment, result),
       });
     } catch (error) {
+      const clientError = error as EnrichmentClientError;
       const message =
-        error instanceof Error ? error.message : "AI enrichment failed.";
+        clientError instanceof Error ? clientError.message : "AI enrichment failed.";
       setEnrichError(message);
+      setEnrichDebugRaw(clientError.rawModelResponse ?? null);
     } finally {
       setIsEnriching(false);
     }
+  }
+
+  async function handleTestBatchEnrich() {
+    setEnrichError(null);
+    setEnrichDebugRaw(null);
+    setIsEnriching(true);
+
+    try {
+      const result = await requestInventoryEnrichment(collated, {
+        mode: "small_batch_test",
+      });
+      updateInventory({
+        ...inventory,
+        enrichment: applyTestBatchResult(inventory.enrichment, result),
+      });
+    } catch (error) {
+      const clientError = error as EnrichmentClientError;
+      const message =
+        clientError instanceof Error ? clientError.message : "AI enrichment failed.";
+      setEnrichError(message);
+      setEnrichDebugRaw(clientError.rawModelResponse ?? null);
+    } finally {
+      setIsEnriching(false);
+    }
+  }
+
+  function handleMergeTestBatch() {
+    const confirmed = window.confirm(
+      "Merge small-batch test suggestions into main enrichment? This adds pending suggestions to your main review queue.",
+    );
+    if (!confirmed) return;
+
+    updateInventory({
+      ...inventory,
+      enrichment: mergeTestBatchIntoMain(inventory.enrichment),
+    });
+  }
+
+  function handleClearTestBatch() {
+    updateInventory({
+      ...inventory,
+      enrichment: clearTestBatch(inventory.enrichment),
+    });
+  }
+
+  function handleTestBatchSuggestionStatus(
+    suggestionId: string,
+    status: SuggestionStatus,
+  ) {
+    updateInventory({
+      ...inventory,
+      enrichment: updateTestBatchSuggestionStatus(
+        inventory.enrichment,
+        suggestionId,
+        status,
+      ),
+    });
   }
 
   function handleSuggestionStatus(
@@ -175,10 +255,16 @@ export function SetupPageClient() {
   }
 
   function handleClearAll() {
-    const confirmed = window.confirm(
-      "Clear all uploaded resumes, parsing errors, enrichment review state, and saved browser inventory?",
+    const firstConfirmed = window.confirm(
+      "Clear all uploaded resumes, parsing errors, enrichment review state, and saved browser inventory?\n\nThis will delete everything in your local inventory.",
     );
-    if (!confirmed) return;
+    if (!firstConfirmed) return;
+
+    const finalConfirmed = window.confirm(
+      "Final confirmation: permanently delete ALL inventory data?\n\nThis cannot be undone. Export your inventory first if you need a backup.",
+    );
+    if (!finalConfirmed) return;
+
     clearInventoryStorage();
     setInventory(clearAllResumes());
   }
@@ -248,10 +334,16 @@ export function SetupPageClient() {
         <EnrichmentReviewPanel
           collated={collated}
           enrichment={inventory.enrichment}
+          providerStatus={providerStatus}
           isEnriching={isEnriching}
           enrichError={enrichError}
+          enrichDebugRaw={enrichDebugRaw}
           onEnrich={handleEnrichInventory}
+          onTestBatchEnrich={handleTestBatchEnrich}
+          onMergeTestBatch={handleMergeTestBatch}
+          onClearTestBatch={handleClearTestBatch}
           onSuggestionStatus={handleSuggestionStatus}
+          onTestBatchSuggestionStatus={handleTestBatchSuggestionStatus}
           onDuplicateGroupStatus={handleDuplicateGroupStatus}
         />
 

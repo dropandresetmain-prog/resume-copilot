@@ -1,14 +1,22 @@
 import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import {
+  getProviderStatus,
   mockProvider,
   resolveProviderId,
   toEnrichmentApiResponse,
 } from "../src/lib/ai/provider";
+import { parseEnrichmentJson } from "../src/lib/ai/parse-enrichment-response";
+import {
+  selectSmallBatchBullets,
+  SMALL_BATCH_DEFAULT_SIZE,
+} from "../src/lib/enrichment/batch";
 import { normalizeStoredSuggestion } from "../src/lib/enrichment/normalize";
 import { buildEnrichmentInput } from "../src/lib/enrichment/payload";
 import {
+  applyTestBatchResult,
   createEmptyEnrichmentState,
   mergeEnrichmentResult,
+  mergeTestBatchIntoMain,
   migrateEnrichmentSuggestions,
   updateSuggestionStatus,
   upsertKeywordBankItem,
@@ -49,7 +57,25 @@ Product Manager                                                                 
   const collated = buildCollatedInventory(inventoryBefore);
   const input = buildEnrichmentInput(collated);
   const mockResult = await mockProvider.enrichInventory(input);
-  const apiResponse = toEnrichmentApiResponse(mockResult);
+  const apiResponse = toEnrichmentApiResponse(mockResult, {
+    batchMode: "full",
+    bulletsSent: input.bullets.length,
+  });
+  const smallBatchInput = selectSmallBatchBullets(input);
+  const testApiResponse = toEnrichmentApiResponse(
+    await mockProvider.enrichInventory(smallBatchInput),
+    {
+      batchMode: "small_batch_test",
+      bulletsSent: smallBatchInput.bullets.length,
+    },
+  );
+  const testOnlyState = applyTestBatchResult(
+    createEmptyEnrichmentState(),
+    testApiResponse,
+  );
+  const mergedFromTest = mergeTestBatchIntoMain(testOnlyState);
+  const invalidJson = parseEnrichmentJson("```json\n{ broken ```");
+  const providerStatus = getProviderStatus();
   const enrichedInventory: InventoryState = {
     ...inventoryBefore,
     enrichment: mergeEnrichmentResult(inventoryBefore.enrichment, apiResponse),
@@ -120,6 +146,30 @@ Product Manager                                                                 
     ["api response provider metadata", apiResponse.provider === "mock"],
     ["api response isMock flag", apiResponse.isMock === true],
     ["api response provider label", apiResponse.providerLabel === "Mock enrichment"],
+    [
+      "api response batch metadata",
+      apiResponse.batchMode === "full" &&
+        apiResponse.bulletsSent === input.bullets.length &&
+        apiResponse.suggestionsReturned === mockResult.suggestions.length,
+    ],
+    [
+      "small batch limits bullets",
+      smallBatchInput.bullets.length <= SMALL_BATCH_DEFAULT_SIZE &&
+        smallBatchInput.bullets.length <= input.bullets.length &&
+        smallBatchInput.bullets.length > 0,
+    ],
+    [
+      "test batch stored separately",
+      testOnlyState.suggestions.length === 0 &&
+        (testOnlyState.testBatch?.suggestions.length ?? 0) > 0,
+    ],
+    [
+      "test batch merge adds main suggestions",
+      mergedFromTest.suggestions.length > 0 && mergedFromTest.testBatch === undefined,
+    ],
+    ["invalid json handled safely", invalidJson.ok === false],
+    ["provider status defaults mock", providerStatus.provider === "mock"],
+    ["provider status configured mock", providerStatus.configured === true],
     ["mock suggestions generated", mockResult.suggestions.length >= 2],
     ["mock duplicate groups", mockResult.duplicateGroups.length >= 1],
     [

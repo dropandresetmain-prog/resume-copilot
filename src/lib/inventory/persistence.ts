@@ -1,6 +1,11 @@
 import { calculateExperienceDuration } from "@/lib/date/duration";
 import { createEmptyEnrichmentState, migrateEnrichmentSuggestions } from "@/lib/enrichment/state";
-import type { EnrichmentState } from "@/types/enrichment";
+import type {
+  DuplicateGroupSuggestion,
+  EnrichmentRunMetadata,
+  EnrichmentState,
+  EnrichmentTestBatch,
+} from "@/types/enrichment";
 import type {
   ExportedInventory,
   InventoryState,
@@ -270,6 +275,44 @@ function isParsedEducationItem(value: unknown): boolean {
   return migrated !== null;
 }
 
+function migrateRunMetadata(value: unknown): EnrichmentRunMetadata | undefined {
+  if (!isObject(value)) return undefined;
+  const provider = value.provider;
+  if (provider !== "mock" && provider !== "gemini" && provider !== "openai") {
+    return undefined;
+  }
+  return {
+    provider,
+    isMock: typeof value.isMock === "boolean" ? value.isMock : provider === "mock",
+    providerLabel:
+      typeof value.providerLabel === "string" ? value.providerLabel : "Enrichment",
+    modelName: typeof value.modelName === "string" ? value.modelName : undefined,
+    batchMode:
+      value.batchMode === "small_batch_test" ? "small_batch_test" : "full",
+    bulletsSent: typeof value.bulletsSent === "number" ? value.bulletsSent : 0,
+    suggestionsReturned:
+      typeof value.suggestionsReturned === "number" ? value.suggestionsReturned : 0,
+    timestamp:
+      typeof value.timestamp === "string"
+        ? value.timestamp
+        : new Date().toISOString(),
+  };
+}
+
+function migrateTestBatch(value: unknown): EnrichmentTestBatch | undefined {
+  if (!isObject(value)) return undefined;
+  const runMetadata = migrateRunMetadata(value.runMetadata);
+  if (!runMetadata) return undefined;
+
+  return {
+    suggestions: migrateEnrichmentSuggestions(value.suggestions),
+    duplicateGroups: Array.isArray(value.duplicateGroups)
+      ? (value.duplicateGroups as DuplicateGroupSuggestion[])
+      : [],
+    runMetadata,
+  };
+}
+
 function migrateEnrichmentState(value: unknown): EnrichmentState {
   if (!isObject(value)) {
     return createEmptyEnrichmentState();
@@ -295,6 +338,8 @@ function migrateEnrichmentState(value: unknown): EnrichmentState {
       typeof value.isMockProvider === "boolean" ? value.isMockProvider : value.providerId === "mock",
     providerLabel:
       typeof value.providerLabel === "string" ? value.providerLabel : undefined,
+    lastRunMetadata: migrateRunMetadata(value.lastRunMetadata),
+    testBatch: migrateTestBatch(value.testBatch),
   };
 }
 

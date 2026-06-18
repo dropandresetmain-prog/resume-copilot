@@ -2,7 +2,9 @@ import type {
   BulletEnrichmentSuggestion,
   DuplicateGroupSuggestion,
   EnrichmentApiResponse,
+  EnrichmentRunMetadata,
   EnrichmentState,
+  EnrichmentSuggestionDraft,
   KeywordBankItem,
   KeywordCategory,
   SuggestionStatus,
@@ -78,6 +80,56 @@ export function upsertKeywordBankItem(
   });
 }
 
+function buildRunMetadata(result: EnrichmentApiResponse): EnrichmentRunMetadata {
+  return {
+    provider: result.provider,
+    isMock: result.isMock,
+    providerLabel: result.providerLabel,
+    modelName: result.modelName,
+    batchMode: result.batchMode,
+    bulletsSent: result.bulletsSent,
+    suggestionsReturned: result.suggestionsReturned,
+    timestamp: result.timestamp,
+  };
+}
+
+function draftFromSuggestion(
+  suggestion: BulletEnrichmentSuggestion,
+): EnrichmentSuggestionDraft {
+  return {
+    bulletKey: suggestion.bulletKey,
+    bulletId: suggestion.bulletId,
+    company: suggestion.company,
+    role: suggestion.role,
+    issueType: suggestion.issueType,
+    issueTitle: suggestion.issueTitle,
+    beforeText: suggestion.beforeText,
+    suggestedAfterText: suggestion.suggestedAfterText,
+    suggestedKeywords: suggestion.suggestedKeywords,
+    suggestedCapabilities: suggestion.suggestedCapabilities,
+    suggestedRoleTypes: suggestion.suggestedRoleTypes,
+    changes: suggestion.changes,
+    rationale: suggestion.rationale,
+    riskWarnings: suggestion.riskWarnings,
+    sourceCitations: suggestion.sourceCitations,
+    duplicateGroupId: suggestion.duplicateGroupId,
+    duplicateReason: suggestion.duplicateReason,
+    bulletDescription: suggestion.bulletDescription,
+    alternativeBulletWordings: suggestion.alternativeBulletWordings,
+  };
+}
+
+function duplicateGroupDraftFromSuggestion(
+  group: DuplicateGroupSuggestion,
+): EnrichmentApiResponse["duplicateGroups"][number] {
+  return {
+    id: group.id,
+    bulletKeys: group.bulletKeys,
+    bulletDescriptions: group.bulletDescriptions,
+    reason: group.reason,
+  };
+}
+
 export function mergeEnrichmentResult(
   current: EnrichmentState,
   result: EnrichmentApiResponse,
@@ -119,6 +171,96 @@ export function mergeEnrichmentResult(
     providerId: result.provider,
     isMockProvider: result.isMock,
     providerLabel: result.providerLabel,
+    lastRunMetadata: buildRunMetadata(result),
+  };
+}
+
+export function applyTestBatchResult(
+  current: EnrichmentState,
+  result: EnrichmentApiResponse,
+): EnrichmentState {
+  const now = result.timestamp;
+  const suggestions: BulletEnrichmentSuggestion[] = result.suggestions.map(
+    (suggestion) => ({
+      ...suggestion,
+      id: createId(),
+      status: "pending" as const,
+      createdAt: now,
+    }),
+  );
+  const duplicateGroups: DuplicateGroupSuggestion[] = result.duplicateGroups.map(
+    (group) => ({
+      ...group,
+      status: "pending" as const,
+    }),
+  );
+
+  return {
+    ...current,
+    testBatch: {
+      suggestions,
+      duplicateGroups,
+      runMetadata: buildRunMetadata(result),
+    },
+    lastRunMetadata: buildRunMetadata(result),
+  };
+}
+
+export function mergeTestBatchIntoMain(current: EnrichmentState): EnrichmentState {
+  if (!current.testBatch) return current;
+
+  const response: EnrichmentApiResponse = {
+    suggestions: current.testBatch.suggestions.map(draftFromSuggestion),
+    duplicateGroups: current.testBatch.duplicateGroups.map(
+      duplicateGroupDraftFromSuggestion,
+    ),
+    providerId: current.testBatch.runMetadata.provider,
+    provider: current.testBatch.runMetadata.provider,
+    isMock: current.testBatch.runMetadata.isMock,
+    providerLabel: current.testBatch.runMetadata.providerLabel,
+    modelName: current.testBatch.runMetadata.modelName,
+    batchMode: current.testBatch.runMetadata.batchMode,
+    bulletsSent: current.testBatch.runMetadata.bulletsSent,
+    suggestionsReturned: current.testBatch.runMetadata.suggestionsReturned,
+    timestamp: current.testBatch.runMetadata.timestamp,
+  };
+
+  const merged = mergeEnrichmentResult(current, response);
+  return {
+    ...merged,
+    testBatch: undefined,
+  };
+}
+
+export function clearTestBatch(current: EnrichmentState): EnrichmentState {
+  return {
+    ...current,
+    testBatch: undefined,
+  };
+}
+
+export function updateTestBatchSuggestionStatus(
+  state: EnrichmentState,
+  suggestionId: string,
+  status: SuggestionStatus,
+): EnrichmentState {
+  if (!state.testBatch) return state;
+
+  const now = new Date().toISOString();
+  return {
+    ...state,
+    testBatch: {
+      ...state.testBatch,
+      suggestions: state.testBatch.suggestions.map((suggestion) =>
+        suggestion.id === suggestionId
+          ? {
+              ...suggestion,
+              status,
+              reviewedAt: now,
+            }
+          : suggestion,
+      ),
+    },
   };
 }
 
