@@ -12,12 +12,9 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
-import {
-  buildFinalResumeLayout,
-  calculateFitScore,
-  estimatePageFit,
-  FINAL_RESUME_SECTION_ORDER,
-} from "@/lib/resume-draft/layout";
+import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
+import { buildResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
 import {
   clampPreviewBodyFontPx,
   DEFAULT_RESUME_FONT_FAMILY,
@@ -49,7 +46,7 @@ type ResumePreviewPageClientProps = {
 };
 
 export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProps) {
-  const { inventory } = useWorkspace();
+  const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,11 +108,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const fontFamily = referenceFormat?.fontFamily ?? DEFAULT_RESUME_FONT_FAMILY;
   const headerAlignment = referenceFormat?.headerAlignment ?? "center";
 
-  const layout = useMemo(
-    () => (draft ? buildFinalResumeLayout(draft.content) : null),
-    [draft],
-  );
-
   const autoSettings = useMemo(
     () => (draft ? optimizeResumePreviewSettings(draft.content) : null),
     [draft],
@@ -134,6 +126,54 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
       ? autoSettings?.optimizationNote ?? autoSettings?.warning
       : undefined;
 
+  const linkedJob = useMemo(() => {
+    if (!draft?.jobDescriptionId) {
+      return null;
+    }
+    return jobDescriptions.find((job) => job.id === draft.jobDescriptionId) ?? null;
+  }, [draft, jobDescriptions]);
+
+  const documentModel = useMemo(() => {
+    if (!draft) {
+      return null;
+    }
+    return buildResumeDocumentModel({
+      draftId: draft.id,
+      draftStatus: draft.status,
+      content: draft.content,
+      layoutSettings: {
+        bodyFontPx,
+        marginMm,
+        marginTopMm,
+        lineSpacing,
+        sectionSpacing,
+      },
+      fontFamily,
+      headerAlignment,
+      fullName: draft.content.header.fullName,
+      companyName: linkedJob?.companyName,
+      roleTitle: linkedJob?.roleTitle ?? draft.content.targetRoleTitle,
+    });
+  }, [
+    draft,
+    bodyFontPx,
+    marginMm,
+    marginTopMm,
+    lineSpacing,
+    sectionSpacing,
+    fontFamily,
+    headerAlignment,
+    linkedJob,
+  ]);
+
+  const layout = documentModel?.layout ?? null;
+  const pageFit = documentModel?.pageFit ?? null;
+
+  const assessment = useMemo(
+    () => (draft ? calculateFitScore(draft.content, draft.rationale) : null),
+    [draft],
+  );
+
   function updateManualSettings(next: {
     bodyFontPx: number;
     marginMm: number;
@@ -144,25 +184,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     if (!draftId) return;
     setManualSettings({ draftId, ...next });
   }
-
-  const pageFit = useMemo(
-    () =>
-      layout
-        ? estimatePageFit(layout, {
-            marginMm,
-            marginTopMm,
-            lineSpacing,
-            sectionSpacing,
-            bodyFontPx,
-          })
-        : null,
-    [layout, marginMm, marginTopMm, lineSpacing, sectionSpacing, bodyFontPx],
-  );
-
-  const assessment = useMemo(
-    () => (draft ? calculateFitScore(draft.content, draft.rationale) : null),
-    [draft],
-  );
 
   async function handleApproveForExport() {
     if (!draft) return;
@@ -213,9 +234,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.5.4 · Draft Records + One-Page Optimization"
+        milestone="v0.6.0 · Resume DOCX Export"
         title="Resume Preview"
-        description="Format-optimized one-page preview. Adjust layout only if needed, then approve for export."
+        description="Format-optimized one-page preview. Approve for export, then download DOCX."
       />
 
       <p className="text-xs text-slate-500">
@@ -320,7 +341,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         />
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <button
           type="button"
           onClick={handleApproveForExport}
@@ -328,6 +349,26 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           className={primaryButtonClassName}
         >
           {isApproved ? "Approved for export" : isApproving ? "Saving…" : "Approve for Export"}
+        </button>
+        <DownloadResumeDocxButton
+          draftId={draftId}
+          layoutSettings={{
+            bodyFontPx,
+            marginMm,
+            marginTopMm,
+            lineSpacing,
+            sectionSpacing,
+          }}
+          disabled={!isApproved}
+          disabledReason="Approve for Export before downloading."
+        />
+        <button
+          type="button"
+          disabled
+          className={`${secondaryButtonClassName} opacity-60`}
+          title="PDF export coming next"
+        >
+          PDF export coming next
         </button>
         <Link
           href={`/resume-preview/${draftId}/edit`}

@@ -1,26 +1,36 @@
-# Test Checklist — v0.5.5 Header and Education Rendering Fixes
+# Test Checklist — v0.6.0 Resume DOCX Export
 
-## Header sizing
+## End-to-end flow
 
-- [ ] Candidate name renders at section-header size (body + 0.5px), not body size
-- [ ] Name size matches Work Experience / Education section title size
-- [ ] Header stays compact and respects reference alignment (center/left)
+- [ ] Generate resume → preview loads with auto-optimized layout
+- [ ] Click **Approve for Export**
+- [ ] **Download DOCX** enabled after approval
+- [ ] DOCX downloads and opens in Word / Google Docs
+- [ ] Browser preview and DOCX layout match (sections, bullets, education structure)
+- [ ] Filename follows `<Name> - Resume _<Company> _<Role>.docx` when JD metadata exists
 
-## Education rendering (NTU-style double degree)
+## Preview page
 
-- [ ] Line 1: institution + special programme bold left, location right
-- [ ] Line 2+: each degree italic left; date range only on first degree when shared
-- [ ] No duplicate institution text (e.g. no `NTU, NTU` or repeated full university name)
-- [ ] Degree names are not bolded
+- [ ] Download disabled with helper text before approval
+- [ ] PDF button shown disabled (`PDF export coming next`)
+- [ ] Export error shown visibly on failure
+- [ ] Manual layout slider changes reflected in exported DOCX
 
-## Regression
+## Records page
 
-- [ ] Work experience layout unchanged
-- [ ] One-page auto-optimization still runs on preview load
-- [ ] Draft edit/delete still does not mutate inventory
+- [ ] Approved drafts show **Download DOCX**
+- [ ] Non-approved drafts show disabled download with helper text
+- [ ] Delete still works without affecting inventory
+
+## Storage / auth
+
+- [ ] Signed-in user can export own approved draft
+- [ ] Export does not mutate career inventory
+- [ ] DOCX appears in Supabase `generated-documents` bucket (when configured)
 
 ## Automated
 
-- [ ] `npm run test` passes (includes layout + education normalization checks)
+- [ ] `npm run test:resume-docx-export` passes
+- [ ] `npm run test` passes
 - [ ] `npm run lint` passes
 - [ ] `npm run build` passes

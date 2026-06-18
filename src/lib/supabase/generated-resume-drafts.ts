@@ -139,11 +139,19 @@ export async function getGeneratedResumeDraftFromCloud(
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();
 
+  return getGeneratedResumeDraftForUser(supabase, id, user.id);
+}
+
+export async function getGeneratedResumeDraftForUser(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  id: string,
+  userId: string,
+): Promise<GeneratedResumeDraftRecord | null> {
   const { data, error } = await supabase
     .from("generated_resume_drafts")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {

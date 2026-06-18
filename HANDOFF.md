@@ -2,66 +2,47 @@
 
 ## Current milestone
 
-**v0.5.5 — Header and Education Rendering Fixes**
+**v0.6.0 — Resume DOCX Export**
 
-Candidate name renders at section-header size (body + 0.5px). Education uses render-time normalization: one bold institution/special-programme line, separate italic degree lines, location on institution row, shared date range once.
+Approved generated drafts export to Word (.docx) via a shared `ResumeDocumentModel`. Preview and DOCX both consume the same canonical layout from `buildFinalResumeLayout()` wrapped by `buildResumeDocumentModel()`.
 
 ## Product flow (target)
 
 ```
-Paste JD → Generate Resume → Format-optimized one-page preview → Approve for Export → (future download)
+Paste JD → Generate Resume → One-page preview → Approve for Export → Download DOCX
 ```
 
-Secondary: Edit Resume Details → `/resume-preview/[draftId]/edit`
+PDF export is next (v0.6.1). Cover letters deferred (v0.7.0). Manual inventory editing deferred.
 
-## v0.5.5 highlights
+## v0.6.0 highlights
 
-**Header**
-- Candidate name uses `sectionPx` (body + 0.5px) — same as Work Experience / Education section headers
+**Shared document model**
+- `buildResumeDocumentModel()` — single source for preview + DOCX (+ future PDF)
+- Wraps `FinalResumeLayout` + layout settings + font metadata + filename
 
-**Education rendering**
-- `normalizeEducationForLayout()` — render-time only; stored draft content unchanged
-- Institution + special programme on one bold line; degrees on separate italic lines
-- Location right-aligned on institution line; date range on first degree only
-- Strips accidental duplicate institution names from parser/model output
+**DOCX export**
+- `POST /api/export/resume-docx` — auth via `Authorization: Bearer <access_token>`
+- Requires draft status `approved`
+- Generates DOCX with `docx` npm package
+- Uploads to Supabase `generated-documents` bucket: `{userId}/resumes/{draftId}/{fileName}.docx`
+- Returns signed download URL (falls back to direct file response if storage upload fails)
 
-## v0.5.4 highlights (recent)
+**UI**
+- Resume Preview: **Download DOCX** after approve; disabled PDF placeholder
+- Records → Generated Drafts: **Download DOCX** for approved drafts
 
-**Records / Generated Drafts**
-- **Edit** → `/resume-preview/[draftId]`
-- **Delete** → removes row from Supabase `generated_resume_drafts` (with confirm)
-- Labels: Company — Role, timestamp, status (Generated/Reviewed/Approved), provider/model
-
-**One-page optimization**
-- `optimizeResumePreviewSettings()` runs on preview load
-- Starts 11px body font, tightens margins/spacing, then reduces font in 0.5px steps if needed
-- Sliders remain for manual override
-
-**Keyword repair**
-- `repairKeywordBullet()` fixes `Experience: Specific Keyword: statement` patterns
-
-**Skills section**
-- Final layout: **Tech**, **Skills**, **Languages**, **Interests** (compact underlined labels)
-
-**Assessment**
-- **Resume–Job Fit** score (role match) separate from **Layout Fit (One Page)**
-- Preview score uses provisional `preview-fit-heuristic-v1` — target rubric in `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`)
-
-**Draft edit safety**
-- Generated resume preview/edit saves only to `generated_resume_drafts` — never mutates inventory
-- Allowed inventory changes: enrichment review flow, future `/inventory` manual editing
+**Filename**
+- `<FULL NAME> - Resume _<COMPANY> _<ROLE>.docx` or `<FULL NAME> - Resume.docx`
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.5.3 — Preview fit & ordering | Complete |
-| **v0.5.5 — Header & education rendering** | **Current** |
-| v0.5.4 — Draft records + one-page optimization | Complete |
-| v0.5.5 — Manual inventory editing | Planned |
-| v0.6.0 — DOCX export | Next |
-| v0.6.1 — PDF export | After DOCX |
-| v0.7.0 — Cover letter generation | After export quality validated |
+| v0.5.5 — Header & education rendering | Complete |
+| **v0.6.0 — DOCX export** | **Current** |
+| v0.6.1 — PDF export | Next |
+| v0.7.0 — Cover letter generation | Later |
+| Manual inventory editing | Deferred |
 
 ## Run
 

@@ -39,6 +39,28 @@ function toInsertPayload(input: JobDescriptionInput) {
   };
 }
 
+export async function getJobDescriptionForUser(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  id: string,
+  userId: string,
+): Promise<StoredJobDescription | null> {
+  const { data, error } = await supabase
+    .from("job_descriptions")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    return null;
+  }
+
+  return mapJobDescriptionRow(data as JobDescriptionRow);
+}
+
 export async function listJobDescriptionsFromCloud(): Promise<StoredJobDescription[]> {
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();

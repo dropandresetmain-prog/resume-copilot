@@ -1,11 +1,18 @@
 # Known Issues
 
-## Layout preview (v0.5.4)
+## DOCX export (v0.6.0)
+
+- DOCX uses the shared `ResumeDocumentModel` but Word rendering may differ slightly from browser preview (tab alignment, exact line breaks, font metrics).
+- Font family is first fallback from reference profile (usually Calibri) — DOCX font detection from uploaded resumes not implemented.
+- Export API uses client access token in `Authorization` header — no service role; storage upload requires Supabase RLS policies on `generated-documents` and `stored_files`.
+- If storage upload fails, API returns the DOCX file directly without persisting to bucket.
+- Rich exported-file ↔ draft linkage in DB is deferred; each export inserts a new `stored_files` row.
+- PDF export not built yet (v0.6.1).
+
+## Layout preview (v0.5.x)
 
 - Auto-optimization is heuristic — not true print pagination.
 - If content still overflows after optimization, user must shorten bullets in Edit Resume Details (content is not auto-deleted).
-- Font family defaults to Calibri/Arial stack — DOCX font detection not implemented yet.
-- **Approve for Export** saves `status: approved` — DOCX/PDF export not built yet (v0.6.x).
 
 ## Generated drafts
 

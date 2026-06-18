@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.5.5",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -21,12 +21,14 @@
     "test:resume-draft-review": "tsx scripts/verify-resume-draft-review.ts",
     "test:resume-draft-layout": "tsx scripts/verify-resume-draft-layout.ts",
     "test:draft-inventory-safety": "tsx scripts/verify-draft-inventory-safety.ts",
+    "test:resume-docx-export": "tsx scripts/verify-resume-docx-export.ts",
     "test:profile-contact": "tsx scripts/verify-profile-contact.ts",
     "test:profile-backfill": "tsx scripts/verify-profile-backfill.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:draft-inventory-safety"
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:draft-inventory-safety && npm run test:resume-docx-export"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
+    "docx": "^9.7.1",
     "mammoth": "^1.12.0",
     "next": "16.2.9",
     "react": "19.2.4",

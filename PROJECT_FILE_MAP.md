@@ -13,6 +13,7 @@
 | `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
+| `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved draft → DOCX export (v0.6.0) |
 
 Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `AppShell`).
 
@@ -143,6 +144,14 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
 | `src/lib/resume-draft/layout.ts` | Final layout model, sort, page-fit estimate, fit score (v0.5.1+) |
+| `src/lib/resume-draft/document-model.ts` | Canonical `ResumeDocumentModel` for preview + export (v0.6.0) |
+| `src/lib/resume-draft/docx-export.ts` | DOCX generation from document model (v0.6.0) |
+| `src/lib/resume-draft/export-filename.ts` | Export filename + storage path helpers (v0.6.0) |
+| `src/lib/resume-draft/export-request.ts` | Export API request validation (v0.6.0) |
+| `src/lib/resume-draft/export-client.ts` | Browser client for DOCX export API (v0.6.0) |
+| `src/lib/supabase/server-client.ts` | Supabase client from user access token (v0.6.0) |
+| `src/lib/supabase/resume-docx-storage.ts` | Upload exported DOCX to storage (v0.6.0) |
+| `src/components/resume-drafts/DownloadResumeDocxButton.tsx` | Download DOCX UI button (v0.6.0) |
 | `src/lib/resume-draft/education-layout.ts` | Render-time education normalization (v0.5.5) |
 | `src/lib/resume-draft/keyword-repair.ts` | Generic `Experience:` bullet repair (v0.5.4) |
 | `src/lib/resume-draft/preview-optimizer.ts` | Auto one-page preview settings (v0.5.4) |
@@ -194,6 +203,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |
+| `scripts/verify-resume-docx-export.ts` | Document model + filename + DOCX buffer tests (v0.6.0) |
 | `scripts/verify-draft-inventory-safety.ts` | Draft edit paths must not mutate inventory (v0.5.4+) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |
 

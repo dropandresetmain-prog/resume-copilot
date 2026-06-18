@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { buildDraftListDisplays } from "@/lib/resume-draft/draft-labels";
+import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import {
   deleteGeneratedResumeDraftFromCloud,
   listGeneratedResumeDraftsFromCloud,
@@ -126,13 +127,30 @@ export function DraftHistoryPanel({
                   <p className="text-xs text-slate-500">{display.timestampLabel}</p>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{display.secondaryLabel}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap items-end gap-2">
                   <Link
                     href={`/resume-preview/${draft.id}`}
                     className={`inline-flex ${secondaryButtonClassName}`}
                   >
                     Edit
                   </Link>
+                  <DownloadResumeDocxButton
+                    draftId={draft.id}
+                    disabled={draft.status !== "approved"}
+                    disabledReason={
+                      draft.status === "approved"
+                        ? undefined
+                        : "Approve for Export before downloading."
+                    }
+                  />
+                  <button
+                    type="button"
+                    disabled
+                    className={`${secondaryButtonClassName} opacity-60`}
+                    title="PDF export coming next"
+                  >
+                    PDF coming next
+                  </button>
                   <button
                     type="button"
                     onClick={() => void handleDeleteDraft(draft)}
