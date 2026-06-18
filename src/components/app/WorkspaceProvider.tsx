@@ -115,7 +115,7 @@ export type WorkspaceContextValue = {
     input: JobDescriptionInput,
     editingId: string | null,
     options?: { allowDuplicate?: boolean },
-  ) => Promise<void>;
+  ) => Promise<StoredJobDescription>;
   handleDeleteJobDescription: (id: string) => Promise<void>;
   handleClearSavedJobDescriptions: () => Promise<void>;
   handleDeleteResume: (resumeId: string) => void;
@@ -536,7 +536,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     input: JobDescriptionInput,
     editingId: string | null,
     options?: { allowDuplicate?: boolean },
-  ) {
+  ): Promise<StoredJobDescription> {
     if (!user || !cloudEnabled) {
       throw new Error(signInRequiredReason);
     }
@@ -547,6 +547,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         ? await updateJobDescriptionInCloud(editingId, input, options)
         : await createJobDescriptionInCloud(input, options);
       setJobDescriptions((current) => upsertJobDescriptionInList(current, saved));
+      return saved;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to save job description.";

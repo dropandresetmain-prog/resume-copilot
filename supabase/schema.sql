@@ -69,6 +69,7 @@ create table if not exists public.job_descriptions (
   company_name text,
   role_title text,
   job_url text,
+  summary text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

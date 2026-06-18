@@ -34,6 +34,8 @@ type ResumeDraftPanelProps = {
   isSignedIn: boolean;
   disabled?: boolean;
   disabledReason?: string;
+  selectedJobDescriptionId?: string;
+  onJobDescriptionChange?: (id: string) => void;
 };
 
 export function ResumeDraftPanel({
@@ -42,8 +44,10 @@ export function ResumeDraftPanel({
   isSignedIn,
   disabled = false,
   disabledReason,
+  selectedJobDescriptionId,
+  onJobDescriptionChange,
 }: ResumeDraftPanelProps) {
-  const [selectedJobDescriptionId, setSelectedJobDescriptionId] = useState("");
+  const [internalJobId, setInternalJobId] = useState("");
   const [selectedReferenceResumeId, setSelectedReferenceResumeId] = useState("");
   const [providerStatus, setProviderStatus] =
     useState<ResumeDraftProviderStatusResponse | null>(null);
@@ -72,7 +76,16 @@ export function ResumeDraftPanel({
   }, []);
 
   const effectiveJobDescriptionId =
-    selectedJobDescriptionId || jobDescriptions[0]?.id || "";
+    selectedJobDescriptionId ??
+    (internalJobId || jobDescriptions[0]?.id || "");
+
+  function handleJobSelectionChange(id: string) {
+    if (onJobDescriptionChange) {
+      onJobDescriptionChange(id);
+      return;
+    }
+    setInternalJobId(id);
+  }
   const effectiveReferenceResumeId =
     selectedReferenceResumeId || inventory.resumes[0]?.id || "";
 
@@ -136,8 +149,8 @@ export function ResumeDraftPanel({
 
   return (
     <SetupCard
-      title="Generate resume draft"
-      description="Create a tailored structured resume draft from your inventory, approved keywords, selected job description, and reference resume. Source inventory is not modified."
+      title="Tailor resume from saved job"
+      description="Choose a saved job and reference resume to generate a tailored resume. Your source inventory is not modified."
     >
       {disabled && disabledReason ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -168,7 +181,7 @@ export function ResumeDraftPanel({
           <select
             id="resume-draft-jd"
             value={effectiveJobDescriptionId}
-            onChange={(event) => setSelectedJobDescriptionId(event.target.value)}
+            onChange={(event) => handleJobSelectionChange(event.target.value)}
             disabled={disabled || jobDescriptions.length === 0}
             className={formFieldClassName}
           >
@@ -219,7 +232,7 @@ export function ResumeDraftPanel({
           disabled={!canGenerate || isGenerating}
           className={primaryButtonClassName}
         >
-          {isGenerating ? "Generating…" : "Generate Resume Draft"}
+          {isGenerating ? "Generating…" : "Generate resume"}
         </button>
       </div>
 
@@ -242,7 +255,7 @@ export function ResumeDraftPanel({
 
       {savedDraft && draftSummary ? (
         <div className="mt-4 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-          <p className="font-medium">Draft saved to Supabase</p>
+          <p className="font-medium">Resume saved to Supabase</p>
           <p>Draft ID: {savedDraft.id}</p>
           <ul className="space-y-1">
             <li>Summary: {draftSummary.hasSummary ? "yes" : "no"}</li>
@@ -276,8 +289,8 @@ export function ResumeDraftPanel({
       {jobDescriptions.length === 0 || inventory.resumes.length === 0 ? (
         <div className="mt-4">
           <EmptyState
-            title="Resume draft prerequisites"
-            description="Upload at least one resume and save a job description before generating a draft."
+            title="Resume prerequisites"
+            description="Upload at least one resume and save a job on this page before generating."
           />
         </div>
       ) : null}

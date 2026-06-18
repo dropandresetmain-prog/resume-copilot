@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-import { primaryButtonClassName } from "@/components/setup/ui";
+import { LandingCta } from "@/components/landing/LandingCta";
 
 export default function Home() {
   return (
@@ -19,17 +17,7 @@ export default function Home() {
             Supabase.
           </p>
         </header>
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          <Link href="/setup" className={`inline-flex ${primaryButtonClassName}`}>
-            Customize your resume now
-          </Link>
-          <Link
-            href="/generate"
-            className="text-sm font-medium text-slate-600 underline hover:text-slate-900"
-          >
-            Already set up? Go to Generate
-          </Link>
-        </div>
+        <LandingCta />
       </div>
     </div>
   );

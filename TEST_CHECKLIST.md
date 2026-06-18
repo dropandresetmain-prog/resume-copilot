@@ -1,3 +1,45 @@
+# Test Checklist — v0.4.5 Generate Page Flow + Saved Job UX
+
+## Generate page
+
+- [ ] `/generate` shows **Add a job to tailor your resume** intake form
+- [ ] Paste JD, edit company/role, **Save job** works when signed in
+- [ ] Newly saved job is auto-selected in **Tailor resume from saved job**
+- [ ] **Generate resume** button works (mock or Gemini)
+- [ ] Section is not labeled “Generate Resume Draft” or “JD Intake”
+
+## Records page
+
+- [ ] `/records` shows **Manage saved jobs** (no primary paste form)
+- [ ] Edit/delete saved jobs still works
+- [ ] Draft history list still loads when signed in
+- [ ] Copy directs users to Generate for new jobs
+
+## Saved job cards
+
+- [ ] Collapsed: Company — Role, dates, summary/snippet
+- [ ] **View full job description** expands full pasted text with line breaks
+- [ ] **Show less** collapses again
+- [ ] Same behavior on Generate and Records lists
+
+## Landing
+
+- [ ] Single CTA: **Customize your resume now**
+- [ ] Signed out → `/setup`
+- [ ] Signed in + inventory → `/generate`
+- [ ] Signed in, no inventory → `/setup`
+
+## Migration
+
+- [ ] `supabase db push` applies `20260620_add_saved_job_summary.sql`
+- [ ] Saving a job stores `summary` in Supabase
+
+## 4B
+
+- [ ] Not started
+
+---
+
 # Test Checklist — v0.4.4 Page Split + Navigation
 
 ## Navigation
@@ -9,9 +51,8 @@
 
 ## Landing
 
-- [ ] `/` CTA: **Customize your resume now** → `/setup`
+- [ ] Single CTA: **Customize your resume now** (auth-aware route)
 - [ ] Supporting copy mentions upload once, career inventory, tailored resumes from JDs
-- [ ] Secondary link **Already set up? Go to Generate** → `/generate`
 
 ## Manage Uploads (`/setup`)
 

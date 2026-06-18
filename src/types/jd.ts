@@ -12,6 +12,8 @@ export type StoredJobDescription = {
   companyName?: string;
   roleTitle?: string;
   jobUrl?: string;
+  /** Heuristic preview for saved job cards (also stored in Supabase). */
+  summary?: string;
   createdAt: string;
   updatedAt: string;
 };

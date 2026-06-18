@@ -10,6 +10,7 @@ import type {
   StoredJobDescription,
 } from "@/types/jd";
 import { JD_STORAGE_SCHEMA_VERSION } from "@/types/jd";
+import { generateJobDescriptionSummary } from "@/lib/jd/summary";
 
 /** Legacy browser localStorage key from pre-Supabase builds (detection only). */
 export const LEGACY_JD_LOCAL_STORAGE_KEY = "resumeCopilot.jobDescriptions.v1";
@@ -44,6 +45,10 @@ export function validateStoredJobDescription(
     jobUrl:
       typeof value.jobUrl === "string" && value.jobUrl.trim()
         ? value.jobUrl.trim()
+        : undefined,
+    summary:
+      typeof value.summary === "string" && value.summary.trim()
+        ? value.summary.trim()
         : undefined,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
@@ -120,12 +125,19 @@ export function createJobDescriptionFromInput(
   input: JobDescriptionInput,
 ): StoredJobDescription {
   const now = new Date().toISOString();
-  return {
-    id: crypto.randomUUID(),
+  const normalized: JobDescriptionInput = {
     rawText: input.rawText.trim(),
     companyName: input.companyName?.trim() || undefined,
     roleTitle: input.roleTitle?.trim() || undefined,
     jobUrl: input.jobUrl?.trim() || undefined,
+  };
+  return {
+    id: crypto.randomUUID(),
+    rawText: normalized.rawText,
+    companyName: normalized.companyName,
+    roleTitle: normalized.roleTitle,
+    jobUrl: normalized.jobUrl,
+    summary: generateJobDescriptionSummary(normalized),
     createdAt: now,
     updatedAt: now,
   };
@@ -135,16 +147,24 @@ export function storedJobDescriptionFromInput(
   input: JobDescriptionInput,
   existing?: StoredJobDescription,
 ): StoredJobDescription {
-  if (!existing) {
-    return createJobDescriptionFromInput(input);
-  }
-
-  return {
-    ...existing,
+  const normalized: JobDescriptionInput = {
     rawText: input.rawText.trim(),
     companyName: input.companyName?.trim() || undefined,
     roleTitle: input.roleTitle?.trim() || undefined,
     jobUrl: input.jobUrl?.trim() || undefined,
+  };
+
+  if (!existing) {
+    return createJobDescriptionFromInput(normalized);
+  }
+
+  return {
+    ...existing,
+    rawText: normalized.rawText,
+    companyName: normalized.companyName,
+    roleTitle: normalized.roleTitle,
+    jobUrl: normalized.jobUrl,
+    summary: generateJobDescriptionSummary(normalized),
     updatedAt: new Date().toISOString(),
   };
 }

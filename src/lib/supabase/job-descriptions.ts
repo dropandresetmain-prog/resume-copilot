@@ -3,6 +3,7 @@ import {
   normalizeJobDescriptionField,
   normalizeJobDescriptionRawText,
 } from "@/lib/jd/persistence";
+import { generateJobDescriptionSummary } from "@/lib/jd/summary";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { JobDescriptionRow } from "@/lib/supabase/types";
@@ -15,17 +16,26 @@ function mapJobDescriptionRow(row: JobDescriptionRow): StoredJobDescription {
     companyName: row.company_name ?? undefined,
     roleTitle: row.role_title ?? undefined,
     jobUrl: row.job_url ?? undefined,
+    summary: row.summary ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 function toInsertPayload(input: JobDescriptionInput) {
+  const normalized: JobDescriptionInput = {
+    rawText: input.rawText.trim(),
+    companyName: input.companyName?.trim() || undefined,
+    roleTitle: input.roleTitle?.trim() || undefined,
+    jobUrl: input.jobUrl?.trim() || undefined,
+  };
+
   return {
-    raw_text: input.rawText.trim(),
-    company_name: input.companyName?.trim() || null,
-    role_title: input.roleTitle?.trim() || null,
-    job_url: input.jobUrl?.trim() || null,
+    raw_text: normalized.rawText,
+    company_name: normalized.companyName ?? null,
+    role_title: normalized.roleTitle ?? null,
+    job_url: normalized.jobUrl ?? null,
+    summary: generateJobDescriptionSummary(normalized) ?? null,
   };
 }
 

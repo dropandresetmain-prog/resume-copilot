@@ -19,9 +19,9 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.4.4 · Records"
+        milestone="v0.4.5 · Records"
         title="Records"
-        description="Manage saved jobs and view generated resume draft history."
+        description="Review saved jobs and generated resume history. Paste new jobs on Generate."
       />
 
       <JDInputPanel
@@ -31,6 +31,7 @@ export function RecordsPageClient() {
         onClearAll={handleClearSavedJobDescriptions}
         disabled={cloudEnabled && !isSignedIn}
         disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
+        showIntakeForm={false}
       />
 
       <DraftHistoryPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />

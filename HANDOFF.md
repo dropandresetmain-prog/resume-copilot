@@ -2,53 +2,49 @@
 
 ## Current milestone
 
-**v0.4.4 — Page split + navigation**
+**v0.4.5 — Generate Page Flow Fixes and Saved Job Detail UX**
 
-The monolithic setup page is split into focused routes with shared app navigation. User-facing **Setup** is renamed **Manage Uploads** (route stays `/setup`). **Generate** is the main product page after inventory exists. **4B (Resume Draft Review UI) is not started.**
+Generate owns job intake for resume tailoring. Records owns saved job/draft history. Landing page has one primary CTA. **4B (Resume Draft Review UI) is not started.**
 
-## Navigation order
+## Generate page flow
 
-1. **Generate** → `/generate`
-2. **Inventory** → `/inventory`
-3. **Records** → `/records`
-4. **Manage Uploads** → `/setup`
-5. **Dev Tools** → `/dev-tools` (maintenance only; last in nav)
+1. Paste job description on `/generate` (**Add a job to tailor your resume**)
+2. Save job (company/role heuristics + heuristic summary)
+3. Select saved job + reference resume
+4. **Tailor resume from saved job** → **Generate resume**
 
-## First-time vs returning users
+Records (`/records`) is secondary: **Manage saved jobs** + draft history. No primary paste intake there.
 
-- Not signed in or no uploaded inventory → start at **Manage Uploads** (`/setup`) for login, upload, and parsing.
-- Signed in with inventory → **Generate** (`/generate`) is the intended main flow; simple banners/links on landing and Manage Uploads point users accordingly.
-- No complex onboarding state machine yet.
+## Landing CTA
 
-## Page responsibilities
+Single button: **Customize your resume now**
 
-| Route | Label | Purpose |
-|-------|-------|---------|
-| `/generate` | Generate | JD + reference resume selection, draft generation, preview; placeholders for cover letter / export only |
-| `/inventory` | Inventory | Collated/source views, enrichment review, keywords; no test-batch button |
-| `/records` | Records | Saved jobs, basic generated draft history list |
-| `/setup` | Manage Uploads | Auth, upload, resume list, warnings, cloud files, summary |
-| `/dev-tools` | Dev Tools | Profile backfill, Test Gemini small batch |
+- Signed out or no inventory → `/setup` (Manage Uploads)
+- Signed in with inventory → `/generate`
 
-## Shared shell
+## Saved jobs
 
-- `src/components/app/WorkspaceProvider.tsx` — session sync, inventory/JD state, handlers (React Context)
-- `src/components/app/AppShell.tsx` + `AppNav.tsx` — mobile-friendly nav with active route styling
-- `src/app/(workspace)/layout.tsx` — wraps all workspace routes
+- Collapsed cards: Company — Role, dates, heuristic `summary` preview
+- **View full job description** expands full `rawText` with line breaks preserved
+- Migration: `supabase/migrations/20260620_add_saved_job_summary.sql` (`summary text`)
 
-## Completed in v0.4.3
+## Navigation (unchanged from v0.4.4)
 
-- `backfillProfileContactForInventory()` — now surfaced on **Dev Tools**, not Manage Uploads
+Generate → Inventory → Records → Manage Uploads → Dev Tools
+
+## Completed in v0.4.4
+
+Page split, shared `WorkspaceProvider`, app shell navigation.
 
 ## Completed earlier
 
+- v0.4.3 — Profile contact backfill (Dev Tools)
 - v0.4.2 — Profile parsing, Saved Jobs UX, enrichment stability
-- v0.4.1 — Auth + enrichment review hardening
 - v0.4.0 / 4A — AI resume draft generation
 
 ## Project SOPs
 
-Migration filenames must match Supabase CLI format: `<timestamp>_human_readable_name.sql`
+Migration filenames: `<timestamp>_human_readable_name.sql`
 
 ## Run
 
@@ -57,6 +53,4 @@ npm run dev
 npm run test
 ```
 
-Landing CTA: **Customize your resume now** → `/setup`. Returning users can use **Already set up? Go to Generate** → `/generate`.
-
-Magic link redirect still uses `/setup` (Manage Uploads).
+After deploy, run `supabase db push` if `20260620_add_saved_job_summary.sql` is not yet applied.

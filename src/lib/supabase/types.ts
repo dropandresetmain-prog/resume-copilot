@@ -17,6 +17,7 @@ export type JobDescriptionRow = {
   company_name: string | null;
   role_title: string | null;
   job_url: string | null;
+  summary: string | null;
   created_at: string;
   updated_at: string;
 };

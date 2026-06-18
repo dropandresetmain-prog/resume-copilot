@@ -2,14 +2,23 @@
 
 import { useRef, useState } from "react";
 
-import { EmptyState, SetupCard, formFieldClassName, labelClassName, primaryButtonClassName, secondaryButtonClassName, destructiveButtonClassName } from "@/components/setup/ui";
+import {
+  EmptyState,
+  SetupCard,
+  destructiveButtonClassName,
+  formFieldClassName,
+  labelClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+} from "@/components/setup/ui";
 import {
   extractJobMetadataFromText,
   mergeExtractedJobMetadata,
 } from "@/lib/jd/extract-metadata";
 import { findDuplicateJobDescription } from "@/lib/jd/persistence";
-import { formatSavedJobLabel } from "@/lib/jd/labels";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
+
+import { SavedJobCard } from "@/components/setup/SavedJobCard";
 
 type JDInputPanelProps = {
   jobDescriptions: StoredJobDescription[];
@@ -17,11 +26,18 @@ type JDInputPanelProps = {
     input: JobDescriptionInput,
     editingId: string | null,
     options?: { allowDuplicate?: boolean },
-  ) => Promise<void>;
+  ) => Promise<StoredJobDescription | void>;
   onDelete: (id: string) => Promise<void>;
   onClearAll: () => Promise<void>;
   disabled?: boolean;
   disabledReason?: string;
+  title?: string;
+  description?: string;
+  listTitle?: string;
+  /** Primary intake form (Generate). Hidden on Records unless editing. */
+  showIntakeForm?: boolean;
+  showSavedJobsList?: boolean;
+  onJobSaved?: (job: StoredJobDescription) => void;
 };
 
 const EMPTY_FORM: JobDescriptionInput = {
@@ -31,6 +47,13 @@ const EMPTY_FORM: JobDescriptionInput = {
   jobUrl: "",
 };
 
+const DEFAULT_INTAKE_TITLE = "Add a job to tailor your resume";
+const DEFAULT_INTAKE_DESCRIPTION =
+  "Paste the job description here. We'll save it, extract the company and role where possible, and use it to generate a tailored resume.";
+const DEFAULT_MANAGE_TITLE = "Manage saved jobs";
+const DEFAULT_MANAGE_DESCRIPTION =
+  "View, edit, or delete jobs you saved while tailoring resumes. Paste new jobs on the Generate page.";
+
 export function JDInputPanel({
   jobDescriptions,
   onSave,
@@ -38,6 +61,12 @@ export function JDInputPanel({
   onClearAll,
   disabled = false,
   disabledReason,
+  title,
+  description,
+  listTitle,
+  showIntakeForm = true,
+  showSavedJobsList = true,
+  onJobSaved,
 }: JDInputPanelProps) {
   const [form, setForm] = useState<JobDescriptionInput>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,6 +76,14 @@ export function JDInputPanel({
   const [isSaving, setIsSaving] = useState(false);
   const companyTouchedRef = useRef(false);
   const roleTouchedRef = useRef(false);
+
+  const resolvedTitle =
+    title ?? (showIntakeForm ? DEFAULT_INTAKE_TITLE : DEFAULT_MANAGE_TITLE);
+  const resolvedDescription =
+    description ??
+    (showIntakeForm ? DEFAULT_INTAKE_DESCRIPTION : DEFAULT_MANAGE_DESCRIPTION);
+  const resolvedListTitle = listTitle ?? `Saved jobs (${jobDescriptions.length})`;
+  const showForm = showIntakeForm || editingId !== null;
 
   function updateField<K extends keyof JobDescriptionInput>(
     field: K,
@@ -60,7 +97,10 @@ export function JDInputPanel({
     if (saveError) setSaveError(null);
   }
 
-  function applyExtractedMetadata(rawText: string, current: JobDescriptionInput): JobDescriptionInput {
+  function applyExtractedMetadata(
+    rawText: string,
+    current: JobDescriptionInput,
+  ): JobDescriptionInput {
     const extracted = extractJobMetadataFromText(rawText);
     return mergeExtractedJobMetadata(
       {
@@ -124,7 +164,7 @@ export function JDInputPanel({
     let allowDuplicate = false;
     if (duplicate) {
       const proceed = window.confirm(
-        `A similar saved job already exists (${formatSavedJobLabel(duplicate)}). Save anyway?`,
+        `A similar saved job already exists (${duplicate.companyName ?? duplicate.roleTitle ?? "saved job"}). Save anyway?`,
       );
       if (!proceed) {
         setDuplicateWarning("Save cancelled. A matching saved job already exists.");
@@ -136,11 +176,16 @@ export function JDInputPanel({
     setIsSaving(true);
     setSaveError(null);
     try {
-      await onSave(form, editingId, allowDuplicate ? { allowDuplicate: true } : undefined);
+      const saved = await onSave(
+        form,
+        editingId,
+        allowDuplicate ? { allowDuplicate: true } : undefined,
+      );
       if (duplicate) {
-        setDuplicateWarning(
-          `Saved with duplicate notice: similar to "${formatSavedJobLabel(duplicate)}".`,
-        );
+        setDuplicateWarning("Saved with duplicate notice.");
+      }
+      if (saved) {
+        onJobSaved?.(saved);
       }
       clearForm();
     } catch (error) {
@@ -169,192 +214,154 @@ export function JDInputPanel({
   }
 
   return (
-    <SetupCard
-      title="Job description intake"
-      description="Paste a job description and optional metadata. Raw pasted text is the source of truth. Saved jobs sync through Supabase."
-    >
+    <SetupCard title={resolvedTitle} description={resolvedDescription}>
       {disabled && disabledReason ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {disabledReason}
         </p>
       ) : null}
 
-      <div className="mt-4 space-y-4">
-        <div>
-          <label htmlFor="jd-raw-text" className={labelClassName}>
-            Job description
-          </label>
-          <textarea
-            id="jd-raw-text"
-            value={form.rawText}
-            onChange={(event) => handleRawTextChange(event.target.value)}
-            rows={10}
-            disabled={disabled}
-            placeholder="Paste the full job description here…"
-            className={formFieldClassName}
-          />
-        </div>
+      {showForm ? (
+        <div className="mt-4 space-y-4">
+          {!showIntakeForm && editingId ? (
+            <p className="text-sm text-slate-600">Editing a saved job.</p>
+          ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="jd-company" className={labelClassName}>
-              Company name (optional)
+            <label htmlFor="jd-raw-text" className={labelClassName}>
+              Job description
             </label>
-            <input
-              id="jd-company"
-              type="text"
-              value={form.companyName ?? ""}
-              onChange={(event) => updateField("companyName", event.target.value)}
+            <textarea
+              id="jd-raw-text"
+              value={form.rawText}
+              onChange={(event) => handleRawTextChange(event.target.value)}
+              rows={10}
               disabled={disabled}
+              placeholder="Paste the full job description here…"
               className={formFieldClassName}
             />
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="jd-company" className={labelClassName}>
+                Company name (optional)
+              </label>
+              <input
+                id="jd-company"
+                type="text"
+                value={form.companyName ?? ""}
+                onChange={(event) => updateField("companyName", event.target.value)}
+                disabled={disabled}
+                className={formFieldClassName}
+              />
+            </div>
+            <div>
+              <label htmlFor="jd-role" className={labelClassName}>
+                Role title (optional)
+              </label>
+              <input
+                id="jd-role"
+                type="text"
+                value={form.roleTitle ?? ""}
+                onChange={(event) => updateField("roleTitle", event.target.value)}
+                disabled={disabled}
+                className={formFieldClassName}
+              />
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="jd-role" className={labelClassName}>
-              Role title (optional)
+            <label htmlFor="jd-url" className={labelClassName}>
+              Job URL (optional)
             </label>
             <input
-              id="jd-role"
-              type="text"
-              value={form.roleTitle ?? ""}
-              onChange={(event) => updateField("roleTitle", event.target.value)}
+              id="jd-url"
+              type="url"
+              value={form.jobUrl ?? ""}
+              onChange={(event) => updateField("jobUrl", event.target.value)}
               disabled={disabled}
+              placeholder="https://…"
               className={formFieldClassName}
             />
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="jd-url" className={labelClassName}>
-            Job URL (optional)
-          </label>
-          <input
-            id="jd-url"
-            type="url"
-            value={form.jobUrl ?? ""}
-            onChange={(event) => updateField("jobUrl", event.target.value)}
-            disabled={disabled}
-            placeholder="https://…"
-            className={formFieldClassName}
-          />
-        </div>
+          {validationError ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {validationError}
+            </p>
+          ) : null}
+          {saveError ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {saveError}
+            </p>
+          ) : null}
+          {duplicateWarning ? (
+            <p className="text-sm text-amber-800">{duplicateWarning}</p>
+          ) : null}
 
-        {validationError ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {validationError}
-          </p>
-        ) : null}
-        {saveError ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {saveError}
-          </p>
-        ) : null}
-        {duplicateWarning ? (
-          <p className="text-sm text-amber-800">{duplicateWarning}</p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={disabled || isSaving}
-            className={primaryButtonClassName}
-          >
-            {isSaving
-              ? "Saving…"
-              : editingId
-                ? "Update saved job"
-                : "Save job description"}
-          </button>
-          <button
-            type="button"
-            onClick={clearForm}
-            disabled={disabled}
-            className={secondaryButtonClassName}
-          >
-            Clear form
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-slate-900">
-            Saved Jobs ({jobDescriptions.length})
-          </h3>
-          <button
-            type="button"
-            onClick={handleClearAll}
-            disabled={jobDescriptions.length === 0 || disabled}
-            className={destructiveButtonClassName}
-          >
-            Clear saved jobs
-          </button>
-        </div>
-
-        {jobDescriptions.length === 0 ? (
-          <div className="mt-3">
-            <EmptyState
-              title="No saved jobs"
-              description="Sign in and paste a job description above to save it to Supabase."
-            />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={disabled || isSaving}
+              className={primaryButtonClassName}
+            >
+              {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
+            </button>
+            <button
+              type="button"
+              onClick={clearForm}
+              disabled={disabled}
+              className={secondaryButtonClassName}
+            >
+              {editingId && !showIntakeForm ? "Cancel edit" : "Clear form"}
+            </button>
           </div>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {jobDescriptions.map((jd) => (
-              <li
-                key={jd.id}
-                className={`rounded-lg border p-4 ${
-                  editingId === jd.id
-                    ? "border-slate-900 bg-slate-50"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900">{formatSavedJobLabel(jd)}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Created {new Date(jd.createdAt).toLocaleString()} · Updated{" "}
-                      {new Date(jd.updatedAt).toLocaleString()}
-                    </p>
-                    {jd.jobUrl ? (
-                      <a
-                        href={jd.jobUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-block text-sm text-violet-700 hover:underline"
-                      >
-                        {jd.jobUrl}
-                      </a>
-                    ) : null}
-                    <p className="mt-2 line-clamp-3 text-sm text-slate-600">
-                      {jd.rawText}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(jd)}
-                      disabled={disabled}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(jd.id)}
-                      disabled={disabled}
-                      className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
+      ) : null}
+
+      {showSavedJobsList ? (
+        <div className={showForm ? "mt-8" : "mt-4"}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-900">{resolvedListTitle}</h3>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              disabled={jobDescriptions.length === 0 || disabled}
+              className={destructiveButtonClassName}
+            >
+              Clear saved jobs
+            </button>
+          </div>
+
+          {jobDescriptions.length === 0 ? (
+            <div className="mt-3">
+              <EmptyState
+                title="No saved jobs yet"
+                description={
+                  showIntakeForm
+                    ? "Paste a job description above and save it to get started."
+                    : "Saved jobs from Generate will appear here."
+                }
+              />
+            </div>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {jobDescriptions.map((jd) => (
+                <SavedJobCard
+                  key={jd.id}
+                  job={jd}
+                  isEditing={editingId === jd.id}
+                  disabled={disabled}
+                  onEdit={() => handleEdit(jd)}
+                  onDelete={() => handleDelete(jd.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </SetupCard>
   );
 }

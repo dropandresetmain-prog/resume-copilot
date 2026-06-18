@@ -16,6 +16,11 @@ import {
 } from "../src/lib/jd/persistence";
 import { extractJobMetadataFromText, mergeExtractedJobMetadata } from "../src/lib/jd/extract-metadata";
 import { formatSavedJobLabel } from "../src/lib/jd/labels";
+import {
+  generateJobDescriptionSummary,
+  getSavedJobPreviewText,
+} from "../src/lib/jd/summary";
+import { resolveLandingCtaHref } from "../src/lib/navigation/landing-cta";
 import { parseResumeTextForTest } from "../src/lib/parser/docx-parser";
 import type { InventoryState } from "../src/types/resume";
 
@@ -108,6 +113,37 @@ function main() {
     roleTitle: "Product Manager",
     rawText: "ignored",
   });
+  const summary = generateJobDescriptionSummary({
+    rawText:
+      "About the role\nWe are looking for a Product Manager to lead strategy and execution across multiple teams.",
+    companyName: "Acme Corp",
+    roleTitle: "Product Manager",
+  });
+  const createdWithSummary = createJobDescriptionFromInput({
+    rawText:
+      "Senior Engineer\nBuild reliable systems.\nOwn architecture decisions across the platform.",
+    companyName: "Beta Inc",
+    roleTitle: "Senior Engineer",
+  });
+  const previewCollapsed = getSavedJobPreviewText({
+    rawText: "A".repeat(300),
+    summary: "Short stored summary for the card.",
+  });
+  const landingSignedOut = resolveLandingCtaHref({
+    cloudEnabled: true,
+    isSignedIn: false,
+    hasInventory: false,
+  });
+  const landingReady = resolveLandingCtaHref({
+    cloudEnabled: true,
+    isSignedIn: true,
+    hasInventory: true,
+  });
+  const landingNoInventory = resolveLandingCtaHref({
+    cloudEnabled: true,
+    isSignedIn: true,
+    hasInventory: false,
+  });
 
   const checks: [string, boolean][] = [
     ["create jd id", created.id.length > 0],
@@ -153,6 +189,12 @@ function main() {
       mergedExtract.companyName === "Manual Co" && mergedExtract.roleTitle === "Senior Product Manager",
     ],
     ["saved job label company role", savedLabel === "Acme Corp — Product Manager"],
+    ["summary includes company role", summary?.includes("Acme Corp — Product Manager") ?? false],
+    ["summary generated on create", Boolean(createdWithSummary.summary?.includes("Beta Inc"))],
+    ["preview prefers stored summary", previewCollapsed === "Short stored summary for the card."],
+    ["landing cta signed out", landingSignedOut === "/setup"],
+    ["landing cta ready user", landingReady === "/generate"],
+    ["landing cta no inventory", landingNoInventory === "/setup"],
   ];
 
   for (const [name, ok] of checks) {

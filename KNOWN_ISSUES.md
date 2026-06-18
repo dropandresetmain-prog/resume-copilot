@@ -1,5 +1,13 @@
 # Known Issues
 
+## Generate flow (v0.4.5)
+
+- **Generate** (`/generate`) is where users paste and save jobs for tailoring.
+- **Records** (`/records`) is for managing saved jobs and viewing draft history — not primary intake.
+- Saved job `summary` is heuristic only (no AI). Run `supabase db push` for `20260620_add_saved_job_summary.sql` on existing projects.
+- Landing page has one CTA; route depends on sign-in + inventory state.
+- **4B** not started.
+
 ## Page split (v0.4.4)
 
 - **Manage Uploads** (`/setup`) is the first-time entry point; **Generate** (`/generate`) is the main product page once inventory exists.

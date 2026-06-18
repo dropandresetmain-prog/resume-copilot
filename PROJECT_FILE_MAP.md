@@ -5,9 +5,9 @@
 | Path | File | Purpose |
 |------|------|---------|
 | `/` | `src/app/page.tsx` | Landing page (CTA → Manage Uploads) |
-| `/generate` | `src/app/(workspace)/generate/page.tsx` | Generate tailored resume draft (main product) |
+| `/generate` | `src/app/(workspace)/generate/page.tsx` | Job intake + tailor resume (main product) |
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
-| `/records` | `src/app/(workspace)/records/page.tsx` | Saved jobs + draft history |
+| `/records` | `src/app/(workspace)/records/page.tsx` | Manage saved jobs + draft history |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
 | `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Developer/maintenance tools |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
@@ -29,7 +29,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 
 | File | Route |
 |------|-------|
-| `src/components/pages/GeneratePageClient.tsx` | `/generate` |
+| `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + resume generation |
 | `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
 | `src/components/pages/RecordsPageClient.tsx` | `/records` |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
@@ -44,7 +44,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
 | `src/components/setup/ResumeDraftPanel.tsx` | Generate resume draft (4A) |
 | `src/components/setup/DraftHistoryPanel.tsx` | Basic saved draft list (Records) |
-| `src/components/setup/JDInputPanel.tsx` | Job description intake and Saved Jobs list |
+| `src/components/landing/LandingCta.tsx` | Auth-aware single landing CTA |
+| `src/components/setup/SavedJobCard.tsx` | Saved job card with summary + full JD expand |
+| `src/components/setup/JDInputPanel.tsx` | Job paste/save form + saved jobs list |
 | `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
 | `src/components/setup/ResumeList.tsx` | Uploaded resume management |
@@ -65,7 +67,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | File | Purpose |
 |------|---------|
 | `supabase/schema.sql` | Tables, RLS, storage buckets and policies |
-| `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes (`reference_resume_id`, `input_snapshot`, `status`, `schema_version`) |
+| `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes |
+| `supabase/migrations/20260620_add_saved_job_summary.sql` | Adds `summary` column to `job_descriptions` |
 | `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
 | `src/lib/supabase/client.ts` | Browser Supabase client + env validation |
 | `src/lib/supabase/auth.ts` | Password, magic link, sign out |
@@ -119,7 +122,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/enrichment/prompt.ts` | AI prompt instructions |
 | `src/lib/enrichment/normalize.ts` | Legacy enrichment field migration |
 | `src/lib/parser/profile-contact.ts` | Resume profile/contact parsing from preamble |
+| `src/lib/jd/summary.ts` | Heuristic saved job summary + card preview text |
 | `src/lib/jd/labels.ts` | Saved job display label (`Company — Role`) |
+| `src/lib/navigation/landing-cta.ts` | Landing CTA route resolver |
 | `src/lib/jd/extract-metadata.ts` | Heuristic company/role extraction from pasted JD |
 | `src/lib/inventory/backfill-profile-contact.ts` | Safe profile/contact backfill for legacy inventories |
 | `src/components/setup/ProfileContactBackfillPanel.tsx` | Manual backfill UI (Dev Tools) |
