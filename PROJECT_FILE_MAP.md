@@ -4,20 +4,46 @@
 
 | Path | File | Purpose |
 |------|------|---------|
-| `/` | `src/app/page.tsx` | Landing page |
-| `/setup` | `src/app/setup/page.tsx` | Main setup UI (renders `SetupPageClient`) |
+| `/` | `src/app/page.tsx` | Landing page (CTA → Manage Uploads) |
+| `/generate` | `src/app/(workspace)/generate/page.tsx` | Generate tailored resume draft (main product) |
+| `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
+| `/records` | `src/app/(workspace)/records/page.tsx` | Saved jobs + draft history |
+| `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
+| `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Developer/maintenance tools |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
 
-## Setup page components
+Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `AppShell`).
+
+## App shell
 
 | File | Purpose |
 |------|---------|
-| `src/components/SetupPageClient.tsx` | Auth session, Supabase sync, upload, enrichment orchestration |
+| `src/components/app/WorkspaceProvider.tsx` | Auth session, Supabase sync, shared state/handlers |
+| `src/components/app/AppShell.tsx` | Page content wrapper with nav |
+| `src/components/app/AppNav.tsx` | Main navigation (Generate → … → Dev Tools) |
+| `src/components/app/nav.ts` | Nav items and active-route helper |
+| `src/components/app/PageHeader.tsx` | Per-page title and description |
+
+## Page clients (v0.4.4)
+
+| File | Route |
+|------|-------|
+| `src/components/pages/GeneratePageClient.tsx` | `/generate` |
+| `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
+| `src/components/pages/RecordsPageClient.tsx` | `/records` |
+| `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
+| `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
+
+## Setup / shared components
+
+| File | Purpose |
+|------|---------|
 | `src/components/setup/AuthPanel.tsx` | Sign in / sign up / magic link / sign out |
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
 | `src/components/setup/ResumeDraftPanel.tsx` | Generate resume draft (4A) |
+| `src/components/setup/DraftHistoryPanel.tsx` | Basic saved draft list (Records) |
 | `src/components/setup/JDInputPanel.tsx` | Job description intake and Saved Jobs list |
 | `src/components/setup/EnrichmentReviewPanel.tsx` | AI suggestion review UI |
 | `src/components/setup/SummaryCards.tsx` | Per-resume summary stats |
@@ -73,6 +99,7 @@
 
 | File | Status |
 |------|--------|
+| `src/components/SetupPageClient.tsx` | **Deleted** — replaced by `WorkspaceProvider` + page clients |
 | `src/lib/storage/indexed-db.ts` | **Deleted** — was Dexie blob storage |
 | `src/components/setup/FileStorageStatusPanel.tsx` | **Deleted** — replaced by `CloudFileStoragePanel` |
 | `dexie` npm package | **Removed** |
@@ -95,7 +122,7 @@
 | `src/lib/jd/labels.ts` | Saved job display label (`Company — Role`) |
 | `src/lib/jd/extract-metadata.ts` | Heuristic company/role extraction from pasted JD |
 | `src/lib/inventory/backfill-profile-contact.ts` | Safe profile/contact backfill for legacy inventories |
-| `src/components/setup/ProfileContactBackfillPanel.tsx` | Manual backfill UI (v0.4.3) |
+| `src/components/setup/ProfileContactBackfillPanel.tsx` | Manual backfill UI (Dev Tools) |
 
 ## AI resume draft (4A)
 

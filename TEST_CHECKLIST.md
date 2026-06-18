@@ -1,10 +1,58 @@
+# Test Checklist — v0.4.4 Page Split + Navigation
+
+## Navigation
+
+- [ ] Nav order: Generate → Inventory → Records → Manage Uploads → Dev Tools
+- [ ] `/setup` label in nav is **Manage Uploads** (not Setup)
+- [ ] Active route styling highlights current page
+- [ ] Nav scrolls horizontally on narrow/mobile widths
+
+## Landing
+
+- [ ] `/` CTA: **Customize your resume now** → `/setup`
+- [ ] Supporting copy mentions upload once, career inventory, tailored resumes from JDs
+- [ ] Secondary link **Already set up? Go to Generate** → `/generate`
+
+## Manage Uploads (`/setup`)
+
+- [ ] Auth, upload, resume list, warnings, cloud files, summary cards only
+- [ ] No enrichment panel, saved jobs, draft generation, backfill, or test-batch button
+- [ ] Banner links to Generate/Inventory when signed in with inventory
+
+## Generate (`/generate`)
+
+- [ ] Resume draft panel works (JD + reference resume + generate)
+- [ ] Placeholder card for cover letter / export (not implemented)
+- [ ] Banner points to Manage Uploads when no inventory
+
+## Inventory (`/inventory`)
+
+- [ ] Enrichment review, collated/source tabs, keywords
+- [ ] No **Test Gemini on small batch** button
+
+## Records (`/records`)
+
+- [ ] Saved Jobs panel (`Company — Role` labels)
+- [ ] Draft history list when signed in (basic list only)
+
+## Dev Tools (`/dev-tools`)
+
+- [ ] Profile/contact backfill panel
+- [ ] Test Gemini small batch controls
+
+## 4B
+
+- [ ] Not started — no full draft review UI
+
+---
+
 # Test Checklist — v0.4.3 Profile Contact Backfill
 
 ## Manual backfill
 
 - [ ] Sign in with legacy inventory (parsed before v0.4.2, missing `profile`)
 - [ ] Confirm experiences / enrichment / keyword bank unchanged before backfill
-- [ ] Click **Backfill profile/contact from existing resumes**
+- [ ] On **Dev Tools**, click **Backfill profile/contact from existing resumes**
 - [ ] Summary shows profiles added and filenames updated
 - [ ] Inventory saves to Supabase when changed
 - [ ] Re-run backfill — skipped (already had profile)
@@ -40,7 +88,7 @@
 
 ## Auth (mobile)
 
-- [ ] Open `/setup` at mobile width
+- [ ] Open `/setup` (Manage Uploads) at mobile width
 - [ ] Password / Magic link / Sign up tabs are visible without cycling hidden buttons
 - [ ] Magic link tab shows email-only form and **Send magic link** button
 - [ ] Success message: **Check your email for the sign-in link**
@@ -64,7 +112,7 @@
 
 - [ ] Run `supabase db push` so `20260619_add_resume_draft_metadata.sql` is applied
 - [ ] Sign in with inventory and saved job
-- [ ] Select JD and reference resume in Resume Draft panel
+- [ ] Select JD and reference resume on **Generate** page
 - [ ] Approved keyword count displays
 - [ ] Generate Resume Draft works with `AI_PROVIDER=mock`
 - [ ] Draft row appears in `generated_resume_drafts`
@@ -102,7 +150,7 @@
 
 ## UI readability
 
-- [ ] `/` and `/setup` readable in light theme (including OS dark mode)
+- [ ] `/`, workspace routes, and nav readable in light theme (including OS dark mode)
 - [ ] Auth inputs: dark text on white background
 - [ ] Buttons and cards have visible contrast
 
@@ -112,7 +160,7 @@
 - [ ] Provider banner shows mock vs Gemini vs OpenAI
 - [ ] Review cards: issue, before, changes, rationale, actions
 - [ ] Accept / reject / ignore controls work
-- [ ] Small-batch test mode works separately from main enrichment
+- [ ] Small-batch test mode on **Dev Tools** works separately from main enrichment
 - [ ] Raw parsed resume data unchanged after enrichment
 
 ## Collated inventory (default tab)

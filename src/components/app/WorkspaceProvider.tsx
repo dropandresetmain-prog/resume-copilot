@@ -1,21 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { User } from "@supabase/supabase-js";
 
-import { AuthPanel } from "@/components/setup/AuthPanel";
-import { CloudFileStoragePanel } from "@/components/setup/CloudFileStoragePanel";
-import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView";
-import { JDInputPanel } from "@/components/setup/JDInputPanel";
-import { ProfileContactBackfillPanel } from "@/components/setup/ProfileContactBackfillPanel";
-import { ResumeDraftPanel } from "@/components/setup/ResumeDraftPanel";
-import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
-import { ResumeList } from "@/components/setup/ResumeList";
-import { SetupAlerts } from "@/components/setup/SetupAlerts";
-import { SourceResumesView } from "@/components/setup/SourceResumesView";
-import { SummaryCards } from "@/components/setup/SummaryCards";
-import { UploadCard } from "@/components/setup/UploadCard";
-import { ViewTabs } from "@/components/setup/ui";
 import {
   fetchProviderStatus,
   requestInventoryEnrichment,
@@ -60,6 +55,7 @@ import {
   loadResumeInventoryFromCloud,
   saveResumeInventoryToCloud,
 } from "@/lib/supabase/resume-inventories";
+import type { CollatedInventory } from "@/types/collated";
 import type { InventoryState } from "@/types/resume";
 import type {
   DuplicateGroupSuggestion,
@@ -75,7 +71,69 @@ const EMPTY_INVENTORY: InventoryState = {
   enrichment: createEmptyEnrichmentState(),
 };
 
-export function SetupPageClient() {
+export type WorkspaceContextValue = {
+  user: User | null;
+  inventory: InventoryState;
+  jobDescriptions: StoredJobDescription[];
+  totals: ReturnType<typeof countInventory>;
+  collated: CollatedInventory;
+  warnings: Array<{ filename: string; messages: string[] }>;
+  isSignedIn: boolean;
+  cloudEnabled: boolean;
+  signInRequiredReason: string;
+  persistenceWarning: string | null;
+  isProcessing: boolean;
+  isCloudLoading: boolean;
+  isEnriching: boolean;
+  enrichError: string | null;
+  enrichDebugRaw: string | null;
+  providerStatus: ProviderStatusResponse | null;
+  fileStorageRefreshToken: number;
+  activeTab: "collated" | "source";
+  setActiveTab: (tab: "collated" | "source") => void;
+  hasInventory: boolean;
+  handleFilesSelected: (files: File[]) => Promise<void>;
+  handleEnrichMissing: () => Promise<void>;
+  handleFullRerunEnrich: () => Promise<void>;
+  handleTestBatchEnrich: () => Promise<void>;
+  handleMergeTestBatch: () => void;
+  handleClearTestBatch: () => void;
+  handleTestBatchSuggestionStatus: (
+    suggestionId: string,
+    status: SuggestionStatus,
+  ) => void;
+  handleSuggestionStatus: (suggestionId: string, status: SuggestionStatus) => void;
+  handleResolveSuggestion: (
+    suggestionId: string,
+    resolution: SuggestionResolution,
+  ) => void;
+  handleDuplicateGroupStatus: (
+    groupId: string,
+    status: DuplicateGroupSuggestion["status"],
+  ) => void;
+  handleSaveJobDescription: (
+    input: JobDescriptionInput,
+    editingId: string | null,
+    options?: { allowDuplicate?: boolean },
+  ) => Promise<void>;
+  handleDeleteJobDescription: (id: string) => Promise<void>;
+  handleClearSavedJobDescriptions: () => Promise<void>;
+  handleDeleteResume: (resumeId: string) => void;
+  handleClearResumeInventory: () => Promise<void>;
+  handleProfileContactBackfill: (nextInventory: InventoryState) => Promise<void>;
+};
+
+const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+
+export function useWorkspace(): WorkspaceContextValue {
+  const value = useContext(WorkspaceContext);
+  if (!value) {
+    throw new Error("useWorkspace must be used within WorkspaceProvider");
+  }
+  return value;
+}
+
+export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [inventory, setInventory] = useState<InventoryState>(EMPTY_INVENTORY);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -591,104 +649,48 @@ export function SetupPageClient() {
     }
   }
 
+  const hasInventory = inventory.resumes.length > 0;
+
+  const contextValue: WorkspaceContextValue = {
+    user,
+    inventory,
+    jobDescriptions,
+    totals,
+    collated,
+    warnings,
+    isSignedIn,
+    cloudEnabled,
+    signInRequiredReason,
+    persistenceWarning,
+    isProcessing,
+    isCloudLoading,
+    isEnriching,
+    enrichError,
+    enrichDebugRaw,
+    providerStatus,
+    fileStorageRefreshToken,
+    activeTab,
+    setActiveTab,
+    hasInventory,
+    handleFilesSelected,
+    handleEnrichMissing,
+    handleFullRerunEnrich,
+    handleTestBatchEnrich,
+    handleMergeTestBatch,
+    handleClearTestBatch,
+    handleTestBatchSuggestionStatus,
+    handleSuggestionStatus,
+    handleResolveSuggestion,
+    handleDuplicateGroupStatus,
+    handleSaveJobDescription,
+    handleDeleteJobDescription,
+    handleClearSavedJobDescriptions,
+    handleDeleteResume,
+    handleClearResumeInventory,
+    handleProfileContactBackfill,
+  };
+
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 lg:px-8">
-        <header className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-            v0.4.3 · Profile Contact Backfill
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Career Resume Copilot
-          </h1>
-          <p className="max-w-3xl text-base text-slate-600">
-            Build a reusable resume inventory from your existing resumes. Paste job
-            descriptions for later tailoring. Uploaded DOCX files are parsed in the
-            browser and synced through Supabase when you are signed in.
-          </p>
-        </header>
-
-        <AuthPanel user={user} />
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <UploadCard
-            onFilesSelected={handleFilesSelected}
-            isProcessing={isProcessing || isCloudLoading}
-            onClearAll={handleClearResumeInventory}
-            canClear={inventory.resumes.length > 0}
-            disabled={cloudEnabled && !isSignedIn}
-            disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-          />
-          <SummaryCards totals={totals} />
-        </div>
-
-        <CloudFileStoragePanel
-          isSignedIn={isSignedIn}
-          refreshToken={fileStorageRefreshToken}
-        />
-
-        <SetupAlerts
-          persistenceWarning={persistenceWarning}
-          importError={null}
-          failures={inventory.failures}
-          warnings={warnings}
-        />
-
-        <JDInputPanel
-          jobDescriptions={jobDescriptions}
-          onSave={handleSaveJobDescription}
-          onDelete={handleDeleteJobDescription}
-          onClearAll={handleClearSavedJobDescriptions}
-          disabled={cloudEnabled && !isSignedIn}
-          disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        />
-
-        <ProfileContactBackfillPanel
-          inventory={inventory}
-          isSignedIn={isSignedIn}
-          disabled={cloudEnabled && !isSignedIn}
-          onApply={handleProfileContactBackfill}
-        />
-
-        <ResumeDraftPanel
-          inventory={inventory}
-          jobDescriptions={jobDescriptions}
-          isSignedIn={isSignedIn}
-          disabled={cloudEnabled && !isSignedIn}
-          disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        />
-
-        <EnrichmentReviewPanel
-          collated={collated}
-          enrichment={inventory.enrichment}
-          providerStatus={providerStatus}
-          isEnriching={isEnriching}
-          enrichError={enrichError}
-          enrichDebugRaw={enrichDebugRaw}
-          onEnrichMissing={handleEnrichMissing}
-          onFullRerunEnrich={handleFullRerunEnrich}
-          onTestBatchEnrich={handleTestBatchEnrich}
-          onMergeTestBatch={handleMergeTestBatch}
-          onClearTestBatch={handleClearTestBatch}
-          onSuggestionStatus={handleSuggestionStatus}
-          onResolveSuggestion={handleResolveSuggestion}
-          onTestBatchSuggestionStatus={handleTestBatchSuggestionStatus}
-          onDuplicateGroupStatus={handleDuplicateGroupStatus}
-        />
-
-        <ResumeList
-          resumes={inventory.resumes}
-          onDeleteResume={handleDeleteResume}
-        />
-
-        <ViewTabs activeTab={activeTab} onChange={setActiveTab} />
-
-        {activeTab === "collated" ? (
-          <CollatedInventoryView collated={collated} />
-        ) : (
-          <SourceResumesView resumes={inventory.resumes} />
-        )}
-      </div>
-    </div>
+    <WorkspaceContext.Provider value={contextValue}>{children}</WorkspaceContext.Provider>
   );
 }

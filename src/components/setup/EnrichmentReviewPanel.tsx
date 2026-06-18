@@ -28,17 +28,21 @@ type EnrichmentReviewPanelProps = {
   isEnriching: boolean;
   enrichError: string | null;
   enrichDebugRaw: string | null;
+  /** Hide small-batch test controls on Inventory; show on Dev Tools. */
+  showTestBatchControls?: boolean;
+  /** Dev Tools only: render test-batch UI without full enrichment review. */
+  testBatchOnly?: boolean;
   onEnrichMissing: () => void;
   onFullRerunEnrich: () => void;
-  onTestBatchEnrich: () => void;
-  onMergeTestBatch: () => void;
-  onClearTestBatch: () => void;
+  onTestBatchEnrich?: () => void;
+  onMergeTestBatch?: () => void;
+  onClearTestBatch?: () => void;
   onSuggestionStatus: (suggestionId: string, status: SuggestionStatus) => void;
   onResolveSuggestion: (
     suggestionId: string,
     resolution: SuggestionResolution,
   ) => void;
-  onTestBatchSuggestionStatus: (
+  onTestBatchSuggestionStatus?: (
     suggestionId: string,
     status: SuggestionStatus,
   ) => void;
@@ -570,6 +574,8 @@ export function EnrichmentReviewPanel({
   isEnriching,
   enrichError,
   enrichDebugRaw,
+  showTestBatchControls = false,
+  testBatchOnly = false,
   onEnrichMissing,
   onFullRerunEnrich,
   onTestBatchEnrich,
@@ -604,87 +610,112 @@ export function EnrichmentReviewPanel({
   const configuredForLive =
     providerStatus?.configured ?? providerStatus?.isMock ?? true;
 
+  const cardTitle = testBatchOnly
+    ? "Test Gemini small batch"
+    : "AI enrichment review";
+  const cardDescription = testBatchOnly
+    ? `Send the first ${SMALL_BATCH_DEFAULT_SIZE} work experience bullets to Gemini and inspect output before merging into main enrichment.`
+    : "Review cards show issue, before text, suggested changes, rationale, and risks.";
+
   return (
-    <SetupCard
-      title="AI enrichment review"
-      description="Review cards show issue, before text, suggested changes, rationale, and risks. Use small-batch test mode to inspect Gemini output before enriching the full inventory."
-    >
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onEnrichMissing}
-          disabled={!hasBullets || isEnriching}
-          className="rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isEnriching ? "Enriching…" : "Enrich new/changed items only"}
-        </button>
-        <button
-          type="button"
-          onClick={onFullRerunEnrich}
-          disabled={!hasBullets || isEnriching}
-          className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Re-run full enrichment (advanced)
-        </button>
-        <button
-          type="button"
-          onClick={onTestBatchEnrich}
-          disabled={!hasBullets || isEnriching}
-          className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isEnriching ? "Testing…" : "Test Gemini on small batch"}
-        </button>
-      </div>
+    <SetupCard title={cardTitle} description={cardDescription}>
+      {!testBatchOnly ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onEnrichMissing}
+            disabled={!hasBullets || isEnriching}
+            className="rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isEnriching ? "Enriching…" : "Enrich new/changed items only"}
+          </button>
+          <button
+            type="button"
+            onClick={onFullRerunEnrich}
+            disabled={!hasBullets || isEnriching}
+            className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Re-run full enrichment (advanced)
+          </button>
+          {showTestBatchControls && onTestBatchEnrich ? (
+            <button
+              type="button"
+              onClick={onTestBatchEnrich}
+              disabled={!hasBullets || isEnriching}
+              className="rounded-lg border border-violet-300 bg-white px-4 py-2.5 text-sm font-medium text-violet-800 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isEnriching ? "Testing…" : "Test Gemini on small batch"}
+            </button>
+          ) : null}
+        </div>
+      ) : onTestBatchEnrich ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onTestBatchEnrich}
+            disabled={!hasBullets || isEnriching}
+            className="rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isEnriching ? "Testing…" : "Test Gemini on small batch"}
+          </button>
+        </div>
+      ) : null}
 
-      <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
-        <p className="font-medium text-zinc-900">Enrichment review counts</p>
-        <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">
-              Approved keywords
-            </dt>
-            <dd>{stats.approvedKeywords}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">Pending</dt>
-            <dd>{stats.pendingSuggestions}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">Ignored</dt>
-            <dd>{stats.ignoredSuggestions}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">Rejected</dt>
-            <dd>{stats.rejectedSuggestions}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">Accepted</dt>
-            <dd>{stats.acceptedSuggestions}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-zinc-500">
-              Pending duplicate groups
-            </dt>
-            <dd>{stats.pendingDuplicateGroups}</dd>
-          </div>
-        </dl>
-        {stats.lastEnrichedAt ? (
-          <p className="mt-2 text-xs text-zinc-500">
-            Last enrichment run {new Date(stats.lastEnrichedAt).toLocaleString()}
-          </p>
-        ) : null}
-      </div>
+      {!testBatchOnly ? (
+        <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          <p className="font-medium text-zinc-900">Enrichment review counts</p>
+          <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Approved keywords
+              </dt>
+              <dd>{stats.approvedKeywords}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">Pending</dt>
+              <dd>{stats.pendingSuggestions}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">Ignored</dt>
+              <dd>{stats.ignoredSuggestions}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">Rejected</dt>
+              <dd>{stats.rejectedSuggestions}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">Accepted</dt>
+              <dd>{stats.acceptedSuggestions}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-500">
+                Pending duplicate groups
+              </dt>
+              <dd>{stats.pendingDuplicateGroups}</dd>
+            </div>
+          </dl>
+          {stats.lastEnrichedAt ? (
+            <p className="mt-2 text-xs text-zinc-500">
+              Last enrichment run {new Date(stats.lastEnrichedAt).toLocaleString()}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
-      <p className="mt-2 text-sm text-zinc-600">
-        Small-batch test sends the first {SMALL_BATCH_DEFAULT_SIZE} work experience
-        bullets only. Results are stored separately until you merge them into main
-        enrichment.
-      </p>
+      {(showTestBatchControls || testBatchOnly) && (
+        <p className="mt-2 text-sm text-zinc-600">
+          Small-batch test sends the first {SMALL_BATCH_DEFAULT_SIZE} work experience
+          bullets only. Results are stored separately until you merge them into main
+          enrichment.
+        </p>
+      )}
 
-      <p className="mt-2 text-sm text-zinc-600">
-        Default enrichment skips unchanged items you already reviewed or enriched.
-        Full re-run is advanced and may create new suggestions for the entire inventory.
-      </p>
+      {!testBatchOnly ? (
+        <p className="mt-2 text-sm text-zinc-600">
+          Default enrichment skips unchanged items you already reviewed or enriched.
+          Full re-run is advanced and may create new suggestions for the entire inventory.
+        </p>
+      ) : null}
 
       <ProviderConfigDisplay
         providerStatus={providerStatus}
@@ -715,7 +746,7 @@ export function EnrichmentReviewPanel({
       )}
 
       <div className="mt-6 space-y-4">
-        {testBatch ? (
+        {testBatch && (showTestBatchControls || testBatchOnly) ? (
           <CollapsibleSection
             title={`Small-batch test results (${testBatchPending.length} pending)`}
             defaultOpen
@@ -728,20 +759,24 @@ export function EnrichmentReviewPanel({
                 before merging or running full enrichment.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={onMergeTestBatch}
-                  className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
-                >
-                  Merge into main enrichment
-                </button>
-                <button
-                  type="button"
-                  onClick={onClearTestBatch}
-                  className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
-                >
-                  Discard test batch
-                </button>
+                {onMergeTestBatch ? (
+                  <button
+                    type="button"
+                    onClick={onMergeTestBatch}
+                    className="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
+                  >
+                    Merge into main enrichment
+                  </button>
+                ) : null}
+                {onClearTestBatch ? (
+                  <button
+                    type="button"
+                    onClick={onClearTestBatch}
+                    className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
+                  >
+                    Discard test batch
+                  </button>
+                ) : null}
               </div>
             </div>
             <div className="space-y-4">
@@ -755,10 +790,10 @@ export function EnrichmentReviewPanel({
                       : undefined
                   }
                   onStatus={(status) =>
-                    onTestBatchSuggestionStatus(suggestion.id, status)
+                    onTestBatchSuggestionStatus?.(suggestion.id, status)
                   }
                   onResolve={(resolution) =>
-                    onTestBatchSuggestionStatus(
+                    onTestBatchSuggestionStatus?.(
                       suggestion.id,
                       resolution === "use_suggestion" || resolution === "keep_existing"
                         ? "accepted"
@@ -771,6 +806,8 @@ export function EnrichmentReviewPanel({
           </CollapsibleSection>
         ) : null}
 
+        {!testBatchOnly ? (
+          <>
         <CollapsibleSection
           title={`Pending suggestions (${pendingSuggestions.length})`}
           defaultOpen
@@ -876,6 +913,8 @@ export function EnrichmentReviewPanel({
             </div>
           )}
         </CollapsibleSection>
+          </>
+        ) : null}
       </div>
     </SetupCard>
   );

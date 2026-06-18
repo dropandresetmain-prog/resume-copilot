@@ -1,9 +1,16 @@
 # Known Issues
 
+## Page split (v0.4.4)
+
+- **Manage Uploads** (`/setup`) is the first-time entry point; **Generate** (`/generate`) is the main product page once inventory exists.
+- **Dev Tools** (`/dev-tools`) is for maintenance (profile backfill, Gemini small-batch test) — not part of normal resume generation flow.
+- **4B** (full draft review UI) is not started; Records shows a basic draft history list only.
+- Landing CTA is **Customize your resume now** (not “Setup”).
+
 ## Profile backfill (v0.4.3)
 
 - Legacy inventories parsed before v0.4.2 may lack `profile` on `ParsedResume`.
-- Use **Backfill profile/contact from existing resumes** on `/setup` — not automatic on load.
+- Use **Backfill profile/contact from existing resumes** on **Dev Tools** (`/dev-tools`) — not automatic on load.
 - Backfill only reads preserved unparsed/preamble text; it does not re-upload or re-parse DOCX files.
 - If backfill cannot confidently extract contact info, it skips that resume.
 
