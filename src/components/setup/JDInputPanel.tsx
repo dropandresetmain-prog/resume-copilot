@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { EmptyState, SetupCard } from "@/components/setup/ui";
+import { EmptyState, SetupCard, formFieldClassName, labelClassName, primaryButtonClassName, secondaryButtonClassName, destructiveButtonClassName } from "@/components/setup/ui";
 import { findDuplicateJobDescription } from "@/lib/jd/persistence";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 
@@ -157,10 +157,7 @@ export function JDInputPanel({
 
       <div className="mt-4 space-y-4">
         <div>
-          <label
-            htmlFor="jd-raw-text"
-            className="text-sm font-medium text-zinc-800"
-          >
+          <label htmlFor="jd-raw-text" className={labelClassName}>
             Job description
           </label>
           <textarea
@@ -170,16 +167,13 @@ export function JDInputPanel({
             rows={10}
             disabled={disabled}
             placeholder="Paste the full job description here…"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-50"
+            className={formFieldClassName}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="jd-company"
-              className="text-sm font-medium text-zinc-800"
-            >
+            <label htmlFor="jd-company" className={labelClassName}>
               Company name (optional)
             </label>
             <input
@@ -188,14 +182,11 @@ export function JDInputPanel({
               value={form.companyName ?? ""}
               onChange={(event) => updateField("companyName", event.target.value)}
               disabled={disabled}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-50"
+              className={formFieldClassName}
             />
           </div>
           <div>
-            <label
-              htmlFor="jd-role"
-              className="text-sm font-medium text-zinc-800"
-            >
+            <label htmlFor="jd-role" className={labelClassName}>
               Role title (optional)
             </label>
             <input
@@ -204,13 +195,13 @@ export function JDInputPanel({
               value={form.roleTitle ?? ""}
               onChange={(event) => updateField("roleTitle", event.target.value)}
               disabled={disabled}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-50"
+              className={formFieldClassName}
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="jd-url" className="text-sm font-medium text-zinc-800">
+          <label htmlFor="jd-url" className={labelClassName}>
             Job URL (optional)
           </label>
           <input
@@ -220,14 +211,20 @@ export function JDInputPanel({
             onChange={(event) => updateField("jobUrl", event.target.value)}
             disabled={disabled}
             placeholder="https://…"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-50"
+            className={formFieldClassName}
           />
         </div>
 
         {validationError ? (
-          <p className="text-sm text-red-700">{validationError}</p>
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {validationError}
+          </p>
         ) : null}
-        {saveError ? <p className="text-sm text-red-700">{saveError}</p> : null}
+        {saveError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {saveError}
+          </p>
+        ) : null}
         {duplicateWarning ? (
           <p className="text-sm text-amber-800">{duplicateWarning}</p>
         ) : null}
@@ -237,7 +234,7 @@ export function JDInputPanel({
             type="button"
             onClick={handleSave}
             disabled={disabled || isSaving}
-            className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className={primaryButtonClassName}
           >
             {isSaving
               ? "Saving…"
@@ -249,7 +246,7 @@ export function JDInputPanel({
             type="button"
             onClick={clearForm}
             disabled={disabled}
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            className={secondaryButtonClassName}
           >
             Clear form
           </button>
@@ -258,14 +255,14 @@ export function JDInputPanel({
 
       <div className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-zinc-900">
+          <h3 className="text-sm font-semibold text-slate-900">
             Saved job descriptions ({jobDescriptions.length})
           </h3>
           <button
             type="button"
             onClick={handleClearAll}
             disabled={jobDescriptions.length === 0 || disabled}
-            className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className={destructiveButtonClassName}
           >
             Clear saved job descriptions
           </button>
@@ -285,14 +282,14 @@ export function JDInputPanel({
                 key={jd.id}
                 className={`rounded-lg border p-4 ${
                   editingId === jd.id
-                    ? "border-zinc-900 bg-zinc-50"
-                    : "border-zinc-200 bg-white"
+                    ? "border-slate-900 bg-slate-50"
+                    : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-zinc-900">{formatLabel(jd)}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="font-medium text-slate-900">{formatLabel(jd)}</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       Created {new Date(jd.createdAt).toLocaleString()} · Updated{" "}
                       {new Date(jd.updatedAt).toLocaleString()}
                     </p>
@@ -306,7 +303,7 @@ export function JDInputPanel({
                         {jd.jobUrl}
                       </a>
                     ) : null}
-                    <p className="mt-2 line-clamp-3 text-sm text-zinc-600">
+                    <p className="mt-2 line-clamp-3 text-sm text-slate-600">
                       {jd.rawText}
                     </p>
                   </div>
@@ -315,7 +312,7 @@ export function JDInputPanel({
                       type="button"
                       onClick={() => handleEdit(jd)}
                       disabled={disabled}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                     >
                       Edit
                     </button>

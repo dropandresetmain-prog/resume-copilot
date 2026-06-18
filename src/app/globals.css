@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
+/* Light theme only — do not follow OS dark mode until a real theme system exists. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --app-bg: #f8fafc;
+  --app-text: #0f172a;
+  --app-muted: #475569;
+  --app-card: #ffffff;
+  --app-border: #cbd5e1;
+  --app-input-bg: #ffffff;
+  --app-input-text: #0f172a;
+  --app-placeholder: #94a3b8;
+  color-scheme: light only;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  color-scheme: light only;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  min-height: 100%;
+  background-color: var(--app-bg);
+  color: var(--app-text);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Keep light theme even when the OS prefers dark mode. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light only;
+  }
+
+  html,
+  body {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+  }
+}
+
+input,
+textarea,
+select {
+  background-color: var(--app-input-bg);
+  color: var(--app-input-text);
+  border-color: var(--app-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--app-placeholder);
+  opacity: 1;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--app-input-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--app-input-bg) inset;
+  box-shadow: 0 0 0 1000px var(--app-input-bg) inset;
+  caret-color: var(--app-input-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  input,
+  textarea,
+  select {
+    background-color: var(--app-input-bg) !important;
+    color: var(--app-input-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--app-placeholder) !important;
+  }
 }

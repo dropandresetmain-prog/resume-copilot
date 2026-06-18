@@ -2,6 +2,21 @@ import type { ReactNode } from "react";
 
 import type { SourceCitation } from "@/types/collated";
 
+/** Shared light-theme form and button classes — use instead of browser defaults. */
+export const labelClassName = "text-sm font-medium text-slate-800";
+
+export const formFieldClassName =
+  "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50";
+
+export const primaryButtonClassName =
+  "rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
+
+export const secondaryButtonClassName =
+  "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+export const destructiveButtonClassName =
+  "rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50";
+
 export function SetupCard({
   title,
   description,
@@ -15,13 +30,13 @@ export function SetupCard({
 }) {
   return (
     <section
-      className={`rounded-xl border border-zinc-200 bg-white p-5 shadow-sm ${className}`}
+      className={`rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm ${className}`}
     >
       {title && (
-        <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
       )}
       {description && (
-        <p className="mt-1 text-sm text-zinc-600">{description}</p>
+        <p className="mt-1 text-sm text-slate-600">{description}</p>
       )}
       {children}
     </section>

@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 
-import { SetupCard } from "@/components/setup/ui";
+import {
+  formFieldClassName,
+  labelClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+  SetupCard,
+} from "@/components/setup/ui";
 import {
   getSupabaseConfigError,
   isSupabaseConfigured,
@@ -82,7 +88,9 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
         title="Sign in"
         description="Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local."
       >
-        <p className="mt-3 text-sm text-red-700">{configError}</p>
+        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {configError}
+        </p>
       </SetupCard>
     );
   }
@@ -94,12 +102,12 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
         description="Your resume inventory, job descriptions, and uploaded files sync through Supabase."
       >
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-zinc-700">{user.email}</p>
+          <p className="text-sm text-slate-700">{user.email}</p>
           <button
             type="button"
             onClick={handleSignOut}
             disabled={isSubmitting}
-            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+            className={secondaryButtonClassName}
           >
             Sign out
           </button>
@@ -119,25 +127,24 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
         <div>
-          <label htmlFor="auth-email" className="text-sm font-medium text-zinc-800">
+          <label htmlFor="auth-email" className={labelClassName}>
             Email
           </label>
           <input
             id="auth-email"
             type="email"
             required
+            autoComplete="email"
+            placeholder="you@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            className={formFieldClassName}
           />
         </div>
 
         {mode !== "magic_link" ? (
           <div>
-            <label
-              htmlFor="auth-password"
-              className="text-sm font-medium text-zinc-800"
-            >
+            <label htmlFor="auth-password" className={labelClassName}>
               Password
             </label>
             <input
@@ -145,21 +152,33 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
               type="password"
               required
               minLength={6}
+              autoComplete={
+                mode === "sign_up" ? "new-password" : "current-password"
+              }
+              placeholder="Enter your password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className={formFieldClassName}
             />
           </div>
         ) : null}
 
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+        {error ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {error}
+          </p>
+        ) : null}
+        {message ? (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            {message}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className={primaryButtonClassName}
           >
             {isSubmitting
               ? "Working…"
@@ -180,7 +199,7 @@ export function AuthPanel({ user, onAuthChange }: AuthPanelProps) {
                     : "sign_in",
               )
             }
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            className={secondaryButtonClassName}
           >
             {mode === "sign_in"
               ? "Use sign up"

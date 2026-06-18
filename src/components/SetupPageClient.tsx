@@ -81,7 +81,10 @@ export function SetupPageClient() {
   const [enrichDebugRaw, setEnrichDebugRaw] = useState<string | null>(null);
   const [providerStatus, setProviderStatus] =
     useState<ProviderStatusResponse | null>(null);
-  const [legacyWarning, setLegacyWarning] = useState<string | null>(null);
+  const [legacyWarning] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return detectLegacyLocalData();
+  });
   const [cloudSaveError, setCloudSaveError] = useState<string | null>(null);
   const [cloudLoadError, setCloudLoadError] = useState<string | null>(null);
   const [jdError, setJdError] = useState<string | null>(null);
@@ -127,10 +130,6 @@ export function SetupPageClient() {
         .join(" ") || null,
     [legacyWarning, cloudLoadError, cloudSaveError, fileStorageWarning, jdError],
   );
-
-  useEffect(() => {
-    setLegacyWarning(detectLegacyLocalData());
-  }, []);
 
   useEffect(() => {
     if (!cloudEnabled) {
@@ -522,16 +521,16 @@ export function SetupPageClient() {
   }
 
   return (
-    <div className="min-h-full bg-zinc-50">
+    <div className="min-h-full bg-slate-50 text-slate-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 lg:px-8">
         <header className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
             Milestone 3C
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             Career Resume Copilot
           </h1>
-          <p className="max-w-3xl text-base text-zinc-600">
+          <p className="max-w-3xl text-base text-slate-600">
             Build a reusable resume inventory from your existing resumes. Paste job
             descriptions for later tailoring. Uploaded DOCX files are parsed in the
             browser and synced through Supabase when you are signed in.
