@@ -152,9 +152,16 @@ export type ResumeDraftExperienceInput = {
 export type ResumeDraftReferenceResumeExcerpt = {
   resumeId: string;
   filename: string;
-  preambleAndUnparsedText: string;
-  sampleBullets: string[];
-  skillsSummary: string;
+  /** Formatting/template reference only — never use as content source. */
+  formattingOnly: true;
+  bulletStyle: "keyword_colon" | "plain";
+  sectionOrder: string[];
+  headerContact?: {
+    fullName?: string;
+    phone?: string;
+    email?: string;
+  };
+  densityHint: "compact" | "standard";
 };
 
 export type ResumeDraftGenerationInput = {

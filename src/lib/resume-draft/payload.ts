@@ -1,6 +1,7 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
+import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
 import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState, KeywordBankItem } from "@/types/enrichment";
 import type { StoredJobDescription } from "@/types/jd";
@@ -13,54 +14,11 @@ import {
 } from "@/types/resume-draft";
 
 export const MAX_RESUME_DRAFT_BULLETS = 40;
-export const MAX_REFERENCE_SAMPLE_BULLETS = 8;
-export const MAX_REFERENCE_EXCERPT_CHARS = 4000;
 
 export function filterApprovedKeywords(
   enrichment: EnrichmentState,
 ): KeywordBankItem[] {
   return enrichment.keywordBank.filter((item) => item.approved);
-}
-
-export function buildReferenceResumeExcerpt(
-  resume: ParsedResume,
-): ResumeDraftGenerationInput["referenceResume"] {
-  const unparsedText = resume.unparsedSections
-    .map((section) => `${section.title}\n${section.rawText}`)
-    .join("\n\n");
-
-  const sampleBullets: string[] = [];
-  for (const experience of resume.workExperiences) {
-    for (const bullet of experience.bullets) {
-      const text = bullet.description || bullet.rawBulletText;
-      if (text.trim()) {
-        sampleBullets.push(text.trim());
-      }
-      if (sampleBullets.length >= MAX_REFERENCE_SAMPLE_BULLETS) {
-        break;
-      }
-    }
-    if (sampleBullets.length >= MAX_REFERENCE_SAMPLE_BULLETS) {
-      break;
-    }
-  }
-
-  const skillsParts = [
-    ...resume.skills.languages,
-    ...resume.skills.technicalSkills,
-    ...resume.skills.interests,
-    ...resume.skills.other,
-  ].filter(Boolean);
-
-  const preambleAndUnparsed = unparsedText.slice(0, MAX_REFERENCE_EXCERPT_CHARS);
-
-  return {
-    resumeId: resume.id,
-    filename: resume.filename,
-    preambleAndUnparsedText: preambleAndUnparsed,
-    sampleBullets,
-    skillsSummary: skillsParts.slice(0, 20).join("; "),
-  };
 }
 
 function toKeywordInput(item: KeywordBankItem): ResumeDraftKeywordInput {
@@ -151,7 +109,7 @@ export function buildResumeDraftGenerationInput(options: {
       text: item.text,
       sourceCitations: item.sourceCitations,
     })),
-    referenceResume: buildReferenceResumeExcerpt(options.referenceResume),
+    referenceResume: buildReferenceResumeFormatProfile(options.referenceResume),
   };
 }
 

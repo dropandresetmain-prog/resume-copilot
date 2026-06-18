@@ -9,7 +9,7 @@
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
 | `/records` | `src/app/(workspace)/records/page.tsx` | Manage saved jobs + draft history |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
-| `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Developer/maintenance tools |
+| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
 
@@ -141,6 +141,11 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
+| `src/lib/resume-draft/layout.ts` | Final layout model, page-fit estimate, fit score (v0.5.1) |
+| `src/lib/resume-draft/reference-format.ts` | Reference resume formatting profile (no content) |
+| `src/components/resume-drafts/FinalResumeLayoutPreview.tsx` | Canonical A4 resume preview |
+| `src/components/resume-drafts/ResumeAssessmentPanel.tsx` | Fit score + rationale panel |
+| `src/components/pages/ResumePreviewPageClient.tsx` | Post-generation preview page client |
 | `src/lib/resume-draft/preview-helpers.ts` | Risk/confidence/source label helpers |
 | `src/components/resume-drafts/ResumeDraftPreview.tsx` | Readable resume preview (4B) |
 | `src/components/resume-drafts/ResumeDraftReviewWorkspace.tsx` | Preview + review + mark reviewed (4B) |
@@ -180,4 +185,5 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-files.ts` | File hash + metadata |
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
+| `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |

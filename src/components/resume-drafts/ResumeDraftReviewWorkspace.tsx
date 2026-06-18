@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
 import { ResumeDraftBulletCard } from "@/components/resume-drafts/ResumeDraftBulletCard";
-import { ResumeDraftPreview } from "@/components/resume-drafts/ResumeDraftPreview";
 import { ResumeDraftSectionCard } from "@/components/resume-drafts/ResumeDraftSectionCard";
 import {
   formFieldClassName,
@@ -12,6 +12,10 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { formatRiskFlagLabel, reviewStatusClassName, reviewStatusLabel } from "@/lib/resume-draft/preview-helpers";
+import {
+  buildFinalResumeLayout,
+  estimatePageFit,
+} from "@/lib/resume-draft/layout";
 import {
   applyReviewStateToContent,
   countReviewDecisions,
@@ -47,6 +51,9 @@ export function ResumeDraftReviewWorkspace({
     () => applyReviewStateToContent(draft.content, reviewState),
     [draft.content, reviewState],
   );
+  const finalLayout = useMemo(() => buildFinalResumeLayout(previewContent), [previewContent]);
+  const pageFit = useMemo(() => estimatePageFit(finalLayout), [finalLayout]);
+  const showProfessionalSummary = Boolean(draft.content.professionalSummary.text?.trim());
 
   const reviewCounts = useMemo(() => countReviewDecisions(reviewState), [reviewState]);
   const isReviewed = draft.status === "reviewed";
@@ -80,8 +87,8 @@ export function ResumeDraftReviewWorkspace({
   return (
     <div className="mt-6 space-y-6">
       <SetupCard
-        title="Generated resume preview"
-        description="Readable preview of the generated draft. Edits and omissions apply here before you mark the draft as reviewed."
+        title="Edit resume details"
+        description="Secondary review workspace for accept/edit/omit changes. Use the layout preview page for final formatting validation."
       >
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
           <span>
@@ -93,7 +100,7 @@ export function ResumeDraftReviewWorkspace({
           <span>Omitted: {reviewCounts.rejected}</span>
         </div>
 
-        <ResumeDraftPreview content={previewContent} className="mt-4" />
+        <FinalResumeLayoutPreview layout={finalLayout} pageFit={pageFit} className="mt-4" />
 
         <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">
@@ -159,6 +166,7 @@ export function ResumeDraftReviewWorkspace({
         ) : null}
 
         <div className="mt-6 space-y-6">
+          {showProfessionalSummary ? (
           <ResumeDraftSectionCard title="Professional summary">
             <div className="rounded-lg border border-slate-200 bg-white p-4">
               <span
@@ -255,6 +263,7 @@ export function ResumeDraftReviewWorkspace({
               </div>
             </div>
           </ResumeDraftSectionCard>
+          ) : null}
 
           {draft.content.skills.groups.map((group, groupIndex) => {
             const review = reviewState.skillsGroups[groupIndex];

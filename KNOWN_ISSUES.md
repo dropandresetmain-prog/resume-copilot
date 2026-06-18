@@ -1,5 +1,13 @@
 # Known Issues
 
+## Final layout preview (v0.5.1)
+
+- `/resume-preview/[draftId]` is the primary post-generation view.
+- One-page warning is a **line-count estimator**, not true pagination.
+- **Approve for Export** saves `status: approved` — DOCX/PDF export not built yet (v0.6.x).
+- Professional summary is omitted from final layout; cover letters planned for v0.7.0.
+- Reference resume influences formatting only; audit via `formattingOnly: true` on generation payload.
+
 ## Resume draft review (v0.5.0 / 4B)
 
 - Review edits apply to **generated draft content only** — source inventory is never modified.

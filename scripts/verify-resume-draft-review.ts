@@ -2,6 +2,7 @@ import { generateMockResumeDraft } from "../src/lib/ai/resume-draft-mock";
 import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../src/lib/resume-draft/payload";
+import { formatKeywordBullet } from "../src/lib/resume-draft/layout";
 import { formatRiskFlagLabel } from "../src/lib/resume-draft/preview-helpers";
 import {
   applyReviewStateToContent,
@@ -110,7 +111,11 @@ function main() {
   const summaryOmitted = previewContent.professionalSummary.text === "";
   const inventoryUnchanged = JSON.stringify(inventory) === originalInventory;
   const originalFirstBullet = originalContent.experience[0]?.bullets[0]?.text ?? "";
-  const originalObjectUnchanged = originalFirstBullet === "Led product operations improvements";
+  const expectedFirstBullet = formatKeywordBullet(
+    "Operations",
+    "Led product operations improvements",
+  );
+  const originalObjectUnchanged = originalFirstBullet === expectedFirstBullet;
   const riskLabel = formatRiskFlagLabel("needs review");
 
   const checks: [string, boolean][] = [
@@ -121,7 +126,7 @@ function main() {
     ["apply review does not mutate original content object", originalObjectUnchanged],
     ["source inventory unchanged", inventoryUnchanged],
     ["risk flag label readable", riskLabel === "Needs review"],
-    ["original draft has professional summary", originalContent.professionalSummary.text.length > 0],
+    ["original draft omits professional summary", originalContent.professionalSummary.text === ""],
     ["reviewed status constant", "reviewed".length > 0],
   ];
 

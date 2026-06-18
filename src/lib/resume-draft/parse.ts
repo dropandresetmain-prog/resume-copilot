@@ -150,9 +150,7 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
       notes: asString(header.notes),
     },
     professionalSummary: {
-      text:
-        asString(summary.text) ??
-        "Professional summary could not be generated from the provided inventory.",
+      text: asString(summary.text) ?? "",
       jdAlignment: asStringArray(summary.jdAlignment),
       riskFlags: asStringArray(summary.riskFlags),
     },
@@ -173,9 +171,9 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
   };
 
   const hasUsableContent =
-    content.professionalSummary.text.trim().length > 0 ||
     content.experience.length > 0 ||
-    content.education.length > 0;
+    content.education.length > 0 ||
+    content.skills.groups.some((group) => group.items.length > 0);
 
   if (!hasUsableContent) {
     throw new Error("Model response did not contain usable resume draft content.");

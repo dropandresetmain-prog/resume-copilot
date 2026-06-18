@@ -1,14 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { ResumeDraftPreview } from "@/components/resume-drafts/ResumeDraftPreview";
 import { formatSavedJobLabel } from "@/lib/jd/labels";
 import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
-import { EmptyState, SetupCard } from "@/components/setup/ui";
+import { EmptyState, SetupCard, secondaryButtonClassName } from "@/components/setup/ui";
 
 type DraftHistoryPanelProps = {
   isSignedIn: boolean;
@@ -21,7 +21,6 @@ export function DraftHistoryPanel({
 }: DraftHistoryPanelProps) {
   const [drafts, setDrafts] = useState<GeneratedResumeDraftRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -60,7 +59,7 @@ export function DraftHistoryPanel({
   return (
     <SetupCard
       title="Generated draft history"
-      description="Saved resume drafts from Generate. Open a draft to read the preview. Full draft management is planned for a later milestone."
+      description="Saved resume drafts from Generate. Open the final layout preview to validate one-page fit before export."
     >
       {!isSignedIn ? (
         <p className="mt-3 text-sm text-slate-600">
@@ -82,8 +81,6 @@ export function DraftHistoryPanel({
             const jobLabel = job
               ? formatSavedJobLabel(job)
               : draft.jobDescriptionId ?? "Unknown job";
-            const summary = draft.content.professionalSummary?.text?.slice(0, 120);
-            const isExpanded = expandedDraftId === draft.id;
 
             return (
               <li
@@ -100,22 +97,12 @@ export function DraftHistoryPanel({
                   {draft.status} · {draft.provider ?? "unknown provider"}
                   {draft.modelName ? ` · ${draft.modelName}` : ""}
                 </p>
-                {summary ? (
-                  <p className="mt-2 text-slate-600">
-                    {summary}
-                    {(draft.content.professionalSummary?.text?.length ?? 0) > 120 ? "…" : ""}
-                  </p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setExpandedDraftId(isExpanded ? null : draft.id)}
-                  className="mt-2 text-sm font-medium text-violet-700 hover:underline"
+                <Link
+                  href={`/resume-preview/${draft.id}`}
+                  className={`mt-3 inline-flex ${secondaryButtonClassName}`}
                 >
-                  {isExpanded ? "Hide preview" : "View resume preview"}
-                </button>
-                {isExpanded ? (
-                  <ResumeDraftPreview content={draft.content} className="mt-3" />
-                ) : null}
+                  Open layout preview
+                </Link>
               </li>
             );
           })}

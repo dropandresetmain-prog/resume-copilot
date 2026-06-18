@@ -1,3 +1,49 @@
+# Test Checklist — v0.5.1 Final Resume Layout Preview
+
+## Generate → preview navigation
+
+- [ ] Generate resume redirects to `/resume-preview/[draftId]`
+- [ ] Records **Open layout preview** links to same route
+
+## Final layout
+
+- [ ] A4 preview shows sections in order: Header → Work Experience → Education → Additional Experience → Skills & Interests
+- [ ] Header: Name, then Phone | Email
+- [ ] No Professional Summary in preview
+- [ ] Work bullets use **Keyword: statement** format (not dot bullets)
+- [ ] Additional Experience is compact (comma-separated)
+- [ ] Skills and Interests both appear
+
+## One-page estimator
+
+- [ ] Warning appears when draft likely exceeds one page
+- [ ] Margin / line spacing / section spacing sliders adjust preview settings
+
+## Resume Assessment panel
+
+- [ ] Fit Score shown as N / 100
+- [ ] Optimized-for bullets, rationale, strengths, risk flags visible
+- [ ] Panel is separate from edit workspace
+
+## Approval
+
+- [ ] **Approve for Export** sets status to `approved`
+- [ ] **Edit Resume Details** opens secondary review workspace
+- [ ] Inventory unchanged after approval
+
+## Reference resume
+
+- [ ] Reference resume labeled as formatting template on Generate page
+- [ ] Content not copied from reference file text
+
+## Next milestones
+
+- [ ] v0.6.0 DOCX export not started
+- [ ] v0.6.1 PDF export not started
+- [ ] v0.7.0 cover letters not started
+
+---
+
 # Test Checklist — v0.5.0 Resume Draft Review UI (4B)
 
 ## Generate + preview

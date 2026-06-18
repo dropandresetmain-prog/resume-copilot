@@ -1,8 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDraftReviewWorkspace";
 import {
   EmptyState,
   SetupCard,
@@ -17,17 +17,11 @@ import {
   requestResumeDraftGeneration,
   type ResumeDraftClientError,
 } from "@/lib/resume-draft/client";
-import {
-  createGeneratedResumeDraftInCloud,
-  listGeneratedResumeDraftsFromCloud,
-} from "@/lib/supabase/generated-resume-drafts";
+import { createGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
 import { formatSavedJobLabel } from "@/lib/jd/labels";
 import type { InventoryState } from "@/types/resume";
 import type { StoredJobDescription } from "@/types/jd";
-import type {
-  GeneratedResumeDraftRecord,
-  ResumeDraftProviderStatusResponse,
-} from "@/types/resume-draft";
+import type { ResumeDraftProviderStatusResponse } from "@/types/resume-draft";
 
 type ResumeDraftPanelProps = {
   inventory: InventoryState;
@@ -48,6 +42,7 @@ export function ResumeDraftPanel({
   selectedJobDescriptionId,
   onJobDescriptionChange,
 }: ResumeDraftPanelProps) {
+  const router = useRouter();
   const [internalJobId, setInternalJobId] = useState("");
   const [selectedReferenceResumeId, setSelectedReferenceResumeId] = useState("");
   const [providerStatus, setProviderStatus] =
@@ -55,8 +50,6 @@ export function ResumeDraftPanel({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
-  const [savedDraft, setSavedDraft] = useState<GeneratedResumeDraftRecord | null>(null);
-  const [draftLoadToken, setDraftLoadToken] = useState(0);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -88,34 +81,6 @@ export function ResumeDraftPanel({
     inventory.resumes.length > 0 &&
     Boolean(effectiveJobDescriptionId) &&
     Boolean(effectiveReferenceResumeId);
-
-  useEffect(() => {
-    if (!isSignedIn || !effectiveJobDescriptionId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadLatestDraft() {
-      try {
-        const drafts = await listGeneratedResumeDraftsFromCloud({
-          jobDescriptionId: effectiveJobDescriptionId,
-        });
-        if (!cancelled) {
-          setSavedDraft(drafts[0] ?? null);
-        }
-      } catch {
-        if (!cancelled) {
-          setSavedDraft(null);
-        }
-      }
-    }
-
-    void loadLatestDraft();
-    return () => {
-      cancelled = true;
-    };
-  }, [isSignedIn, effectiveJobDescriptionId, draftLoadToken]);
 
   async function handleGenerate() {
     setError(null);
@@ -151,8 +116,7 @@ export function ResumeDraftPanel({
         modelName: response.modelName,
       });
 
-      setSavedDraft(record);
-      setDraftLoadToken((token) => token + 1);
+      router.push(`/resume-preview/${record.id}`);
     } catch (generationError) {
       const clientError = generationError as ResumeDraftClientError;
       setError(
@@ -167,127 +131,117 @@ export function ResumeDraftPanel({
   }
 
   return (
-    <>
-      <SetupCard
-        title="Tailor resume from saved job"
-        description="Choose a saved job and reference resume to generate a tailored resume. Your source inventory is not modified."
-      >
-        {disabled && disabledReason ? (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {disabledReason}
-          </p>
-        ) : null}
-
-        {providerStatus ? (
-          <p className="mt-3 text-sm text-slate-600">
-            Provider: {providerStatus.providerLabel}
-            {providerStatus.modelName ? ` · ${providerStatus.modelName}` : ""}
-            {providerStatus.isMock ? " (test mode)" : ""}
-          </p>
-        ) : null}
-
-        {!providerConfigured ? (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {providerStatus?.configurationError ??
-              "Resume draft provider is not configured."}
-          </p>
-        ) : null}
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="resume-draft-jd" className={labelClassName}>
-              Saved job
-            </label>
-            <select
-              id="resume-draft-jd"
-              value={effectiveJobDescriptionId}
-              onChange={(event) => handleJobSelectionChange(event.target.value)}
-              disabled={disabled || jobDescriptions.length === 0}
-              className={formFieldClassName}
-            >
-              {jobDescriptions.length === 0 ? (
-                <option value="">No saved jobs</option>
-              ) : (
-                jobDescriptions.map((jd) => (
-                  <option key={jd.id} value={jd.id}>
-                    {formatSavedJobLabel(jd)}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="resume-draft-reference" className={labelClassName}>
-              Reference resume
-            </label>
-            <select
-              id="resume-draft-reference"
-              value={effectiveReferenceResumeId}
-              onChange={(event) => setSelectedReferenceResumeId(event.target.value)}
-              disabled={disabled || inventory.resumes.length === 0}
-              className={formFieldClassName}
-            >
-              {inventory.resumes.length === 0 ? (
-                <option value="">No uploaded resumes</option>
-              ) : (
-                inventory.resumes.map((resume) => (
-                  <option key={resume.id} value={resume.id}>
-                    {resume.filename}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-        </div>
-
-        <p className="mt-3 text-sm text-slate-600">
-          Approved keywords available: {approvedKeywordCount}
+    <SetupCard
+      title="Tailor resume from saved job"
+      description="Choose a saved job and reference resume (formatting template) to generate a tailored resume. Content comes from your inventory — not the reference file text."
+    >
+      {disabled && disabledReason ? (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {disabledReason}
         </p>
+      ) : null}
 
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={!canGenerate || isGenerating}
-            className={primaryButtonClassName}
+      {providerStatus ? (
+        <p className="mt-3 text-sm text-slate-600">
+          Provider: {providerStatus.providerLabel}
+          {providerStatus.modelName ? ` · ${providerStatus.modelName}` : ""}
+          {providerStatus.isMock ? " (test mode)" : ""}
+        </p>
+      ) : null}
+
+      {!providerConfigured ? (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {providerStatus?.configurationError ??
+            "Resume draft provider is not configured."}
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="resume-draft-jd" className={labelClassName}>
+            Saved job
+          </label>
+          <select
+            id="resume-draft-jd"
+            value={effectiveJobDescriptionId}
+            onChange={(event) => handleJobSelectionChange(event.target.value)}
+            disabled={disabled || jobDescriptions.length === 0}
+            className={formFieldClassName}
           >
-            {isGenerating ? "Generating…" : "Generate resume"}
-          </button>
+            {jobDescriptions.length === 0 ? (
+              <option value="">No saved jobs</option>
+            ) : (
+              jobDescriptions.map((jd) => (
+                <option key={jd.id} value={jd.id}>
+                  {formatSavedJobLabel(jd)}
+                </option>
+              ))
+            )}
+          </select>
         </div>
 
-        {error ? (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
-        ) : null}
+        <div>
+          <label htmlFor="resume-draft-reference" className={labelClassName}>
+            Reference resume (formatting)
+          </label>
+          <select
+            id="resume-draft-reference"
+            value={effectiveReferenceResumeId}
+            onChange={(event) => setSelectedReferenceResumeId(event.target.value)}
+            disabled={disabled || inventory.resumes.length === 0}
+            className={formFieldClassName}
+          >
+            {inventory.resumes.length === 0 ? (
+              <option value="">No uploaded resumes</option>
+            ) : (
+              inventory.resumes.map((resume) => (
+                <option key={resume.id} value={resume.id}>
+                  {resume.filename}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </div>
 
-        {debugRaw ? (
-          <details className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-slate-700">
-              Raw model response
-            </summary>
-            <pre className="mt-2 max-h-64 overflow-auto text-xs text-slate-800">{debugRaw}</pre>
-          </details>
-        ) : null}
+      <p className="mt-3 text-sm text-slate-600">
+        Approved keywords available: {approvedKeywordCount}
+      </p>
 
-        {jobDescriptions.length === 0 || inventory.resumes.length === 0 ? (
-          <div className="mt-4">
-            <EmptyState
-              title="Resume prerequisites"
-              description="Upload at least one resume and save a job on this page before generating."
-            />
-          </div>
-        ) : null}
-      </SetupCard>
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={!canGenerate || isGenerating}
+          className={primaryButtonClassName}
+        >
+          {isGenerating ? "Generating…" : "Generate resume"}
+        </button>
+      </div>
 
-      {savedDraft ? (
-        <ResumeDraftReviewWorkspace
-          key={savedDraft.id}
-          draft={savedDraft}
-          onDraftUpdated={setSavedDraft}
-        />
+      {error ? (
+        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
       ) : null}
-    </>
+
+      {debugRaw ? (
+        <details className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            Raw model response
+          </summary>
+          <pre className="mt-2 max-h-64 overflow-auto text-xs text-slate-800">{debugRaw}</pre>
+        </details>
+      ) : null}
+
+      {jobDescriptions.length === 0 || inventory.resumes.length === 0 ? (
+        <div className="mt-4">
+          <EmptyState
+            title="Resume prerequisites"
+            description="Upload at least one resume and save a job on this page before generating."
+          />
+        </div>
+      ) : null}
+    </SetupCard>
   );
 }

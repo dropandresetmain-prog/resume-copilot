@@ -8,16 +8,34 @@ Critical output rules:
 - The response must parse with JSON.parse().
 
 Content rules:
-- Do not invent employers, titles, dates, metrics, tools, degrees, or achievements not supported by the provided inventory, reference resume, job description, or approved keywords.
-- Use only facts from the provided input payload.
-- Tailor wording to the job description when the inventory supports it.
-- Preserve the tone and positioning of the reference resume excerpt.
-- Do not overclaim software engineering depth. Frame technical work accurately as product, system, or AI-assisted development unless the inventory clearly shows hands-on engineering ownership.
-- If the job description asks for unsupported experience, add risk flags instead of inventing bullets.
+- Generated content must come from inventory experiences, education, skills, additional experience, approved keywords, and the job description.
+- The reference resume is formatting/template only. Do NOT copy bullet text or achievements from the reference resume.
+- Use referenceResume.bulletStyle and referenceResume.sectionOrder for layout decisions only.
+- Do not invent employers, titles, dates, metrics, tools, degrees, or achievements not supported by inventory or approved keywords.
+- Tailor wording to the job description when inventory supports it.
+- Do not overclaim software engineering depth unless inventory clearly shows hands-on engineering ownership.
+- If the job description asks for unsupported experience, add risk flags and list omissions in rationale.
 - Every experience bullet must include sourceRefs when matching inventory bullets exist.
-- Include rationale and omissions for unsupported JD requirements.
 - Approved keywords may be incorporated only when truthful for the candidate's inventory.
-- Omit a contact/header block unless the reference resume excerpt contains contact details.`;
+
+Resume structure (exact order):
+1. Header — Name, then "Phone | Email" on the next line. No professional summary.
+2. Work Experience
+3. Education
+4. Additional Experience — one compact comma-separated line (not multiple mini bullets)
+5. Skills & Interests — separate groups labeled "Skills" and "Interests"
+
+Work experience bullet format:
+- Use "Keyword: Experience statement" (keyword colon space statement).
+- Example: "Strategy: Supported 50+ companies with market entry initiatives across multiple regions."
+- Do not use plain bullet dots.
+
+Additional experience:
+- Combine into compact comma-separated phrases in one item, e.g. "Advanced Open Water Diver, Former Band Vocalist, Conversational Japanese".
+
+Skills & Interests:
+- Skills group: comma-separated skill phrases.
+- Interests group: comma-separated interests (required when inventory has interests/skills data).`;
 
 export function buildResumeDraftPrompt(input: ResumeDraftGenerationInput): string {
   return `${RESUME_DRAFT_SYSTEM_INSTRUCTIONS}
@@ -36,12 +54,15 @@ Generate a tailored resume draft and return JSON with this exact shape:
     "notes": "string | null"
   },
   "professionalSummary": {
-    "text": "string",
-    "jdAlignment": ["string"],
-    "riskFlags": ["string"]
+    "text": "",
+    "jdAlignment": [],
+    "riskFlags": []
   },
   "skills": {
-    "groups": [{ "label": "string", "items": ["string"] }],
+    "groups": [
+      { "label": "Skills", "items": ["string"] },
+      { "label": "Interests", "items": ["string"] }
+    ],
     "jdAlignment": ["string"],
     "riskFlags": ["string"]
   },
@@ -53,7 +74,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
       "dateRange": "string | null",
       "bullets": [
         {
-          "text": "string",
+          "text": "Keyword: Experience statement",
           "sourceRefs": [
             {
               "collatedBulletId": "string | null",
@@ -81,8 +102,8 @@ Generate a tailored resume draft and return JSON with this exact shape:
   ],
   "additionalExperience": [
     {
-      "category": "string | null",
-      "text": "string",
+      "category": "Additional Experience",
+      "text": "compact comma-separated line",
       "riskFlags": ["string"]
     }
   ],
@@ -102,7 +123,7 @@ ${JSON.stringify(input, null, 2)}`;
 export function promptIncludesJsonSchemaInstructions(prompt: string): boolean {
   return (
     prompt.includes('"schemaVersion": 1') &&
-    prompt.includes('"professionalSummary"') &&
+    prompt.includes('"skills"') &&
     prompt.includes("Return strict JSON only")
   );
 }
