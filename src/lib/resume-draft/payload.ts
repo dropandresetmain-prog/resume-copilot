@@ -69,6 +69,7 @@ export function buildResumeDraftGenerationInput(options: {
       experiences.push({
         collatedExperienceId: experience.id,
         company: experience.company,
+        companyDescriptor: experience.descriptor,
         role: experience.role,
         location: experience.location,
         dateRange: experience.dateRange,
@@ -94,6 +95,7 @@ export function buildResumeDraftGenerationInput(options: {
     experiences,
     education: options.collated.educationItems.map((item) => ({
       institution: item.institution,
+      location: item.location,
       programmes: item.programmes,
       dateRange: item.dateRange,
       bullets: item.bullets,

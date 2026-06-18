@@ -21,22 +21,37 @@ const durationChecks: [string, boolean][] = [
   [
     "Apr 2025 – Present",
     calculateExperienceDuration("Apr 2025 – Present", referenceDate).display ===
-      "2 mos",
+      "3 mos",
   ],
   [
     "Jul 2019 – Present months",
     calculateExperienceDuration("Jul 2019 – Present", referenceDate).totalMonths ===
-      71,
+      72,
   ],
   [
     "Dec 2020 – May 2022",
+    calculateExperienceDuration("Dec 2020 – May 2022", referenceDate).totalMonths ===
+      18,
+  ],
+  [
+    "Dec 2020 – May 2022 display",
     calculateExperienceDuration("Dec 2020 – May 2022", referenceDate).display ===
-      "1 yr 5 mos",
+      "1 yr 6 mos",
   ],
   [
     "Mar 2019 – Jun 2019",
+    calculateExperienceDuration("Mar 2019 – Jun 2019", referenceDate).totalMonths ===
+      4,
+  ],
+  [
+    "Mar 2019 – Jun 2019 display",
     calculateExperienceDuration("Mar 2019 – Jun 2019", referenceDate).display ===
-      "3 mos",
+      "4 mos",
+  ],
+  [
+    "Jan 2020 – Jan 2020",
+    calculateExperienceDuration("Jan 2020 – Jan 2020", referenceDate).totalMonths ===
+      1,
   ],
   [
     "invalid range warning",

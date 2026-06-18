@@ -22,6 +22,7 @@ export type ResumeDraftExperienceBullet = {
 
 export type ResumeDraftExperienceSection = {
   company: string;
+  companyDescriptor?: string;
   role: string;
   location?: string;
   dateRange?: string;
@@ -31,6 +32,7 @@ export type ResumeDraftExperienceSection = {
 
 export type ResumeDraftEducationItem = {
   institution: string;
+  location?: string;
   programmes: string[];
   dateRange?: string;
   bullets: string[];
@@ -142,6 +144,7 @@ export type ResumeDraftBulletInput = {
 export type ResumeDraftExperienceInput = {
   collatedExperienceId: string;
   company: string;
+  companyDescriptor?: string;
   role: string;
   location?: string;
   dateRange?: string;
@@ -176,6 +179,7 @@ export type ResumeDraftGenerationInput = {
   experiences: ResumeDraftExperienceInput[];
   education: {
     institution: string;
+    location?: string;
     programmes: string[];
     dateRange?: string;
     bullets: string[];

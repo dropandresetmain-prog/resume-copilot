@@ -2,34 +2,61 @@
 
 ## Current milestone
 
-**v0.5.1 — Final Resume Layout Preview**
+**v0.5.2 — Resume Layout Fidelity Fixes**
 
-Post-generation flow now lands on `/resume-preview/[draftId]` with an A4 layout preview (canonical for future DOCX/PDF export), fit assessment panel, and **Approve for Export**. **Edit Resume Details** opens the secondary review workspace.
+Preview now matches reference resume layout more closely: work/education line structure, visible bullet markers, underlined keyword labels, A4 page boundary, compact Skills/Languages/Interests lines, and dedicated edit route.
 
 ## Product flow
 
 ```
 Generate → Final Resume Layout Preview → Approve for Export → (future DOCX/PDF)
-                              ↘ Edit Resume Details → Review Workspace
+                              ↘ Edit Resume Details → /resume-preview/[draftId]/edit
 ```
+
+## Layout fidelity (v0.5.2)
+
+**Work Experience**
+- Line 1: **Company (descriptor)** left · location right
+- Line 2: *Role* left · date range right
+- Bullets: visible markers; `Keyword:` underlined + description
+
+**Education**
+- Line 1: **Institution · programme** left · location right
+- Line 2: *Degree* left · date range right (shared range shown once for double degrees)
+- Achievement bullets with underlined `Achievement:` when prefixed
+
+**Additional Experience**
+- Compact comma-separated line
+- Excludes languages, interests, and technical skills (those go to Skills & Interests)
+
+**Skills & Interests**
+- Section title: SKILLS & INTERESTS
+- Underlined labels: Skills:, Languages:, Interests:
+
+**A4 preview**
+- Visible page container (210 × 297 mm aspect ratio), white page on slate background, dashed one-page boundary
 
 ## Reference resume (formatting only)
 
 Reference resume is a **formatting/template reference**, not a content source.
 
-- `buildReferenceResumeFormatProfile()` sends layout signals only (bullet style, section order, header contact layout).
+- `buildReferenceResumeFormatProfile()` sends layout signals only.
 - Generated content comes from inventory, approved keywords, and job description.
-- Prompt and mock enforce **Keyword: Experience statement** bullets.
+- First draft targets one A4 page: 2–4 strong bullets per role; compact additional/skills sections.
 
 ## Final resume structure (exact order)
 
 1. Header — Name; Phone | Email
 2. Work Experience
 3. Education
-4. Additional Experience (compact comma-separated line)
-5. Skills & Interests (separate Skills and Interests lines)
+4. Additional Experience
+5. Skills & Interests
 
 No Professional Summary in generated resumes (reserved for cover letters later).
+
+## Duration calculation
+
+Experience durations use **inclusive months** (Mar–Jun 2019 = 4 months). See `src/lib/date/duration.ts`.
 
 ## Roadmap
 
@@ -37,7 +64,8 @@ No Professional Summary in generated resumes (reserved for cover letters later).
 |-----------|--------|
 | 4A — AI resume draft generation | Complete |
 | 4B — Resume draft review UI | Complete (v0.5.0) |
-| **v0.5.1 — Final layout preview** | **Current** |
+| v0.5.1 — Final layout preview | Complete |
+| **v0.5.2 — Layout fidelity fixes** | **Current** |
 | 4C — Draft management | Not started |
 | v0.6.0 — DOCX export | Next |
 | v0.6.1 — PDF export | Planned |

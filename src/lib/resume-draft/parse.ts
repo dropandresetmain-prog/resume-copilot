@@ -102,6 +102,7 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
   const experience = Array.isArray(parsed.experience)
     ? parsed.experience.filter(isObject).map((entry) => ({
         company: asString(entry.company) ?? "Unknown company",
+        companyDescriptor: asString(entry.companyDescriptor),
         role: asString(entry.role) ?? "Unknown role",
         location: asString(entry.location),
         dateRange: asString(entry.dateRange),
@@ -121,6 +122,7 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
   const education = Array.isArray(parsed.education)
     ? parsed.education.filter(isObject).map((entry) => ({
         institution: asString(entry.institution) ?? "Unknown institution",
+        location: asString(entry.location),
         programmes: asStringArray(entry.programmes),
         dateRange: asString(entry.dateRange),
         bullets: asStringArray(entry.bullets),

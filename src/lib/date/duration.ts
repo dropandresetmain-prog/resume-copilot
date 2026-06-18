@@ -83,8 +83,9 @@ export function formatDuration(totalMonths: number): string {
   return `${yearLabel} ${months} mos`;
 }
 
+/** Inclusive month count (Mar–Jun counts Mar, Apr, May, and Jun). */
 function monthsBetween(start: MonthYear, end: MonthYear): number {
-  return end.year * 12 + end.month - (start.year * 12 + start.month);
+  return end.year * 12 + end.month - (start.year * 12 + start.month) + 1;
 }
 
 export function calculateExperienceDuration(

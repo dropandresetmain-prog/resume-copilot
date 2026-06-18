@@ -1,7 +1,13 @@
-import { compactAdditionalExperience, formatKeywordBullet } from "@/lib/resume-draft/layout";
+import {
+  compactAdditionalExperience,
+  filterAdditionalExperienceItems,
+  formatKeywordBullet,
+} from "@/lib/resume-draft/layout";
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
 import type { ResumeDraftGenerationResult } from "@/types/resume-draft";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "@/types/resume-draft";
+
+const MAX_BULLETS_PER_ROLE = 4;
 
 function buildHeader(input: ResumeDraftGenerationInput) {
   const contact = input.referenceResume.headerContact;
@@ -18,15 +24,17 @@ function buildHeader(input: ResumeDraftGenerationInput) {
 
 function buildSkillsGroups(input: ResumeDraftGenerationInput) {
   const skillItems = input.skills
-    .filter((item) => !/interest/i.test(item.category))
+    .filter((item) => /technical skill/i.test(item.category))
     .map((item) => item.text)
     .filter(Boolean);
-  const interestItems = [
-    ...input.skills.filter((item) => /interest/i.test(item.category)).map((item) => item.text),
-    ...input.additionalExperience
-      .filter((item) => /interest|hobby|language/i.test(item.category ?? item.text))
-      .map((item) => item.text),
-  ].filter(Boolean);
+  const languageItems = input.skills
+    .filter((item) => /^languages$/i.test(item.category))
+    .map((item) => item.text)
+    .filter(Boolean);
+  const interestItems = input.skills
+    .filter((item) => /^interests$/i.test(item.category))
+    .map((item) => item.text)
+    .filter(Boolean);
 
   const groups = [];
   if (skillItems.length > 0 || input.approvedKeywords.length > 0) {
@@ -36,6 +44,12 @@ function buildSkillsGroups(input: ResumeDraftGenerationInput) {
         ...input.approvedKeywords.slice(0, 8).map((item) => item.keyword),
         ...skillItems,
       ].slice(0, 12),
+    });
+  }
+  if (languageItems.length > 0) {
+    groups.push({
+      label: "Languages",
+      items: languageItems.slice(0, 8),
     });
   }
   groups.push({
@@ -59,10 +73,11 @@ export function generateMockResumeDraft(
 
   const experience = input.experiences.slice(0, 3).map((entry) => ({
     company: entry.company,
+    companyDescriptor: entry.companyDescriptor,
     role: entry.role,
     location: entry.location,
     dateRange: entry.dateRange,
-    bullets: entry.bullets.slice(0, 3).map((bullet) => {
+    bullets: entry.bullets.slice(0, MAX_BULLETS_PER_ROLE).map((bullet) => {
       const keyword = bullet.keyword?.trim() || "Operations";
       const statement = bullet.description.trim();
       return {
@@ -81,13 +96,14 @@ export function generateMockResumeDraft(
     riskFlags: [],
   }));
 
-  const additionalLine = compactAdditionalExperience(
+  const additionalItems = filterAdditionalExperienceItems(
     input.additionalExperience.map((item) => ({
       category: item.category,
       text: item.text,
       riskFlags: [],
     })),
   );
+  const additionalLine = compactAdditionalExperience(additionalItems);
 
   return {
     content: {
@@ -107,6 +123,7 @@ export function generateMockResumeDraft(
       experience,
       education: input.education.slice(0, 3).map((item) => ({
         institution: item.institution,
+        location: item.location,
         programmes: item.programmes,
         dateRange: item.dateRange,
         bullets: item.bullets.slice(0, 2),
@@ -122,7 +139,7 @@ export function generateMockResumeDraft(
     },
     rationale: {
       overall: `Draft tailored for ${targetRole} using inventory content only. Reference resume (${input.referenceResume.filename}) informed layout and bullet style.`,
-      toneNotes: `Bullet style: ${input.referenceResume.bulletStyle}.`,
+      toneNotes: `Bullet style: ${input.referenceResume.bulletStyle}. Prefer 2–4 bullets per role for one-page fit.`,
       omissions: [],
       keywordUsage: input.approvedKeywords.map((item) => item.keyword),
     },

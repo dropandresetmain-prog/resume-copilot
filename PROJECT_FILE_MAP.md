@@ -9,7 +9,8 @@
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
 | `/records` | `src/app/(workspace)/records/page.tsx` | Manage saved jobs + draft history |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
-| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1) |
+| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1+) |
+| `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
 
@@ -141,11 +142,12 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
-| `src/lib/resume-draft/layout.ts` | Final layout model, page-fit estimate, fit score (v0.5.1) |
+| `src/lib/resume-draft/layout.ts` | Final layout model, page-fit estimate, fit score, layout helpers (v0.5.1+) |
 | `src/lib/resume-draft/reference-format.ts` | Reference resume formatting profile (no content) |
 | `src/components/resume-drafts/FinalResumeLayoutPreview.tsx` | Canonical A4 resume preview |
 | `src/components/resume-drafts/ResumeAssessmentPanel.tsx` | Fit score + rationale panel |
 | `src/components/pages/ResumePreviewPageClient.tsx` | Post-generation preview page client |
+| `src/components/pages/ResumeDraftEditPageClient.tsx` | Draft edit workspace page client (v0.5.2) |
 | `src/lib/resume-draft/preview-helpers.ts` | Risk/confidence/source label helpers |
 | `src/components/resume-drafts/ResumeDraftPreview.tsx` | Readable resume preview (4B) |
 | `src/components/resume-drafts/ResumeDraftReviewWorkspace.tsx` | Preview + review + mark reviewed (4B) |

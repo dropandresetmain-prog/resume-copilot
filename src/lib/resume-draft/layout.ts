@@ -1,6 +1,9 @@
 import type {
+  ResumeDraftAdditionalExperienceItem,
   ResumeDraftContent,
+  ResumeDraftEducationItem,
   ResumeDraftExperienceBullet,
+  ResumeDraftExperienceSection,
   ResumeDraftRationale,
 } from "@/types/resume-draft";
 
@@ -13,26 +16,42 @@ export const FINAL_RESUME_SECTION_ORDER = [
   "skillsAndInterests",
 ] as const;
 
+export type WorkExperienceLayoutEntry = {
+  company: string;
+  companyDescriptor?: string;
+  role: string;
+  location?: string;
+  dateRange?: string;
+  bullets: Array<{ keyword: string; statement: string; rawText: string }>;
+};
+
+export type EducationDegreeBlock = {
+  titleLine: string;
+  degreeLine: string;
+  location?: string;
+  dateRange?: string;
+};
+
+export type EducationLayoutEntry = {
+  degreeBlocks: EducationDegreeBlock[];
+  achievementBullets: Array<{
+    prefix?: string;
+    underlinePrefix: boolean;
+    text: string;
+    rawText: string;
+  }>;
+};
+
 export type FinalResumeLayout = {
   header: {
     fullName: string;
     contactLine: string;
   };
-  workExperience: Array<{
-    company: string;
-    role: string;
-    location?: string;
-    dateRange?: string;
-    bullets: Array<{ keyword: string; statement: string; rawText: string }>;
-  }>;
-  education: Array<{
-    institution: string;
-    programmesLine: string;
-    dateRange?: string;
-    bullets: string[];
-  }>;
+  workExperience: WorkExperienceLayoutEntry[];
+  education: EducationLayoutEntry[];
   additionalExperienceLine: string;
   skillsLine: string;
+  languagesLine: string;
   interestsLine: string;
 };
 
@@ -55,7 +74,13 @@ export type ResumeFitAssessment = {
 
 const DEFAULT_MAX_LINES_ONE_PAGE = 52;
 
-export function parseKeywordBullet(text: string, fallbackKeyword = "Experience"): {
+const LANGUAGE_INTEREST_CATEGORY_PATTERN =
+  /language|interest|hobby|technical skill|technical skills|^skills$/i;
+
+export function parseKeywordBullet(
+  text: string,
+  fallbackKeyword = "Experience",
+): {
   keyword: string;
   statement: string;
 } {
@@ -84,15 +109,66 @@ export function formatKeywordBullet(keyword: string, statement: string): string 
   return `${cleanKeyword}: ${cleanStatement}`;
 }
 
+export function parseAchievementBullet(text: string): {
+  prefix?: string;
+  underlinePrefix: boolean;
+  text: string;
+} {
+  const match = text.match(/^([^:]{1,40}):\s*(.+)$/);
+  if (match && /^achievement$/i.test(match[1].trim())) {
+    return {
+      prefix: "Achievement:",
+      underlinePrefix: true,
+      text: match[2].trim(),
+    };
+  }
+  return {
+    underlinePrefix: false,
+    text: text.trim(),
+  };
+}
+
+export function formatCompanyLine(company: string, companyDescriptor?: string): string {
+  const cleanCompany = company.trim();
+  const cleanDescriptor = companyDescriptor?.trim();
+  if (!cleanDescriptor) {
+    return cleanCompany;
+  }
+  return `${cleanCompany} (${cleanDescriptor})`;
+}
+
+export function shouldExcludeFromAdditionalExperience(item: {
+  category?: string;
+  text: string;
+}): boolean {
+  const category = item.category?.trim() ?? "";
+  if (LANGUAGE_INTEREST_CATEGORY_PATTERN.test(category)) {
+    return true;
+  }
+
+  const text = item.text.trim();
+  if (/^conversational\s+[a-z]+$/i.test(text)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function filterAdditionalExperienceItems<
+  T extends ResumeDraftAdditionalExperienceItem,
+>(items: T[]): T[] {
+  return items.filter((item) => !shouldExcludeFromAdditionalExperience(item));
+}
+
 function buildContactLine(header: ResumeDraftContent["header"]): string {
   const parts = [header.phone?.trim(), header.email?.trim()].filter(Boolean);
   return parts.join(" | ");
 }
 
 export function compactAdditionalExperience(
-  items: ResumeDraftContent["additionalExperience"],
+  items: ResumeDraftAdditionalExperienceItem[],
 ): string {
-  const phrases = items
+  const phrases = filterAdditionalExperienceItems(items)
     .map((item) => item.text.trim())
     .filter(Boolean)
     .flatMap((text) => text.split(/[;\n]+/))
@@ -102,61 +178,98 @@ export function compactAdditionalExperience(
   return phrases.join(", ");
 }
 
-function extractSkillsAndInterests(content: ResumeDraftContent): {
+function extractSkillsLanguagesAndInterests(content: ResumeDraftContent): {
   skillsLine: string;
+  languagesLine: string;
   interestsLine: string;
 } {
   const groups = content.skills.groups;
-  const skillsGroup = groups.find((group) => /skill/i.test(group.label)) ?? groups[0];
+  const skillsGroup =
+    groups.find((group) => /^skills$/i.test(group.label.trim())) ??
+    groups.find((group) => /skill/i.test(group.label) && !/interest|language/i.test(group.label)) ??
+    groups[0];
+  const languagesGroup = groups.find((group) => /language/i.test(group.label));
   const interestsGroup = groups.find((group) => /interest/i.test(group.label));
 
   const skillsItems = skillsGroup?.items.filter(Boolean) ?? [];
+  const languagesItems = languagesGroup?.items.filter(Boolean) ?? [];
   const interestsItems =
     interestsGroup?.items.filter(Boolean) ??
     groups
-      .filter((group) => group !== skillsGroup)
+      .filter((group) => group !== skillsGroup && group !== languagesGroup)
       .flatMap((group) => group.items)
       .filter(Boolean);
 
   return {
     skillsLine: skillsItems.join(", "),
+    languagesLine: languagesItems.join(", "),
     interestsLine: interestsItems.join(", "),
+  };
+}
+
+export function buildWorkExperienceLayoutEntry(
+  experience: ResumeDraftExperienceSection,
+): WorkExperienceLayoutEntry {
+  return {
+    company: experience.company,
+    companyDescriptor: experience.companyDescriptor,
+    role: experience.role,
+    location: experience.location,
+    dateRange: experience.dateRange,
+    bullets: experience.bullets
+      .map((bullet: ResumeDraftExperienceBullet) => {
+        const parsed = parseKeywordBullet(bullet.text);
+        return {
+          keyword: parsed.keyword,
+          statement: parsed.statement,
+          rawText: bullet.text,
+        };
+      })
+      .filter((bullet) => bullet.statement.length > 0),
+  };
+}
+
+export function buildEducationLayoutEntry(
+  item: ResumeDraftEducationItem,
+): EducationLayoutEntry {
+  const programmes = item.programmes.length > 0 ? item.programmes : [""];
+
+  return {
+    degreeBlocks: programmes.map((programme, index) => ({
+      titleLine: programme
+        ? `${item.institution} · ${programme}`
+        : item.institution,
+      degreeLine: programme || item.institution,
+      location: item.location,
+      dateRange: index === 0 ? item.dateRange : undefined,
+    })),
+    achievementBullets: item.bullets.map((bullet) => {
+      const parsed = parseAchievementBullet(bullet);
+      return {
+        prefix: parsed.prefix,
+        underlinePrefix: parsed.underlinePrefix,
+        text: parsed.text,
+        rawText: bullet,
+      };
+    }),
   };
 }
 
 /** Build canonical one-page-oriented layout from generated draft content. */
 export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResumeLayout {
-  const { skillsLine, interestsLine } = extractSkillsAndInterests(content);
+  const { skillsLine, languagesLine, interestsLine } =
+    extractSkillsLanguagesAndInterests(content);
 
   return {
     header: {
       fullName: content.header.fullName?.trim() ?? "",
       contactLine: buildContactLine(content.header),
     },
-    workExperience: content.experience.map((experience) => ({
-      company: experience.company,
-      role: experience.role,
-      location: experience.location,
-      dateRange: experience.dateRange,
-      bullets: experience.bullets
-        .map((bullet: ResumeDraftExperienceBullet) => {
-          const parsed = parseKeywordBullet(bullet.text);
-          return {
-            keyword: parsed.keyword,
-            statement: parsed.statement,
-            rawText: bullet.text,
-          };
-        })
-        .filter((bullet) => bullet.statement.length > 0),
-    })),
-    education: content.education.map((item) => ({
-      institution: item.institution,
-      programmesLine: item.programmes.join(" · "),
-      dateRange: item.dateRange,
-      bullets: item.bullets,
-    })),
+    workExperience: content.experience.map(buildWorkExperienceLayoutEntry),
+    education: content.education.map(buildEducationLayoutEntry),
     additionalExperienceLine: compactAdditionalExperience(content.additionalExperience),
     skillsLine,
+    languagesLine,
     interestsLine,
   };
 }
@@ -187,8 +300,8 @@ export function estimatePageFit(
   }
 
   for (const education of layout.education) {
-    lines += 2;
-    lines += education.bullets.length;
+    lines += education.degreeBlocks.length * 2;
+    lines += education.achievementBullets.length;
     lines += sectionSpacing * 0.5;
   }
 
@@ -198,10 +311,13 @@ export function estimatePageFit(
   }
 
   if (layout.skillsLine) {
-    lines += 2 * lineSpacing;
+    lines += 1.5 * lineSpacing;
+  }
+  if (layout.languagesLine) {
+    lines += 1.5 * lineSpacing;
   }
   if (layout.interestsLine) {
-    lines += 2 * lineSpacing;
+    lines += 1.5 * lineSpacing;
   }
 
   const estimatedLines = Math.ceil(lines);
@@ -250,9 +366,9 @@ export function calculateFitScore(
 
   const optimizedFor = [
     ...(keywordUsage.slice(0, 3).map((keyword) => `Highlighted ${keyword} from approved keywords`)),
-    "Aligned experience bullets to job description emphasis",
-    "Used compact one-page section ordering",
-    "Applied keyword-colon bullet formatting",
+    "Prioritized 2–4 strong bullets per role for one-page fit",
+    "Used compact Additional Experience and Skills & Interests lines",
+    "Applied keyword-colon bullet formatting with visible bullet markers",
   ]
     .filter(Boolean)
     .slice(0, 5);
@@ -277,7 +393,9 @@ export function calculateFitScore(
     ...(lowConfidenceBullets > 0
       ? [`${lowConfidenceBullets} low-confidence bullet(s) need review`]
       : []),
-    ...(pageFit.exceedsOnePage ? ["Draft may exceed one page"] : []),
+    ...(pageFit.exceedsOnePage
+      ? ["Draft may exceed one page — consider reducing bullets in Edit Resume Details"]
+      : []),
   ].slice(0, 6);
 
   return {

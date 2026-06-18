@@ -17,25 +17,31 @@ Content rules:
 - If the job description asks for unsupported experience, add risk flags and list omissions in rationale.
 - Every experience bullet must include sourceRefs when matching inventory bullets exist.
 - Approved keywords may be incorporated only when truthful for the candidate's inventory.
+- Aim for one A4 page: prefer 2–4 strong, job-relevant bullets per role; avoid filler bullets.
+- Do not auto-delete inventory content — omit only when unsupported, and note omissions in rationale.
 
 Resume structure (exact order):
 1. Header — Name, then "Phone | Email" on the next line. No professional summary.
 2. Work Experience
 3. Education
-4. Additional Experience — one compact comma-separated line (not multiple mini bullets)
-5. Skills & Interests — separate groups labeled "Skills" and "Interests"
+4. Additional Experience — compact comma-separated line(s) for projects, certifications, past roles, extracurriculars
+5. Skills & Interests — labeled groups: Skills, Languages (if available), Interests
 
 Work experience bullet format:
 - Use "Keyword: Experience statement" (keyword colon space statement).
 - Example: "Strategy: Supported 50+ companies with market entry initiatives across multiple regions."
-- Do not use plain bullet dots.
+- Include companyDescriptor when inventory provides a company descriptor.
+- Preview renders bullets with visible bullet markers and underlined "Keyword:" labels.
 
 Additional experience:
-- Combine into compact comma-separated phrases in one item, e.g. "Advanced Open Water Diver, Former Band Vocalist, Conversational Japanese".
+- Include projects, certifications, past relevant roles, and notable professional items.
+- Do NOT put languages, interests, or technical skills here — those belong in Skills & Interests.
+- Combine into compact comma-separated phrases, e.g. "Advanced Open Water Diver, Former Band Vocalist".
 
 Skills & Interests:
 - Skills group: comma-separated skill phrases.
-- Interests group: comma-separated interests (required when inventory has interests/skills data).`;
+- Languages group: comma-separated languages when inventory has them.
+- Interests group: comma-separated interests (required when inventory has interests).`;
 
 export function buildResumeDraftPrompt(input: ResumeDraftGenerationInput): string {
   return `${RESUME_DRAFT_SYSTEM_INSTRUCTIONS}
@@ -61,6 +67,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
   "skills": {
     "groups": [
       { "label": "Skills", "items": ["string"] },
+      { "label": "Languages", "items": ["string"] },
       { "label": "Interests", "items": ["string"] }
     ],
     "jdAlignment": ["string"],
@@ -69,6 +76,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
   "experience": [
     {
       "company": "string",
+      "companyDescriptor": "string | null",
       "role": "string",
       "location": "string | null",
       "dateRange": "string | null",
@@ -94,9 +102,10 @@ Generate a tailored resume draft and return JSON with this exact shape:
   "education": [
     {
       "institution": "string",
+      "location": "string | null",
       "programmes": ["string"],
       "dateRange": "string | null",
-      "bullets": ["string"],
+      "bullets": ["Achievement: optional achievement text"],
       "riskFlags": ["string"]
     }
   ],

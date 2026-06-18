@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
-import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDraftReviewWorkspace";
 import {
   primaryButtonClassName,
   secondaryButtonClassName,
@@ -33,7 +32,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
-  const [showEditWorkspace, setShowEditWorkspace] = useState(false);
   const [marginMm, setMarginMm] = useState(18);
   const [lineSpacing, setLineSpacing] = useState(1.15);
   const [sectionSpacing, setSectionSpacing] = useState(1.1);
@@ -136,9 +134,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.5.1 · Final Resume Layout Preview"
+        milestone="v0.5.2 · Resume Layout Fidelity Fixes"
         title="Final resume layout preview"
-        description="Validate formatting, density, and one-page fit before export. Section order: Header → Work Experience → Education → Additional Experience → Skills & Interests."
+        description="Validate A4 formatting, density, and one-page fit before export. Section order: Header → Work Experience → Education → Additional Experience → Skills & Interests."
       />
 
       <p className="text-xs text-slate-500">
@@ -195,13 +193,12 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         >
           {isApproved ? "Approved for export" : isApproving ? "Saving…" : "Approve for Export"}
         </button>
-        <button
-          type="button"
-          onClick={() => setShowEditWorkspace((current) => !current)}
-          className={secondaryButtonClassName}
+        <Link
+          href={`/resume-preview/${draftId}/edit`}
+          className={`inline-flex ${secondaryButtonClassName}`}
         >
-          {showEditWorkspace ? "Hide Edit Resume Details" : "Edit Resume Details"}
-        </button>
+          Edit Resume Details
+        </Link>
         <Link href="/generate" className={`inline-flex ${secondaryButtonClassName}`}>
           Back to Generate
         </Link>
@@ -211,10 +208,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
         </p>
-      ) : null}
-
-      {showEditWorkspace ? (
-        <ResumeDraftReviewWorkspace draft={draft} onDraftUpdated={setDraft} />
       ) : null}
 
       <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
