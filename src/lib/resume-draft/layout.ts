@@ -6,6 +6,15 @@ import type {
   ResumeDraftExperienceSection,
   ResumeDraftRationale,
 } from "@/types/resume-draft";
+import { getDateRangeEndSortKey } from "@/lib/date/duration";
+import {
+  computeMaxLinesOnePage,
+  PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_LINE_SPACING_DEFAULT,
+  PREVIEW_MARGIN_DEFAULT_MM,
+  PREVIEW_MARGIN_TOP_DEFAULT_MM,
+  PREVIEW_SECTION_SPACING_DEFAULT,
+} from "@/lib/resume-draft/preview-settings";
 
 /** Canonical final resume section order for preview and future export. */
 export const FINAL_RESUME_SECTION_ORDER = [
@@ -59,9 +68,13 @@ export type PageFitEstimate = {
   estimatedLines: number;
   maxLinesOnePage: number;
   exceedsOnePage: boolean;
+  overflowLines: number;
+  estimatedPages: number;
   marginMm: number;
+  marginTopMm: number;
   lineSpacing: number;
   sectionSpacing: number;
+  bodyFontPx: number;
 };
 
 export type ResumeFitAssessment = {
@@ -72,7 +85,60 @@ export type ResumeFitAssessment = {
   riskFlags: string[];
 };
 
-const DEFAULT_MAX_LINES_ONE_PAGE = 52;
+const DATE_RANGE_IN_TEXT_PATTERN =
+  /(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i;
+
+/** Sort dated items latest-first; undated items keep relative order after dated items. */
+export function sortReverseChronological<T>(
+  items: readonly T[],
+  getDateRange: (item: T) => string | undefined,
+  referenceDate: Date = new Date(),
+): T[] {
+  const indexed = items.map((item, index) => ({
+    item,
+    index,
+    ...getDateRangeEndSortKey(getDateRange(item), referenceDate),
+  }));
+
+  return [...indexed]
+    .sort((a, b) => {
+      if (a.hasDate && b.hasDate) {
+        return b.sortKey - a.sortKey;
+      }
+      if (a.hasDate && !b.hasDate) {
+        return -1;
+      }
+      if (!a.hasDate && b.hasDate) {
+        return 1;
+      }
+      return a.index - b.index;
+    })
+    .map((entry) => entry.item);
+}
+
+export function extractDateRangeFromPhrase(text: string): string | undefined {
+  const trimmed = text.trim();
+  const explicitRange = trimmed.match(DATE_RANGE_IN_TEXT_PATTERN);
+  if (explicitRange) {
+    return explicitRange[0];
+  }
+
+  const yearRange = trimmed.match(/\b(19|20)\d{2}\s*[-–—]\s*(Present|Current|(19|20)\d{2})\b/i);
+  if (yearRange) {
+    return yearRange[0];
+  }
+
+  const trailingYear = trimmed.match(/\b(19|20)\d{2}\b/);
+  if (trailingYear) {
+    return `Dec ${trailingYear[0]}`;
+  }
+
+  return undefined;
+}
+
+export function sortAdditionalExperiencePhrases(phrases: string[]): string[] {
+  return sortReverseChronological(phrases, extractDateRangeFromPhrase);
+}
 
 const LANGUAGE_INTEREST_CATEGORY_PATTERN =
   /language|interest|hobby|technical skill|technical skills|^skills$/i;
@@ -175,7 +241,7 @@ export function compactAdditionalExperience(
     .map((part) => part.trim())
     .filter(Boolean);
 
-  return phrases.join(", ");
+  return sortAdditionalExperiencePhrases(phrases).join(", ");
 }
 
 function extractSkillsLanguagesAndInterests(content: ResumeDraftContent): {
@@ -260,13 +326,22 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
   const { skillsLine, languagesLine, interestsLine } =
     extractSkillsLanguagesAndInterests(content);
 
+  const sortedExperience = sortReverseChronological(
+    content.experience,
+    (experience) => experience.dateRange,
+  );
+  const sortedEducation = sortReverseChronological(
+    content.education,
+    (item) => item.dateRange,
+  );
+
   return {
     header: {
       fullName: content.header.fullName?.trim() ?? "",
       contactLine: buildContactLine(content.header),
     },
-    workExperience: content.experience.map(buildWorkExperienceLayoutEntry),
-    education: content.education.map(buildEducationLayoutEntry),
+    workExperience: sortedExperience.map(buildWorkExperienceLayoutEntry),
+    education: sortedEducation.map(buildEducationLayoutEntry),
     additionalExperienceLine: compactAdditionalExperience(content.additionalExperience),
     skillsLine,
     languagesLine,
@@ -277,58 +352,72 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
 export function estimatePageFit(
   layout: FinalResumeLayout,
   options?: {
-    maxLinesOnePage?: number;
     marginMm?: number;
+    marginTopMm?: number;
     lineSpacing?: number;
     sectionSpacing?: number;
+    bodyFontPx?: number;
   },
 ): PageFitEstimate {
-  const maxLinesOnePage = options?.maxLinesOnePage ?? DEFAULT_MAX_LINES_ONE_PAGE;
-  const marginMm = options?.marginMm ?? 18;
-  const lineSpacing = options?.lineSpacing ?? 1.15;
-  const sectionSpacing = options?.sectionSpacing ?? 1.25;
+  const marginMm = options?.marginMm ?? PREVIEW_MARGIN_DEFAULT_MM;
+  const marginTopMm = options?.marginTopMm ?? PREVIEW_MARGIN_TOP_DEFAULT_MM;
+  const lineSpacing = options?.lineSpacing ?? PREVIEW_LINE_SPACING_DEFAULT;
+  const sectionSpacing = options?.sectionSpacing ?? PREVIEW_SECTION_SPACING_DEFAULT;
+  const bodyFontPx = options?.bodyFontPx ?? PREVIEW_BODY_FONT_DEFAULT_PX;
+
+  const maxLinesOnePage = computeMaxLinesOnePage({
+    marginMm,
+    marginTopMm,
+    bodyFontPx,
+    lineSpacing,
+  });
 
   let lines = 0;
 
-  if (layout.header.fullName) lines += 2;
+  if (layout.header.fullName) lines += 1.5;
   if (layout.header.contactLine) lines += 1;
-  lines += sectionSpacing;
+  lines += sectionSpacing * 0.5;
 
   for (const experience of layout.workExperience) {
-    lines += 2 + sectionSpacing * 0.5;
+    lines += 2 + sectionSpacing * 0.35;
     lines += experience.bullets.length * lineSpacing;
   }
 
   for (const education of layout.education) {
-    lines += education.degreeBlocks.length * 2;
-    lines += education.achievementBullets.length;
-    lines += sectionSpacing * 0.5;
+    lines += education.degreeBlocks.length * 1.75;
+    lines += education.achievementBullets.length * lineSpacing;
+    lines += sectionSpacing * 0.35;
   }
 
   if (layout.additionalExperienceLine) {
-    lines += 2 * lineSpacing;
-    lines += sectionSpacing * 0.5;
+    lines += 1.5 * lineSpacing;
+    lines += sectionSpacing * 0.35;
   }
 
   if (layout.skillsLine) {
-    lines += 1.5 * lineSpacing;
+    lines += 1.25 * lineSpacing;
   }
   if (layout.languagesLine) {
-    lines += 1.5 * lineSpacing;
+    lines += 1.25 * lineSpacing;
   }
   if (layout.interestsLine) {
-    lines += 1.5 * lineSpacing;
+    lines += 1.25 * lineSpacing;
   }
 
   const estimatedLines = Math.ceil(lines);
+  const overflowLines = Math.max(0, estimatedLines - maxLinesOnePage);
 
   return {
     estimatedLines,
     maxLinesOnePage,
-    exceedsOnePage: estimatedLines > maxLinesOnePage,
+    exceedsOnePage: overflowLines > 0,
+    overflowLines,
+    estimatedPages: estimatedLines / maxLinesOnePage,
     marginMm,
+    marginTopMm,
     lineSpacing,
     sectionSpacing,
+    bodyFontPx,
   };
 }
 
@@ -394,7 +483,9 @@ export function calculateFitScore(
       ? [`${lowConfidenceBullets} low-confidence bullet(s) need review`]
       : []),
     ...(pageFit.exceedsOnePage
-      ? ["Draft may exceed one page — consider reducing bullets in Edit Resume Details"]
+      ? [
+          `Draft may exceed one page by ~${pageFit.overflowLines} line(s) — reduce font size, spacing, or bullets`,
+        ]
       : []),
   ].slice(0, 6);
 

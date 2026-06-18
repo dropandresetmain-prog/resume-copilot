@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**v0.5.2 — Resume Layout Fidelity Fixes**
+**v0.5.3 — Resume Preview Fit and Ordering Fixes**
 
-Preview now matches reference resume layout more closely: work/education line structure, visible bullet markers, underlined keyword labels, A4 page boundary, compact Skills/Languages/Interests lines, and dedicated edit route.
+Preview ordering, typography, spacing, and overflow visibility tuned for export readiness. Work/education/additional experience render reverse-chronological at layout layer. Full resume content remains visible below the A4 one-page cutoff.
 
 ## Product flow
 
@@ -13,65 +13,34 @@ Generate → Final Resume Layout Preview → Approve for Export → (future DOCX
                               ↘ Edit Resume Details → /resume-preview/[draftId]/edit
 ```
 
+## Preview fit (v0.5.3)
+
+- **Reverse chronological:** Work Experience, Education, Additional Experience (dated phrases) sorted latest-first at `buildFinalResumeLayout()` — source draft/inventory order unchanged.
+- **Font size slider:** Body 7–12px (0.5px steps); header/section titles +0.5px only.
+- **Tighter defaults:** Margins 12mm (top 9mm), line spacing 1.05, section spacing 0.6rem.
+- **Lower slider mins:** Margins from 8mm, line spacing from 1.0, section spacing from 0.35rem.
+- **Overflow visible:** A4 page grows with content; dashed boundary at 297mm marks one-page cutoff.
+- **Reference font:** `buildReferenceResumeFormatProfile()` sets `fontFamily` (Calibri/Arial fallback until DOCX font parsing exists).
+
 ## Layout fidelity (v0.5.2)
 
-**Work Experience**
-- Line 1: **Company (descriptor)** left · location right
-- Line 2: *Role* left · date range right
-- Bullets: visible markers; `Keyword:` underlined + description
-
-**Education**
-- Line 1: **Institution · programme** left · location right
-- Line 2: *Degree* left · date range right (shared range shown once for double degrees)
-- Achievement bullets with underlined `Achievement:` when prefixed
-
-**Additional Experience**
-- Compact comma-separated line
-- Excludes languages, interests, and technical skills (those go to Skills & Interests)
-
-**Skills & Interests**
-- Section title: SKILLS & INTERESTS
-- Underlined labels: Skills:, Languages:, Interests:
-
-**A4 preview**
-- Visible page container (210 × 297 mm aspect ratio), white page on slate background, dashed one-page boundary
+Work/education line structure, bullet markers, underlined keyword labels, Skills/Languages/Interests compact lines — see prior milestone notes.
 
 ## Reference resume (formatting only)
 
-Reference resume is a **formatting/template reference**, not a content source.
-
-- `buildReferenceResumeFormatProfile()` sends layout signals only.
-- Generated content comes from inventory, approved keywords, and job description.
-- First draft targets one A4 page: 2–4 strong bullets per role; compact additional/skills sections.
-
-## Final resume structure (exact order)
-
-1. Header — Name; Phone | Email
-2. Work Experience
-3. Education
-4. Additional Experience
-5. Skills & Interests
-
-No Professional Summary in generated resumes (reserved for cover letters later).
-
-## Duration calculation
-
-Experience durations use **inclusive months** (Mar–Jun 2019 = 4 months). See `src/lib/date/duration.ts`.
+Reference resume is a **formatting/template reference**, not a content source. Generated content comes from inventory, approved keywords, and job description.
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| 4A — AI resume draft generation | Complete |
-| 4B — Resume draft review UI | Complete (v0.5.0) |
 | v0.5.1 — Final layout preview | Complete |
-| **v0.5.2 — Layout fidelity fixes** | **Current** |
-| 4C — Draft management | Not started |
-| v0.6.0 — DOCX export | Next |
+| v0.5.2 — Layout fidelity fixes | Complete |
+| **v0.5.3 — Preview fit & ordering** | **Current** |
+| v0.5.4 — Manual inventory editing | Planned (next) |
+| v0.6.0 — DOCX export | Planned |
 | v0.6.1 — PDF export | Planned |
 | v0.7.0 — Cover letter generation | Planned |
-
-Validate final resume output before building exports and cover letters.
 
 ## Approval
 

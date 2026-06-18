@@ -165,6 +165,9 @@ export type ResumeDraftReferenceResumeExcerpt = {
     email?: string;
   };
   densityHint: "compact" | "standard";
+  fontFamily?: string;
+  bodyFontSizePx?: number;
+  headerAlignment?: "center" | "left";
 };
 
 export type ResumeDraftGenerationInput = {

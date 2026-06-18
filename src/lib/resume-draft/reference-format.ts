@@ -1,7 +1,20 @@
 import type { ParsedResume } from "@/types/resume";
 import type { ResumeDraftReferenceResumeExcerpt } from "@/types/resume-draft";
+import {
+  DEFAULT_RESUME_FONT_FAMILY,
+  PREVIEW_BODY_FONT_DEFAULT_PX,
+} from "@/lib/resume-draft/preview-settings";
 
 const KEYWORD_COLON_PATTERN = /^[^:]{1,40}:\s+/;
+
+/**
+ * Font detection from DOCX is not available yet — use Word-style professional default.
+ * Filename heuristics may hint serif vs sans in future parser work.
+ */
+export function detectResumeFontFamily(_resume: ParsedResume): string {
+  void _resume;
+  return DEFAULT_RESUME_FONT_FAMILY;
+}
 
 /**
  * Build formatting-only reference profile for generation.
@@ -43,5 +56,8 @@ export function buildReferenceResumeFormatProfile(
       email: resume.profile?.email,
     },
     densityHint: "compact",
+    fontFamily: detectResumeFontFamily(resume),
+    bodyFontSizePx: PREVIEW_BODY_FONT_DEFAULT_PX,
+    headerAlignment: "center",
   };
 }

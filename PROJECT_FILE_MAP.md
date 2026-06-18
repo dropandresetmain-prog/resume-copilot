@@ -142,7 +142,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
-| `src/lib/resume-draft/layout.ts` | Final layout model, page-fit estimate, fit score, layout helpers (v0.5.1+) |
+| `src/lib/resume-draft/layout.ts` | Final layout model, sort, page-fit estimate, fit score (v0.5.1+) |
+| `src/lib/resume-draft/preview-settings.ts` | Preview font/spacing constants and font-size helpers (v0.5.3) |
 | `src/lib/resume-draft/reference-format.ts` | Reference resume formatting profile (no content) |
 | `src/components/resume-drafts/FinalResumeLayoutPreview.tsx` | Canonical A4 resume preview |
 | `src/components/resume-drafts/ResumeAssessmentPanel.tsx` | Fit score + rationale panel |

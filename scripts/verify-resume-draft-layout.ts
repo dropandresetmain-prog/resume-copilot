@@ -6,7 +6,11 @@ import { calculateExperienceDuration } from "../src/lib/date/duration";
 import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../src/lib/resume-draft/payload";
-import { A4_PAGE_PREVIEW_TEST_ID } from "../src/components/resume-drafts/FinalResumeLayoutPreview";
+import {
+  A4_PAGE_BOUNDARY_TEST_ID,
+  A4_PAGE_PREVIEW_TEST_ID,
+  RESUME_OVERFLOW_VISIBLE_TEST_ID,
+} from "../src/components/resume-drafts/FinalResumeLayoutPreview";
 import {
   buildEducationLayoutEntry,
   buildFinalResumeLayout,
@@ -20,8 +24,25 @@ import {
   parseAchievementBullet,
   parseKeywordBullet,
   shouldExcludeFromAdditionalExperience,
+  sortAdditionalExperiencePhrases,
+  sortReverseChronological,
 } from "../src/lib/resume-draft/layout";
-import { buildReferenceResumeFormatProfile } from "../src/lib/resume-draft/reference-format";
+import {
+  clampPreviewBodyFontPx,
+  computeMaxLinesOnePage,
+  DEFAULT_RESUME_FONT_FAMILY,
+  PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_BODY_FONT_MIN_PX,
+  PREVIEW_LINE_SPACING_MIN,
+  PREVIEW_MARGIN_MIN_MM,
+  PREVIEW_MARGIN_TOP_DEFAULT_MM,
+  PREVIEW_SECTION_SPACING_MIN,
+  resolvePreviewFontSizes,
+} from "../src/lib/resume-draft/preview-settings";
+import {
+  buildReferenceResumeFormatProfile,
+  detectResumeFontFamily,
+} from "../src/lib/resume-draft/reference-format";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 
@@ -142,6 +163,43 @@ function main() {
   const janToJan = calculateExperienceDuration("Jan 2020 – Jan 2020", referenceDate);
   const decToMay = calculateExperienceDuration("Dec 2020 – May 2022", referenceDate);
 
+  const sortedRoles = sortReverseChronological(
+    [
+      { role: "Old", dateRange: "2018 – 2020" },
+      { role: "Current", dateRange: "2022 – Present" },
+      { role: "Mid", dateRange: "2020 – 2022" },
+    ],
+    (item) => item.dateRange,
+    referenceDate,
+  );
+  const sortedByYear = sortReverseChronological(
+    [
+      { label: "2022 role", dateRange: "Jan 2022 – Dec 2022" },
+      { label: "2025 role", dateRange: "Apr 2025 – Present" },
+    ],
+    (item) => item.dateRange,
+    referenceDate,
+  );
+  const sortedAdditional = sortAdditionalExperiencePhrases([
+    "Volunteer tutor",
+    "Certification, 2023",
+    "Internship 2019 – 2020",
+  ]);
+  const fontSizes = resolvePreviewFontSizes(PREVIEW_BODY_FONT_DEFAULT_PX);
+  const tightPageFit = estimatePageFit(layout, {
+    marginMm: PREVIEW_MARGIN_MIN_MM,
+    marginTopMm: PREVIEW_MARGIN_TOP_DEFAULT_MM,
+    lineSpacing: PREVIEW_LINE_SPACING_MIN,
+    sectionSpacing: PREVIEW_SECTION_SPACING_MIN,
+    bodyFontPx: PREVIEW_BODY_FONT_MIN_PX,
+  });
+  const loosePageFit = estimatePageFit(layout, {
+    bodyFontPx: 12,
+    lineSpacing: 1.4,
+    sectionSpacing: 1.6,
+  });
+  const referenceFont = detectResumeFontFamily(inventory.resumes[0]!);
+
   const checks: [string, boolean][] = [
     ["reference profile is formatting only", formatProfile.formattingOnly === true],
     ["reference profile has no sample bullets field", !("sampleBullets" in formatProfile)],
@@ -174,6 +232,32 @@ function main() {
     ["duration mar to jun inclusive", marToJun.totalMonths === 4],
     ["duration jan to jan inclusive", janToJan.totalMonths === 1],
     ["duration dec 2020 to may 2022 inclusive", decToMay.totalMonths === 18],
+    ["present role sorts before older roles", sortedRoles[0]?.role === "Current"],
+    ["2025 item sorts before 2022 item", sortedByYear[0]?.label === "2025 role"],
+    ["undated additional phrase stays after dated", sortedAdditional[0]?.includes("2023") ?? false],
+    ["undated additional phrase last", sortedAdditional[sortedAdditional.length - 1] === "Volunteer tutor"],
+    ["header one step above body", fontSizes.headerPx === fontSizes.bodyPx + 0.5],
+    ["section one step above body", fontSizes.sectionPx === fontSizes.bodyPx + 0.5],
+    ["body font min clamp", clampPreviewBodyFontPx(5) === PREVIEW_BODY_FONT_MIN_PX],
+    ["margin slider min lowered", PREVIEW_MARGIN_MIN_MM === 8],
+    ["section spacing min lowered", PREVIEW_SECTION_SPACING_MIN === 0.35],
+    ["overflow content test id exported", RESUME_OVERFLOW_VISIBLE_TEST_ID === "resume-overflow-visible"],
+    ["a4 boundary test id exported", A4_PAGE_BOUNDARY_TEST_ID === "a4-page-boundary"],
+    ["reference font fallback", referenceFont === DEFAULT_RESUME_FONT_FAMILY],
+    ["format profile includes font family", Boolean(formatProfile.fontFamily?.includes("Calibri"))],
+    ["smaller font increases max lines", tightPageFit.maxLinesOnePage > loosePageFit.maxLinesOnePage],
+    ["page fit includes overflow lines", typeof tightPageFit.overflowLines === "number"],
+    ["page fit reacts to body font size", computeMaxLinesOnePage({
+      marginMm: 12,
+      marginTopMm: 9,
+      bodyFontPx: 7,
+      lineSpacing: 1,
+    }) > computeMaxLinesOnePage({
+      marginMm: 12,
+      marginTopMm: 9,
+      bodyFontPx: 12,
+      lineSpacing: 1,
+    })],
   ];
 
   for (const [name, ok] of checks) {

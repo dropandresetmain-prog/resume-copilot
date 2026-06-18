@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
@@ -18,6 +19,25 @@ import {
   FINAL_RESUME_SECTION_ORDER,
 } from "@/lib/resume-draft/layout";
 import {
+  clampPreviewBodyFontPx,
+  DEFAULT_RESUME_FONT_FAMILY,
+  PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_BODY_FONT_MAX_PX,
+  PREVIEW_BODY_FONT_MIN_PX,
+  PREVIEW_BODY_FONT_STEP_PX,
+  PREVIEW_LINE_SPACING_DEFAULT,
+  PREVIEW_LINE_SPACING_MAX,
+  PREVIEW_LINE_SPACING_MIN,
+  PREVIEW_MARGIN_DEFAULT_MM,
+  PREVIEW_MARGIN_MAX_MM,
+  PREVIEW_MARGIN_MIN_MM,
+  PREVIEW_MARGIN_TOP_DEFAULT_MM,
+  PREVIEW_SECTION_SPACING_DEFAULT,
+  PREVIEW_SECTION_SPACING_MAX,
+  PREVIEW_SECTION_SPACING_MIN,
+} from "@/lib/resume-draft/preview-settings";
+import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
+import {
   getGeneratedResumeDraftFromCloud,
   updateGeneratedResumeDraftInCloud,
 } from "@/lib/supabase/generated-resume-drafts";
@@ -28,13 +48,15 @@ type ResumePreviewPageClientProps = {
 };
 
 export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProps) {
+  const { inventory } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
-  const [marginMm, setMarginMm] = useState(18);
-  const [lineSpacing, setLineSpacing] = useState(1.15);
-  const [sectionSpacing, setSectionSpacing] = useState(1.1);
+  const [marginMm, setMarginMm] = useState(PREVIEW_MARGIN_DEFAULT_MM);
+  const [lineSpacing, setLineSpacing] = useState(PREVIEW_LINE_SPACING_DEFAULT);
+  const [sectionSpacing, setSectionSpacing] = useState(PREVIEW_SECTION_SPACING_DEFAULT);
+  const [bodyFontPx, setBodyFontPx] = useState(PREVIEW_BODY_FONT_DEFAULT_PX);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +93,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     };
   }, [draftId]);
 
+  const referenceFormat = useMemo(() => {
+    if (!draft?.referenceResumeId) {
+      return null;
+    }
+    const referenceResume = inventory.resumes.find(
+      (resume) => resume.id === draft.referenceResumeId,
+    );
+    return referenceResume ? buildReferenceResumeFormatProfile(referenceResume) : null;
+  }, [draft, inventory.resumes]);
+
+  const fontFamily = referenceFormat?.fontFamily ?? DEFAULT_RESUME_FONT_FAMILY;
+  const headerAlignment = referenceFormat?.headerAlignment ?? "center";
+
   const layout = useMemo(
     () => (draft ? buildFinalResumeLayout(draft.content) : null),
     [draft],
@@ -79,9 +114,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const pageFit = useMemo(
     () =>
       layout
-        ? estimatePageFit(layout, { marginMm, lineSpacing, sectionSpacing })
+        ? estimatePageFit(layout, {
+            marginMm,
+            marginTopMm: PREVIEW_MARGIN_TOP_DEFAULT_MM,
+            lineSpacing,
+            sectionSpacing,
+            bodyFontPx,
+          })
         : null,
-    [layout, marginMm, lineSpacing, sectionSpacing],
+    [layout, marginMm, lineSpacing, sectionSpacing, bodyFontPx],
   );
 
   const assessment = useMemo(
@@ -130,48 +171,70 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   }
 
   const isApproved = draft.status === "approved";
+  const bodyFontSliderSteps = Math.round(
+    (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
+  );
 
   return (
     <>
       <PageHeader
-        milestone="v0.5.2 · Resume Layout Fidelity Fixes"
+        milestone="v0.5.3 · Resume Preview Fit and Ordering Fixes"
         title="Final resume layout preview"
-        description="Validate A4 formatting, density, and one-page fit before export. Section order: Header → Work Experience → Education → Additional Experience → Skills & Interests."
+        description="Validate A4 formatting, density, and one-page fit before export. Latest roles and education appear first."
       />
 
       <p className="text-xs text-slate-500">
-        Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")}
+        Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font: {fontFamily.split(",")[0]}
       </p>
 
-      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-3">
+      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm text-slate-700">
-          Margins (mm)
+          Body font ({bodyFontPx}px)
           <input
             type="range"
-            min={12}
-            max={24}
+            min={0}
+            max={bodyFontSliderSteps}
+            step={1}
+            value={Math.round((bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
+            onChange={(event) =>
+              setBodyFontPx(
+                clampPreviewBodyFontPx(
+                  PREVIEW_BODY_FONT_MIN_PX +
+                    Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+                ),
+              )
+            }
+            className="mt-1 block w-full"
+          />
+        </label>
+        <label className="text-sm text-slate-700">
+          Margins ({marginMm}mm)
+          <input
+            type="range"
+            min={PREVIEW_MARGIN_MIN_MM}
+            max={PREVIEW_MARGIN_MAX_MM}
             value={marginMm}
             onChange={(event) => setMarginMm(Number(event.target.value))}
             className="mt-1 block w-full"
           />
         </label>
         <label className="text-sm text-slate-700">
-          Line spacing
+          Line spacing ({lineSpacing.toFixed(2)})
           <input
             type="range"
-            min={100}
-            max={140}
+            min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+            max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
             value={Math.round(lineSpacing * 100)}
             onChange={(event) => setLineSpacing(Number(event.target.value) / 100)}
             className="mt-1 block w-full"
           />
         </label>
         <label className="text-sm text-slate-700">
-          Section spacing
+          Section spacing ({sectionSpacing.toFixed(2)}rem)
           <input
             type="range"
-            min={80}
-            max={160}
+            min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+            max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
             value={Math.round(sectionSpacing * 100)}
             onChange={(event) => setSectionSpacing(Number(event.target.value) / 100)}
             className="mt-1 block w-full"
@@ -180,7 +243,13 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <FinalResumeLayoutPreview layout={layout} pageFit={pageFit} />
+        <FinalResumeLayoutPreview
+          layout={layout}
+          pageFit={pageFit}
+          fontFamily={fontFamily}
+          bodyFontPx={bodyFontPx}
+          headerAlignment={headerAlignment}
+        />
         <ResumeAssessmentPanel assessment={assessment} />
       </div>
 

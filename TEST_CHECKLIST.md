@@ -1,44 +1,31 @@
-# Test Checklist — v0.5.2 Resume Layout Fidelity Fixes
+# Test Checklist — v0.5.3 Resume Preview Fit and Ordering Fixes
 
-## Post-generation flow
+## Ordering
 
-- [ ] Generate resume redirects to `/resume-preview/[draftId]`
-- [ ] Layout preview shows A4 page container with visible border/shadow
-- [ ] Dashed line marks one-page boundary
-- [ ] Overflow warning suggests reducing bullets (no auto-delete)
+- [ ] Work Experience shows Present/latest roles first
+- [ ] Education shows latest degree first
+- [ ] Additional Experience dated items appear before undated phrases
 
-## Work Experience layout
+## Typography & spacing
 
-- [ ] Line 1: bold company (+ descriptor in parens) left, location right
-- [ ] Line 2: italic role left, date range right
-- [ ] Bullets show list markers
-- [ ] `Keyword:` is underlined; description is normal text
+- [ ] Body font slider (7–12px, 0.5px steps) scales entire resume
+- [ ] Name and section headers only slightly larger than body (+0.5px)
+- [ ] Margin slider goes down to 8mm
+- [ ] Line spacing and section spacing sliders reach tighter minimums
+- [ ] Default top margin feels compact (name not far from page top)
 
-## Education layout
+## A4 preview
 
-- [ ] Line 1: bold institution · programme left, location right
-- [ ] Line 2: italic degree left, date range right
-- [ ] Double degrees: date range only on first degree line when shared
-- [ ] Achievement bullets show markers; `Achievement:` underlined when present
+- [ ] Preview centered in panel
+- [ ] Dashed line at one-page height (297mm)
+- [ ] Content below dashed line remains visible (not clipped)
+- [ ] Overflow warning shows estimated lines/pages and overflow amount
 
-## Additional Experience & Skills
+## Font
 
-- [ ] Additional Experience is compact (comma-separated)
-- [ ] Languages/interests NOT in Additional Experience
-- [ ] Skills & Interests section shows underlined Skills:, Languages:, Interests: lines
+- [ ] Preview uses reference format profile font fallback (Calibri/Arial stack)
 
-## Edit route
+## Edit & approval
 
-- [ ] **Edit Resume Details** navigates to `/resume-preview/[draftId]/edit`
-- [ ] Edit page loads draft by id and shows review workspace
-- [ ] Edits save back to draft row
-- [ ] Back link returns to layout preview
-
-## Approval
-
+- [ ] **Edit Resume Details** opens `/resume-preview/[draftId]/edit`
 - [ ] **Approve for Export** sets status to `approved`
-
-## Duration
-
-- [ ] Mar 2019 – Jun 2019 shows 4 months
-- [ ] Jan 2020 – Jan 2020 shows 1 month

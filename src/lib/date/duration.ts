@@ -69,6 +69,51 @@ export function parseMonthYear(value: string): MonthYear | null {
   return null;
 }
 
+/** Sort key from the end of a date range; higher = more recent. Present ranks latest. */
+export function getDateRangeEndSortKey(
+  dateRange: string | undefined,
+  referenceDate: Date = new Date(),
+): { sortKey: number; hasDate: boolean } {
+  if (!dateRange?.trim()) {
+    return { sortKey: 0, hasDate: false };
+  }
+
+  const trimmed = dateRange.trim();
+  const parts = trimmed.split(RANGE_SPLIT_PATTERN).map((part) => part.trim());
+
+  if (parts.length < 2) {
+    const single = parseMonthYear(trimmed);
+    if (single) {
+      return { sortKey: single.year * 12 + single.month, hasDate: true };
+    }
+    const yearOnly = trimmed.match(/\b(19|20)\d{2}\b/);
+    if (yearOnly) {
+      const year = Number(yearOnly[0]);
+      return { sortKey: year * 12 + 11, hasDate: true };
+    }
+    return { sortKey: 0, hasDate: false };
+  }
+
+  const endLabel = parts[parts.length - 1];
+  if (PRESENT_PATTERN.test(endLabel)) {
+    return {
+      sortKey: referenceDate.getFullYear() * 12 + referenceDate.getMonth() + 100_000,
+      hasDate: true,
+    };
+  }
+
+  const end = parseMonthYear(endLabel);
+  if (!end) {
+    const yearOnly = endLabel.match(/\b(19|20)\d{2}\b/);
+    if (yearOnly) {
+      return { sortKey: Number(yearOnly[0]) * 12 + 11, hasDate: true };
+    }
+    return { sortKey: 0, hasDate: false };
+  }
+
+  return { sortKey: end.year * 12 + end.month, hasDate: true };
+}
+
 export function formatDuration(totalMonths: number): string {
   if (totalMonths < 0) return "0 mos";
 

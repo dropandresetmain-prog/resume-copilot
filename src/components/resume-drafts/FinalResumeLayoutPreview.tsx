@@ -2,24 +2,38 @@
 
 import { formatCompanyLine } from "@/lib/resume-draft/layout";
 import type { FinalResumeLayout, PageFitEstimate } from "@/lib/resume-draft/layout";
+import {
+  A4_HEIGHT_MM,
+  A4_WIDTH_MM,
+  DEFAULT_RESUME_FONT_FAMILY,
+  PREVIEW_BODY_FONT_DEFAULT_PX,
+  resolvePreviewFontSizes,
+} from "@/lib/resume-draft/preview-settings";
 
 export const A4_PAGE_PREVIEW_TEST_ID = "a4-page-container";
+export const A4_PAGE_BOUNDARY_TEST_ID = "a4-page-boundary";
+export const RESUME_OVERFLOW_VISIBLE_TEST_ID = "resume-overflow-visible";
 
 type FinalResumeLayoutPreviewProps = {
   layout: FinalResumeLayout;
   pageFit: PageFitEstimate;
+  fontFamily?: string;
+  bodyFontPx?: number;
+  headerAlignment?: "center" | "left";
   className?: string;
 };
 
 function KeywordBullet({
   keyword,
   statement,
+  bodyPx,
 }: {
   keyword: string;
   statement: string;
+  bodyPx: number;
 }) {
   return (
-    <li className="text-[10pt] leading-snug">
+    <li style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
       <span className="underline">{keyword}:</span> {statement}
     </li>
   );
@@ -29,13 +43,15 @@ function AchievementBullet({
   prefix,
   underlinePrefix,
   text,
+  bodyPx,
 }: {
   prefix?: string;
   underlinePrefix: boolean;
   text: string;
+  bodyPx: number;
 }) {
   return (
-    <li className="text-[10pt] leading-snug">
+    <li style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
       {prefix ? (
         <>
           <span className={underlinePrefix ? "underline" : undefined}>{prefix}</span> {text}
@@ -47,9 +63,17 @@ function AchievementBullet({
   );
 }
 
-function LabeledCompactLine({ label, value }: { label: string; value: string }) {
+function LabeledCompactLine({
+  label,
+  value,
+  bodyPx,
+}: {
+  label: string;
+  value: string;
+  bodyPx: number;
+}) {
   return (
-    <p className="text-[10pt] leading-snug">
+    <p style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
       <span className="underline">{label}:</span> {value}
     </p>
   );
@@ -58,75 +82,96 @@ function LabeledCompactLine({ label, value }: { label: string; value: string }) 
 export function FinalResumeLayoutPreview({
   layout,
   pageFit,
+  fontFamily = DEFAULT_RESUME_FONT_FAMILY,
+  bodyFontPx = PREVIEW_BODY_FONT_DEFAULT_PX,
+  headerAlignment = "center",
   className = "",
 }: FinalResumeLayoutPreviewProps) {
+  const sizes = resolvePreviewFontSizes(bodyFontPx);
+  const marginTopMm = pageFit.marginTopMm ?? pageFit.marginMm;
+  const headerClassName =
+    headerAlignment === "center" ? "text-center" : "text-left";
+
   return (
     <div className={className}>
       {pageFit.exceedsOnePage ? (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          This draft is estimated to exceed one page ({pageFit.estimatedLines} lines vs{" "}
-          {pageFit.maxLinesOnePage} target). Consider reducing bullets via Edit Resume Details.
+          Estimated {pageFit.estimatedLines} lines (~{pageFit.estimatedPages.toFixed(1)} pages) vs{" "}
+          {pageFit.maxLinesOnePage}-line one-page target
+          {pageFit.overflowLines > 0
+            ? ` — ~${pageFit.overflowLines} line(s) overflow.`
+            : "."}{" "}
+          Adjust font size and spacing, or reduce bullets via Edit Resume Details.
         </p>
       ) : null}
 
-      <div className="rounded-xl bg-slate-200/80 p-4 sm:p-6">
+      <div className="flex justify-center rounded-xl bg-slate-200/80 p-4 sm:p-6">
         <div
           data-testid={A4_PAGE_PREVIEW_TEST_ID}
-          className="relative mx-auto overflow-hidden bg-white shadow-xl ring-1 ring-slate-300"
+          className="relative w-full max-w-full bg-white shadow-xl ring-1 ring-slate-300"
           style={{
-            width: "min(210mm, 100%)",
-            aspectRatio: "210 / 297",
-            maxWidth: "100%",
+            width: `min(${A4_WIDTH_MM}mm, 100%)`,
+            minHeight: `${A4_HEIGHT_MM}mm`,
           }}
         >
           <div
-            className="h-full overflow-hidden text-slate-900"
+            data-testid={RESUME_OVERFLOW_VISIBLE_TEST_ID}
+            className="relative text-slate-900"
             style={{
-              padding: `${pageFit.marginMm}mm`,
-              fontFamily: "Georgia, 'Times New Roman', serif",
-              fontSize: "10.5pt",
+              padding: `${marginTopMm}mm ${pageFit.marginMm}mm ${pageFit.marginMm}mm`,
+              fontFamily,
+              fontSize: `${sizes.bodyPx}px`,
               lineHeight: pageFit.lineSpacing,
             }}
           >
-            <header className="text-center">
+            <header className={headerClassName}>
               {layout.header.fullName ? (
-                <h1 className="text-[16pt] font-bold tracking-wide">{layout.header.fullName}</h1>
+                <h1
+                  className="font-bold tracking-wide"
+                  style={{ fontSize: `${sizes.headerPx}px`, marginBottom: "0.15rem" }}
+                >
+                  {layout.header.fullName}
+                </h1>
               ) : null}
               {layout.header.contactLine ? (
-                <p className="mt-1 text-[10pt]">{layout.header.contactLine}</p>
+                <p style={{ fontSize: `${sizes.bodyPx}px` }}>{layout.header.contactLine}</p>
               ) : null}
             </header>
 
             {layout.workExperience.length > 0 ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
-                <h2 className="border-b border-slate-400 text-[11pt] font-bold uppercase tracking-wider">
+                <h2
+                  className="border-b border-slate-400 font-bold uppercase tracking-wider"
+                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                >
                   Work Experience
                 </h2>
-                <div className="mt-2 space-y-3">
+                <div className="mt-1.5 space-y-2.5">
                   {layout.workExperience.map((experience) => (
                     <div
                       key={`${experience.company}-${experience.role}-${experience.dateRange ?? ""}`}
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="font-bold">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 flex-1 font-bold">
                           {formatCompanyLine(experience.company, experience.companyDescriptor)}
                         </p>
                         {experience.location ? (
-                          <p className="shrink-0 text-[9.5pt]">{experience.location}</p>
+                          <p className="shrink-0 text-right tabular-nums">{experience.location}</p>
                         ) : null}
                       </div>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="italic">{experience.role}</p>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 flex-1 italic">{experience.role}</p>
                         {experience.dateRange ? (
-                          <p className="shrink-0 text-[9.5pt]">{experience.dateRange}</p>
+                          <p className="shrink-0 text-right tabular-nums">{experience.dateRange}</p>
                         ) : null}
                       </div>
-                      <ul className="mt-1 list-disc space-y-1 pl-5">
+                      <ul className="mt-0.5 list-disc space-y-0.5 pl-5">
                         {experience.bullets.map((bullet) => (
                           <KeywordBullet
                             key={bullet.rawText}
                             keyword={bullet.keyword}
                             statement={bullet.statement}
+                            bodyPx={sizes.bodyPx}
                           />
                         ))}
                       </ul>
@@ -138,39 +183,43 @@ export function FinalResumeLayoutPreview({
 
             {layout.education.length > 0 ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
-                <h2 className="border-b border-slate-400 text-[11pt] font-bold uppercase tracking-wider">
+                <h2
+                  className="border-b border-slate-400 font-bold uppercase tracking-wider"
+                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                >
                   Education
                 </h2>
-                <div className="mt-2 space-y-3">
+                <div className="mt-1.5 space-y-2.5">
                   {layout.education.map((item, itemIndex) => (
                     <div key={`education-${itemIndex}`}>
                       {item.degreeBlocks.map((block, blockIndex) => (
                         <div
                           key={`${block.titleLine}-${blockIndex}`}
-                          className={blockIndex > 0 ? "mt-2" : undefined}
+                          className={blockIndex > 0 ? "mt-1.5" : undefined}
                         >
-                          <div className="flex items-baseline justify-between gap-2">
-                            <p className="font-bold">{block.titleLine}</p>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="min-w-0 flex-1 font-bold">{block.titleLine}</p>
                             {block.location ? (
-                              <p className="shrink-0 text-[9.5pt]">{block.location}</p>
+                              <p className="shrink-0 text-right tabular-nums">{block.location}</p>
                             ) : null}
                           </div>
-                          <div className="flex items-baseline justify-between gap-2">
-                            <p className="italic">{block.degreeLine}</p>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="min-w-0 flex-1 italic">{block.degreeLine}</p>
                             {block.dateRange ? (
-                              <p className="shrink-0 text-[9.5pt]">{block.dateRange}</p>
+                              <p className="shrink-0 text-right tabular-nums">{block.dateRange}</p>
                             ) : null}
                           </div>
                         </div>
                       ))}
                       {item.achievementBullets.length > 0 ? (
-                        <ul className="mt-1 list-disc space-y-1 pl-5">
+                        <ul className="mt-0.5 list-disc space-y-0.5 pl-5">
                           {item.achievementBullets.map((bullet) => (
                             <AchievementBullet
                               key={bullet.rawText}
                               prefix={bullet.prefix}
                               underlinePrefix={bullet.underlinePrefix}
                               text={bullet.text}
+                              bodyPx={sizes.bodyPx}
                             />
                           ))}
                         </ul>
@@ -183,27 +232,41 @@ export function FinalResumeLayoutPreview({
 
             {layout.additionalExperienceLine ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
-                <h2 className="border-b border-slate-400 text-[11pt] font-bold uppercase tracking-wider">
+                <h2
+                  className="border-b border-slate-400 font-bold uppercase tracking-wider"
+                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                >
                   Additional Experience
                 </h2>
-                <p className="mt-2 text-[10pt] leading-snug">{layout.additionalExperienceLine}</p>
+                <p className="mt-1.5 leading-snug">{layout.additionalExperienceLine}</p>
               </section>
             ) : null}
 
             {layout.skillsLine || layout.languagesLine || layout.interestsLine ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
-                <h2 className="border-b border-slate-400 text-[11pt] font-bold uppercase tracking-wider">
+                <h2
+                  className="border-b border-slate-400 font-bold uppercase tracking-wider"
+                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                >
                   Skills &amp; Interests
                 </h2>
-                <div className="mt-2 space-y-1">
+                <div className="mt-1.5 space-y-0.5">
                   {layout.skillsLine ? (
-                    <LabeledCompactLine label="Skills" value={layout.skillsLine} />
+                    <LabeledCompactLine label="Skills" value={layout.skillsLine} bodyPx={sizes.bodyPx} />
                   ) : null}
                   {layout.languagesLine ? (
-                    <LabeledCompactLine label="Languages" value={layout.languagesLine} />
+                    <LabeledCompactLine
+                      label="Languages"
+                      value={layout.languagesLine}
+                      bodyPx={sizes.bodyPx}
+                    />
                   ) : null}
                   {layout.interestsLine ? (
-                    <LabeledCompactLine label="Interests" value={layout.interestsLine} />
+                    <LabeledCompactLine
+                      label="Interests"
+                      value={layout.interestsLine}
+                      bodyPx={sizes.bodyPx}
+                    />
                   ) : null}
                 </div>
               </section>
@@ -211,15 +274,18 @@ export function FinalResumeLayoutPreview({
           </div>
 
           <div
+            data-testid={A4_PAGE_BOUNDARY_TEST_ID}
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-dashed border-slate-300"
+            className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-amber-400/80"
+            style={{ top: `${A4_HEIGHT_MM}mm` }}
             title="One-page boundary"
           />
         </div>
-        <p className="mt-2 text-center text-xs text-slate-500">
-          A4 preview (210 × 297 mm) — dashed line marks one-page boundary
-        </p>
       </div>
+      <p className="mt-2 text-center text-xs text-slate-500">
+        A4 preview ({A4_WIDTH_MM} × {A4_HEIGHT_MM} mm) — dashed line marks one-page cutoff; content below
+        remains visible
+      </p>
     </div>
   );
 }
