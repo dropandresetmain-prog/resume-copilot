@@ -59,7 +59,7 @@ export function CloudFileStoragePanel({
   return (
     <SetupCard
       title="Cloud file storage"
-      description="Original uploaded resume files are stored in private Supabase Storage. JSON export does not include file blobs."
+      description="Original uploaded resume files are stored in private Supabase Storage when you are signed in."
     >
       <div className="mt-4 space-y-3 text-sm text-zinc-700">
         {!isSignedIn ? (

@@ -1,3 +1,9 @@
+/**
+ * Job description validation and in-memory list helpers.
+ *
+ * Active persistence: Supabase (`src/lib/supabase/job-descriptions.ts`).
+ * This module does NOT read or write browser localStorage in the app UI.
+ */
 import type {
   JobDescriptionInput,
   PersistedJobDescriptions,
@@ -5,7 +11,11 @@ import type {
 } from "@/types/jd";
 import { JD_STORAGE_SCHEMA_VERSION } from "@/types/jd";
 
-export const JD_STORAGE_KEY = "resumeCopilot.jobDescriptions.v1";
+/** Legacy browser localStorage key from pre-Supabase builds (detection only). */
+export const LEGACY_JD_LOCAL_STORAGE_KEY = "resumeCopilot.jobDescriptions.v1";
+
+/** @deprecated Pre-Supabase localStorage key. Use `LEGACY_JD_LOCAL_STORAGE_KEY`. */
+export const JD_STORAGE_KEY = LEGACY_JD_LOCAL_STORAGE_KEY;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -54,6 +64,7 @@ export function validateStoredJobDescriptions(value: unknown): StoredJobDescript
     .filter((item): item is StoredJobDescription => item !== null);
 }
 
+/** Serialize JD list to JSON — unit tests and export validation only. */
 export function serializeJobDescriptions(
   jobDescriptions: StoredJobDescription[],
 ): string {
@@ -65,6 +76,7 @@ export function serializeJobDescriptions(
   return JSON.stringify(payload);
 }
 
+/** Parse serialized JD JSON — unit tests only. */
 export function parseStoredJobDescriptions(raw: string): {
   jobDescriptions: StoredJobDescription[];
   warning: string | null;

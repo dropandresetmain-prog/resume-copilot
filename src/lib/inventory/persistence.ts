@@ -1,3 +1,13 @@
+/**
+ * Inventory validation, enrichment, and serialization helpers.
+ *
+ * Active persistence: Supabase (`src/lib/supabase/resume-inventories.ts`).
+ * This module does NOT read or write browser localStorage in the app UI.
+ *
+ * Legacy/test-only exports:
+ * - `LEGACY_*_LOCAL_STORAGE_KEY` — old keys detected by `src/lib/legacy/local-data.ts`
+ * - `createExportPayload` / `parseImportedInventory` / `downloadInventoryJson` — unit tests only
+ */
 import { calculateExperienceDuration } from "@/lib/date/duration";
 import { createEmptyEnrichmentState, migrateEnrichmentSuggestions } from "@/lib/enrichment/state";
 import { validateStoredJobDescription } from "@/lib/jd/persistence";
@@ -18,7 +28,12 @@ import type {
 } from "@/types/resume";
 import { INVENTORY_SCHEMA_VERSION } from "@/types/resume";
 
-export const INVENTORY_STORAGE_KEY = "career-resume-copilot:v1:inventory";
+/** Legacy browser localStorage key from pre-Supabase builds (detection only). */
+export const LEGACY_INVENTORY_LOCAL_STORAGE_KEY =
+  "career-resume-copilot:v1:inventory";
+
+/** @deprecated Pre-Supabase localStorage key. Use `LEGACY_INVENTORY_LOCAL_STORAGE_KEY`. */
+export const INVENTORY_STORAGE_KEY = LEGACY_INVENTORY_LOCAL_STORAGE_KEY;
 
 function enrichExperience(experience: ParsedExperience): ParsedExperience {
   return {
@@ -447,12 +462,12 @@ export function validateInventoryPayload(
   return validateInventoryState(value);
 }
 
+/** Build a JSON snapshot for unit tests. Supabase is the source of truth. */
 export function createExportPayload(
   inventory: InventoryState,
   jobDescriptions: StoredJobDescription[] = [],
 ): ExportedInventory {
-  // JSON export is legacy backup only. Supabase is source-of-truth.
-  // TODO(Milestone 4+): optional export bundle could include Supabase Storage blobs.
+  // Test helper only — not used by the setup UI.
   return {
     schemaVersion: INVENTORY_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
@@ -461,6 +476,7 @@ export function createExportPayload(
   };
 }
 
+/** Parse a JSON export file for unit tests. Not used by the setup UI. */
 export function parseImportedInventory(raw: string): {
   inventory: InventoryState | null;
   jobDescriptions: StoredJobDescription[];
@@ -495,6 +511,7 @@ export function parseImportedInventory(raw: string): {
   }
 }
 
+/** Trigger a browser download of inventory JSON — test/dev helper only. */
 export function downloadInventoryJson(
   inventory: InventoryState,
   jobDescriptions: StoredJobDescription[] = [],

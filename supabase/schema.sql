@@ -1,4 +1,4 @@
--- Career Resume Copilot — Supabase schema (Milestone 3C)
+-- Career Resume Copilot — Supabase schema (v0.3.0 / Supabase Foundation)
 -- Run in Supabase SQL editor. Requires Supabase Auth enabled.
 
 create extension if not exists "pgcrypto";

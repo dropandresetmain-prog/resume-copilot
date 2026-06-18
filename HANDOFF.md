@@ -1,75 +1,88 @@
 # HANDOFF
 
-## Current State
-Milestone 3C (Supabase-first storage migration) is complete.
+## Current milestone
+
+**v0.3.0 — Supabase Foundation** (internal milestone 3C)
+
+Supabase-first persistence is complete. The app requires sign-in for cloud sync when Supabase is configured.
 
 ## Completed
-- Milestone 1 resume inventory parsing and management (DOCX upload, collated inventory, layered parser).
-- Milestone 2 AI enrichment for collated work experience bullets (mock + Gemini providers, review cards, keyword bank).
-- Milestone 2.1 Gemini small-batch test mode and hardened JSON handling.
-- Milestone 3A job description intake.
-- Milestone 3B JD polish (terminology, duplicate warnings, separate clear actions).
-- **Milestone 3C Supabase-first storage**:
-  - `@supabase/supabase-js` browser client with env validation
-  - `supabase/schema.sql` — tables, RLS, private storage buckets
+
+- Milestone 1: DOCX parsing, collated inventory, layered parser
+- Milestone 2 / 2.1: AI enrichment (mock + Gemini), review cards, keyword bank, small-batch test
+- Milestone 3A–3B: Job description intake, duplicate warnings, separate clear actions
+- **v0.3.0 Supabase Foundation**:
+  - `@supabase/supabase-js` browser client
+  - `supabase/schema.sql` — Postgres tables, RLS, private storage buckets
   - Auth panel (email/password, magic link, sign out)
   - Cloud services: resume inventories, job descriptions, stored files
-  - Upload flow: parse → save inventory → upload original file (warn on file failure)
-  - JD intake CRUD via Supabase
-  - Removed localStorage/IndexedDB as source-of-truth; legacy local data warning only
-  - Export/import removed from primary UI (pure helpers kept for tests)
+  - Upload: parse → save inventory → upload original file (warn on file failure)
+  - JD CRUD via Supabase
+  - Removed localStorage/IndexedDB as active persistence
+  - Legacy browser-data warning only (no migration)
+  - Export/import removed from UI; JSON helpers kept for unit tests only
 
 ## Storage model
+
 | Layer | What | Source of truth? |
 |-------|------|------------------|
-| Supabase Postgres | Parsed inventory JSON, saved JDs, future application/draft metadata | Yes (signed-in users) |
-| Supabase Storage | Original resume files, future generated DOCX/PDF | Yes (private buckets, RLS) |
+| Supabase Postgres | Inventory JSON, saved JDs, schema-ready application/draft tables | Yes (signed-in users) |
+| Supabase Storage | Original resume files; future generated documents | Yes (private buckets + RLS) |
 | In-memory | Session state while signed out or Supabase unconfigured | Temporary only |
 
-## Known Issues / Risks
-- Resume parsing is heuristic-based and may fail on unfamiliar resume formats.
-- Mock enrichment is test-only; real AI requires `AI_PROVIDER=gemini` plus API key.
-- **Manual Supabase setup required**: run `schema.sql`, configure auth, set env vars.
-- No automatic migration from old localStorage data — users must re-upload/re-save.
-- Deleting a parsed resume does not yet delete its Supabase Storage blob (orphan files possible).
-- Generated resume/cover letter tables exist in schema but are not implemented in UI.
-- No resume generation yet.
-- No cover letter generation yet.
+## Known risks
 
-## What Not To Change
+- Resume parsing is heuristic-based; unfamiliar formats may fail.
+- Mock enrichment is test-only; real AI needs `AI_PROVIDER=gemini` + API key.
+- **Manual Supabase setup required**: run `schema.sql`, configure auth redirect URLs, set env vars.
+- **RLS and storage policies** must be verified manually after schema deploy.
+- **No automatic migration** from pre-Supabase `localStorage` data.
+- **Deleting a parsed resume** does not yet delete its Supabase Storage blob (orphan files possible).
+- **`application_records`** — schema only, not wired to UI.
+- **`generated_resume_drafts` / `generated_cover_letter_drafts`** — schema only.
+- **`generated-documents` bucket** — schema only; no DOCX/PDF generation yet.
+- AI resume generation, cover letter generation, and document export are **not built**.
+
+## What not to change
+
 - Do not overwrite raw parsed resume text with AI suggestions.
 - Do not add JD enrichment/review cards — JD intake is raw text only for now.
 - Do not store private resumes in Git.
-- Do not expose Supabase service role key in the frontend.
+- Do not expose the Supabase **service role** key in the frontend.
 
-## Next Milestone
-**Milestone 3D — Application Records**
+## Next milestones
 
-Wire `application_records` table to UI:
-- company, role, job URL, selected saved JD
-- status and notes
-- links to future generated drafts and exported documents
-
-After 3D, proceed to **Milestone 4A — AI Resume Draft Generation**.
+1. **3D — Application Records UI** — wire `application_records` to the setup flow (link saved JD, status, notes).
+2. **4A — AI Resume Draft Generation** — use inventory + JD to produce reviewable resume drafts.
 
 ## Key files
-- `supabase/schema.sql` — database and storage setup
-- `src/lib/supabase/client.ts` — browser Supabase client
-- `src/lib/supabase/resume-inventories.ts` — cloud inventory CRUD
-- `src/lib/supabase/job-descriptions.ts` — cloud JD CRUD
-- `src/lib/supabase/files.ts` — storage upload/download
-- `src/components/setup/AuthPanel.tsx` — authentication UI
-- `src/components/SetupPageClient.tsx` — main setup orchestration
-- `src/lib/inventory/persistence.ts` — pure validation, export/import helpers (tests)
+
+| Area | Path |
+|------|------|
+| Schema | `supabase/schema.sql` |
+| Supabase client | `src/lib/supabase/client.ts` |
+| Cloud inventory | `src/lib/supabase/resume-inventories.ts` |
+| Cloud JDs | `src/lib/supabase/job-descriptions.ts` |
+| Cloud files | `src/lib/supabase/files.ts` |
+| Auth UI | `src/components/setup/AuthPanel.tsx` |
+| Main orchestration | `src/components/SetupPageClient.tsx` |
+| Validation helpers (tests) | `src/lib/inventory/persistence.ts`, `src/lib/jd/persistence.ts` |
+| Legacy detection | `src/lib/legacy/local-data.ts` |
+
+## Removed (do not restore as active persistence)
+
+- `src/lib/storage/indexed-db.ts` (Dexie)
+- `src/components/setup/FileStorageStatusPanel.tsx`
 
 ## Run
+
 ```bash
 cp .env.example .env.local
-# Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
 npm run dev
 npm run test
 ```
 
-Set `AI_PROVIDER=mock` in `.env.local` for local development without API keys.
+`test:supabase` covers pure helpers only. Live Supabase integration requires a configured project and authenticated session.
 
-Supabase service integration tests are not run in CI; `test:supabase` covers pure helpers only.
+Set `AI_PROVIDER=mock` in `.env.local` for development without API keys.

@@ -525,7 +525,7 @@ export function SetupPageClient() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 lg:px-8">
         <header className="space-y-2">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-            Milestone 3C
+            v0.3.0 · Supabase
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             Career Resume Copilot
