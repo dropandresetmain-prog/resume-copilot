@@ -15,6 +15,7 @@ type DownloadResumeDocxButtonProps = {
   disabled?: boolean;
   disabledReason?: string;
   className?: string;
+  onHint?: (message: string) => void;
 };
 
 export function DownloadResumeDocxButton({
@@ -23,6 +24,7 @@ export function DownloadResumeDocxButton({
   disabled = false,
   disabledReason,
   className,
+  onHint,
 }: DownloadResumeDocxButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,10 @@ export function DownloadResumeDocxButton({
       if (!result.downloadUrl) {
         throw new Error("Export did not return a download URL.");
       }
-      deliverExportedFile(result.fileName, result.downloadUrl, "docx");
+      const delivery = deliverExportedFile(result.fileName, result.downloadUrl, "docx");
+      if (delivery.mobileHint) {
+        onHint?.(delivery.mobileHint);
+      }
     } catch (downloadError) {
       setError(
         downloadError instanceof Error

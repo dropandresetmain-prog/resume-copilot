@@ -17,7 +17,7 @@ export const PREVIEW_MARGIN_TOP_MIN_MM = 6;
 export const PREVIEW_MARGIN_TOP_MAX_MM = 20;
 export const PREVIEW_MARGIN_TOP_DEFAULT_MM = 9;
 
-export const PREVIEW_LINE_SPACING_MIN = 1;
+export const PREVIEW_LINE_SPACING_MIN = 0.95;
 export const PREVIEW_LINE_SPACING_MAX = 1.4;
 export const PREVIEW_LINE_SPACING_DEFAULT = 1.05;
 

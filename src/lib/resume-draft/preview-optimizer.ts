@@ -1,12 +1,13 @@
 import { buildFinalResumeLayout, estimatePageFit } from "@/lib/resume-draft/layout";
-import type { ResumeDraftContent } from "@/types/resume-draft";
 import {
   PREVIEW_BODY_FONT_MIN_PX,
   PREVIEW_BODY_FONT_STEP_PX,
+  PREVIEW_LINE_SPACING_MIN,
   PREVIEW_MARGIN_MIN_MM,
   PREVIEW_MARGIN_TOP_MIN_MM,
   PREVIEW_SECTION_SPACING_MIN,
 } from "@/lib/resume-draft/preview-settings";
+import type { ResumeDraftContent } from "@/types/resume-draft";
 
 export type OptimizedPreviewSettings = {
   bodyFontPx: number;
@@ -24,7 +25,7 @@ export type OptimizedPreviewSettings = {
 
 const BODY_FONT_STEPS = [11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7];
 const MARGIN_STEPS = [12, 10, 9, 8];
-const LINE_SPACING_STEPS = [1.05, 1, 0.98, 0.95];
+const LINE_SPACING_STEPS = [1.05, 1, 0.98, PREVIEW_LINE_SPACING_MIN];
 const SECTION_SPACING_STEPS = [0.6, 0.5, 0.45, 0.35];
 
 function snapBodyFontPx(value: number): number {

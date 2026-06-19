@@ -15,7 +15,7 @@ import {
 } from "@/components/setup/ui";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
-import { buildResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import { buildExportResumeDocumentModel } from "@/lib/resume-draft/build-export-document-model";
 import { sanitizeExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
@@ -33,6 +33,8 @@ import {
   PREVIEW_MARGIN_MAX_MM,
   PREVIEW_MARGIN_MIN_MM,
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
+  PREVIEW_MARGIN_TOP_MIN_MM,
+  PREVIEW_MARGIN_TOP_MAX_MM,
   PREVIEW_SECTION_SPACING_DEFAULT,
   PREVIEW_SECTION_SPACING_MAX,
   PREVIEW_SECTION_SPACING_MIN,
@@ -111,15 +113,18 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     };
   }, [draftId]);
 
-  const referenceFormat = useMemo(() => {
+  const referenceResume = useMemo(() => {
     if (!draft?.referenceResumeId) {
       return null;
     }
-    const referenceResume = inventory.resumes.find(
-      (resume) => resume.id === draft.referenceResumeId,
+    return (
+      inventory.resumes.find((resume) => resume.id === draft.referenceResumeId) ?? null
     );
-    return referenceResume ? buildReferenceResumeFormatProfile(referenceResume) : null;
   }, [draft, inventory.resumes]);
+
+  const referenceFormat = useMemo(() => {
+    return referenceResume ? buildReferenceResumeFormatProfile(referenceResume) : null;
+  }, [referenceResume]);
 
   const fontFamily = referenceFormat?.fontFamily ?? DEFAULT_RESUME_FONT_FAMILY;
   const headerAlignment = referenceFormat?.headerAlignment ?? "center";
@@ -153,10 +158,10 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     if (!draft) {
       return null;
     }
-    return buildResumeDocumentModel({
-      draftId: draft.id,
-      draftStatus: draft.status,
-      content: draft.content,
+    return buildExportResumeDocumentModel({
+      draft,
+      jobDescription: linkedJob,
+      referenceResume,
       layoutSettings: {
         bodyFontPx,
         marginMm,
@@ -164,11 +169,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         lineSpacing,
         sectionSpacing,
       },
-      fontFamily,
-      headerAlignment,
-      fullName: draft.content.header.fullName,
-      companyName: linkedJob?.companyName,
-      roleTitle: linkedJob?.roleTitle ?? draft.content.targetRoleTitle,
     });
   }, [
     draft,
@@ -177,9 +177,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     marginTopMm,
     lineSpacing,
     sectionSpacing,
-    fontFamily,
-    headerAlignment,
     linkedJob,
+    referenceResume,
   ]);
 
   const layout = documentModel?.layout ?? null;
@@ -260,106 +259,144 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.4 · Export Strategy Stabilization"
+        milestone="v0.6.5 · Preview Truth & Mobile Export Stabilization"
         title="Resume Preview"
-        description="Tune layout, compare PDF Preview (final deliverable), approve, then download PDF or editable DOCX."
+        description="PDF Preview is the export truth — tune layout, approve, then download PDF or editable DOCX."
       />
 
       <p className="text-xs text-slate-500">
-        Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font: {fontFamily.split(",")[0]}
+        Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font:{" "}
+        {fontFamily.split(",")[0]}
       </p>
 
-      <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm text-slate-700">
-          Body font ({bodyFontPx}px)
-          <input
-            type="range"
-            min={0}
-            max={bodyFontSliderSteps}
-            step={1}
-            value={Math.round((bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
-            onChange={(event) =>
-              updateManualSettings({
-                bodyFontPx: clampPreviewBodyFontPx(
-                  PREVIEW_BODY_FONT_MIN_PX +
-                    Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
-                ),
-                marginMm,
-                marginTopMm,
-                lineSpacing,
-                sectionSpacing,
-              })
-            }
-            className="mt-1 block w-full"
-          />
-        </label>
-        <label className="text-sm text-slate-700">
-          Margins ({marginMm}mm)
-          <input
-            type="range"
-            min={PREVIEW_MARGIN_MIN_MM}
-            max={PREVIEW_MARGIN_MAX_MM}
-            value={marginMm}
-            onChange={(event) =>
-              updateManualSettings({
-                bodyFontPx,
-                marginMm: Number(event.target.value),
-                marginTopMm,
-                lineSpacing,
-                sectionSpacing,
-              })
-            }
-            className="mt-1 block w-full"
-          />
-        </label>
-        <label className="text-sm text-slate-700">
-          Line spacing ({lineSpacing.toFixed(2)})
-          <input
-            type="range"
-            min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
-            max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
-            value={Math.round(lineSpacing * 100)}
-            onChange={(event) =>
-              updateManualSettings({
-                bodyFontPx,
-                marginMm,
-                marginTopMm,
-                lineSpacing: Number(event.target.value) / 100,
-                sectionSpacing,
-              })
-            }
-            className="mt-1 block w-full"
-          />
-        </label>
-        <label className="text-sm text-slate-700">
-          Section spacing ({sectionSpacing.toFixed(2)}rem)
-          <input
-            type="range"
-            min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
-            max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
-            value={Math.round(sectionSpacing * 100)}
-            onChange={(event) =>
-              updateManualSettings({
-                bodyFontPx,
-                marginMm,
-                marginTopMm,
-                lineSpacing,
-                sectionSpacing: Number(event.target.value) / 100,
-              })
-            }
-            className="mt-1 block w-full"
-          />
-        </label>
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <FinalResumeLayoutPreview
-          layout={layout}
-          pageFit={pageFit}
-          fontFamily={fontFamily}
-          bodyFontPx={bodyFontPx}
-          headerAlignment={headerAlignment}
-        />
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-slate-800">PDF Preview</h2>
+            <p className="text-xs text-slate-500">
+              Authoritative preview — matches downloaded PDF. Adjust layout controls below;
+              changes apply here immediately.
+            </p>
+          </div>
+
+          {pageFit.exceedsOnePage ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Layout exceeds one-page target. PDF export is allowed but may spill to a second page.
+            </p>
+          ) : null}
+
+          {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
+
+          <div className="sticky top-2 z-10 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+              Layout controls
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <label className="text-sm text-slate-700">
+                Body font ({bodyFontPx}px)
+                <input
+                  type="range"
+                  min={0}
+                  max={bodyFontSliderSteps}
+                  step={1}
+                  value={Math.round(
+                    (bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
+                  )}
+                  onChange={(event) =>
+                    updateManualSettings({
+                      bodyFontPx: clampPreviewBodyFontPx(
+                        PREVIEW_BODY_FONT_MIN_PX +
+                          Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+                      ),
+                      marginMm,
+                      marginTopMm,
+                      lineSpacing,
+                      sectionSpacing,
+                    })
+                  }
+                  className="mt-1 block w-full"
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Side margins ({marginMm}mm)
+                <input
+                  type="range"
+                  min={PREVIEW_MARGIN_MIN_MM}
+                  max={PREVIEW_MARGIN_MAX_MM}
+                  value={marginMm}
+                  onChange={(event) =>
+                    updateManualSettings({
+                      bodyFontPx,
+                      marginMm: Number(event.target.value),
+                      marginTopMm,
+                      lineSpacing,
+                      sectionSpacing,
+                    })
+                  }
+                  className="mt-1 block w-full"
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Top margin ({marginTopMm}mm)
+                <input
+                  type="range"
+                  min={PREVIEW_MARGIN_TOP_MIN_MM}
+                  max={PREVIEW_MARGIN_TOP_MAX_MM}
+                  value={marginTopMm}
+                  onChange={(event) =>
+                    updateManualSettings({
+                      bodyFontPx,
+                      marginMm,
+                      marginTopMm: Number(event.target.value),
+                      lineSpacing,
+                      sectionSpacing,
+                    })
+                  }
+                  className="mt-1 block w-full"
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Line spacing ({lineSpacing.toFixed(2)})
+                <input
+                  type="range"
+                  min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+                  max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
+                  value={Math.round(lineSpacing * 100)}
+                  onChange={(event) =>
+                    updateManualSettings({
+                      bodyFontPx,
+                      marginMm,
+                      marginTopMm,
+                      lineSpacing: Number(event.target.value) / 100,
+                      sectionSpacing,
+                    })
+                  }
+                  className="mt-1 block w-full"
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Section spacing ({sectionSpacing.toFixed(2)}rem)
+                <input
+                  type="range"
+                  min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+                  max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
+                  value={Math.round(sectionSpacing * 100)}
+                  onChange={(event) =>
+                    updateManualSettings({
+                      bodyFontPx,
+                      marginMm,
+                      marginTopMm,
+                      lineSpacing,
+                      sectionSpacing: Number(event.target.value) / 100,
+                    })
+                  }
+                  className="mt-1 block w-full"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+
         <ResumeAssessmentPanel
           assessment={assessment}
           pageFit={pageFit}
@@ -367,20 +404,24 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         />
       </div>
 
-      {documentModel ? (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-slate-800">PDF Preview</h2>
-          <p className="text-xs text-slate-500">
-            Exact print HTML/CSS used for PDF export — compare this before downloading PDF.
-          </p>
-          {pageFit.exceedsOnePage ? (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Layout exceeds one-page target. PDF export is allowed but may spill to a second page.
-            </p>
-          ) : null}
-          <ResumePdfPreview documentModel={documentModel} />
-        </section>
-      ) : null}
+      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">
+          Advanced — approximate layout estimate (browser only)
+        </summary>
+        <p className="mt-2 text-xs text-slate-500">
+          Uses separate browser spacing — not used for export. Trust PDF Preview above for final
+          layout.
+        </p>
+        <div className="mt-4">
+          <FinalResumeLayoutPreview
+            layout={layout}
+            pageFit={pageFit}
+            fontFamily={fontFamily}
+            bodyFontPx={bodyFontPx}
+            headerAlignment={headerAlignment}
+          />
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-end gap-3">
         <button
@@ -402,6 +443,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           }}
           disabled={!isApproved}
           disabledReason="Approve for Export before downloading."
+          onHint={setExportWarning}
         />
         <DownloadResumePdfButton
           draftId={draftId}

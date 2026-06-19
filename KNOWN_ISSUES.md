@@ -1,57 +1,54 @@
 # Known Issues
 
-## Export strategy (v0.6.4)
+## Export strategy (v0.6.5)
 
-- **PDF is the primary final deliverable** — generated from canonical print HTML (`renderResumePdfHtml()`). Use **PDF Preview** on the preview page to verify before download.
-- **DOCX is secondary/editable** — acceptable for Word editing; MS Word may reflow, exceed one page, or differ from PDF Preview. Do not treat DOCX as the final layout source of truth.
-- Browser **Layout Preview** (Tailwind) is for tuning sliders; **PDF Preview** iframe shows exact export HTML.
-- PDF download opens in a new tab; DOCX download uses anchor `download` behavior.
+- **PDF Preview is the authoritative preview** — `renderResumePdfHtml()` iframe on the preview page. Downloaded PDF should match PDF Preview when layout settings are the same.
+- **Browser layout preview** (React) is demoted to “Advanced — approximate layout estimate” only; it uses separate `RESUME_LAYOUT_SPACING` and must not be used for export decisions.
+- **DOCX is secondary/editable** — Word may reflow, exceed one page, or differ from PDF. Do not expect PDF parity.
+- PDF download on **desktop** opens in a new tab; **mobile** navigates in the same tab (browser may open inline instead of saving).
+- DOCX download on **desktop** uses anchor download; **mobile** uses same-tab navigation with user hint.
+- Export APIs resolve `fontFamily` / `headerAlignment` from reference resume via shared `buildExportResumeDocumentModel`.
 
-## PDF export (v0.6.3)
+## One-page (deferred hard enforcement)
 
-- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (compact, Puppeteer-controlled). Browser layout preview uses separate `RESUME_LAYOUT_SPACING`.
+- One-page is a **product target**; **hard export blocking** is deferred until Puppeteer page-count validation exists (Phase 2 — see `ROADMAP.md`).
+- `estimatePageFit()` remains heuristic — may disagree with PDF Preview / downloaded PDF.
+- Overflow still exports with a warning; content is not auto-shrunk at export time.
+
+## PDF export
+
+- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (compact, Puppeteer-controlled).
 - Gill Sans MT renders only if installed on the PDF generation machine.
 - Full-page scaling is not used; layout is controlled via font size, line-height, and compact margins.
-
-## PDF export (v0.6.2)
-
-- PDF is generated **directly from `ResumeDocumentModel` HTML** via `puppeteer-core` + `@sparticuz/chromium` — not from DOCX.
-- Vercel: Chromium bundle adds deploy size (~50MB class); route uses `maxDuration: 60` and `runtime: nodejs`.
+- PDF is generated from `ResumeDocumentModel` HTML via `puppeteer-core` + `@sparticuz/chromium`.
+- Vercel: Chromium bundle adds deploy size; route uses `maxDuration: 60` and `runtime: nodejs`.
 - Local dev: requires Google Chrome or `LOCAL_CHROME_PATH` / `CHROME_EXECUTABLE_PATH`.
-- Gill Sans MT renders only if installed on the machine generating PDF; otherwise fallback sans-serif applies.
-- If preview exceeds one-page target, PDF still exports with a warning — content is not auto-shrunk at export time.
-- If Supabase storage upload fails, API returns raw PDF bytes (same fallback as DOCX).
+- If Supabase storage upload fails, API returns raw PDF bytes.
 
-## DOCX export (v0.6.1)
+## DOCX export
 
 - DOCX uses Gill Sans MT (explicit on all runs); Word may substitute if font not installed.
-- Preview 11px maps to DOCX 10pt body — not pixel-identical to browser preview or PDF.
-- DOCX may overshoot one page in MS Word even when preview fits; prefer PDF for layout parity with preview.
-- Borderless tables align left/right rows; minor Word vs browser differences may remain.
-- Professional Summary is excluded from resume preview/export (schema field kept for backward compatibility / future cover letters).
+- Preview 11px maps to DOCX 10pt body — not pixel-identical to PDF.
+- Borderless tables align left/right rows; minor Word vs PDF differences may remain.
+- Professional Summary excluded from resume preview/export.
 
-## DOCX export (v0.6.0 baseline)
+## Mobile preview
 
-- DOCX uses the shared `ResumeDocumentModel` but Word rendering may differ slightly from browser preview (tab alignment, exact line breaks, font metrics).
-- Font family is first fallback from reference profile (usually Calibri) — DOCX font detection from uploaded resumes not implemented.
-- Export API uses client access token in `Authorization` header — no service role; storage upload requires Supabase RLS policies on `generated-documents` and `stored_files`.
-- If storage upload fails, API returns the DOCX file directly without persisting to bucket.
-- Rich exported-file ↔ draft linkage in DB is deferred; each export inserts a new `stored_files` row.
+- PDF Preview scales A4 proportionally on narrow screens; inner HTML stays fixed mm (no reflow).
+- Very long resumes may extend below the visible frame — scroll the page; iframe shows first page height at scale.
 
 ## Layout preview (v0.5.x)
 
 - Auto-optimization is heuristic — not true print pagination.
-- If content still overflows after optimization, user must shorten bullets in Edit Resume Details (content is not auto-deleted).
+- If content still overflows after optimization, shorten bullets in Edit Resume Details.
 
 ## Generated drafts
 
 - Delete is permanent (no soft-delete/archive yet).
-- Duplicate Company — Role labels append date/time in UI only.
-- Draft edits (review/approve) persist to `generated_resume_drafts` only — verified by `npm run test:draft-inventory-safety`.
+- Draft edits persist to `generated_resume_drafts` only — never inventory.
 
 ## Fit score (preview)
 
-- **Resume–Job Fit** in preview uses `preview-fit-heuristic-v1` — a provisional penalty/bonus model on draft content.
-- Target specification: `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`) — hygiene gates, jdScore 0–90, profileFit 0–10, verdict bands.
-- Full rubric **not implemented yet** — do not treat preview score as final qualification fit.
-- **Layout Fit (One Page)** is separate (`estimatePageFit`) and unrelated to job match.
+- **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional.
+- Target: `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`) — not implemented.
+- **Layout Fit (One Page)** is separate (`estimatePageFit`).

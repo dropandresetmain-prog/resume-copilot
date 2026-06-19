@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { enrichInventory, validateInventoryState } from "@/lib/inventory/persistence";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -15,6 +17,29 @@ export type CloudResumeInventory = {
 function parseInventoryRow(row: ResumeInventoryRow): InventoryState | null {
   const validated = validateInventoryState(row.data);
   return validated ? enrichInventory(validated) : null;
+}
+
+/** Server/API: load latest inventory for a user (RLS-scoped supabase client). */
+export async function getResumeInventoryForUser(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<InventoryState | null> {
+  const { data, error } = await supabase
+    .from("resume_inventories")
+    .select("*")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    return null;
+  }
+
+  return parseInventoryRow(data as ResumeInventoryRow);
 }
 
 export async function loadResumeInventoryFromCloud(): Promise<CloudResumeInventory | null> {

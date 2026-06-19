@@ -3,6 +3,8 @@ import { buildCollatedInventory } from "../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { buildResumeDocumentModel } from "../src/lib/resume-draft/document-model";
 import {
+  isMobileExportClient,
+  MOBILE_EXPORT_OPEN_HINT,
   PRIMARY_FINAL_EXPORT_FORMAT,
   resolveExportDownloadBehavior,
   SECONDARY_EDITABLE_EXPORT_FORMAT,
@@ -15,7 +17,7 @@ import {
   RESUME_PRINT_LAYOUT_SPACING,
   RESUME_PDF_HTML_A4_MARKER,
 } from "../src/lib/resume-draft/resume-layout-styles";
-import { RESUME_PDF_PREVIEW_TEST_ID } from "../src/components/resume-drafts/ResumePdfPreview";
+import { RESUME_PDF_PREVIEW_TEST_ID, RESUME_PDF_PREVIEW_FRAME_TEST_ID } from "../src/components/resume-drafts/ResumePdfPreview";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 import { existsSync, readFileSync } from "node:fs";
@@ -126,12 +128,28 @@ function main() {
 
   const checks: [string, boolean][] = [
     [
-      "pdf download uses open-new-tab behavior",
-      resolveExportDownloadBehavior("pdf") === "open-new-tab",
+      "desktop pdf download uses open-new-tab behavior",
+      resolveExportDownloadBehavior("pdf", { mobile: false }) === "open-new-tab",
     ],
     [
-      "docx download uses anchor-download behavior",
-      resolveExportDownloadBehavior("docx") === "anchor-download",
+      "mobile pdf download uses same-tab navigation",
+      resolveExportDownloadBehavior("pdf", { mobile: true }) === "same-tab-navigate",
+    ],
+    [
+      "desktop docx download uses anchor-download behavior",
+      resolveExportDownloadBehavior("docx", { mobile: false }) === "anchor-download",
+    ],
+    [
+      "mobile docx download uses same-tab navigation",
+      resolveExportDownloadBehavior("docx", { mobile: true }) === "same-tab-navigate",
+    ],
+    [
+      "mobile export hint defined",
+      MOBILE_EXPORT_OPEN_HINT.length > 0,
+    ],
+    [
+      "iphone detected as mobile export client",
+      isMobileExportClient("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)") === true,
     ],
     [
       "pdf is primary final export format",
@@ -145,6 +163,11 @@ function main() {
       "pdf preview component uses renderResumePdfHtml",
       pdfPreviewSource.includes("renderResumePdfHtml") &&
         pdfPreviewSource.includes("srcDoc={html}"),
+    ],
+    [
+      "pdf preview uses a4 scale-to-fit frame",
+      pdfPreviewSource.includes(RESUME_PDF_PREVIEW_FRAME_TEST_ID) &&
+        pdfPreviewSource.includes("ResizeObserver"),
     ],
     [
       "pdf preview test id exported",

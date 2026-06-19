@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { buildResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import {
+  buildExportResumeDocumentModel,
+  findReferenceResumeInInventory,
+} from "@/lib/resume-draft/build-export-document-model";
 import { generateResumeDocxBuffer } from "@/lib/resume-draft/docx-export";
 import {
   isApprovedDraftStatus,
@@ -8,6 +11,7 @@ import {
 } from "@/lib/resume-draft/export-request";
 import { getGeneratedResumeDraftForUser } from "@/lib/supabase/generated-resume-drafts";
 import { getJobDescriptionForUser } from "@/lib/supabase/job-descriptions";
+import { getResumeInventoryForUser } from "@/lib/supabase/resume-inventories";
 import { uploadResumeDocxExport } from "@/lib/supabase/resume-docx-storage";
 import {
   createSupabaseClientWithAccessToken,
@@ -42,14 +46,16 @@ export async function POST(request: Request) {
       ? await getJobDescriptionForUser(supabase, draft.jobDescriptionId, userId)
       : null;
 
-    const documentModel = buildResumeDocumentModel({
-      draftId: draft.id,
-      draftStatus: draft.status,
-      content: draft.content,
+    const inventory = await getResumeInventoryForUser(supabase, userId);
+    const referenceResume = inventory
+      ? findReferenceResumeInInventory(inventory.resumes, draft.referenceResumeId)
+      : null;
+
+    const documentModel = buildExportResumeDocumentModel({
+      draft,
+      jobDescription,
+      referenceResume,
       layoutSettings: body.layoutSettings,
-      fullName: draft.content.header.fullName,
-      companyName: jobDescription?.companyName,
-      roleTitle: jobDescription?.roleTitle ?? draft.content.targetRoleTitle,
     });
 
     const buffer = await generateResumeDocxBuffer(documentModel);
