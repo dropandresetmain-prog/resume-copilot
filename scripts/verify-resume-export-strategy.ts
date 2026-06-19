@@ -128,8 +128,8 @@ function main() {
 
   const checks: [string, boolean][] = [
     [
-      "desktop pdf download uses open-new-tab behavior",
-      resolveExportDownloadBehavior("pdf", { mobile: false }) === "open-new-tab",
+      "desktop pdf download uses anchor-download behavior",
+      resolveExportDownloadBehavior("pdf", { mobile: false }) === "anchor-download",
     ],
     [
       "mobile pdf download uses same-tab navigation",
@@ -206,6 +206,12 @@ function main() {
     [
       "pdf html uses a4 page marker",
       pdfHtml.includes(RESUME_PDF_HTML_A4_MARKER),
+    ],
+    [
+      "export client delivers via blob fetch and anchor download",
+      readFileSync(join(process.cwd(), "src/lib/resume-draft/export-client.ts"), "utf8").includes(
+        "fetchExportBlob",
+      ),
     ],
     [
       "docx is not primary final format",

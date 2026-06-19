@@ -88,7 +88,7 @@ export async function uploadResumeDocxExport(
 
   const { data: signed, error: signedError } = await supabase.storage
     .from(GENERATED_DOCUMENTS_BUCKET)
-    .createSignedUrl(storagePath, 60 * 60);
+    .createSignedUrl(storagePath, 60 * 60, { download: options.fileName });
 
   if (signedError || !signed?.signedUrl) {
     throw new Error(signedError?.message ?? "Failed to create download URL.");

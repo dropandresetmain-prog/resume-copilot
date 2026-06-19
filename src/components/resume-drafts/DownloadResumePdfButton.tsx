@@ -44,7 +44,7 @@ export function DownloadResumePdfButton({
       if (!result.downloadUrl) {
         throw new Error("Export did not return a download URL.");
       }
-      const delivery = deliverExportedFile(result.fileName, result.downloadUrl, "pdf");
+      const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "pdf");
       if (delivery.mobileHint) {
         onWarning?.(delivery.mobileHint);
       }

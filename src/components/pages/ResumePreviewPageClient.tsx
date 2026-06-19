@@ -346,9 +346,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.7 · PDF Preview Truth Patch"
+        milestone="v0.6.8 · Export Delivery & Filename Stabilization"
         title="Resume Preview"
-        description="PDF Preview is the export truth — tune layout, approve, then download PDF or editable DOCX."
+        description="PDF Preview is the closest local approximation — tune layout, approve, then download PDF or editable DOCX."
       />
 
       <p className="text-xs text-slate-500">

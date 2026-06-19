@@ -37,7 +37,7 @@ export function DownloadResumeDocxButton({
       if (!result.downloadUrl) {
         throw new Error("Export did not return a download URL.");
       }
-      const delivery = deliverExportedFile(result.fileName, result.downloadUrl, "docx");
+      const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "docx");
       if (delivery.mobileHint) {
         onHint?.(delivery.mobileHint);
       }

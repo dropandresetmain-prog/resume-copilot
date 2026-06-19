@@ -4,17 +4,19 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.6.7 — PDF Preview Truth Patch** (complete)
+**v0.6.8 — Export Delivery & Filename Stabilization** (complete)
 
-- PDF Preview overflow measurement — no silent one-page clip; badge + page-break marker
-- Puppeteer `document.fonts.ready` before `page.pdf()`
-- Documented browser vs server font differences (no bundled font yet)
+- Blob fetch + single anchor download with intended filename (PDF + DOCX)
+- Supabase signed URLs include `download: fileName`
+- Removed desktop PDF `window.open(signedUrl)` delivery path
 
 ## Previous
 
+**v0.6.7 — PDF Preview Truth Patch** — overflow measurement, no silent clip, fonts.ready hardening.
+
 **v0.6.6 — Resume Generation Rules & Approval Formatting Fixes** — font ceiling, generation bullet rules, re-approval after layout edits, DOCX warning.
 
-**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview authoritative HTML, export model parity, mobile A4 preview, mobile export navigation.
+**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview HTML parity, export model parity, mobile A4 preview.
 
 ## Next milestone
 

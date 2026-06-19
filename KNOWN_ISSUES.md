@@ -1,15 +1,16 @@
 # Known Issues
 
-## Export strategy (v0.6.7)
+## Export strategy (v0.6.8)
 
-- **PDF Preview** uses the same print HTML/CSS as export, rendered in your **local browser** with **local installed fonts**.
-- **Downloaded PDF** is rendered on the server (Vercel/Linux Chromium) with **different system fonts** — slight line-break differences may remain until a bundled web font is used.
-- PDF Preview **detects overflow** when content exceeds one A4 page (`scrollHeight` on `.resume-pdf-a4-page`) and shows a warning; it does not guarantee server PDF page count until v0.7.0 validation.
+- **PDF Preview** is the closest **local** approximation — same print HTML/CSS, user browser fonts. Server PDF may differ at line breaks until v0.7.0 page-count validation.
+- **Export delivery (v0.6.8):** one API POST → one blob fetch → one anchor download with intended `fileName`. No `window.open` on Supabase signed URLs.
+- **Signed URLs** include `download: fileName` for Content-Disposition when hit directly; client delivery uses blob + `anchor.download` for reliable filenames.
 - **Post-approval layout edits** set draft status to `layout_changed`; export is blocked until **Re-approve for Export**.
 - **DOCX is secondary/editable** — may reflow or exceed one page in Word; UI warns near DOCX download. PDF is the final layout.
-- PDF download on **desktop** opens in a new tab; **mobile** navigates in the same tab (browser may open inline instead of saving).
-- DOCX download on **desktop** uses anchor download; **mobile** uses same-tab navigation with user hint.
+- Desktop PDF/DOCX: single download with generated filename (`<Name> - Resume_<Company>_<Role>.pdf`).
+- Mobile: same blob download path; browser may open inline instead of saving — mobile hint shown.
 - Export APIs resolve `fontFamily` / `headerAlignment` from reference resume via shared `buildExportResumeDocumentModel`.
+- External PDF apps (e.g. Adobe) may still open files after download per OS settings — **Accept Risk**.
 
 ## Font parity (deferred)
 
@@ -34,7 +35,7 @@
 - PDF is generated from `ResumeDocumentModel` HTML via `puppeteer-core` + `@sparticuz/chromium`.
 - Vercel: Chromium bundle adds deploy size; route uses `maxDuration: 60` and `runtime: nodejs`.
 - Local dev: requires Google Chrome or `LOCAL_CHROME_PATH` / `CHROME_EXECUTABLE_PATH`.
-- If Supabase storage upload fails, API returns raw PDF bytes.
+- If Supabase storage upload fails, API returns raw PDF bytes with `Content-Disposition` filename.
 
 ## DOCX export
 

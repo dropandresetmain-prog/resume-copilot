@@ -2,32 +2,32 @@
 
 ## Current milestone
 
-**v0.6.7 — PDF Preview Truth Patch**
+**v0.6.8 — Export Delivery & Filename Stabilization**
 
-PDF Preview no longer silently clips overflow at one A4 page. Puppeteer export awaits `document.fonts.ready` before print. Font parity across browser vs server remains a known gap until bundled web fonts or v0.7.0 validation.
+Export delivery uses one API request + one blob fetch + one anchor download with the intended filename. Avoids `window.open` on Supabase signed URLs (which caused tab + Downloads + Adobe stacking on some systems).
 
 ## Product flow
 
 ```
-Paste JD → Generate → Review → PDF Preview (truth) → Approve → Download PDF (primary) / DOCX (secondary)
+Paste JD → Generate → Review → PDF Preview (closest local approximation) → Approve → Download PDF (primary) / DOCX (secondary)
 ```
 
 If layout changes after approval → status `layout_changed` → re-approve before export.
 
-## v0.6.7 highlights
+## v0.6.8 highlights
 
-- PDF Preview measures `.resume-pdf-a4-page` scroll height — overflow badge + dashed page-break line
-- Iframe expands to full content height (no silent bottom clip); mobile scale-to-fit preserved
-- Puppeteer: `waitForPdfDocumentFonts()` after `setContent` before `page.pdf()`
-- UI copy: closest browser preview; server PDF may differ at line breaks until v0.7.0 page-count gate
+- PDF/DOCX desktop: `fetchExportBlob` → blob URL → single `<a download={fileName}>` click
+- Supabase `createSignedUrl(..., { download: fileName })` for Content-Disposition on direct URL hits
+- `ExportDeliveryMetrics` counters for verifying one API call per click
+- PDF button remains **Download PDF** (download-first, not open-tab)
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.6.6 — Generation rules & approval formatting | Complete |
-| **v0.6.7 — PDF Preview truth patch** | **Current** |
-| v0.7.0 — One-page enforcement foundation | Next (recommended) |
+| v0.6.7 — PDF Preview truth patch | Complete |
+| **v0.6.8 — Export delivery & filename** | **Current** |
+| v0.7.0 — One-page enforcement foundation | Next |
 | Cover letter generation | After one-page foundation |
 
 See `ROADMAP.md`.
