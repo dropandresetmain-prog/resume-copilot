@@ -1,5 +1,11 @@
 # Known Issues
 
+## PDF export (v0.6.3)
+
+- Preview and PDF HTML share `RESUME_LAYOUT_SPACING` constants — minor Chromium vs browser font metric differences may remain.
+- Gill Sans MT renders only if installed on the PDF generation machine.
+- Full-page scaling is not used; layout is controlled via font size, line-height, and compact margins.
+
 ## PDF export (v0.6.2)
 
 - PDF is generated **directly from `ResumeDocumentModel` HTML** via `puppeteer-core` + `@sparticuz/chromium` — not from DOCX.

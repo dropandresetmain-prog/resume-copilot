@@ -17,6 +17,7 @@ import {
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import { resolveDocxFontSizes } from "@/lib/resume-draft/docx-font";
 import { buildCompanyLineSegments } from "@/lib/resume-draft/docx-layout-helpers";
+import { formatCandidateDisplayName } from "@/lib/resume-draft/resume-layout-styles";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -220,7 +221,11 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
       new Paragraph({
         alignment: headerAlignment,
         spacing: { after: 40 },
-        children: [makeRun(layout.header.fullName, font, headerHalfPoints, { bold: true })],
+        children: [
+          makeRun(formatCandidateDisplayName(layout.header.fullName), font, headerHalfPoints, {
+            bold: true,
+          }),
+        ],
       }),
     );
   }

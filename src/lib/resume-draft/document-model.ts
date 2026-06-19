@@ -16,6 +16,7 @@ import {
   type PreviewFontSizes,
 } from "@/lib/resume-draft/preview-settings";
 import { buildResumeDocxFileName, buildResumePdfFileName } from "@/lib/resume-draft/export-filename";
+import { sanitizeExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
 import type { ResumeDraftContent } from "@/types/resume-draft";
 
 /** Shared layout settings consumed by preview and export. */
@@ -59,12 +60,13 @@ function resolveLayoutSettings(
   override?: Partial<ResumeLayoutSettings>,
 ): ResumeLayoutSettings {
   const optimized = optimizeResumePreviewSettings(content);
+  const stored = sanitizeExportLayoutSettings(content.exportLayoutSettings);
   return {
-    bodyFontPx: override?.bodyFontPx ?? optimized.bodyFontPx,
-    marginMm: override?.marginMm ?? optimized.marginMm,
-    marginTopMm: override?.marginTopMm ?? optimized.marginTopMm,
-    lineSpacing: override?.lineSpacing ?? optimized.lineSpacing,
-    sectionSpacing: override?.sectionSpacing ?? optimized.sectionSpacing,
+    bodyFontPx: override?.bodyFontPx ?? stored?.bodyFontPx ?? optimized.bodyFontPx,
+    marginMm: override?.marginMm ?? stored?.marginMm ?? optimized.marginMm,
+    marginTopMm: override?.marginTopMm ?? stored?.marginTopMm ?? optimized.marginTopMm,
+    lineSpacing: override?.lineSpacing ?? stored?.lineSpacing ?? optimized.lineSpacing,
+    sectionSpacing: override?.sectionSpacing ?? stored?.sectionSpacing ?? optimized.sectionSpacing,
   };
 }
 

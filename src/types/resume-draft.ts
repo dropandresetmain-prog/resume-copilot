@@ -72,6 +72,14 @@ export type ResumeDraftSkillsSection = {
   riskFlags: string[];
 };
 
+export type ResumeDraftExportLayoutSettings = {
+  bodyFontPx: number;
+  marginMm: number;
+  marginTopMm: number;
+  lineSpacing: number;
+  sectionSpacing: number;
+};
+
 export type ResumeDraftContent = {
   schemaVersion: typeof RESUME_DRAFT_SCHEMA_VERSION;
   targetRoleTitle?: string;
@@ -83,6 +91,8 @@ export type ResumeDraftContent = {
   education: ResumeDraftEducationItem[];
   additionalExperience: ResumeDraftAdditionalExperienceItem[];
   globalRiskFlags: string[];
+  /** Last approved preview/export layout settings (optional). */
+  exportLayoutSettings?: ResumeDraftExportLayoutSettings;
 };
 
 export type ResumeDraftRationale = {

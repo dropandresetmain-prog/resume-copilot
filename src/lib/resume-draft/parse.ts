@@ -1,4 +1,5 @@
 import { repairBulletText } from "@/lib/resume-draft/keyword-repair";
+import { parseStoredExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
 import {
   RESUME_DRAFT_SCHEMA_VERSION,
   type ResumeDraftConfidence,
@@ -171,6 +172,7 @@ export function mapResumeDraftPayload(parsed: unknown): ResumeDraftGenerationRes
     education,
     additionalExperience,
     globalRiskFlags: asStringArray(parsed.globalRiskFlags),
+    exportLayoutSettings: parseStoredExportLayoutSettings(parsed.exportLayoutSettings),
   };
 
   const hasUsableContent =

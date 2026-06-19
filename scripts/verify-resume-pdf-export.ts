@@ -27,9 +27,12 @@ import {
 import { layoutIncludesProfessionalSummary } from "../src/lib/resume-draft/layout";
 import {
   renderResumePdfHtml,
-  RESUME_PDF_HTML_A4_MARKER,
   resumePdfHeaderOffsetPx,
 } from "../src/lib/resume-draft/pdf-html";
+import {
+  formatCandidateDisplayName,
+  RESUME_PDF_HTML_A4_MARKER,
+} from "../src/lib/resume-draft/resume-layout-styles";
 import {
   PREVIEW_BODY_FONT_DEFAULT_PX,
   PREVIEW_HEADER_OFFSET_PX,
@@ -215,8 +218,8 @@ async function main() {
         !pdfHtml.includes('class="company-descriptor"><strong'),
     ],
     [
-      "pdf html company name bold class",
-      pdfHtml.includes('class="company-name">Drop &amp; Reset</span>'),
+      "pdf html renders uppercase name",
+      pdfHtml.includes(formatCandidateDisplayName("Hset Min Htet")),
     ],
     [
       "preview header is body + 1px",

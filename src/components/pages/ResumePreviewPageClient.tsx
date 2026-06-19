@@ -15,6 +15,8 @@ import {
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import { buildResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import { sanitizeExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
+import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
 import {
   clampPreviewBodyFontPx,
@@ -76,6 +78,17 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             setDraft(null);
           } else {
             setDraft(record);
+            const stored = record.content.exportLayoutSettings;
+            if (stored) {
+              setManualSettings({
+                draftId: record.id,
+                bodyFontPx: stored.bodyFontPx,
+                marginMm: stored.marginMm,
+                marginTopMm: stored.marginTopMm,
+                lineSpacing: stored.lineSpacing,
+                sectionSpacing: stored.sectionSpacing,
+              });
+            }
           }
         }
       } catch (loadError) {
@@ -192,9 +205,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     setIsApproving(true);
     setError(null);
     try {
+      const exportLayoutSettings = sanitizeExportLayoutSettings({
+        bodyFontPx,
+        marginMm,
+        marginTopMm,
+        lineSpacing,
+        sectionSpacing,
+      });
       // Draft-specific mutation only — updates generated_resume_drafts; never inventory.
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: draft.content,
+        content: {
+          ...draft.content,
+          exportLayoutSettings,
+        },
         status: "approved",
       });
       setDraft(updated);
@@ -236,9 +259,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.0 · Resume DOCX Export"
+        milestone="v0.6.3 · Preview/PDF Layout Parity"
         title="Resume Preview"
-        description="Format-optimized one-page preview. Approve for export, then download DOCX."
+        description="Format-optimized one-page preview. Approve for export, then download DOCX or PDF."
       />
 
       <p className="text-xs text-slate-500">
@@ -399,6 +422,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           {error}
         </p>
       ) : null}
+
+      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">
+          PDF layout HTML (debug)
+        </summary>
+        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-800">
+          {documentModel ? renderResumePdfHtml(documentModel) : ""}
+        </pre>
+      </details>
 
       <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">Debug JSON</summary>

@@ -80,11 +80,19 @@ export async function exportResumePdfFromApi(options: {
 }
 
 export function triggerBrowserDownload(fileName: string, downloadUrl: string): void {
-  const anchor = document.createElement("a");
-  anchor.href = downloadUrl;
-  anchor.download = fileName;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
+  const opened = window.open(downloadUrl, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  if (downloadUrl.startsWith("blob:")) {
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+  }
 }

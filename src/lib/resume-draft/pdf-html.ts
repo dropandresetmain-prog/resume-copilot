@@ -1,12 +1,14 @@
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import { buildCompanyLineSegments } from "@/lib/resume-draft/docx-layout-helpers";
 import {
-  A4_HEIGHT_MM,
-  A4_WIDTH_MM,
-  PREVIEW_HEADER_OFFSET_PX,
-} from "@/lib/resume-draft/preview-settings";
+  buildResumeLayoutCssFromModel,
+  buildResumeLayoutStylesheet,
+  formatCandidateDisplayName,
+  RESUME_PDF_HTML_A4_MARKER,
+} from "@/lib/resume-draft/resume-layout-styles";
+import { PREVIEW_HEADER_OFFSET_PX } from "@/lib/resume-draft/preview-settings";
 
-export const RESUME_PDF_HTML_A4_MARKER = "resume-pdf-a4-page";
+export { RESUME_PDF_HTML_A4_MARKER };
 
 function escapeHtml(value: string): string {
   return value
@@ -61,18 +63,19 @@ function renderSectionHeading(title: string): string {
  * Self-contained HTML document for direct HTML→PDF export from the canonical document model.
  */
 export function renderResumePdfHtml(model: ResumeDocumentModel): string {
-  const { layout, layoutSettings, fontSizes, fontFamily, headerAlignment, pageFit } = model;
-  const marginTopMm = pageFit.marginTopMm ?? pageFit.marginMm;
+  const { layout, headerAlignment } = model;
+  const cssInput = buildResumeLayoutCssFromModel(model);
+  const stylesheet = buildResumeLayoutStylesheet(cssInput);
   const headerAlign = headerAlignment === "center" ? "center" : "left";
-  const bodyPx = fontSizes.bodyPx;
-  const headerPx = fontSizes.sectionPx;
 
   const sections: string[] = [];
 
   if (layout.header.fullName || layout.header.contactLine) {
     sections.push(`<header class="resume-header" style="text-align:${headerAlign}">`);
     if (layout.header.fullName) {
-      sections.push(`<h1 class="candidate-name">${escapeHtml(layout.header.fullName)}</h1>`);
+      sections.push(
+        `<h1 class="candidate-name">${escapeHtml(formatCandidateDisplayName(layout.header.fullName))}</h1>`,
+      );
     }
     if (layout.header.contactLine) {
       sections.push(`<p class="contact-line">${escapeHtml(layout.header.contactLine)}</p>`);
@@ -85,7 +88,7 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
     sections.push(renderSectionHeading("Work Experience"));
     sections.push('<div class="section-body">');
     for (const experience of layout.workExperience) {
-      sections.push('<div class="experience-block">');
+      sections.push("<div>");
       sections.push(
         renderTwoColumnRow(
           renderCompanyLineHtml(experience.company, experience.companyDescriptor),
@@ -115,7 +118,7 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
     sections.push(renderSectionHeading("Education"));
     sections.push('<div class="section-body">');
     for (const item of layout.education) {
-      sections.push('<div class="education-block">');
+      sections.push("<div>");
       sections.push(
         renderTwoColumnRow(
           `<span class="institution-line">${escapeHtml(item.institutionLine)}</span>`,
@@ -148,7 +151,7 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
     sections.push('<section class="resume-section">');
     sections.push(renderSectionHeading("Additional Experience"));
     sections.push(
-      `<p class="section-body">${escapeHtml(layout.additionalExperienceLine)}</p>`,
+      `<p class="section-body plain-text">${escapeHtml(layout.additionalExperienceLine)}</p>`,
     );
     sections.push("</section>");
   }
@@ -183,135 +186,7 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
   <meta charset="utf-8" />
   <title>Resume</title>
   <style>
-    @page {
-      size: A4;
-      margin: 0;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: ${fontFamily};
-      font-size: ${bodyPx}px;
-      line-height: ${layoutSettings.lineSpacing};
-      color: #0f172a;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    .${RESUME_PDF_HTML_A4_MARKER} {
-      width: ${A4_WIDTH_MM}mm;
-      min-height: ${A4_HEIGHT_MM}mm;
-      padding: ${marginTopMm}mm ${pageFit.marginMm}mm ${pageFit.marginMm}mm;
-    }
-
-    .resume-header {
-      margin-bottom: 0.15rem;
-    }
-
-    .candidate-name {
-      margin: 0 0 0.15rem;
-      font-size: ${headerPx}px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
-
-    .contact-line {
-      margin: 0;
-      font-size: ${bodyPx}px;
-    }
-
-    .resume-section {
-      margin-top: ${layoutSettings.sectionSpacing}rem;
-    }
-
-    .section-heading {
-      margin: 0 0 0.35rem;
-      padding-bottom: 0.1rem;
-      border-bottom: 1px solid #94a3b8;
-      font-size: ${headerPx}px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .section-body {
-      margin-top: 0.35rem;
-    }
-
-    .experience-block,
-    .education-block {
-      margin-bottom: 0.55rem;
-    }
-
-    .experience-block:last-child,
-    .education-block:last-child {
-      margin-bottom: 0;
-    }
-
-    .two-col-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 12px;
-    }
-
-    .row-left {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    .row-right {
-      flex: 0 0 auto;
-      text-align: right;
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .company-name {
-      font-weight: 700;
-    }
-
-    .company-descriptor {
-      font-weight: 400;
-    }
-
-    .role-line,
-    .degree-line {
-      font-style: italic;
-    }
-
-    .institution-line {
-      font-weight: 700;
-    }
-
-    ul {
-      margin: 0.15rem 0 0;
-      padding-left: 1.25rem;
-    }
-
-    li {
-      margin: 0.08rem 0;
-    }
-
-    .keyword {
-      text-decoration: underline;
-    }
-
-    .compact-line {
-      margin: 0.08rem 0;
-    }
-
-    .compact-lines .compact-line:first-child {
-      margin-top: 0;
-    }
+${stylesheet}
   </style>
 </head>
 <body>

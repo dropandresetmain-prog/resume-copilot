@@ -145,7 +145,12 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
 | `src/lib/resume-draft/layout.ts` | Final layout model, sort, page-fit estimate, fit score (v0.5.1+) |
 | `src/lib/resume-draft/document-model.ts` | Canonical `ResumeDocumentModel` for preview + export (v0.6.0) |
-| `src/lib/resume-draft/pdf-html.ts` | HTML renderer for direct PDF export (v0.6.2) |
+| `src/lib/resume-draft/resume-layout-styles.ts` | Shared preview/PDF spacing + uppercase name (v0.6.3) |
+| `src/lib/resume-draft/export-layout-settings.ts` | Sanitize/persist approved layout settings (v0.6.3) |
+| `src/lib/resume-draft/pdf-html.ts` | HTML renderer for direct PDF export (v0.6.2+) |
+| `src/lib/resume-draft/pdf-export.ts` | Puppeteer PDF generation (v0.6.2+) |
+| `src/lib/supabase/resume-pdf-storage.ts` | PDF upload to `generated-documents` (v0.6.2+) |
+| `src/app/api/export/resume-pdf/route.ts` | POST PDF export API (v0.6.2+) |
 | `src/lib/resume-draft/pdf-export.ts` | Puppeteer PDF generation from document model (v0.6.2) |
 | `src/lib/supabase/resume-pdf-storage.ts` | PDF upload to `generated-documents` (v0.6.2) |
 | `src/app/api/export/resume-pdf/route.ts` | POST PDF export API (v0.6.2) |
@@ -210,6 +215,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |
 | `scripts/verify-resume-docx-export.ts` | Document model + filename + DOCX buffer tests (v0.6.0) |
+| `scripts/verify-resume-pdf-export.ts` | PDF HTML + filename + export request tests (v0.6.2+) |
+| `scripts/verify-resume-layout-parity.ts` | Preview/PDF spacing + settings persistence tests (v0.6.3) |
 | `scripts/verify-draft-inventory-safety.ts` | Draft edit paths must not mutate inventory (v0.5.4+) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |
 

@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**v0.6.2 — Direct Resume PDF Export**
+**v0.6.3 — Preview/PDF Layout Parity Fixes**
 
-Approved drafts can download **DOCX** (Word) or **PDF** (direct HTML→PDF from canonical layout model). PDF does not depend on DOCX.
+Preview, PDF HTML, and DOCX now share spacing constants and uppercase candidate names. Approved layout settings persist on the draft for Records exports.
 
 ## Product flow
 
@@ -14,25 +14,22 @@ Paste JD → Generate Resume → One-page preview → Approve for Export → Dow
 
 Cover letters and manual inventory editing deferred.
 
-## v0.6.2 highlights
+## v0.6.3 highlights
 
-**PDF strategy:** `ResumeDocumentModel` → `renderResumePdfHtml()` → Puppeteer (`puppeteer-core` + `@sparticuz/chromium` on Vercel; local Chrome fallback)
+**Layout parity:** `resume-layout-styles.ts` — shared spacing, line-height, bullet margins for preview + PDF HTML
 
-**Filename:** `<FULL NAME> - Resume_<COMPANY>_<ROLE>.pdf` (same stem as DOCX)
+**Uppercase name:** `formatCandidateDisplayName()` at render/export time only (stored profile unchanged)
 
-**Font hierarchy:** Header/name/section = body + 1pt (DOCX) / body + 1px (preview/PDF HTML)
+**Settings persistence:** `content.exportLayoutSettings` saved on Approve; Records export uses stored settings; preview page override wins when sliders change
 
-**Company line:** Company bold; `(descriptor)` normal in preview, DOCX, and PDF
-
-**Professional Summary:** Not rendered in resume preview/export; schema field kept empty for backward compatibility / future cover letters
+**PDF debug:** Collapsible “PDF layout HTML (debug)” on preview page
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.6.0 — DOCX export | Complete |
-| v0.6.1 — DOCX fidelity fixes | Complete |
-| **v0.6.2 — Direct PDF export** | **Current** |
+| v0.6.2 — Direct PDF export | Complete |
+| **v0.6.3 — Preview/PDF parity** | **Current** |
 | v0.7.0 — Cover letter generation | Next |
 | Manual inventory editing | Deferred |
 
@@ -42,7 +39,3 @@ Cover letters and manual inventory editing deferred.
 npm run dev
 npm run test
 ```
-
-## PDF local dev
-
-Set `LOCAL_CHROME_PATH` or install Google Chrome. On Vercel, `@sparticuz/chromium` is used automatically.

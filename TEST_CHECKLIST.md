@@ -1,37 +1,31 @@
-# Test Checklist — v0.6.2 Direct Resume PDF Export
+# Test Checklist — v0.6.3 Preview/PDF Layout Parity
 
-## Filename
+## Name
 
-- [ ] DOCX: `<Name> - Resume_<Company>_<Role>.docx`
-- [ ] PDF: `<Name> - Resume_<Company>_<Role>.pdf` (same stem)
+- [ ] Preview shows candidate name in FULL CAPS
+- [ ] PDF shows same uppercase name
+- [ ] DOCX shows same uppercase name
+- [ ] Stored profile data unchanged (mixed case in DB)
 
-## Preview page (`/resume-preview/[draftId]`)
+## Preview vs PDF parity
 
-- [ ] Approve → Download DOCX works
-- [ ] Approve → Download PDF works
-- [ ] Before approval: both disabled with helper text
-- [ ] Company name bold; descriptor normal weight
-- [ ] Header/section size visibly one step above body (+1px)
-- [ ] No Professional Summary section
-- [ ] Overflow warning on PDF export if preview exceeds one page
+- [ ] Line spacing matches preview sliders in PDF
+- [ ] Section spacing matches preview sliders in PDF
+- [ ] Bullet spacing compact and aligned with preview
+- [ ] Work/education row spacing matches preview
+- [ ] No obviously looser PDF layout vs preview
 
-## Records page
+## Settings persistence
 
-- [ ] Approved drafts show Download DOCX and Download PDF
+- [ ] Adjust sliders → Approve → reload preview → sliders restored
+- [ ] Records → Download PDF uses approved settings (not optimizer defaults)
+- [ ] Preview page live export uses current slider values
 
-## PDF manual check
+## Export buttons
 
-- [ ] Open PDF — Gill Sans MT or fallback sans-serif
-- [ ] A4 one-page layout matches browser preview more closely than DOCX
-- [ ] Work/education left/right rows aligned
-- [ ] Keyword bullets underlined
-
-## DOCX (unchanged path)
-
-- [ ] DOCX still works; Word may differ from preview/PDF
+- [ ] DOCX/PDF open in new tab
 
 ## Automated
 
-- [ ] `npm run test:resume-pdf-export` passes
-- [ ] `npm run test:resume-docx-export` passes
+- [ ] `npm run test:resume-layout-parity` passes
 - [ ] `npm run test` / `lint` / `build` pass

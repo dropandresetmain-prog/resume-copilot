@@ -1,5 +1,7 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 import { buildCompanyLineSegments } from "@/lib/resume-draft/docx-layout-helpers";
 import type { FinalResumeLayout, PageFitEstimate } from "@/lib/resume-draft/layout";
 import {
@@ -9,6 +11,10 @@ import {
   PREVIEW_BODY_FONT_DEFAULT_PX,
   resolvePreviewFontSizes,
 } from "@/lib/resume-draft/preview-settings";
+import {
+  formatCandidateDisplayName,
+  RESUME_LAYOUT_SPACING,
+} from "@/lib/resume-draft/resume-layout-styles";
 
 export const A4_PAGE_PREVIEW_TEST_ID = "a4-page-container";
 export const A4_PAGE_BOUNDARY_TEST_ID = "a4-page-boundary";
@@ -23,19 +29,28 @@ type FinalResumeLayoutPreviewProps = {
   className?: string;
 };
 
+const spacing = RESUME_LAYOUT_SPACING;
+
+function rowStyle(): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: `${spacing.rowGapRem}rem`,
+  };
+}
+
 function KeywordBullet({
   keyword,
   statement,
-  bodyPx,
 }: {
   keyword: string;
   statement: string;
-  bodyPx: number;
 }) {
   return (
-    <li style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
+    <>
       <span className="underline">{keyword}:</span> {statement}
-    </li>
+    </>
   );
 }
 
@@ -43,37 +58,23 @@ function AchievementBullet({
   prefix,
   underlinePrefix,
   text,
-  bodyPx,
 }: {
   prefix?: string;
   underlinePrefix: boolean;
   text: string;
-  bodyPx: number;
 }) {
-  return (
-    <li style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
-      {prefix ? (
-        <>
-          <span className={underlinePrefix ? "underline" : undefined}>{prefix}</span> {text}
-        </>
-      ) : (
-        text
-      )}
-    </li>
+  return prefix ? (
+    <>
+      <span className={underlinePrefix ? "underline" : undefined}>{prefix}</span> {text}
+    </>
+  ) : (
+    <>{text}</>
   );
 }
 
-function LabeledCompactLine({
-  label,
-  value,
-  bodyPx,
-}: {
-  label: string;
-  value: string;
-  bodyPx: number;
-}) {
+function LabeledCompactLine({ label, value }: { label: string; value: string }) {
   return (
-    <p style={{ fontSize: `${bodyPx}px` }} className="leading-snug">
+    <p>
       <span className="underline">{label}:</span> {value}
     </p>
   );
@@ -89,8 +90,30 @@ export function FinalResumeLayoutPreview({
 }: FinalResumeLayoutPreviewProps) {
   const sizes = resolvePreviewFontSizes(bodyFontPx);
   const marginTopMm = pageFit.marginTopMm ?? pageFit.marginMm;
+  const lineHeight = pageFit.lineSpacing;
   const headerClassName =
     headerAlignment === "center" ? "text-center" : "text-left";
+
+  const bulletListStyle: CSSProperties = {
+    marginTop: `${spacing.bulletListTopRem}rem`,
+    paddingLeft: `${spacing.bulletPaddingLeftRem}rem`,
+    listStyleType: "disc",
+    listStylePosition: "outside",
+  };
+
+  const sectionBodyStyle: CSSProperties = {
+    marginTop: `${spacing.sectionBodyTopRem}rem`,
+    display: "flex",
+    flexDirection: "column",
+    gap: `${spacing.entryGapRem}rem`,
+  };
+
+  const compactLinesStyle: CSSProperties = {
+    marginTop: `${spacing.sectionBodyTopRem}rem`,
+    display: "flex",
+    flexDirection: "column",
+    gap: `${spacing.compactLineGapRem}rem`,
+  };
 
   return (
     <div className={className}>
@@ -121,20 +144,27 @@ export function FinalResumeLayoutPreview({
               padding: `${marginTopMm}mm ${pageFit.marginMm}mm ${pageFit.marginMm}mm`,
               fontFamily,
               fontSize: `${sizes.bodyPx}px`,
-              lineHeight: pageFit.lineSpacing,
+              lineHeight,
             }}
           >
-            <header className={headerClassName}>
+            <header
+              className={headerClassName}
+              style={{ marginBottom: `${spacing.headerBottomRem}rem` }}
+            >
               {layout.header.fullName ? (
                 <h1
-                  className="font-bold tracking-wide"
-                  style={{ fontSize: `${sizes.sectionPx}px`, marginBottom: "0.15rem" }}
+                  className="font-bold uppercase tracking-wide"
+                  style={{
+                    fontSize: `${sizes.sectionPx}px`,
+                    marginBottom: `${spacing.headerBottomRem}rem`,
+                    lineHeight,
+                  }}
                 >
-                  {layout.header.fullName}
+                  {formatCandidateDisplayName(layout.header.fullName)}
                 </h1>
               ) : null}
               {layout.header.contactLine ? (
-                <p style={{ fontSize: `${sizes.bodyPx}px` }}>{layout.header.contactLine}</p>
+                <p style={{ fontSize: `${sizes.bodyPx}px`, lineHeight }}>{layout.header.contactLine}</p>
               ) : null}
             </header>
 
@@ -142,16 +172,16 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
                 >
                   Work Experience
                 </h2>
-                <div className="mt-1.5 space-y-2.5">
+                <div style={sectionBodyStyle}>
                   {layout.workExperience.map((experience) => (
                     <div
                       key={`${experience.company}-${experience.role}-${experience.dateRange ?? ""}`}
                     >
-                      <div className="flex items-baseline justify-between gap-3">
+                      <div style={rowStyle()}>
                         <p className="min-w-0 flex-1">
                           {buildCompanyLineSegments(
                             experience.company,
@@ -169,20 +199,24 @@ export function FinalResumeLayoutPreview({
                           <p className="shrink-0 text-right tabular-nums">{experience.location}</p>
                         ) : null}
                       </div>
-                      <div className="flex items-baseline justify-between gap-3">
+                      <div style={rowStyle()}>
                         <p className="min-w-0 flex-1 italic">{experience.role}</p>
                         {experience.dateRange ? (
                           <p className="shrink-0 text-right tabular-nums">{experience.dateRange}</p>
                         ) : null}
                       </div>
-                      <ul className="mt-0.5 list-disc space-y-0.5 pl-5">
-                        {experience.bullets.map((bullet) => (
-                          <KeywordBullet
+                      <ul style={bulletListStyle}>
+                        {experience.bullets.map((bullet, bulletIndex) => (
+                          <li
                             key={bullet.rawText}
-                            keyword={bullet.keyword}
-                            statement={bullet.statement}
-                            bodyPx={sizes.bodyPx}
-                          />
+                            style={
+                              bulletIndex > 0
+                                ? { marginTop: `${spacing.bulletGapRem}rem`, lineHeight }
+                                : { lineHeight }
+                            }
+                          >
+                            <KeywordBullet keyword={bullet.keyword} statement={bullet.statement} />
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -195,24 +229,21 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
                 >
                   Education
                 </h2>
-                <div className="mt-1.5 space-y-2.5">
+                <div style={sectionBodyStyle}>
                   {layout.education.map((item, itemIndex) => (
                     <div key={`education-${itemIndex}`}>
-                      <div className="flex items-baseline justify-between gap-3">
+                      <div style={rowStyle()}>
                         <p className="min-w-0 flex-1 font-bold">{item.institutionLine}</p>
                         {item.location ? (
                           <p className="shrink-0 text-right tabular-nums">{item.location}</p>
                         ) : null}
                       </div>
                       {item.degreeLines.map((degree, degreeIndex) => (
-                        <div
-                          key={`${degree.text}-${degreeIndex}`}
-                          className="flex items-baseline justify-between gap-3"
-                        >
+                        <div key={`${degree.text}-${degreeIndex}`} style={rowStyle()}>
                           <p className="min-w-0 flex-1 italic">{degree.text}</p>
                           {degree.dateRange ? (
                             <p className="shrink-0 text-right tabular-nums">{degree.dateRange}</p>
@@ -220,15 +251,22 @@ export function FinalResumeLayoutPreview({
                         </div>
                       ))}
                       {item.achievementBullets.length > 0 ? (
-                        <ul className="mt-0.5 list-disc space-y-0.5 pl-5">
-                          {item.achievementBullets.map((bullet) => (
-                            <AchievementBullet
+                        <ul style={bulletListStyle}>
+                          {item.achievementBullets.map((bullet, bulletIndex) => (
+                            <li
                               key={bullet.rawText}
-                              prefix={bullet.prefix}
-                              underlinePrefix={bullet.underlinePrefix}
-                              text={bullet.text}
-                              bodyPx={sizes.bodyPx}
-                            />
+                              style={
+                                bulletIndex > 0
+                                  ? { marginTop: `${spacing.bulletGapRem}rem`, lineHeight }
+                                  : { lineHeight }
+                              }
+                            >
+                              <AchievementBullet
+                                prefix={bullet.prefix}
+                                underlinePrefix={bullet.underlinePrefix}
+                                text={bullet.text}
+                              />
+                            </li>
                           ))}
                         </ul>
                       ) : null}
@@ -242,11 +280,18 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
                 >
                   Additional Experience
                 </h2>
-                <p className="mt-1.5 leading-snug">{layout.additionalExperienceLine}</p>
+                <p
+                  style={{
+                    marginTop: `${spacing.sectionBodyTopRem}rem`,
+                    lineHeight,
+                  }}
+                >
+                  {layout.additionalExperienceLine}
+                </p>
               </section>
             ) : null}
 
@@ -254,30 +299,20 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px` }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
                 >
                   Skills &amp; Interests
                 </h2>
-                <div className="mt-1.5 space-y-0.5">
-                  {layout.techLine ? (
-                    <LabeledCompactLine label="Tech" value={layout.techLine} bodyPx={sizes.bodyPx} />
-                  ) : null}
+                <div style={compactLinesStyle}>
+                  {layout.techLine ? <LabeledCompactLine label="Tech" value={layout.techLine} /> : null}
                   {layout.skillsLine ? (
-                    <LabeledCompactLine label="Skills" value={layout.skillsLine} bodyPx={sizes.bodyPx} />
+                    <LabeledCompactLine label="Skills" value={layout.skillsLine} />
                   ) : null}
                   {layout.languagesLine ? (
-                    <LabeledCompactLine
-                      label="Languages"
-                      value={layout.languagesLine}
-                      bodyPx={sizes.bodyPx}
-                    />
+                    <LabeledCompactLine label="Languages" value={layout.languagesLine} />
                   ) : null}
                   {layout.interestsLine ? (
-                    <LabeledCompactLine
-                      label="Interests"
-                      value={layout.interestsLine}
-                      bodyPx={sizes.bodyPx}
-                    />
+                    <LabeledCompactLine label="Interests" value={layout.interestsLine} />
                   ) : null}
                 </div>
               </section>
