@@ -346,7 +346,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.6 · Resume Generation Rules & Approval Formatting Fixes"
+        milestone="v0.6.7 · PDF Preview Truth Patch"
         title="Resume Preview"
         description="PDF Preview is the export truth — tune layout, approve, then download PDF or editable DOCX."
       />

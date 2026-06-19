@@ -17,7 +17,7 @@ import {
   RESUME_PRINT_LAYOUT_SPACING,
   RESUME_PDF_HTML_A4_MARKER,
 } from "../src/lib/resume-draft/resume-layout-styles";
-import { RESUME_PDF_PREVIEW_TEST_ID, RESUME_PDF_PREVIEW_FRAME_TEST_ID } from "../src/components/resume-drafts/ResumePdfPreview";
+import { RESUME_PDF_PREVIEW_TEST_ID, RESUME_PDF_PREVIEW_FRAME_TEST_ID, RESUME_PDF_PREVIEW_OVERFLOW_BADGE_TEST_ID } from "../src/components/resume-drafts/ResumePdfPreview";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 import { existsSync, readFileSync } from "node:fs";
@@ -172,6 +172,15 @@ function main() {
     [
       "pdf preview test id exported",
       pdfPreviewSource.includes(RESUME_PDF_PREVIEW_TEST_ID),
+    ],
+    [
+      "pdf preview detects and surfaces overflow",
+      pdfPreviewSource.includes("measureResumePdfPreviewOverflow") &&
+        pdfPreviewSource.includes(RESUME_PDF_PREVIEW_OVERFLOW_BADGE_TEST_ID),
+    ],
+    [
+      "pdf preview copy notes server rendering differences",
+      pdfPreviewSource.includes("rendered on the server"),
     ],
     [
       "pdf html includes @page a4",

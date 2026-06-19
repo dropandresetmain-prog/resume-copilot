@@ -45,6 +45,17 @@ async function launchPdfBrowser() {
   });
 }
 
+/** Wait for font layout to settle before print; no-op when FontFaceSet is unavailable. */
+export async function waitForPdfDocumentFonts(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>["newPage"]>>,
+): Promise<void> {
+  await page.evaluate(async () => {
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+  });
+}
+
 /**
  * Generate a PDF buffer directly from the canonical resume document model.
  * Uses HTML/CSS rendering — not DOCX conversion.
@@ -56,6 +67,7 @@ export async function generateResumePdfBuffer(model: ResumeDocumentModel): Promi
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
+    await waitForPdfDocumentFonts(page);
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,

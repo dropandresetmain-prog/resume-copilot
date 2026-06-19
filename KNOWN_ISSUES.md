@@ -1,17 +1,26 @@
 # Known Issues
 
-## Export strategy (v0.6.6)
+## Export strategy (v0.6.7)
 
-- **PDF Preview is the authoritative preview** — downloaded PDF should match when layout settings are approved.
+- **PDF Preview** uses the same print HTML/CSS as export, rendered in your **local browser** with **local installed fonts**.
+- **Downloaded PDF** is rendered on the server (Vercel/Linux Chromium) with **different system fonts** — slight line-break differences may remain until a bundled web font is used.
+- PDF Preview **detects overflow** when content exceeds one A4 page (`scrollHeight` on `.resume-pdf-a4-page`) and shows a warning; it does not guarantee server PDF page count until v0.7.0 validation.
 - **Post-approval layout edits** set draft status to `layout_changed`; export is blocked until **Re-approve for Export**.
 - **DOCX is secondary/editable** — may reflow or exceed one page in Word; UI warns near DOCX download. PDF is the final layout.
 - PDF download on **desktop** opens in a new tab; **mobile** navigates in the same tab (browser may open inline instead of saving).
 - DOCX download on **desktop** uses anchor download; **mobile** uses same-tab navigation with user hint.
 - Export APIs resolve `fontFamily` / `headerAlignment` from reference resume via shared `buildExportResumeDocumentModel`.
 
+## Font parity (deferred)
+
+- No bundled web fonts in repo — Gill Sans MT / Calibri / Aptos resolve only when installed on each machine.
+- Preview (user OS) vs export (Linux Chromium) can disagree by a few wrapped lines at the one-page boundary.
+- Puppeteer awaits `document.fonts.ready` before print (hardening only; does not fix OS font mismatch).
+- Future: embed an open-licensed metric-compatible web font, or v0.7.0 page-count gate.
+
 ## One-page (deferred hard enforcement)
 
-- One-page is a **product target**; **hard export blocking** is deferred until Puppeteer page-count validation exists (Phase 2 — see `ROADMAP.md`).
+- One-page is a **product target**; **hard export blocking** is deferred until Puppeteer page-count validation exists (v0.7.0 — see `ROADMAP.md`).
 - `estimatePageFit()` remains heuristic — may disagree with PDF Preview / downloaded PDF.
 - Overflow still exports with a warning; content is not auto-shrunk at export time.
 
@@ -37,7 +46,7 @@
 ## Mobile preview
 
 - PDF Preview scales A4 proportionally on narrow screens; inner HTML stays fixed mm (no reflow).
-- Very long resumes may extend below the visible frame — scroll the page; iframe shows first page height at scale.
+- When content exceeds one page, preview expands vertically — scroll the page to see overflow; dashed line marks page 1 boundary.
 
 ## Layout preview (v0.5.x)
 

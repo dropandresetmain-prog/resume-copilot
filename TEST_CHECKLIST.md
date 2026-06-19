@@ -1,41 +1,35 @@
-# Test Checklist — v0.6.6 Resume Generation Rules & Approval Formatting Fixes
+# Test Checklist — v0.6.7 PDF Preview Truth Patch
 
-## Desktop — PDF Preview truth
+## Desktop — PDF Preview overflow truth
 
 1. Open **Resume Preview** (`/resume-preview/[draftId]`)
 2. Confirm PDF Preview is primary; adjust layout sliders — PDF Preview updates immediately
-3. **Approve for Export** — downloads enabled
-4. Change any layout slider — banner shows layout changed; downloads **disabled**
-5. **Re-approve for Export** — downloads enabled with **new** settings
-6. Download PDF — confirm matches PDF Preview at re-approved settings
+3. With content near one page, confirm preview shows full content (no silent bottom clip)
+4. Increase font/spacing until content exceeds one A4 page:
+   - [ ] Amber badge: “PDF preview content extends beyond one page”
+   - [ ] Dashed line at page 1 boundary
+   - [ ] Scroll reveals content below page 1 (iframe expanded)
+5. **Approve for Export** — downloads enabled
+6. Download PDF — note server may still differ slightly from browser preview (fonts)
 
-## Approval + formatting
+## Approval + formatting (regression)
 
-- [ ] Approve → change slider → PDF/DOCX download disabled (not stale silent export)
-- [ ] Approve → change slider → Re-approve → download uses new settings
-- [ ] Approve button shows “Re-approve for Export” after layout change
+- [ ] Approve → change slider → PDF/DOCX download disabled
+- [ ] Re-approve → download uses new settings
 - [ ] Records export blocked when status is `layout_changed`
-
-## Font ceiling
-
-- [ ] Body font slider reaches **20px**
-- [ ] Export/PDF Preview reflect larger font when approved
-
-## DOCX warning
-
-- [ ] Warning visible near DOCX download about Word reflow / one page
-
-## Generation rules (manual / mock)
-
-- [ ] New drafts follow Work Experience bullet-count guidance (max 4 roles, 2–4 bullets each)
 
 ## Mobile (regression)
 
-- [ ] PDF Preview A4 scale-to-fit still works
+- [ ] PDF Preview A4 scale-to-fit still works on narrow viewport
+- [ ] Overflow badge visible when content exceeds one page
 - [ ] Mobile PDF/DOCX export navigation still works
+
+## Copy
+
+- [ ] Footer copy says “closest visual preview” / server may differ — not “exact” parity
 
 ## Automated
 
-- [ ] `npm run test:resume-approval-layout` passes
-- [ ] `npm run test:resume-draft` passes (prompt rules)
+- [ ] `npm run test:resume-pdf-preview-overflow` passes
+- [ ] `npm run test:resume-export-strategy` passes
 - [ ] `npm run test` / `lint` / `build` pass

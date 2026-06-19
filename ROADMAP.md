@@ -4,16 +4,17 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.6.6 — Resume Generation Rules & Approval Formatting Fixes** (complete)
+**v0.6.7 — PDF Preview Truth Patch** (complete)
 
-- Body font slider max 20px (~15pt)
-- Work Experience generation bullet-count rules in prompt
-- Re-approval required after post-approval layout edits (`layout_changed` status)
-- DOCX reflow warning on preview page
+- PDF Preview overflow measurement — no silent one-page clip; badge + page-break marker
+- Puppeteer `document.fonts.ready` before `page.pdf()`
+- Documented browser vs server font differences (no bundled font yet)
 
 ## Previous
 
-**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview authoritative, export model parity, mobile A4 preview, mobile export navigation.
+**v0.6.6 — Resume Generation Rules & Approval Formatting Fixes** — font ceiling, generation bullet rules, re-approval after layout edits, DOCX warning.
+
+**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview authoritative HTML, export model parity, mobile A4 preview, mobile export navigation.
 
 ## Next milestone
 

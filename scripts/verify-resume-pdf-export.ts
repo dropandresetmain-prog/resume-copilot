@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { generateMockResumeDraft } from "../src/lib/ai/resume-draft-mock";
@@ -148,6 +148,8 @@ async function main() {
   const fontSizes = resolvePreviewFontSizes(PREVIEW_BODY_FONT_DEFAULT_PX);
   const docxSizes = resolveDocxFontSizes(PREVIEW_BODY_FONT_DEFAULT_PX);
   const exportRoutePath = join(process.cwd(), "src/app/api/export/resume-pdf/route.ts");
+  const pdfExportPath = join(process.cwd(), "src/lib/resume-draft/pdf-export.ts");
+  const pdfExportSource = readFileSync(pdfExportPath, "utf8");
 
   let requestValidationThrows = false;
   try {
@@ -253,6 +255,11 @@ async function main() {
         companySegments[1]?.bold === false,
     ],
     ["document model has pdf filename", documentModel.pdfFileName.endsWith(".pdf")],
+    [
+      "pdf export awaits fonts ready before page.pdf",
+      pdfExportSource.includes("waitForPdfDocumentFonts") &&
+        pdfExportSource.includes("document.fonts?.ready"),
+    ],
   ];
 
   for (const [name, ok] of checks) {
