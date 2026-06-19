@@ -150,6 +150,7 @@ async function main() {
   const exportRoutePath = join(process.cwd(), "src/app/api/export/resume-pdf/route.ts");
   const pdfExportPath = join(process.cwd(), "src/lib/resume-draft/pdf-export.ts");
   const pdfExportSource = readFileSync(pdfExportPath, "utf8");
+  const exportRouteSource = readFileSync(exportRoutePath, "utf8");
 
   let requestValidationThrows = false;
   try {
@@ -255,6 +256,15 @@ async function main() {
         companySegments[1]?.bold === false,
     ],
     ["document model has pdf filename", documentModel.pdfFileName.endsWith(".pdf")],
+    [
+      "pdf export exposes generateResumePdfResult with pageCount",
+      pdfExportSource.includes("export async function generateResumePdfResult") &&
+        pdfExportSource.includes("countPdfPages"),
+    ],
+    [
+      "pdf export route blocks multi-page pdf",
+      exportRouteSource.includes("pageCount > 1") && exportRouteSource.includes("422"),
+    ],
     [
       "pdf export awaits fonts ready before page.pdf",
       pdfExportSource.includes("waitForPdfDocumentFonts") &&

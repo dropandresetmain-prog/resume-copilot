@@ -36,8 +36,13 @@ function exportReady(
   status: string,
   stored: typeof approvedSettings | undefined,
   current: typeof approvedSettings,
+  serverPageCount?: number,
 ): boolean {
-  return isApprovedDraftStatus(status) && areExportLayoutSettingsEqual(stored, current);
+  return (
+    isApprovedDraftStatus(status) &&
+    areExportLayoutSettingsEqual(stored, current) &&
+    serverPageCount === 1
+  );
 }
 
 function main() {
@@ -72,19 +77,23 @@ function main() {
     ],
     [
       "export ready when approved and settings match",
-      exportReady("approved", sanitized, approvedSettings),
+      exportReady("approved", sanitized, approvedSettings, 1),
     ],
     [
       "export not ready when approved but settings changed",
-      !exportReady("approved", sanitized, changedSettings),
+      !exportReady("approved", sanitized, changedSettings, 1),
+    ],
+    [
+      "export not ready when approved without server validation",
+      !exportReady("approved", sanitized, approvedSettings),
     ],
     [
       "export not ready when layout_changed even if settings match stored",
-      !exportReady("layout_changed", sanitized, approvedSettings),
+      !exportReady("layout_changed", sanitized, approvedSettings, 1),
     ],
     [
       "export ready after re-approve restores approved status",
-      exportReady("approved", sanitizeExportLayoutSettings(changedSettings), changedSettings),
+      exportReady("approved", sanitizeExportLayoutSettings(changedSettings), changedSettings, 1),
     ],
     [
       "default settings sanitize completely",

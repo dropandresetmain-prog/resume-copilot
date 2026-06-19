@@ -1,66 +1,48 @@
 # Known Issues
 
-## Export strategy (v0.6.8)
+## Export strategy (v0.7.0)
 
-- **PDF Preview** is the closest **local** approximation — same print HTML/CSS, user browser fonts. Server PDF may differ at line breaks until v0.7.0 page-count validation.
-- **Export delivery (v0.6.8):** one API POST → one blob fetch → one anchor download with intended `fileName`. No `window.open` on Supabase signed URLs.
-- **Signed URLs** include `download: fileName` for Content-Disposition when hit directly; client delivery uses blob + `anchor.download` for reliable filenames.
-- **Post-approval layout edits** set draft status to `layout_changed`; export is blocked until **Re-approve for Export**.
-- **DOCX is secondary/editable** — may reflow or exceed one page in Word; UI warns near DOCX download. PDF is the final layout.
-- Desktop PDF/DOCX: single download with generated filename (`<Name> - Resume_<Company>_<Role>.pdf`).
-- Mobile: same blob download path; browser may open inline instead of saving — mobile hint shown.
-- Export APIs resolve `fontFamily` / `headerAlignment` from reference resume via shared `buildExportResumeDocumentModel`.
-- External PDF apps (e.g. Adobe) may still open files after download per OS settings — **Accept Risk**.
+- **Server PDF page count is export truth** — Puppeteer + `pdf-lib` validation on Approve and hard block on PDF export when `pageCount > 1`.
+- **PDF Preview** is the closest **local** approximation (browser fonts, screen layout). It can disagree with server PDF at the one-page boundary.
+- **Heuristic `estimatePageFit()`** is non-authoritative — shown separately from server validation.
+- Approve runs server PDF generation (~3–15s cold on Vercel) — validating state shown in UI.
+- **Post-approval layout edits** set `layout_changed` and clear `serverPdfValidation`; re-approve required.
+- **DOCX** is secondary/editable — no one-page server gate; may reflow in Word.
+- PDF/DOCX delivery uses blob download with intended filename (v0.6.8).
+- Export APIs use shared `buildExportResumeDocumentModel()` + `resolveExportDocumentModelForDraft()`.
 
-## Font parity (deferred)
+## One-page enforcement
 
-- No bundled web fonts in repo — Gill Sans MT / Calibri / Aptos resolve only when installed on each machine.
-- Preview (user OS) vs export (Linux Chromium) can disagree by a few wrapped lines at the one-page boundary.
-- Puppeteer awaits `document.fonts.ready` before print (hardening only; does not fix OS font mismatch).
-- Future: embed an open-licensed metric-compatible web font, or v0.7.0 page-count gate.
+- Export blocked at Approve and PDF download when server PDF exceeds one page (422).
+- No auto-shrink, AI compression, or density scoring yet.
+- Underfilled one-page PDFs (low page usage) are **not** flagged yet — deferred.
 
-## One-page (deferred hard enforcement)
+## Font parity
 
-- One-page is a **product target**; **hard export blocking** is deferred until Puppeteer page-count validation exists (v0.7.0 — see `ROADMAP.md`).
-- `estimatePageFit()` remains heuristic — may disagree with PDF Preview / downloaded PDF.
-- Overflow still exports with a warning; content is not auto-shrunk at export time.
+- Preview (user OS) vs export (Linux Chromium) can still disagree; server page count resolves export truth.
+- No bundled web fonts in repo.
+- Puppeteer awaits `document.fonts.ready` before print.
 
 ## Layout controls
 
-- Body font slider max is **20px** (~15pt visual). Optimizer still targets compact one-page defaults (~11px).
-
-- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (compact, Puppeteer-controlled).
-- Gill Sans MT renders only if installed on the PDF generation machine.
-- Full-page scaling is not used; layout is controlled via font size, line-height, and compact margins.
-- PDF is generated from `ResumeDocumentModel` HTML via `puppeteer-core` + `@sparticuz/chromium`.
-- Vercel: Chromium bundle adds deploy size; route uses `maxDuration: 60` and `runtime: nodejs`.
-- Local dev: requires Google Chrome or `LOCAL_CHROME_PATH` / `CHROME_EXECUTABLE_PATH`.
-- If Supabase storage upload fails, API returns raw PDF bytes with `Content-Disposition` filename.
+- Body font slider max **20px** (~15pt). Optimizer targets compact defaults (~11px).
+- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING`.
+- PDF via `puppeteer-core` + `@sparticuz/chromium`; Vercel `maxDuration: 60`.
 
 ## DOCX export
 
-- DOCX uses Gill Sans MT (explicit on all runs); Word may substitute if font not installed.
-- Preview 11px maps to DOCX 10pt body — not pixel-identical to PDF.
-- Borderless tables align left/right rows; minor Word vs PDF differences may remain.
-- Professional Summary excluded from resume preview/export.
+- DOCX uses Gill Sans MT; Word may substitute.
+- Not pixel-identical to PDF.
 
 ## Mobile preview
 
-- PDF Preview scales A4 proportionally on narrow screens; inner HTML stays fixed mm (no reflow).
-- When content exceeds one page, preview expands vertically — scroll the page to see overflow; dashed line marks page 1 boundary.
-
-## Layout preview (v0.5.x)
-
-- Auto-optimization is heuristic — not true print pagination.
-- If content still overflows after optimization, shorten bullets in Edit Resume Details.
+- PDF Preview scales A4; overflow badge when local content exceeds one page.
 
 ## Generated drafts
 
-- Delete is permanent (no soft-delete/archive yet).
-- Draft edits persist to `generated_resume_drafts` only — never inventory.
+- Delete is permanent. Draft edits never mutate inventory.
 
 ## Fit score (preview)
 
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional.
-- Target: `docs/FIT_SCORE_RUBRIC.md` (`fit-rubric-v1`) — not implemented.
-- **Layout Fit (One Page)** is separate (`estimatePageFit`).
+- **Layout Fit (One Page)** heuristic is separate from server validation.

@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 
 import {
-  buildExportResumeDocumentModel,
-  findReferenceResumeInInventory,
-} from "@/lib/resume-draft/build-export-document-model";
-import {
   isApprovedDraftStatus,
   parseResumePdfExportRequestBody,
 } from "@/lib/resume-draft/export-request";
-import { generateResumePdfBuffer } from "@/lib/resume-draft/pdf-export";
+import { areExportLayoutSettingsEqual } from "@/lib/resume-draft/export-layout-settings";
+import { generateResumePdfResult } from "@/lib/resume-draft/pdf-export";
+import { buildOnePageExportBlockedJson } from "@/lib/resume-draft/pdf-export-validation";
+import { ExportRequestError, resolveExportDocumentModelForDraft } from "@/lib/resume-draft/resolve-export-request";
 import { getGeneratedResumeDraftForUser } from "@/lib/supabase/generated-resume-drafts";
-import { getJobDescriptionForUser } from "@/lib/supabase/job-descriptions";
-import { getResumeInventoryForUser } from "@/lib/supabase/resume-inventories";
 import { uploadResumePdfExport } from "@/lib/supabase/resume-pdf-storage";
 import {
   createSupabaseClientWithAccessToken,
@@ -45,28 +42,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const jobDescription = draft.jobDescriptionId
-      ? await getJobDescriptionForUser(supabase, draft.jobDescriptionId, userId)
-      : null;
-
-    const inventory = await getResumeInventoryForUser(supabase, userId);
-    const referenceResume = inventory
-      ? findReferenceResumeInInventory(inventory.resumes, draft.referenceResumeId)
-      : null;
-
-    const documentModel = buildExportResumeDocumentModel({
-      draft,
-      jobDescription,
-      referenceResume,
-      layoutSettings: body.layoutSettings,
-    });
-
-    const buffer = await generateResumePdfBuffer(documentModel);
-    const warnings: string[] = [];
-    if (documentModel.pageFit.exceedsOnePage) {
-      warnings.push(
-        `Preview layout exceeds one-page target (~${documentModel.pageFit.estimatedPages.toFixed(1)} pages). PDF exported with current settings.`,
+    if (
+      !areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, body.layoutSettings ?? {})
+    ) {
+      return NextResponse.json(
+        { error: "Layout changed after approval — re-approve for Export before downloading." },
+        { status: 403 },
       );
+    }
+
+    const { documentModel } = await resolveExportDocumentModelForDraft(
+      supabase,
+      userId,
+      body.draftId,
+      body.layoutSettings,
+    );
+
+    const { buffer, pageCount } = await generateResumePdfResult(documentModel);
+
+    if (pageCount > 1) {
+      return NextResponse.json(buildOnePageExportBlockedJson(pageCount), { status: 422 });
     }
 
     let uploadResult: Awaited<ReturnType<typeof uploadResumePdfExport>> | null = null;
@@ -87,7 +82,7 @@ export async function POST(request: Request) {
         downloadUrl: uploadResult.signedUrl,
         storedFileId: uploadResult.storedFile.id,
         storagePath: uploadResult.storagePath,
-        warnings,
+        pageCount,
       });
     }
 
@@ -96,10 +91,12 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${documentModel.pdfFileName}"`,
-        ...(warnings.length > 0 ? { "X-Export-Warnings": warnings.join(" ") } : {}),
       },
     });
   } catch (error) {
+    if (error instanceof ExportRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const message = error instanceof Error ? error.message : "Resume PDF export failed.";
     const status = message.includes("signed in") ? 401 : 400;
     return NextResponse.json({ error: message }, { status });

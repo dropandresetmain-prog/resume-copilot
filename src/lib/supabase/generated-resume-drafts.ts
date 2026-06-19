@@ -51,7 +51,7 @@ function parseInputSnapshot(value: unknown): ResumeDraftInputSnapshot | undefine
   return value as unknown as ResumeDraftInputSnapshot;
 }
 
-function mapGeneratedResumeDraftRow(
+export function mapGeneratedResumeDraftRow(
   row: GeneratedResumeDraftRow,
 ): GeneratedResumeDraftRecord | null {
   const content = parseResumeDraftContent(row.content);

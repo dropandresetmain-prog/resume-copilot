@@ -4,45 +4,37 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.6.8 — Export Delivery & Filename Stabilization** (complete)
+**v0.7.0 — One-Page Export Validation** (complete)
 
-- Blob fetch + single anchor download with intended filename (PDF + DOCX)
-- Supabase signed URLs include `download: fileName`
-- Removed desktop PDF `window.open(signedUrl)` delivery path
+- `pdf-lib` page count on generated PDF buffers
+- Approve-time server validation; `serverPdfValidation` on draft content
+- PDF export hard 422 gate when `pageCount > 1`
+- UI: server vs heuristic layout status
 
 ## Previous
 
-**v0.6.7 — PDF Preview Truth Patch** — overflow measurement, no silent clip, fonts.ready hardening.
+**v0.6.8 — Export Delivery & Filename Stabilization** — blob download, signed URL filename, single delivery action.
 
-**v0.6.6 — Resume Generation Rules & Approval Formatting Fixes** — font ceiling, generation bullet rules, re-approval after layout edits, DOCX warning.
+**v0.6.7 — PDF Preview Truth Patch** — overflow measurement, no silent clip.
 
-**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview HTML parity, export model parity, mobile A4 preview.
+## Next (optional)
 
-## Next milestone
+**PDF density / underfill warnings** — warn when one-page PDF uses page poorly (no auto-expand yet).
 
-**v0.7.0 — One-page enforcement foundation** (recommended before cover letters)
+**Cover letter generation** — after one-page foundation stable.
 
-- Puppeteer page-count validation (truth surface for one-page)
-- Calibrate `estimatePageFit` against print CSS / Puppeteer
-- Hybrid content compression pipeline (evidence-backed, user-visible diffs)
-- Block or gate export when PDF exceeds one page (after validation exists)
-
-## Build after export fidelity / one-page
+## Build after one-page
 
 | Item | Notes |
 |------|--------|
-| Cover letter generation | Reuse document model patterns; deferred from v0.7 until one-page gate |
-| Reference format extraction | Font/size from DOCX OOXML or style map — parser is text-only today |
-| Full fit rubric (`fit-rubric-v1`) | Replace `preview-fit-heuristic-v1`; see `docs/FIT_SCORE_RUBRIC.md` |
-| Manual inventory editing | Deferred; must not mutate from draft flows |
+| Hybrid content compression | Evidence-backed, user-visible diffs — not AI auto-shrink |
+| Full fit rubric (`fit-rubric-v1`) | Replace `preview-fit-heuristic-v1` |
+| Bundled web font | Reduce preview vs server line-break drift |
+| Reference format extraction | Font/size from DOCX OOXML |
+| Manual inventory editing | Deferred |
 
 ## Future vision only
 
-- HTML→DOCX or unified renderer (high cost)
+- HTML→DOCX unified renderer
 - Email export delivery
 - Visual PDF regression tests in CI
-- Layout presets UI (parked — sliders + optimizer sufficient for now)
-
-## Long-term vision
-
-Evidence-backed tailored resumes: inventory SOT → ranked selection → verified one-page PDF → optional editable DOCX → job-specific cover letters → full qualification fit rubric.

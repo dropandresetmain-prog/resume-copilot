@@ -128,7 +128,11 @@ function main() {
   const referenceProfile = buildReferenceResumeFormatProfile(referenceResume);
 
   const pdfRoutePath = join(process.cwd(), "src/app/api/export/resume-pdf/route.ts");
+  const approveRoutePath = join(process.cwd(), "src/app/api/approve/resume-draft/route.ts");
   const pdfRouteSource = existsSync(pdfRoutePath) ? readFileSync(pdfRoutePath, "utf8") : "";
+  const approveRouteSource = existsSync(approveRoutePath)
+    ? readFileSync(approveRoutePath, "utf8")
+    : "";
 
   const checks: [string, boolean][] = [
     [
@@ -156,13 +160,12 @@ function main() {
       resolveExportTypographyFromReference(null).fontFamily === DEFAULT_RESUME_FONT_FAMILY,
     ],
     [
-      "pdf export route uses buildExportResumeDocumentModel",
-      pdfRouteSource.includes("buildExportResumeDocumentModel"),
+      "pdf export route uses shared resolve export helper",
+      pdfRouteSource.includes("resolveExportDocumentModelForDraft"),
     ],
     [
-      "pdf export route resolves reference resume from inventory",
-      pdfRouteSource.includes("getResumeInventoryForUser") &&
-        pdfRouteSource.includes("findReferenceResumeInInventory"),
+      "approve route uses shared validate export helper",
+      approveRouteSource.includes("validateResumePdfExport"),
     ],
     [
       "layout settings include optimizer line-spacing floor",

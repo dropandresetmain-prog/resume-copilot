@@ -135,8 +135,8 @@ export function ResumePdfPreview({ documentModel, className = "" }: ResumePdfPre
           role="status"
         >
           <strong>PDF preview content extends beyond one page.</strong> Scroll the preview to see
-          overflow. Server export may paginate differently due to Linux fonts — final one-page
-          validation is not enforced until v0.7.0.
+          overflow. Server export may paginate differently due to Linux fonts — use Approve
+          for server one-page validation before export.
         </div>
       ) : null}
       <div className="flex justify-center rounded-xl bg-slate-200/80 p-4 sm:p-6">

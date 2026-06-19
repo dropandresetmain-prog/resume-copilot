@@ -113,6 +113,21 @@ async function exportResumeFromApi(
 
   const contentType = response.headers.get("content-type") ?? "";
   if (!response.ok) {
+    if (response.status === 422 && contentType.includes("application/json")) {
+      const payload = (await response.json()) as {
+        error?: string;
+        pageCount?: number;
+        message?: string;
+        suggestedActions?: string[];
+      };
+      const detail =
+        payload.suggestedActions?.length ? ` ${payload.suggestedActions.join(" ")}` : "";
+      throw new Error(
+        (payload.message ?? payload.error ?? failureMessage) +
+          (payload.pageCount ? ` (${payload.pageCount} pages)` : "") +
+          detail,
+      );
+    }
     if (contentType.includes("application/json")) {
       const payload = (await response.json()) as { error?: string };
       throw new Error(payload.error ?? failureMessage);

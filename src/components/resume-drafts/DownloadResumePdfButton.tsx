@@ -15,7 +15,6 @@ type DownloadResumePdfButtonProps = {
   disabled?: boolean;
   disabledReason?: string;
   className?: string;
-  exceedsOnePage?: boolean;
   onWarning?: (message: string) => void;
 };
 
@@ -25,7 +24,6 @@ export function DownloadResumePdfButton({
   disabled = false,
   disabledReason,
   className,
-  exceedsOnePage = false,
   onWarning,
 }: DownloadResumePdfButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
@@ -35,11 +33,6 @@ export function DownloadResumePdfButton({
     setIsExporting(true);
     setError(null);
     try {
-      if (exceedsOnePage) {
-        onWarning?.(
-          "Layout exceeds the one-page target. PDF will export with current settings — adjust sliders or reduce content.",
-        );
-      }
       const result = await exportResumePdfFromApi({ draftId, layoutSettings });
       if (!result.downloadUrl) {
         throw new Error("Export did not return a download URL.");
@@ -47,9 +40,6 @@ export function DownloadResumePdfButton({
       const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "pdf");
       if (delivery.mobileHint) {
         onWarning?.(delivery.mobileHint);
-      }
-      if (result.warnings?.length) {
-        onWarning?.(result.warnings.join(" "));
       }
     } catch (downloadError) {
       setError(

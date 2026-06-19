@@ -3,10 +3,16 @@ import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
 
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import { countPdfPages } from "@/lib/resume-draft/pdf-page-count";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 
 export const RESUME_PDF_MIME = "application/pdf";
+
+export type ResumePdfGenerationResult = {
+  buffer: Buffer;
+  pageCount: number;
+};
 
 const LOCAL_CHROME_CANDIDATES = [
   process.env.LOCAL_CHROME_PATH,
@@ -57,10 +63,12 @@ export async function waitForPdfDocumentFonts(
 }
 
 /**
- * Generate a PDF buffer directly from the canonical resume document model.
+ * Generate a PDF buffer and page count from the canonical resume document model.
  * Uses HTML/CSS rendering — not DOCX conversion.
  */
-export async function generateResumePdfBuffer(model: ResumeDocumentModel): Promise<Buffer> {
+export async function generateResumePdfResult(
+  model: ResumeDocumentModel,
+): Promise<ResumePdfGenerationResult> {
   const html = renderResumePdfHtml(model);
   const browser = await launchPdfBrowser();
 
@@ -74,8 +82,19 @@ export async function generateResumePdfBuffer(model: ResumeDocumentModel): Promi
       preferCSSPageSize: true,
       margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
     });
-    return Buffer.from(pdf);
+    const buffer = Buffer.from(pdf);
+    const pageCount = await countPdfPages(buffer);
+    return { buffer, pageCount };
   } finally {
     await browser.close();
   }
+}
+
+/**
+ * Generate a PDF buffer directly from the canonical resume document model.
+ * Uses HTML/CSS rendering — not DOCX conversion.
+ */
+export async function generateResumePdfBuffer(model: ResumeDocumentModel): Promise<Buffer> {
+  const result = await generateResumePdfResult(model);
+  return result.buffer;
 }

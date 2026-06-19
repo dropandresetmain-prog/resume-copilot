@@ -15,6 +15,11 @@ import {
 } from "@/components/setup/ui";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
+import {
+  approveResumeDraftForExport,
+  formatOnePageBlockedMessage,
+  ResumePdfOnePageBlockedError,
+} from "@/lib/resume-draft/approve-resume-draft-client";
 import { buildExportResumeDocumentModel } from "@/lib/resume-draft/build-export-document-model";
 import {
   RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
@@ -23,7 +28,6 @@ import {
 } from "@/lib/resume-draft/draft-status";
 import {
   areExportLayoutSettingsEqual,
-  sanitizeExportLayoutSettings,
 } from "@/lib/resume-draft/export-layout-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
@@ -66,6 +70,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
+  const [validationFailure, setValidationFailure] = useState<{
+    pageCount: number;
+    message: string;
+    suggestedActions: string[];
+  } | null>(null);
   const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSettings, setManualSettings] = useState<{
     draftId: string;
@@ -212,8 +221,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const exportReady = Boolean(
     draft &&
       isApprovedDraftStatus(draft.status) &&
-      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, currentLayoutSettings),
+      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, currentLayoutSettings) &&
+      draft.content.serverPdfValidation?.pageCount === 1,
   );
+
+  const serverPdfValidation =
+    exportReady &&
+    draft?.content.serverPdfValidation &&
+    areExportLayoutSettingsEqual(
+      draft.content.exportLayoutSettings,
+      currentLayoutSettings,
+    )
+      ? draft.content.serverPdfValidation
+      : null;
 
   const layoutChangedAfterApproval = Boolean(
     draft && isLayoutChangedAfterApprovalStatus(draft.status),
@@ -243,10 +263,14 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
     try {
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: draft.content,
+        content: {
+          ...draft.content,
+          serverPdfValidation: undefined,
+        },
         status: RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
       });
       setDraft(updated);
+      setValidationFailure(null);
     } catch (statusError) {
       setError(
         statusError instanceof Error
@@ -265,6 +289,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   }) {
     if (!draftId) return;
     setManualSettings({ draftId, ...next });
+    setValidationFailure(null);
 
     if (layoutChangeTimerRef.current) {
       clearTimeout(layoutChangeTimerRef.current);
@@ -278,30 +303,29 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     if (!draft) return;
     setIsApproving(true);
     setError(null);
+    setValidationFailure(null);
     try {
-      const exportLayoutSettings = sanitizeExportLayoutSettings({
-        bodyFontPx,
-        marginMm,
-        marginTopMm,
-        lineSpacing,
-        sectionSpacing,
+      const result = await approveResumeDraftForExport({
+        draftId: draft.id,
+        layoutSettings: currentLayoutSettings,
       });
-      // Draft-specific mutation only — updates generated_resume_drafts; never inventory.
-      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: {
-          ...draft.content,
-          exportLayoutSettings,
-        },
-        status: "approved",
-      });
-      setDraft(updated);
+      setDraft(result.draft);
       setExportWarning(null);
     } catch (approveError) {
-      setError(
-        approveError instanceof Error
-          ? approveError.message
-          : "Failed to approve draft for export.",
-      );
+      if (approveError instanceof ResumePdfOnePageBlockedError) {
+        setValidationFailure({
+          pageCount: approveError.pageCount,
+          message: approveError.message,
+          suggestedActions: approveError.suggestedActions,
+        });
+        setError(formatOnePageBlockedMessage(approveError));
+      } else {
+        setError(
+          approveError instanceof Error
+            ? approveError.message
+            : "Failed to approve draft for export.",
+        );
+      }
     } finally {
       setIsApproving(false);
     }
@@ -328,7 +352,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
   const canApprove = !isApproving && !exportReady;
   const approveButtonLabel = isApproving
-    ? "Saving…"
+    ? "Validating server PDF…"
     : exportReady
       ? "Approved for export"
       : layoutChangedAfterApproval || isApprovedDraftStatus(draft.status)
@@ -336,8 +360,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         : "Approve for Export";
   const exportDisabledReason = layoutChangedAfterApproval
     ? "Layout changed after approval — re-approve for Export before downloading."
-    : !isApprovedDraftStatus(draft.status)
-      ? "Approve for Export before downloading."
+    : !isApprovedDraftStatus(draft.status) || draft.content.serverPdfValidation?.pageCount !== 1
+      ? "Approve for Export (server one-page validation) before downloading PDF."
       : "Approve for Export before downloading.";
   const bodyFontSliderSteps = Math.round(
     (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
@@ -346,9 +370,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.8 · Export Delivery & Filename Stabilization"
+        milestone="v0.7.0 · One-Page Export Validation"
         title="Resume Preview"
-        description="PDF Preview is the closest local approximation — tune layout, approve, then download PDF or editable DOCX."
+        description="PDF Preview is the closest local approximation — tune layout, pass server one-page validation on Approve, then download PDF or editable DOCX."
       />
 
       <p className="text-xs text-slate-500">
@@ -361,21 +385,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           <div className="space-y-1">
             <h2 className="text-sm font-semibold text-slate-800">PDF Preview</h2>
             <p className="text-xs text-slate-500">
-              Authoritative preview — matches downloaded PDF. Adjust layout controls below;
-              changes apply here immediately.
+              Same print HTML/CSS as export — local browser rendering only. Server PDF validation on
+              Approve is export truth.
             </p>
           </div>
 
           {layoutChangedAfterApproval ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
               Layout changed after approval. PDF Preview shows your current settings — click
-              &quot;Re-approve for Export&quot; before downloading.
-            </p>
-          ) : null}
-
-          {pageFit.exceedsOnePage ? (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Layout exceeds one-page target. PDF export is allowed but may spill to a second page.
+              &quot;Re-approve for Export&quot; to run server validation again.
             </p>
           ) : null}
 
@@ -495,6 +513,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           assessment={assessment}
           pageFit={pageFit}
           optimizationNote={optimizationNote}
+          serverPdfValidation={serverPdfValidation}
+          validationFailure={validationFailure}
+          isValidating={isApproving}
         />
       </div>
 
@@ -543,7 +564,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           layoutSettings={currentLayoutSettings}
           disabled={!exportReady}
           disabledReason={exportDisabledReason}
-          exceedsOnePage={pageFit.exceedsOnePage}
           onWarning={setExportWarning}
         />
         <Link

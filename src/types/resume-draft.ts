@@ -93,6 +93,13 @@ export type ResumeDraftContent = {
   globalRiskFlags: string[];
   /** Last approved preview/export layout settings (optional). */
   exportLayoutSettings?: ResumeDraftExportLayoutSettings;
+  /** Server Puppeteer PDF validation captured on successful approve (optional). */
+  serverPdfValidation?: ResumeDraftServerPdfValidation;
+};
+
+export type ResumeDraftServerPdfValidation = {
+  pageCount: number;
+  validatedAt: string;
 };
 
 export type ResumeDraftRationale = {
