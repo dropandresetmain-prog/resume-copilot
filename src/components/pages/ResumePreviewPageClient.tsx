@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
+import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
   primaryButtonClassName,
@@ -259,9 +260,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.3 · Preview/PDF Layout Parity"
+        milestone="v0.6.4 · Export Strategy Stabilization"
         title="Resume Preview"
-        description="Format-optimized one-page preview. Approve for export, then download DOCX or PDF."
+        description="Tune layout, compare PDF Preview (final deliverable), approve, then download PDF or editable DOCX."
       />
 
       <p className="text-xs text-slate-500">
@@ -366,6 +367,21 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         />
       </div>
 
+      {documentModel ? (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-slate-800">PDF Preview</h2>
+          <p className="text-xs text-slate-500">
+            Exact print HTML/CSS used for PDF export — compare this before downloading PDF.
+          </p>
+          {pageFit.exceedsOnePage ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Layout exceeds one-page target. PDF export is allowed but may spill to a second page.
+            </p>
+          ) : null}
+          <ResumePdfPreview documentModel={documentModel} />
+        </section>
+      ) : null}
+
       <div className="flex flex-wrap items-end gap-3">
         <button
           type="button"
@@ -398,6 +414,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           }}
           disabled={!isApproved}
           disabledReason="Approve for Export before downloading."
+          exceedsOnePage={pageFit.exceedsOnePage}
           onWarning={setExportWarning}
         />
         <Link
@@ -425,7 +442,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
       <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">
-          PDF layout HTML (debug)
+          PDF layout HTML source (debug)
         </summary>
         <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-800">
           {documentModel ? renderResumePdfHtml(documentModel) : ""}

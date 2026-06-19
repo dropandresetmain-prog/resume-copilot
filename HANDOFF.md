@@ -2,36 +2,31 @@
 
 ## Current milestone
 
-**v0.6.3 — Preview/PDF Layout Parity Fixes**
+**v0.6.4 — Export Strategy Stabilization**
 
-Preview, PDF HTML, and DOCX now share spacing constants and uppercase candidate names. Approved layout settings persist on the draft for Records exports.
+**PDF** is the primary final deliverable (canonical print HTML → Puppeteer). **DOCX** is an editable secondary output — Word may reflow and exceed one page.
 
 ## Product flow
 
 ```
-Paste JD → Generate Resume → One-page preview → Approve for Export → Download DOCX / Download PDF
+Paste JD → Generate → Tune layout → PDF Preview → Approve → Download PDF (primary) / DOCX (secondary)
 ```
 
-Cover letters and manual inventory editing deferred.
+## v0.6.4 highlights
 
-## v0.6.3 highlights
+**Download behavior:** PDF opens in new tab; DOCX uses anchor download
 
-**Layout parity:** `resume-layout-styles.ts` — shared spacing, line-height, bullet margins for preview + PDF HTML
+**PDF Preview:** Iframe on preview page showing exact `renderResumePdfHtml()` output
 
-**Uppercase name:** `formatCandidateDisplayName()` at render/export time only (stored profile unchanged)
-
-**Settings persistence:** `content.exportLayoutSettings` saved on Approve; Records export uses stored settings; preview page override wins when sliders change
-
-**PDF debug:** Collapsible “PDF layout HTML (debug)” on preview page
+**Print CSS:** `RESUME_PRINT_LAYOUT_SPACING` — compact, deterministic PDF layout (separate from browser layout preview)
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.6.2 — Direct PDF export | Complete |
-| **v0.6.3 — Preview/PDF parity** | **Current** |
+| v0.6.3 — Preview/PDF parity | Complete |
+| **v0.6.4 — Export strategy stabilization** | **Current** |
 | v0.7.0 — Cover letter generation | Next |
-| Manual inventory editing | Deferred |
 
 ## Run
 

@@ -12,6 +12,19 @@ export type ResumeExportResponse = {
 /** @deprecated Use ResumeExportResponse */
 export type ResumeDocxExportResponse = ResumeExportResponse;
 
+/** PDF is the primary final deliverable; DOCX is editable secondary output. */
+export const PRIMARY_FINAL_EXPORT_FORMAT = "pdf" as const;
+export const SECONDARY_EDITABLE_EXPORT_FORMAT = "docx" as const;
+
+export type ResumeExportFileType = typeof PRIMARY_FINAL_EXPORT_FORMAT | typeof SECONDARY_EDITABLE_EXPORT_FORMAT;
+export type ExportDownloadBehavior = "open-new-tab" | "anchor-download";
+
+export function resolveExportDownloadBehavior(
+  fileType: ResumeExportFileType,
+): ExportDownloadBehavior {
+  return fileType === PRIMARY_FINAL_EXPORT_FORMAT ? "open-new-tab" : "anchor-download";
+}
+
 async function exportResumeFromApi(
   endpoint: "/api/export/resume-docx" | "/api/export/resume-pdf",
   options: {
@@ -79,14 +92,14 @@ export async function exportResumePdfFromApi(options: {
   return exportResumeFromApi("/api/export/resume-pdf", options, "Resume PDF export failed.");
 }
 
-export function triggerBrowserDownload(fileName: string, downloadUrl: string): void {
+/** PDF final deliverable — open in a new browser tab for viewing/printing. */
+export function openPdfInNewTab(downloadUrl: string): void {
   const opened = window.open(downloadUrl, "_blank", "noopener,noreferrer");
   if (!opened) {
     const anchor = document.createElement("a");
     anchor.href = downloadUrl;
     anchor.target = "_blank";
     anchor.rel = "noopener noreferrer";
-    anchor.download = fileName;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -95,4 +108,36 @@ export function triggerBrowserDownload(fileName: string, downloadUrl: string): v
   if (downloadUrl.startsWith("blob:")) {
     window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
   }
+}
+
+/** DOCX secondary output — trigger file download, not a new tab. */
+export function triggerDocxDownload(fileName: string, downloadUrl: string): void {
+  const anchor = document.createElement("a");
+  anchor.href = downloadUrl;
+  anchor.download = fileName;
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+
+  if (downloadUrl.startsWith("blob:")) {
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+  }
+}
+
+export function deliverExportedFile(
+  fileName: string,
+  downloadUrl: string,
+  fileType: ResumeExportFileType,
+): void {
+  if (resolveExportDownloadBehavior(fileType) === "open-new-tab") {
+    openPdfInNewTab(downloadUrl);
+    return;
+  }
+  triggerDocxDownload(fileName, downloadUrl);
+}
+
+/** @deprecated Use openPdfInNewTab or triggerDocxDownload */
+export function triggerBrowserDownload(fileName: string, downloadUrl: string): void {
+  triggerDocxDownload(fileName, downloadUrl);
 }

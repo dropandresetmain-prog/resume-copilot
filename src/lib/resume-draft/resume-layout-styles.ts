@@ -1,7 +1,7 @@
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 
-/** Shared spacing constants — preview and PDF HTML must stay in sync. */
+/** Browser layout preview spacing (slider tuning UI). */
 export const RESUME_LAYOUT_SPACING = {
   headerBottomRem: 0.15,
   sectionBodyTopRem: 0.375,
@@ -11,6 +11,22 @@ export const RESUME_LAYOUT_SPACING = {
   bulletPaddingLeftRem: 1.25,
   rowGapRem: 0.75,
   compactLineGapRem: 0.125,
+} as const;
+
+/**
+ * Canonical print/PDF spacing — used by `renderResumePdfHtml()` only.
+ * Tighter and deterministic for Puppeteer; do not inherit Tailwind/browser defaults.
+ */
+export const RESUME_PRINT_LAYOUT_SPACING = {
+  headerBottomRem: 0.12,
+  sectionBodyTopRem: 0.28,
+  entryGapRem: 0.42,
+  bulletListTopRem: 0.06,
+  bulletGapRem: 0.05,
+  bulletPaddingLeftRem: 1.1,
+  rowGapRem: 0.45,
+  compactLineGapRem: 0.06,
+  sectionHeadingPaddingBottomRem: 0.04,
 } as const;
 
 export const RESUME_PDF_HTML_A4_MARKER = "resume-pdf-a4-page";
@@ -31,10 +47,10 @@ export type ResumeLayoutCssInput = {
   pageMarkerClass?: string;
 };
 
-/** Stylesheet for PDF HTML export — mirrors browser preview spacing. */
+/** Stylesheet for canonical print/PDF HTML (`renderResumePdfHtml`). */
 export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string {
   const pageMarkerClass = input.pageMarkerClass ?? RESUME_PDF_HTML_A4_MARKER;
-  const spacing = RESUME_LAYOUT_SPACING;
+  const spacing = RESUME_PRINT_LAYOUT_SPACING;
 
   return `
     @page {
@@ -42,16 +58,22 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
       margin: 0;
     }
 
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
     }
 
     html, body {
       margin: 0;
       padding: 0;
+      width: 100%;
     }
 
-    p, h1, h2, ul, li {
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    p, h1, h2, ul, ol, li, header, section, div {
       margin: 0;
       padding: 0;
     }
@@ -61,6 +83,7 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
       font-size: ${input.bodyPx}px;
       line-height: ${input.lineSpacing};
       color: #0f172a;
+      background: #ffffff;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -68,8 +91,10 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
     .${pageMarkerClass} {
       width: ${A4_WIDTH_MM}mm;
       min-height: ${A4_HEIGHT_MM}mm;
+      max-width: ${A4_WIDTH_MM}mm;
       padding: ${input.marginTopMm}mm ${input.marginMm}mm ${input.marginMm}mm;
       line-height: ${input.lineSpacing};
+      overflow: hidden;
     }
 
     .resume-header {
@@ -82,6 +107,7 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
+      line-height: ${input.lineSpacing};
     }
 
     .contact-line {
@@ -93,13 +119,17 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
       margin-top: ${input.sectionSpacingRem}rem;
     }
 
+    .resume-section:first-of-type {
+      margin-top: ${input.sectionSpacingRem}rem;
+    }
+
     .section-heading {
-      padding-bottom: 0;
+      padding-bottom: ${spacing.sectionHeadingPaddingBottomRem}rem;
       border-bottom: 1px solid #94a3b8;
       font-size: ${input.headerPx}px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       line-height: ${input.lineSpacing};
     }
 
@@ -117,7 +147,6 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
 
     .section-body.plain-text {
       display: block;
-      gap: unset;
     }
 
     .two-col-row {
@@ -128,9 +157,18 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
       line-height: ${input.lineSpacing};
     }
 
+    .two-col-row + .two-col-row {
+      margin-top: 0;
+    }
+
+    .two-col-row + ul {
+      margin-top: ${spacing.bulletListTopRem}rem;
+    }
+
     .row-left {
       flex: 1 1 auto;
       min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .row-right {
@@ -160,16 +198,15 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
     ul {
       list-style-type: disc;
       list-style-position: outside;
-      margin-top: ${spacing.bulletListTopRem}rem;
       padding-left: ${spacing.bulletPaddingLeftRem}rem;
-    }
-
-    li + li {
-      margin-top: ${spacing.bulletGapRem}rem;
     }
 
     li {
       line-height: ${input.lineSpacing};
+    }
+
+    li + li {
+      margin-top: ${spacing.bulletGapRem}rem;
     }
 
     .keyword {

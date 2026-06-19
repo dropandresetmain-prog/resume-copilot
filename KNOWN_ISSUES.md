@@ -1,8 +1,15 @@
 # Known Issues
 
+## Export strategy (v0.6.4)
+
+- **PDF is the primary final deliverable** — generated from canonical print HTML (`renderResumePdfHtml()`). Use **PDF Preview** on the preview page to verify before download.
+- **DOCX is secondary/editable** — acceptable for Word editing; MS Word may reflow, exceed one page, or differ from PDF Preview. Do not treat DOCX as the final layout source of truth.
+- Browser **Layout Preview** (Tailwind) is for tuning sliders; **PDF Preview** iframe shows exact export HTML.
+- PDF download opens in a new tab; DOCX download uses anchor `download` behavior.
+
 ## PDF export (v0.6.3)
 
-- Preview and PDF HTML share `RESUME_LAYOUT_SPACING` constants — minor Chromium vs browser font metric differences may remain.
+- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (compact, Puppeteer-controlled). Browser layout preview uses separate `RESUME_LAYOUT_SPACING`.
 - Gill Sans MT renders only if installed on the PDF generation machine.
 - Full-page scaling is not used; layout is controlled via font size, line-height, and compact margins.
 

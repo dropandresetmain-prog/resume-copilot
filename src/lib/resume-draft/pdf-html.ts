@@ -60,6 +60,7 @@ function renderSectionHeading(title: string): string {
 }
 
 /**
+ * Canonical print/PDF HTML — primary final resume layout for export.
  * Self-contained HTML document for direct HTML→PDF export from the canonical document model.
  */
 export function renderResumePdfHtml(model: ResumeDocumentModel): string {

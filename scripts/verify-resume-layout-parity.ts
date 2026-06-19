@@ -19,6 +19,7 @@ import {
   buildResumeLayoutStylesheet,
   formatCandidateDisplayName,
   RESUME_LAYOUT_SPACING,
+  RESUME_PRINT_LAYOUT_SPACING,
   RESUME_PDF_HTML_A4_MARKER,
 } from "../src/lib/resume-draft/resume-layout-styles";
 import {
@@ -178,6 +179,10 @@ function main() {
       RESUME_LAYOUT_SPACING.sectionBodyTopRem === 0.375,
     ],
     [
+      "print layout uses tighter entry gap than browser preview",
+      RESUME_PRINT_LAYOUT_SPACING.entryGapRem < RESUME_LAYOUT_SPACING.entryGapRem,
+    ],
+    [
       "pdf html line-height uses layout setting",
       pdfHtml.includes(`line-height: ${liveOverride.lineSpacing}`),
     ],
@@ -187,12 +192,13 @@ function main() {
     ],
     [
       "pdf html resets paragraph margins",
-      stylesheet.includes("p, h1, h2, ul, li") && stylesheet.includes("margin: 0"),
+      stylesheet.includes("p, h1, h2, ul, ol, li, header, section, div") &&
+        stylesheet.includes("margin: 0"),
     ],
     [
       "pdf html compact bullet spacing",
-      stylesheet.includes(`margin-top: ${RESUME_LAYOUT_SPACING.bulletGapRem}rem`) &&
-        stylesheet.includes(`padding-left: ${RESUME_LAYOUT_SPACING.bulletPaddingLeftRem}rem`),
+      stylesheet.includes(`margin-top: ${RESUME_PRINT_LAYOUT_SPACING.bulletGapRem}rem`) &&
+        stylesheet.includes(`padding-left: ${RESUME_PRINT_LAYOUT_SPACING.bulletPaddingLeftRem}rem`),
     ],
     [
       "preview header offset is 1px",

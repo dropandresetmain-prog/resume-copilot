@@ -4,8 +4,8 @@ import { useState } from "react";
 
 import { secondaryButtonClassName } from "@/components/setup/ui";
 import {
+  deliverExportedFile,
   exportResumeDocxFromApi,
-  triggerBrowserDownload,
 } from "@/lib/resume-draft/export-client";
 import type { ResumeLayoutSettings } from "@/lib/resume-draft/document-model";
 
@@ -35,7 +35,7 @@ export function DownloadResumeDocxButton({
       if (!result.downloadUrl) {
         throw new Error("Export did not return a download URL.");
       }
-      triggerBrowserDownload(result.fileName, result.downloadUrl);
+      deliverExportedFile(result.fileName, result.downloadUrl, "docx");
     } catch (downloadError) {
       setError(
         downloadError instanceof Error

@@ -1,31 +1,26 @@
-# Test Checklist — v0.6.3 Preview/PDF Layout Parity
+# Test Checklist — v0.6.4 Export Strategy Stabilization
 
-## Name
+## Manual export flow
 
-- [ ] Preview shows candidate name in FULL CAPS
-- [ ] PDF shows same uppercase name
-- [ ] DOCX shows same uppercase name
-- [ ] Stored profile data unchanged (mixed case in DB)
+1. Open **Resume Preview** (`/resume-preview/[draftId]`)
+2. Adjust layout sliders (font, margins, line/section spacing)
+3. Check **PDF Preview** iframe — this is the exact print HTML/CSS for export
+4. Compare layout preview vs PDF Preview; tune until PDF Preview looks right
+5. **Approve for Export**
+6. **Download PDF** — opens in new tab; confirm it matches PDF Preview
+7. **Download DOCX** — saves file via download (not new tab); confirm editable format is acceptable even if Word exceeds one page
 
-## Preview vs PDF parity
+## Download behavior
 
-- [ ] Line spacing matches preview sliders in PDF
-- [ ] Section spacing matches preview sliders in PDF
-- [ ] Bullet spacing compact and aligned with preview
-- [ ] Work/education row spacing matches preview
-- [ ] No obviously looser PDF layout vs preview
+- [ ] PDF opens in new browser tab
+- [ ] DOCX triggers file download (anchor), not new tab
 
-## Settings persistence
+## One-page
 
-- [ ] Adjust sliders → Approve → reload preview → sliders restored
-- [ ] Records → Download PDF uses approved settings (not optimizer defaults)
-- [ ] Preview page live export uses current slider values
-
-## Export buttons
-
-- [ ] DOCX/PDF open in new tab
+- [ ] If layout exceeds one page, warning shown before PDF export
+- [ ] Overflow still allows export with warning
 
 ## Automated
 
-- [ ] `npm run test:resume-layout-parity` passes
+- [ ] `npm run test:resume-export-strategy` passes
 - [ ] `npm run test` / `lint` / `build` pass
