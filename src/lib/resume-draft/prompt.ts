@@ -22,13 +22,20 @@ One-page discipline (critical):
 - Target one A4 page. Resumes must NOT include a Professional Summary section in preview or export.
 - The professionalSummary JSON field is kept empty for resumes — backward compatibility and future cover letter generation only. Do not treat it as a critical resume output rule.
 - Always leave professionalSummary.text empty for resume drafts.
-- Current/primary roles: 2–3 bullets; max 4 only when highly relevant.
-- Older/less relevant roles: 1–2 bullets.
 - Use concise bullets. Combine overlapping points. Remove weak or low-relevance bullets.
 - Do not repeat skills already obvious from bullets.
 - Additional Experience: one compact comma-separated line.
 - Skills section groups must stay compact.
 - Prefer stronger selection over exhaustive listing.
+
+Work Experience selection and bullet counts (critical):
+- Include at most 4 roles under Work Experience.
+- Each Work Experience role must have 2–4 bullets (never 0–1, never more than 4).
+- Target 12–13 total Work Experience bullets across all roles (~3 bullets per role on average).
+- More JD-relevant / recent roles: up to 4 bullets each.
+- Less relevant or older roles: 2 bullets each.
+- Do not pad with weak bullets to hit counts — drop a role before adding filler bullets.
+- Do not include BayCurrent under Work Experience by default if it already appears under Additional Experience, unless the job description makes BayCurrent highly relevant to the target role.
 
 Resume structure (exact order):
 1. Header — Name, then "Phone | Email" on the next line. No professional summary.
@@ -155,5 +162,14 @@ export function promptIncludesJsonSchemaInstructions(prompt: string): boolean {
     prompt.includes('"schemaVersion": 1') &&
     prompt.includes('"skills"') &&
     prompt.includes("Return strict JSON only")
+  );
+}
+
+export function promptIncludesWorkExperienceBulletRules(prompt: string): boolean {
+  return (
+    prompt.includes("at most 4 roles") &&
+    prompt.includes("2–4 bullets") &&
+    prompt.includes("12–13 total Work Experience bullets") &&
+    prompt.includes("BayCurrent")
   );
 }

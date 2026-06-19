@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,9 +26,12 @@
     "test:resume-layout-parity": "tsx scripts/verify-resume-layout-parity.ts",
     "test:resume-export-strategy": "tsx scripts/verify-resume-export-strategy.ts",
     "test:resume-export-model-parity": "tsx scripts/verify-resume-export-model-parity.ts",
+    "test:resume-approval-layout": "tsx scripts/verify-resume-approval-layout.ts",
     "test:profile-contact": "tsx scripts/verify-profile-contact.ts",
     "test:profile-backfill": "tsx scripts/verify-profile-backfill.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:draft-inventory-safety && npm run test:resume-docx-export && npm run test:resume-pdf-export && npm run test:resume-layout-parity && npm run test:resume-export-strategy && npm run test:resume-export-model-parity"
+    "pull:gemini-analysis": "tsx scripts/pull-gemini-analysis.ts",
+    "build:gemini-analysis-bundle": "tsx scripts/build-gemini-analysis-bundle.ts",
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:draft-inventory-safety && npm run test:resume-docx-export && npm run test:resume-pdf-export && npm run test:resume-layout-parity && npm run test:resume-export-strategy && npm run test:resume-export-model-parity && npm run test:resume-approval-layout"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

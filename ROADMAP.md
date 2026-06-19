@@ -4,13 +4,16 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.6.5 — Preview Truth & Mobile Export Stabilization** (complete)
+**v0.6.6 — Resume Generation Rules & Approval Formatting Fixes** (complete)
 
-- PDF Preview is authoritative on export page
-- Export API model parity (`fontFamily`, `headerAlignment`, reference resume)
-- Mobile A4 scale-to-fit preview
-- Mobile-safe export navigation
-- Layout controls adjacent to PDF Preview
+- Body font slider max 20px (~15pt)
+- Work Experience generation bullet-count rules in prompt
+- Re-approval required after post-approval layout edits (`layout_changed` status)
+- DOCX reflow warning on preview page
+
+## Previous
+
+**v0.6.5 — Preview Truth & Mobile Export Stabilization** — PDF Preview authoritative, export model parity, mobile A4 preview, mobile export navigation.
 
 ## Next milestone
 

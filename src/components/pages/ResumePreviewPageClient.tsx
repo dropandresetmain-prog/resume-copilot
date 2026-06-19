@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -16,7 +16,15 @@ import {
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import { buildExportResumeDocumentModel } from "@/lib/resume-draft/build-export-document-model";
-import { sanitizeExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
+import {
+  RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
+  isApprovedDraftStatus,
+  isLayoutChangedAfterApprovalStatus,
+} from "@/lib/resume-draft/draft-status";
+import {
+  areExportLayoutSettingsEqual,
+  sanitizeExportLayoutSettings,
+} from "@/lib/resume-draft/export-layout-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
 import {
@@ -58,6 +66,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState(false);
+  const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [manualSettings, setManualSettings] = useState<{
     draftId: string;
     bodyFontPx: number;
@@ -189,6 +198,64 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     [draft],
   );
 
+  const currentLayoutSettings = useMemo(
+    () => ({
+      bodyFontPx,
+      marginMm,
+      marginTopMm,
+      lineSpacing,
+      sectionSpacing,
+    }),
+    [bodyFontPx, marginMm, marginTopMm, lineSpacing, sectionSpacing],
+  );
+
+  const exportReady = Boolean(
+    draft &&
+      isApprovedDraftStatus(draft.status) &&
+      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, currentLayoutSettings),
+  );
+
+  const layoutChangedAfterApproval = Boolean(
+    draft && isLayoutChangedAfterApprovalStatus(draft.status),
+  );
+
+  useEffect(() => {
+    return () => {
+      if (layoutChangeTimerRef.current) {
+        clearTimeout(layoutChangeTimerRef.current);
+      }
+    };
+  }, []);
+
+  async function markLayoutChangedAfterApproval(next: {
+    bodyFontPx: number;
+    marginMm: number;
+    marginTopMm: number;
+    lineSpacing: number;
+    sectionSpacing: number;
+  }) {
+    if (!draft || !isApprovedDraftStatus(draft.status)) {
+      return;
+    }
+    if (areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, next)) {
+      return;
+    }
+
+    try {
+      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
+        content: draft.content,
+        status: RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
+      });
+      setDraft(updated);
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : "Failed to mark layout change after approval.",
+      );
+    }
+  }
+
   function updateManualSettings(next: {
     bodyFontPx: number;
     marginMm: number;
@@ -198,6 +265,13 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   }) {
     if (!draftId) return;
     setManualSettings({ draftId, ...next });
+
+    if (layoutChangeTimerRef.current) {
+      clearTimeout(layoutChangeTimerRef.current);
+    }
+    layoutChangeTimerRef.current = setTimeout(() => {
+      void markLayoutChangedAfterApproval(next);
+    }, 300);
   }
 
   async function handleApproveForExport() {
@@ -221,6 +295,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         status: "approved",
       });
       setDraft(updated);
+      setExportWarning(null);
     } catch (approveError) {
       setError(
         approveError instanceof Error
@@ -251,7 +326,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     return null;
   }
 
-  const isApproved = draft.status === "approved";
+  const canApprove = !isApproving && !exportReady;
+  const approveButtonLabel = isApproving
+    ? "Saving…"
+    : exportReady
+      ? "Approved for export"
+      : layoutChangedAfterApproval || isApprovedDraftStatus(draft.status)
+        ? "Re-approve for Export"
+        : "Approve for Export";
+  const exportDisabledReason = layoutChangedAfterApproval
+    ? "Layout changed after approval — re-approve for Export before downloading."
+    : !isApprovedDraftStatus(draft.status)
+      ? "Approve for Export before downloading."
+      : "Approve for Export before downloading.";
   const bodyFontSliderSteps = Math.round(
     (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
   );
@@ -259,7 +346,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.6.5 · Preview Truth & Mobile Export Stabilization"
+        milestone="v0.6.6 · Resume Generation Rules & Approval Formatting Fixes"
         title="Resume Preview"
         description="PDF Preview is the export truth — tune layout, approve, then download PDF or editable DOCX."
       />
@@ -278,6 +365,13 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               changes apply here immediately.
             </p>
           </div>
+
+          {layoutChangedAfterApproval ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Layout changed after approval. PDF Preview shows your current settings — click
+              &quot;Re-approve for Export&quot; before downloading.
+            </p>
+          ) : null}
 
           {pageFit.exceedsOnePage ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -427,35 +521,28 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         <button
           type="button"
           onClick={handleApproveForExport}
-          disabled={isApproving || isApproved}
+          disabled={isApproving || !canApprove}
           className={primaryButtonClassName}
         >
-          {isApproved ? "Approved for export" : isApproving ? "Saving…" : "Approve for Export"}
+          {approveButtonLabel}
         </button>
-        <DownloadResumeDocxButton
-          draftId={draftId}
-          layoutSettings={{
-            bodyFontPx,
-            marginMm,
-            marginTopMm,
-            lineSpacing,
-            sectionSpacing,
-          }}
-          disabled={!isApproved}
-          disabledReason="Approve for Export before downloading."
-          onHint={setExportWarning}
-        />
+        <div className="inline-flex flex-col gap-1">
+          <DownloadResumeDocxButton
+            draftId={draftId}
+            layoutSettings={currentLayoutSettings}
+            disabled={!exportReady}
+            disabledReason={exportDisabledReason}
+            onHint={setExportWarning}
+          />
+          <p className="max-w-xs text-xs text-slate-500">
+            DOCX is editable and may reflow or exceed one page in Word. PDF is the final layout.
+          </p>
+        </div>
         <DownloadResumePdfButton
           draftId={draftId}
-          layoutSettings={{
-            bodyFontPx,
-            marginMm,
-            marginTopMm,
-            lineSpacing,
-            sectionSpacing,
-          }}
-          disabled={!isApproved}
-          disabledReason="Approve for Export before downloading."
+          layoutSettings={currentLayoutSettings}
+          disabled={!exportReady}
+          disabledReason={exportDisabledReason}
           exceedsOnePage={pageFit.exceedsOnePage}
           onWarning={setExportWarning}
         />

@@ -1,4 +1,5 @@
 import type { ResumeLayoutSettings } from "@/lib/resume-draft/document-model";
+export { isApprovedDraftStatus } from "@/lib/resume-draft/draft-status";
 import {
   clampPreviewBodyFontPx,
   PREVIEW_LINE_SPACING_MAX,
@@ -75,8 +76,4 @@ function sanitizeLayoutSettings(
   }
 
   return Object.keys(next).length > 0 ? next : undefined;
-}
-
-export function isApprovedDraftStatus(status: string): boolean {
-  return status.trim().toLowerCase() === "approved";
 }

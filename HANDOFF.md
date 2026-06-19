@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**v0.6.5 — Preview Truth & Mobile Export Stabilization**
+**v0.6.6 — Resume Generation Rules & Approval Formatting Fixes**
 
-**PDF Preview** is the authoritative preview. Export APIs use the same `buildExportResumeDocumentModel` helper as the preview page (including reference resume typography). Mobile A4 preview scales proportionally; mobile exports use same-tab navigation.
+Production stabilization: larger layout font ceiling (~20px / 15pt), stricter Work Experience bullet-count generation rules, re-approval required after post-approval layout edits, clearer DOCX warning.
 
 ## Product flow
 
@@ -12,26 +12,25 @@
 Paste JD → Generate → Review → PDF Preview (truth) → Approve → Download PDF (primary) / DOCX (secondary)
 ```
 
-## v0.6.5 highlights
+If layout changes after approval → status `layout_changed` → re-approve before export.
 
-- Shared `buildExportResumeDocumentModel` for preview + export API parity
-- PDF Preview primary; React layout preview demoted to Advanced
-- Mobile A4 scale-to-fit iframe preview
-- Mobile-safe PDF/DOCX delivery (`same-tab-navigate` + user hint)
-- Layout controls adjacent to PDF Preview; `marginTopMm` slider; line-spacing min 0.95
-- `ROADMAP.md` added
+## v0.6.6 highlights
+
+- Body font slider max raised to **20px** (~15pt)
+- Generation prompt: max 4 roles, 2–4 bullets/role, ~12–13 total bullets, BayCurrent rule
+- Post-approval layout edits set `layout_changed`; downloads disabled until re-approve
+- DOCX download warning: editable / may exceed one page; PDF is final layout
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.6.4 — Export strategy stabilization | Complete |
-| **v0.6.5 — Preview truth & mobile export** | **Current** |
+| v0.6.5 — Preview truth & mobile export | Complete |
+| **v0.6.6 — Generation rules & approval formatting** | **Current** |
 | v0.7.0 — One-page enforcement foundation | Next (recommended) |
 | Cover letter generation | After one-page foundation |
-| Manual inventory editing | Deferred |
 
-See `ROADMAP.md` for phased detail.
+See `ROADMAP.md`.
 
 ## Run
 

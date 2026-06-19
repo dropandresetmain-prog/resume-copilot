@@ -10,6 +10,7 @@ import {
 import {
   buildResumeDraftPrompt,
   promptIncludesJsonSchemaInstructions,
+  promptIncludesWorkExperienceBulletRules,
 } from "../src/lib/resume-draft/prompt";
 import {
   mapResumeDraftPayload,
@@ -172,6 +173,7 @@ const checks: [string, boolean][] = [
     !JSON.stringify(payloadBundle.inputSnapshot).includes("workExperiences"),
   ],
   ["prompt includes JSON schema instructions", promptIncludesJsonSchemaInstructions(prompt)],
+  ["prompt includes work experience bullet rules", promptIncludesWorkExperienceBulletRules(prompt)],
   ["parser accepts valid JSON", parsedValid.ok === true],
   ["parser rejects malformed JSON", parsedInvalid.ok === false],
   ["mapper handles optional fields", mapped.content.education.length === 0],

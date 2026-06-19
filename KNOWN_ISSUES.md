@@ -1,10 +1,10 @@
 # Known Issues
 
-## Export strategy (v0.6.5)
+## Export strategy (v0.6.6)
 
-- **PDF Preview is the authoritative preview** — `renderResumePdfHtml()` iframe on the preview page. Downloaded PDF should match PDF Preview when layout settings are the same.
-- **Browser layout preview** (React) is demoted to “Advanced — approximate layout estimate” only; it uses separate `RESUME_LAYOUT_SPACING` and must not be used for export decisions.
-- **DOCX is secondary/editable** — Word may reflow, exceed one page, or differ from PDF. Do not expect PDF parity.
+- **PDF Preview is the authoritative preview** — downloaded PDF should match when layout settings are approved.
+- **Post-approval layout edits** set draft status to `layout_changed`; export is blocked until **Re-approve for Export**.
+- **DOCX is secondary/editable** — may reflow or exceed one page in Word; UI warns near DOCX download. PDF is the final layout.
 - PDF download on **desktop** opens in a new tab; **mobile** navigates in the same tab (browser may open inline instead of saving).
 - DOCX download on **desktop** uses anchor download; **mobile** uses same-tab navigation with user hint.
 - Export APIs resolve `fontFamily` / `headerAlignment` from reference resume via shared `buildExportResumeDocumentModel`.
@@ -15,7 +15,9 @@
 - `estimatePageFit()` remains heuristic — may disagree with PDF Preview / downloaded PDF.
 - Overflow still exports with a warning; content is not auto-shrunk at export time.
 
-## PDF export
+## Layout controls
+
+- Body font slider max is **20px** (~15pt visual). Optimizer still targets compact one-page defaults (~11px).
 
 - Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (compact, Puppeteer-controlled).
 - Gill Sans MT renders only if installed on the PDF generation machine.

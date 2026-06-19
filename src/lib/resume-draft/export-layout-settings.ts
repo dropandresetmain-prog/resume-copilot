@@ -12,6 +12,24 @@ import {
 } from "@/lib/resume-draft/preview-settings";
 import type { ResumeDraftExportLayoutSettings } from "@/types/resume-draft";
 
+export function areExportLayoutSettingsEqual(
+  stored: ResumeDraftExportLayoutSettings | undefined,
+  current: Partial<ResumeLayoutSettings> | ResumeDraftExportLayoutSettings,
+): boolean {
+  const sanitized = sanitizeExportLayoutSettings(current);
+  if (!stored || !sanitized) {
+    return false;
+  }
+
+  return (
+    stored.bodyFontPx === sanitized.bodyFontPx &&
+    stored.marginMm === sanitized.marginMm &&
+    stored.marginTopMm === sanitized.marginTopMm &&
+    stored.lineSpacing === sanitized.lineSpacing &&
+    stored.sectionSpacing === sanitized.sectionSpacing
+  );
+}
+
 export function sanitizeExportLayoutSettings(
   value: Partial<ResumeLayoutSettings> | ResumeDraftExportLayoutSettings | undefined,
 ): ResumeDraftExportLayoutSettings | undefined {
