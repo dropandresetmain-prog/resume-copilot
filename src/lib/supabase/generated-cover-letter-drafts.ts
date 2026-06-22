@@ -201,6 +201,41 @@ export async function updateGeneratedCoverLetterDraftInCloud(
   return mapGeneratedCoverLetterDraftRow(data as GeneratedCoverLetterDraftRow);
 }
 
+export async function updateGeneratedCoverLetterDraftInCloudForUser(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  id: string,
+  userId: string,
+  input: { body: string; rationale?: CoverLetterRationale },
+): Promise<GeneratedCoverLetterDraftRecord | null> {
+  const updatePayload: Record<string, unknown> = {
+    body: input.body,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.rationale) {
+    updatePayload.rationale = {
+      ...input.rationale,
+      wordCount: countWords(input.body),
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("generated_cover_letter_drafts")
+    .update(updatePayload)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    return null;
+  }
+
+  return mapGeneratedCoverLetterDraftRow(data as GeneratedCoverLetterDraftRow);
+}
+
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }

@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.9.0 — Application Communication / Cover Letter MVP**
+**v0.9.2 — Cover Letter Quality & Quick Revision**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 

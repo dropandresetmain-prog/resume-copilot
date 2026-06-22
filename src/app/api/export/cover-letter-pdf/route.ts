@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { generateCoverLetterPdfBuffer } from "@/lib/cover-letter/pdf-export";
+import { assertExportableCoverLetterBody } from "@/lib/cover-letter/generation-validation";
 import { getGeneratedCoverLetterDraftForUser } from "@/lib/supabase/generated-cover-letter-drafts";
 import {
   createSupabaseClientWithAccessToken,
@@ -28,6 +29,20 @@ export async function POST(request: Request) {
     const draft = await getGeneratedCoverLetterDraftForUser(supabase, body.draftId, userId);
     if (!draft) {
       return NextResponse.json({ error: "Cover letter draft not found." }, { status: 404 });
+    }
+
+    try {
+      assertExportableCoverLetterBody(draft.body);
+    } catch (validationError) {
+      return NextResponse.json(
+        {
+          error:
+            validationError instanceof Error
+              ? validationError.message
+              : "Cover letter is not exportable.",
+        },
+        { status: 422 },
+      );
     }
 
     const buffer = await generateCoverLetterPdfBuffer(draft.body);

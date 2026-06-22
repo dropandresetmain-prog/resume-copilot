@@ -5,7 +5,13 @@ import { useState } from "react";
 import { secondaryButtonClassName } from "@/components/setup/ui";
 import { downloadCoverLetterExport } from "@/lib/cover-letter/export-client";
 
-export function DownloadCoverLetterDocxButton({ draftId }: { draftId: string }) {
+export function DownloadCoverLetterDocxButton({
+  draftId,
+  disabled = false,
+}: {
+  draftId: string;
+  disabled?: boolean;
+}) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,7 +19,7 @@ export function DownloadCoverLetterDocxButton({ draftId }: { draftId: string }) 
     <div className="inline-flex flex-col gap-1">
       <button
         type="button"
-        disabled={isExporting}
+        disabled={isExporting || disabled}
         className={secondaryButtonClassName}
         onClick={() => {
           setIsExporting(true);

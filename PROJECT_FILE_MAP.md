@@ -16,6 +16,7 @@
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
 | `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Server-side cover letter generation (v0.9.0) |
+| `/api/ai/revise-cover-letter` | `src/app/api/ai/revise-cover-letter/route.ts` | Cover letter quick revision (v0.9.2) |
 | `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved draft → DOCX export (v0.6.0) |
 | `/api/export/cover-letter-pdf` | `src/app/api/export/cover-letter-pdf/route.ts` | Cover letter → PDF export (v0.9.0) |
 | `/api/export/cover-letter-docx` | `src/app/api/export/cover-letter-docx/route.ts` | Cover letter → DOCX export (v0.9.0) |
@@ -218,7 +219,15 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | File | Purpose |
 |------|---------|
 | `src/lib/company-context/build-company-context.ts` | JD + user fields → `CompanyContext` (no live web search) |
-| `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + rules |
+| `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + tone/length rules |
+| `src/lib/cover-letter/word-limits.ts` | 420-word hard max + target range (v0.9.2) |
+| `src/lib/cover-letter/company-name.ts` | Company display name normalization (v0.9.2) |
+| `src/lib/cover-letter/banned-phrases.ts` | Banned AI-ish phrase detection (v0.9.2) |
+| `src/lib/cover-letter/revision-prompt.ts` | Quick revision prompt + action labels (v0.9.2) |
+| `src/lib/cover-letter/revision-parse.ts` | Revision JSON parse + validation (v0.9.2) |
+| `src/lib/cover-letter/revision-client.ts` | Browser client for revise-cover-letter API (v0.9.2) |
+| `src/lib/ai/revise-cover-letter-provider.ts` | Revision provider selection (v0.9.2) |
+| `src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx` | Quick adjustment buttons (v0.9.2) |
 | `src/lib/cover-letter/parse.ts` | Parse model JSON (formal + secondary formats) |
 | `src/lib/cover-letter/generation-validation.ts` | Word count + required formal letter validation |
 | `src/lib/cover-letter/resume-evidence.ts` | Resume draft → evidence spine for prompt |
@@ -270,6 +279,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-inventory-edits.ts` | Hidden/edited overlay + regeneration payload (v0.7.7) |
 | `scripts/verify-application-records.ts` | Application shell wiring + types (v0.8.0) |
 | `scripts/verify-cover-letter.ts` | Profile, payload, prompt, validation, persistence (v0.9.0) |
+| `scripts/verify-cover-letter-quality.ts` | Word cap, banned phrases, normalization, revision (v0.9.2) |
 | `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.7) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |

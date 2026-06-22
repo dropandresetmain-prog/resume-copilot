@@ -3,6 +3,7 @@ import {
   getCoverLetterProviderStatus,
   toCoverLetterApiResponse,
 } from "@/lib/ai/cover-letter-provider";
+import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import { CoverLetterParseError } from "@/lib/cover-letter/parse";
 import { CoverLetterValidationError } from "@/lib/cover-letter/generation-validation";
 import type { CoverLetterGenerationInput } from "@/types/cover-letter-draft";
@@ -32,6 +33,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Company name is required." }, { status: 400 });
     }
 
+    const companyNameRaw = body.companyNameRaw?.trim() || body.companyName.trim();
+    const companyDisplayName =
+      body.companyDisplayName?.trim() || normalizeCompanyDisplayName(companyNameRaw);
+    const normalizedBody: CoverLetterGenerationInput = {
+      ...body,
+      companyName: companyDisplayName,
+      companyDisplayName,
+      companyNameRaw,
+      companyContext: {
+        ...body.companyContext,
+        companyName: companyDisplayName,
+      },
+    };
+
     if (!providerStatus.configured) {
       return NextResponse.json(
         {
@@ -48,7 +63,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateCoverLetterWithAI(body, process.env.AI_PROVIDER);
+    const result = await generateCoverLetterWithAI(normalizedBody, process.env.AI_PROVIDER);
 
     return NextResponse.json(
       toCoverLetterApiResponse(result, {

@@ -56,12 +56,14 @@
 - **Draft History** shows only drafts without `application_id` (legacy/unlinked).
 - **Parked:** lazy backfill of application records for old drafts, apply tracking UI, kanban.
 
-## Cover letter & communications (v0.9.0)
+## Cover letter & communications (v0.9.x)
 
 - **Profile** (`/profile`) stores one Application Communication Profile blob per user.
 - **Generate** can produce formal cover letter + secondary outreach formats (stored in `rationale` JSON).
+- **Partial failure (v0.9.1):** cover letter failure preserves resume; retry cover letter only.
+- **Quality (v0.9.2):** hard 420-word max; banned internal positioning phrases; company name normalization; quick revision on preview.
 - **Company context** built from JD + user fields; no live web search — paste context in additional instructions.
-- **Export** formal cover letter PDF/DOCX without resume-style approve gate.
+- **Export** formal cover letter PDF/DOCX blocked when >420 words or banned phrases (client + server).
 - **Investigate Now:** external web search API for company research.
 
 ## Inventory editing (v0.7.7+)

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
+import { CoverLetterQuickRevisionPanel } from "@/components/cover-letters/CoverLetterQuickRevisionPanel";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -15,6 +16,12 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
+import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import {
+  FORMAL_COVER_LETTER_MAX_WORDS,
+  formatWordCountLabel,
+  isOverWordLimit,
+} from "@/lib/cover-letter/word-limits";
 import {
   getGeneratedCoverLetterDraftFromCloud,
   updateGeneratedCoverLetterDraftInCloud,
@@ -76,6 +83,8 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
     ? jobDescriptions.find((item) => item.id === draft.jobDescriptionId)
     : undefined;
   const wordCount = countWords(bodyDraft);
+  const bannedPhrases = detectBannedPhrases(bodyDraft);
+  const exportBlocked = isOverWordLimit(wordCount) || bannedPhrases.length > 0;
 
   async function handleSave() {
     if (!draft) {
@@ -114,9 +123,9 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   return (
     <>
       <PageHeader
-        milestone="v0.9.0 · Cover Letter"
+        milestone="v0.9.2 · Cover Letter"
         title="Formal cover letter"
-        description="Preview and edit the formal cover letter. Download PDF or DOCX when ready."
+        description="Preview and edit the formal cover letter. Download PDF or DOCX when within 420 words."
       />
 
       <div className="flex flex-wrap gap-3">
@@ -132,8 +141,15 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
 
       <SetupCard
         title={job?.roleTitle && job.companyName ? `${job.roleTitle} @ ${job.companyName}` : "Cover letter"}
-        description={`${wordCount} words · target 350–450 (ideal ~420)`}
+        description={formatWordCountLabel(wordCount)}
       >
+        {exportBlocked ? (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {isOverWordLimit(wordCount)
+              ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use Shorten to 420 words or edit manually.`
+              : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
+          </p>
+        ) : null}
         <textarea
           value={bodyDraft}
           onChange={(event) => setBodyDraft(event.target.value)}
@@ -149,12 +165,36 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           >
             {isSaving ? "Saving…" : "Save changes"}
           </button>
-          <DownloadCoverLetterPdfButton draftId={draft.id} />
-          <DownloadCoverLetterDocxButton draftId={draft.id} />
+          <DownloadCoverLetterPdfButton draftId={draft.id} disabled={exportBlocked} />
+          <DownloadCoverLetterDocxButton draftId={draft.id} disabled={exportBlocked} />
         </div>
         {saveMessage ? <p className="mt-3 text-sm text-emerald-800">{saveMessage}</p> : null}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       </SetupCard>
+
+      <CoverLetterQuickRevisionPanel
+        draftId={draft.id}
+        currentBody={bodyDraft}
+        disabled={isSaving}
+        onRevised={(body, warnings) => {
+          setBodyDraft(body);
+          setDraft((current) =>
+            current
+              ? {
+                  ...current,
+                  body,
+                  rationale: current.rationale
+                    ? { ...current.rationale, wordCount: countWords(body) }
+                    : current.rationale,
+                }
+              : current,
+          );
+          setSaveMessage("Cover letter revised.");
+          if (warnings.length > 0) {
+            setError(null);
+          }
+        }}
+      />
 
       {draft.rationale ? (
         <SetupCard title="Generation notes" description="Themes and risk flags from the model.">

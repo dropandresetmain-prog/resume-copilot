@@ -2,16 +2,19 @@
 
 ## Current milestone
 
-**v0.9.0 — Application Communication / Cover Letter MVP**
+**v0.9.2 — Cover Letter Quality & Quick Revision**
 
-- Application Communication Profile (`/profile`)
-- Combined resume + formal cover letter generation
-- Cover letter preview/edit + PDF/DOCX export
-- Secondary outreach formats (copyable)
+- Hard 420-word cap with validation + compression retry
+- Banned AI-ish / internal positioning phrases
+- Company name normalization for prose
+- Quick revision buttons + custom instruction on preview
+- `POST /api/ai/revise-cover-letter`
 
 ## Previous
 
-**v0.8.0 — Application Shell**
+**v0.9.1 — Partial failure recovery**
+
+**v0.9.0 — Application Communication / Cover Letter MVP**
 
 **v0.7.8 — Inventory Edit UX Hardening**
 

@@ -33,6 +33,8 @@ export type CoverLetterGenerationInput = {
   targetRoleTitle?: string;
   communicationProfile: string;
   companyName: string;
+  companyDisplayName?: string;
+  companyNameRaw?: string;
   country: string;
   companyWebsite?: string;
   additionalInstructions?: string;
@@ -99,4 +101,38 @@ export type CoverLetterApiErrorResponse = {
   providerLabel?: string;
   modelName?: string;
   timestamp?: string;
+};
+
+export const COVER_LETTER_REVISION_ACTIONS = [
+  "shorten",
+  "warmer",
+  "more_conversational",
+  "more_direct",
+  "more_formal",
+  "remove_ai_phrases",
+  "emphasize_company_fit",
+  "emphasize_role_fit",
+  "emphasize_technical_ai",
+  "emphasize_founder_business",
+  "custom",
+] as const;
+
+export type CoverLetterRevisionAction = (typeof COVER_LETTER_REVISION_ACTIONS)[number];
+
+export type CoverLetterRevisionRequest = {
+  draftId: string;
+  currentBody: string;
+  action: CoverLetterRevisionAction;
+  customInstruction?: string;
+};
+
+export type CoverLetterRevisionResponse = {
+  body: string;
+  wordCount: number;
+  warnings: string[];
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  timestamp: string;
 };

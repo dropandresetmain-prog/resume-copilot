@@ -2,6 +2,7 @@ import {
   buildCompanyContext,
   resolveCompanyNameForGeneration,
 } from "@/lib/company-context/build-company-context";
+import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import { requestCoverLetterGeneration } from "@/lib/cover-letter/client";
 import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
 import { getApplicationCommunicationProfileFromCloud } from "@/lib/supabase/application-communication-profiles";
@@ -20,19 +21,30 @@ export type CoverLetterGenerationOptions = {
   additionalInstructions?: string;
 };
 
-export async function generateAndSaveCoverLetterDraft(
-  options: CoverLetterGenerationOptions,
-): Promise<GeneratedCoverLetterDraftRecord> {
-  const profile = await getApplicationCommunicationProfileFromCloud();
-  const companyName = resolveCompanyNameForGeneration({
+export function resolveCoverLetterCompanyNames(options: CoverLetterGenerationOptions): {
+  companyNameRaw: string;
+  companyDisplayName: string;
+} {
+  const companyNameRaw = resolveCompanyNameForGeneration({
     override: options.companyName,
     jobCompanyName: options.job.companyName,
     jobDescriptionText: options.job.rawText,
   });
+  return {
+    companyNameRaw,
+    companyDisplayName: normalizeCompanyDisplayName(companyNameRaw),
+  };
+}
+
+export async function generateAndSaveCoverLetterDraft(
+  options: CoverLetterGenerationOptions,
+): Promise<GeneratedCoverLetterDraftRecord> {
+  const profile = await getApplicationCommunicationProfileFromCloud();
+  const { companyNameRaw, companyDisplayName } = resolveCoverLetterCompanyNames(options);
   const country = options.country?.trim() || "Singapore";
   const companyWebsite = options.companyWebsite?.trim() || options.job.jobUrl?.trim();
   const companyContext = buildCompanyContext({
-    companyName,
+    companyName: companyDisplayName,
     country,
     website: companyWebsite,
     jobDescriptionText: options.job.rawText,
@@ -51,7 +63,9 @@ export async function generateAndSaveCoverLetterDraft(
     resumeEvidenceSpine: buildResumeEvidenceSpine(options.resumeDraft),
     targetRoleTitle: options.resumeDraft.content.targetRoleTitle,
     communicationProfile: profile?.content ?? "",
-    companyName,
+    companyName: companyDisplayName,
+    companyDisplayName,
+    companyNameRaw,
     country,
     companyWebsite,
     additionalInstructions: options.additionalInstructions,
@@ -62,7 +76,7 @@ export async function generateAndSaveCoverLetterDraft(
     applicationId: options.applicationId,
     jobDescriptionId: options.job.id,
     resumeDraftId: options.resumeDraft.id,
-    companyName,
+    companyName: companyNameRaw,
     country,
     companyWebsite,
     additionalInstructions: options.additionalInstructions,
