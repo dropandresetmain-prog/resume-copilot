@@ -52,6 +52,12 @@ export function CompanyContextPreviewPanel({
     >
       <summary className="cursor-pointer text-sm font-medium text-slate-900">
         Company research — {context.displayName || context.companyName}
+        <span className="mt-1 block text-xs font-normal text-slate-500">
+          {context.sourceType === "website_research" ? "Website-backed" : "JD-based"}
+          {researchTimestamp ? ` · Updated ${researchTimestamp}` : ""}
+          {" · "}
+          View / edit
+        </span>
       </summary>
 
       <p className="mt-2 text-xs text-slate-600">

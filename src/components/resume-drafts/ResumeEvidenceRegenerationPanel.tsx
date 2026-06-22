@@ -151,8 +151,8 @@ export function ResumeEvidenceRegenerationPanel({
 
   return (
     <SetupCard
-      title="Evidence & regeneration"
-      description="Inspect source bullets used in this draft, exclude generated bullets from the next run, or force inventory bullets into regeneration. Does not change source inventory."
+      title="Edit resume content"
+      description="Inspect evidence, exclude or force inventory bullets, and regenerate the resume. Does not change source inventory."
     >
       <p className="mt-3 text-sm text-slate-600">
         Active inventory bullets available: {activeCollated.experiences.reduce(

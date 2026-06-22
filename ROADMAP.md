@@ -2,15 +2,16 @@
 
 ## Current milestone
 
-**v0.9.7 — Cover Letter Relevance & Application Package**
+**v0.9.8 — Application Package Preview UX Cleanup**
 
-- Display name normalization (URLs → brand names in prose)
-- Structured cover letter prompt with required company facts, role requirements, and bridges
-- Relevance-based story ranking in evidence spine
-- Application package UX (resume primary + cover letter + company research)
-- Structured export filenames for cover letters
+- Single-column application package layout
+- Approve/export immediately after resume layout controls
+- Inline cover letter preview with edit/download actions
+- Company research + debug collapsed by default
 
 ## Previous
+
+**v0.9.7 — Cover Letter Relevance & Application Package**
 
 **v0.9.6 — Auto Research Flow & Progress Bar Integration**
 

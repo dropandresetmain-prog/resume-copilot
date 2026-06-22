@@ -13,7 +13,8 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
-import { ResumeCoverLetterPanel } from "@/components/cover-letters/ResumeCoverLetterPanel";
+import { ApplicationPackageCoverLetterPanel } from "@/components/application-package/ApplicationPackageCoverLetterPanel";
+import { ApplicationPackageSummary } from "@/components/application-package/ApplicationPackageSummary";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
@@ -63,6 +64,7 @@ import {
 } from "@/lib/supabase/generated-resume-drafts";
 import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
 import type { CompanyContext } from "@/types/company-context";
+import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 type ResumePreviewPageClientProps = {
@@ -73,6 +75,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
+  const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
+  const [coverLetterLoading, setCoverLetterLoading] = useState(true);
+  const [showEditResumeContent, setShowEditResumeContent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -394,268 +399,323 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.9.7 · Application Package"
+        milestone="v0.9.8 · Application Package"
         title="Application package"
-        description="Review your tailored resume first, then the cover letter and company research used for this application."
+        description="Review your resume, cover letter, and company research in one place."
       />
 
-      <p className="text-xs text-slate-500">
-        Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font:{" "}
-        {fontFamily.split(",")[0]}
-      </p>
+      <div className="space-y-6">
+        <ApplicationPackageSummary
+          companyName={linkedJob?.companyName}
+          roleTitle={linkedJob?.roleTitle}
+          resumeDraft={draft}
+          coverLetter={coverLetter}
+          coverLetterLoading={coverLetterLoading}
+          companyContext={companyContext}
+        />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <section className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-slate-800">PDF Preview</h2>
-            <p className="text-xs text-slate-500">
-              Same print HTML/CSS as export — local browser rendering only. Server PDF validation on
-              Approve is export truth.
-            </p>
-          </div>
-
+        <SetupCard
+          title="Resume"
+          description="Primary artifact — tune layout, approve for export, then download PDF or DOCX."
+        >
           {layoutChangedAfterApproval ? (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Layout changed after approval. PDF Preview shows your current settings — click
-              &quot;Re-approve for Export&quot; to run server validation again.
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Layout changed after approval. Re-approve for Export to run server validation again.
             </p>
           ) : null}
 
-          {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
+          <div className="mt-4 space-y-4">
+            {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
-          <div className="sticky top-2 z-10 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-              Layout controls
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              <label className="text-sm text-slate-700">
-                Body font ({bodyFontPx}px)
-                <input
-                  type="range"
-                  min={0}
-                  max={bodyFontSliderSteps}
-                  step={1}
-                  value={Math.round(
-                    (bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
-                  )}
-                  onChange={(event) =>
-                    updateManualSettings({
-                      bodyFontPx: clampPreviewBodyFontPx(
-                        PREVIEW_BODY_FONT_MIN_PX +
-                          Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
-                      ),
-                      marginMm,
-                      marginTopMm,
-                      lineSpacing,
-                      itemLineSpacing,
-                      sectionSpacing,
-                    })
-                  }
-                  className="mt-1 block w-full"
-                />
-              </label>
-              <label className="text-sm text-slate-700">
-                Side margins ({marginMm}mm)
-                <input
-                  type="range"
-                  min={PREVIEW_MARGIN_MIN_MM}
-                  max={PREVIEW_MARGIN_MAX_MM}
-                  value={marginMm}
-                  onChange={(event) =>
-                    updateManualSettings({
-                      bodyFontPx,
-                      marginMm: Number(event.target.value),
-                      marginTopMm,
-                      lineSpacing,
-                      itemLineSpacing,
-                      sectionSpacing,
-                    })
-                  }
-                  className="mt-1 block w-full"
-                />
-              </label>
-              <label className="text-sm text-slate-700">
-                Top margin ({marginTopMm}mm)
-                <input
-                  type="range"
-                  min={PREVIEW_MARGIN_TOP_MIN_MM}
-                  max={PREVIEW_MARGIN_TOP_MAX_MM}
-                  value={marginTopMm}
-                  onChange={(event) =>
-                    updateManualSettings({
-                      bodyFontPx,
-                      marginMm,
-                      marginTopMm: Number(event.target.value),
-                      lineSpacing,
-                      itemLineSpacing,
-                      sectionSpacing,
-                    })
-                  }
-                  className="mt-1 block w-full"
-                />
-              </label>
-              <label className="text-sm text-slate-700">
-                Line spacing ({lineSpacing.toFixed(2)})
-                <input
-                  type="range"
-                  min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
-                  max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
-                  value={Math.round(lineSpacing * 100)}
-                  onChange={(event) =>
-                    updateManualSettings({
-                      bodyFontPx,
-                      marginMm,
-                      marginTopMm,
-                      lineSpacing: Number(event.target.value) / 100,
-                      itemLineSpacing,
-                      sectionSpacing,
-                    })
-                  }
-                  className="mt-1 block w-full"
-                />
-              </label>
-              <label className="text-sm text-slate-700">
-                Section spacing ({sectionSpacing.toFixed(2)}rem)
-                <input
-                  type="range"
-                  min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
-                  max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
-                  value={Math.round(sectionSpacing * 100)}
-                  onChange={(event) =>
-                    updateManualSettings({
-                      bodyFontPx,
-                      marginMm,
-                      marginTopMm,
-                      lineSpacing,
-                      itemLineSpacing,
-                      sectionSpacing: Number(event.target.value) / 100,
-                    })
-                  }
-                  className="mt-1 block w-full"
-                />
-              </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Layout controls
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <label className="text-sm text-slate-700">
+                  Body font ({bodyFontPx}px)
+                  <input
+                    type="range"
+                    min={0}
+                    max={bodyFontSliderSteps}
+                    step={1}
+                    value={Math.round(
+                      (bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
+                    )}
+                    onChange={(event) =>
+                      updateManualSettings({
+                        bodyFontPx: clampPreviewBodyFontPx(
+                          PREVIEW_BODY_FONT_MIN_PX +
+                            Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+                        ),
+                        marginMm,
+                        marginTopMm,
+                        lineSpacing,
+                        itemLineSpacing,
+                        sectionSpacing,
+                      })
+                    }
+                    className="mt-1 block w-full"
+                  />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Side margins ({marginMm}mm)
+                  <input
+                    type="range"
+                    min={PREVIEW_MARGIN_MIN_MM}
+                    max={PREVIEW_MARGIN_MAX_MM}
+                    value={marginMm}
+                    onChange={(event) =>
+                      updateManualSettings({
+                        bodyFontPx,
+                        marginMm: Number(event.target.value),
+                        marginTopMm,
+                        lineSpacing,
+                        itemLineSpacing,
+                        sectionSpacing,
+                      })
+                    }
+                    className="mt-1 block w-full"
+                  />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Top margin ({marginTopMm}mm)
+                  <input
+                    type="range"
+                    min={PREVIEW_MARGIN_TOP_MIN_MM}
+                    max={PREVIEW_MARGIN_TOP_MAX_MM}
+                    value={marginTopMm}
+                    onChange={(event) =>
+                      updateManualSettings({
+                        bodyFontPx,
+                        marginMm,
+                        marginTopMm: Number(event.target.value),
+                        lineSpacing,
+                        itemLineSpacing,
+                        sectionSpacing,
+                      })
+                    }
+                    className="mt-1 block w-full"
+                  />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Line spacing ({lineSpacing.toFixed(2)})
+                  <input
+                    type="range"
+                    min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+                    max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
+                    value={Math.round(lineSpacing * 100)}
+                    onChange={(event) =>
+                      updateManualSettings({
+                        bodyFontPx,
+                        marginMm,
+                        marginTopMm,
+                        lineSpacing: Number(event.target.value) / 100,
+                        itemLineSpacing,
+                        sectionSpacing,
+                      })
+                    }
+                    className="mt-1 block w-full"
+                  />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Section spacing ({sectionSpacing.toFixed(2)}rem)
+                  <input
+                    type="range"
+                    min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+                    max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
+                    value={Math.round(sectionSpacing * 100)}
+                    onChange={(event) =>
+                      updateManualSettings({
+                        bodyFontPx,
+                        marginMm,
+                        marginTopMm,
+                        lineSpacing,
+                        itemLineSpacing,
+                        sectionSpacing: Number(event.target.value) / 100,
+                      })
+                    }
+                    className="mt-1 block w-full"
+                  />
+                </label>
+              </div>
             </div>
+
+            {validationFailure ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                <p className="font-medium">
+                  Server PDF: {validationFailure.pageCount} page(s) — export blocked
+                </p>
+                <p className="mt-1">{validationFailure.message}</p>
+              </div>
+            ) : serverPdfValidation ? (
+              <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+                Server PDF validated — 1 page. Approved for export.
+              </p>
+            ) : isApproving ? (
+              <p className="text-sm text-slate-600">Validating server PDF layout…</p>
+            ) : null}
+
+            <div className="flex flex-wrap items-end gap-3" data-section="resume-approve-export">
+              <button
+                type="button"
+                onClick={handleApproveForExport}
+                disabled={isApproving || !canApprove}
+                className={primaryButtonClassName}
+              >
+                {approveButtonLabel}
+              </button>
+              <DownloadResumePdfButton
+                draftId={draftId}
+                layoutSettings={currentLayoutSettings}
+                disabled={!exportReady}
+                disabledReason={exportDisabledReason}
+                onWarning={setExportWarning}
+              />
+              <div className="inline-flex flex-col gap-1">
+                <DownloadResumeDocxButton
+                  draftId={draftId}
+                  layoutSettings={currentLayoutSettings}
+                  disabled={!exportReady}
+                  disabledReason={exportDisabledReason}
+                  onHint={setExportWarning}
+                />
+                <p className="max-w-xs text-xs text-slate-500">
+                  PDF is the final layout. DOCX is editable and may reflow in Word.
+                </p>
+              </div>
+            </div>
+
+            {exportWarning ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {exportWarning}
+              </p>
+            ) : null}
           </div>
-        </section>
+        </SetupCard>
 
-        <ResumeAssessmentPanel
-          assessment={assessment}
-          pageFit={pageFit}
-          optimizationNote={optimizationNote}
-          serverPdfValidation={serverPdfValidation}
-          validationFailure={validationFailure}
-          isValidating={isApproving}
-        />
-
-        <ResumeCoverLetterPanel
-          draft={draft}
-          job={jobDescriptions.find((job) => job.id === draft.jobDescriptionId)}
-        />
+        <div data-section="application-package-cover-letter">
+          <ApplicationPackageCoverLetterPanel
+            draft={draft}
+            job={linkedJob ?? undefined}
+            onCoverLetterChange={setCoverLetter}
+            onLoadingChange={setCoverLetterLoading}
+          />
+        </div>
 
         {companyContext ? (
-          <CompanyContextPreviewPanel
+          <div data-section="application-package-company-research">
+            <CompanyContextPreviewPanel
             context={companyContext}
             applicationId={draft.applicationId}
-            defaultOpen
+            defaultOpen={false}
             onSaved={setCompanyContext}
           />
+          </div>
         ) : null}
 
-        <ResumeEvidenceRegenerationPanel
-          draft={draft}
-          inventory={inventory}
-          jobDescription={
-            jobDescriptions.find((job) => job.id === draft.jobDescriptionId) ?? null
-          }
-          onDraftUpdated={setDraft}
-        />
-      </div>
+        {showEditResumeContent ? (
+          <div className="space-y-3">
+            <ResumeEvidenceRegenerationPanel
+              draft={draft}
+              inventory={inventory}
+              jobDescription={linkedJob}
+              onDraftUpdated={setDraft}
+            />
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/resume-preview/${draftId}/edit`}
+                className={`inline-flex ${secondaryButtonClassName}`}
+              >
+                Open resume text editor
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowEditResumeContent(false)}
+                className={secondaryButtonClassName}
+              >
+                Hide edit resume content
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowEditResumeContent(true)}
+            className={secondaryButtonClassName}
+            data-action="edit-resume-content-toggle"
+          >
+            Edit resume content
+          </button>
+        )}
 
-      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">
-          Advanced — approximate layout estimate (browser only)
-        </summary>
-        <p className="mt-2 text-xs text-slate-500">
-          Uses separate browser spacing — not used for export. Trust PDF Preview above for final
-          layout.
-        </p>
-        <div className="mt-4">
-          <FinalResumeLayoutPreview
-            layout={layout}
-            pageFit={pageFit}
-            fontFamily={fontFamily}
-            bodyFontPx={bodyFontPx}
-            headerAlignment={headerAlignment}
-          />
-        </div>
-      </details>
+        <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <summary className="cursor-pointer text-sm font-medium text-slate-900">
+            Advanced options
+          </summary>
+          <div className="mt-4 space-y-4">
+            <p className="text-xs text-slate-500">
+              Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font:{" "}
+              {fontFamily.split(",")[0]}
+            </p>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <button
-          type="button"
-          onClick={handleApproveForExport}
-          disabled={isApproving || !canApprove}
-          className={primaryButtonClassName}
-        >
-          {approveButtonLabel}
-        </button>
-        <div className="inline-flex flex-col gap-1">
-          <DownloadResumeDocxButton
-            draftId={draftId}
-            layoutSettings={currentLayoutSettings}
-            disabled={!exportReady}
-            disabledReason={exportDisabledReason}
-            onHint={setExportWarning}
-          />
-          <p className="max-w-xs text-xs text-slate-500">
-            DOCX is editable and may reflow or exceed one page in Word. PDF is the final layout.
-          </p>
-        </div>
-        <DownloadResumePdfButton
-          draftId={draftId}
-          layoutSettings={currentLayoutSettings}
-          disabled={!exportReady}
-          disabledReason={exportDisabledReason}
-          onWarning={setExportWarning}
-        />
-        <Link
-          href={`/resume-preview/${draftId}/edit`}
-          className={`inline-flex ${secondaryButtonClassName}`}
-        >
-          Edit Resume Details
-        </Link>
+            <ResumeAssessmentPanel
+              assessment={assessment}
+              pageFit={pageFit}
+              optimizationNote={optimizationNote}
+              serverPdfValidation={serverPdfValidation}
+              validationFailure={validationFailure}
+              isValidating={isApproving}
+            />
+
+            <details className="rounded-lg border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                Advanced browser layout estimate
+              </summary>
+              <p className="mt-2 text-xs text-slate-500">
+                Approximate browser-only spacing — not used for export. Trust PDF Preview above.
+              </p>
+              <div className="mt-4">
+                <FinalResumeLayoutPreview
+                  layout={layout}
+                  pageFit={pageFit}
+                  fontFamily={fontFamily}
+                  bodyFontPx={bodyFontPx}
+                  headerAlignment={headerAlignment}
+                />
+              </div>
+            </details>
+
+            <details className="rounded-lg border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                PDF layout HTML source
+              </summary>
+              <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-800">
+                {documentModel ? renderResumePdfHtml(documentModel) : ""}
+              </pre>
+            </details>
+
+            <details className="rounded-lg border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                Debug JSON
+              </summary>
+              <pre className="mt-2 max-h-80 overflow-auto text-xs text-slate-800">
+                {JSON.stringify({ content: draft.content, rationale: draft.rationale }, null, 2)}
+              </pre>
+            </details>
+          </div>
+        </details>
+
         <Link href="/generate" className={`inline-flex ${secondaryButtonClassName}`}>
           Back to Generate
         </Link>
       </div>
 
-      {exportWarning ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {exportWarning}
-        </p>
-      ) : null}
-
       {error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
         </p>
       ) : null}
-
-      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">
-          PDF layout HTML source (debug)
-        </summary>
-        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-800">
-          {documentModel ? renderResumePdfHtml(documentModel) : ""}
-        </pre>
-      </details>
-
-      <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">Debug JSON</summary>
-        <pre className="mt-2 max-h-80 overflow-auto text-xs text-slate-800">
-          {JSON.stringify({ content: draft.content, rationale: draft.rationale }, null, 2)}
-        </pre>
-      </details>
     </>
   );
 }

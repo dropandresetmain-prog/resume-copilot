@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.9.7 — Cover Letter Relevance & Application Package**
+**v0.9.8 — Application Package Preview UX Cleanup**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 

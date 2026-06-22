@@ -1,32 +1,25 @@
-# Test Checklist — v0.9.7 Cover Letter & Application Package
+# Test Checklist — v0.9.8 Application Package UX
 
-## Company name in prose
+## Layout
 
-- [ ] Cover letter uses `ShelfPerfect` (or resolved brand), not `https://shelfperfect.com/`
-- [ ] JD line `Company: https://...` does not become company name in generation
-- [ ] Validation rejects URLs in cover letter body
+- [ ] Application package summary shows company, role, resume/cover letter/research status
+- [ ] Resume PDF preview + layout sliders at top
+- [ ] **Approve for Export** immediately below layout sliders (not at page bottom)
+- [ ] PDF/DOCX download next to approve when approved
 
-## Company research visibility
+## Cover letter
 
-- [ ] After combined generate, land on `/resume-preview/{id}` (application package)
-- [ ] Company research panel visible and expanded on resume preview
-- [ ] Cover letter panel links to full editor
-- [ ] Cover letter preview has "Back to application package" link
+- [ ] Cover letter body visible inline (no click to open)
+- [ ] **Edit cover letter** opens dedicated editor page
+- [ ] Download PDF / DOCX work from package page
 
-## Cover letter quality
+## Secondary sections
 
-- [ ] Letter references ≥2 company-specific facts from saved research
-- [ ] Letter references ≥2 role requirements from JD
-- [ ] Rationale includes ≥2 explicit company→role→story bridges
-- [ ] B2B sales role ranks SBF/commercial evidence above founder stories
-
-## Export naming
-
-- [ ] Cover letter PDF: `Hset Min Htet - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf`
-- [ ] Cover letter DOCX: same stem with `.docx`
-- [ ] Resume PDF: `Hset Min Htet - Resume_ShelfPerfect_B2B Sales Manager.pdf`
+- [ ] Company research collapsed by default; expands on click
+- [ ] **Edit resume content** button reveals evidence/regenerate panel
+- [ ] **Advanced options** collapsed; contains assessment, browser layout, HTML, JSON
 
 ## Regression
 
-- [ ] Auto company research (v0.9.6) still works
+- [ ] Generation logic unchanged
 - [ ] `npm run test`, `npm run lint`, `npm run build` pass

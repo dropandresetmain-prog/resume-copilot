@@ -182,7 +182,7 @@ function main() {
     ["ranked spine includes methodology", spine.includes(documentStoryRankingMethodology().split("\n")[0])],
     [
       "resume preview shows company research",
-      resumePreview.includes("CompanyContextPreviewPanel") && resumePreview.includes("defaultOpen"),
+      resumePreview.includes("CompanyContextPreviewPanel") && resumePreview.includes("defaultOpen={false}"),
     ],
     [
       "combined generation lands on resume preview",

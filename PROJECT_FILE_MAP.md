@@ -239,7 +239,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/cover-letter/export-filename.ts` | Cover letter export naming (v0.9.7) |
 | `src/lib/cover-letter/prompt.ts` | Structured bridge architecture prompt (v0.9.7) |
 | `src/lib/cover-letter/generation-validation.ts` | URL + rationale quality validation (v0.9.7) |
-| `src/components/pages/ResumePreviewPageClient.tsx` | Application package view (v0.9.7) |
+| `src/components/application-package/ApplicationPackageSummary.tsx` | Compact package status header (v0.9.8) |
+| `src/components/application-package/ApplicationPackageCoverLetterPanel.tsx` | Inline cover letter + actions (v0.9.8) |
+| `src/components/pages/ResumePreviewPageClient.tsx` | Application package layout (v0.9.8) |
 | `src/components/company-context/CompanyContextPreviewPanel.tsx` | Full research display (v0.9.7) |
 | `src/components/company-context/CompanyContextEditorPanel.tsx` | Optional collapsed research editor (v0.9.6) |
 | `src/components/company-context/CompanyContextPreviewPanel.tsx` | Cover letter preview collapsible context (v0.9.3) |
