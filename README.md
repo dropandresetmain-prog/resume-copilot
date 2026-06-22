@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.9.8B** — Application package, company research, cover letters, and resume auto-repair
+**v0.9.8G** — Application package, company research, cover letters, and resume auto-repair
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Combined generation can produce resume + cover letter with automatic company research when a website is provided.
 
@@ -133,16 +133,16 @@ npm run build
 
 ## Testing
 
-`npm run test` runs 45+ verification scripts (parser, inventory, generation, export, cover letter, company research, application package). See [`TEST_CHECKLIST.md`](TEST_CHECKLIST.md) for manual QA.
+`npm run test` runs 46 verification suites via `tests/run-all.ts` (parser, inventory, generation, export, cover letter, company research, application package). See [`docs/TESTING.md`](docs/TESTING.md) for suite layout and policy. Manual QA: [`docs/TEST_CHECKLIST.md`](docs/TEST_CHECKLIST.md).
 
 ## Known limitations
 
-See [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
+See [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md). **Next:** v0.9.9 Application Quality Checker.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md). **Next:** v0.9.9 Application Quality Checker.
 
 ## Docs
 
-[`ROADMAP.md`](ROADMAP.md) · [`HANDOFF.md`](HANDOFF.md) · [`PROJECT_FILE_MAP.md`](PROJECT_FILE_MAP.md) · [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) · [`TEST_CHECKLIST.md`](TEST_CHECKLIST.md) · [`docs/FIT_SCORE_RUBRIC.md`](docs/FIT_SCORE_RUBRIC.md)
+[`docs/ROADMAP.md`](docs/ROADMAP.md) · [`docs/HANDOFF.md`](docs/HANDOFF.md) · [`docs/PROJECT_FILE_MAP.md`](docs/PROJECT_FILE_MAP.md) · [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) · [`docs/TEST_CHECKLIST.md`](docs/TEST_CHECKLIST.md) · [`docs/TESTING.md`](docs/TESTING.md) · [`docs/FIT_SCORE_RUBRIC.md`](docs/FIT_SCORE_RUBRIC.md)
