@@ -44,7 +44,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/AuthPanel.tsx` | Sign in / sign up / magic link / sign out |
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
-| `src/components/setup/ResumeDraftPanel.tsx` | Generate tailored resume CTA + base resume + progress (v0.7.2) |
+| `src/components/setup/JDInputPanel.tsx` | JD intake + inline generate flow on `/generate` (v0.7.3) |
+| `src/components/setup/GenerateTailoredResumeSection.tsx` | Base resume, CTA, progress (embedded in JD card) |
 | `src/components/setup/GenerationProgressPanel.tsx` | Staged loading UI during generation |
 | `src/lib/generate/base-resume-preference.ts` | Last-used base resume (`localStorage`) + default resolution |
 | `src/lib/generate/save-job-for-generation.ts` | Auto-save/reuse job on generate |

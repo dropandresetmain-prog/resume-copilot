@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**v0.7.2 — Generate Flow UX Simplification**
+**v0.7.3 — Generate Box UX Fix**
 
-Generate page flow is now: paste JD → select base resume → **Generate Tailored Resume**. Jobs save automatically during generation; no separate Save Job click on Generate.
+Primary generate flow (paste JD, base resume, Generate Tailored Resume, progress) is consolidated in one card. Job saves only on Generate click.
 
 ## Product flow
 
@@ -32,7 +32,8 @@ If layout changes after approval → status `layout_changed` → re-approve (re-
 | Milestone | Status |
 |-----------|--------|
 | v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.2 — Generate flow UX** | **Current** |
+| **v0.7.3 — Generate box UX** | **Current** |
+| v0.7.2 — Generate flow UX | Complete |
 | Cover letter generation | Next (same CTA family) |
 | Online company enrichment | Parked |
 

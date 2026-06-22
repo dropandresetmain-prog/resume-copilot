@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.7.2 — Generate Flow UX Simplification**
+**v0.7.3 — Generate Box UX Fix**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, drafts, and exported files.
 

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
 import {
-  SetupCard,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
@@ -27,35 +26,35 @@ import {
   requestResumeDraftGeneration,
   type ResumeDraftClientError,
 } from "@/lib/resume-draft/client";
-import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
-import { createGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
+import {
+  createGeneratedResumeDraftInCloud,
+  listGeneratedResumeDraftsFromCloud,
+} from "@/lib/supabase/generated-resume-drafts";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
 import type { ResumeDraftProviderStatusResponse } from "@/types/resume-draft";
 
-type ResumeDraftPanelProps = {
+type GenerateTailoredResumeSectionProps = {
   inventory: InventoryState;
   jobDescriptions: StoredJobDescription[];
   jobForm: JobDescriptionInput;
   editingJobId?: string | null;
   isSignedIn: boolean;
   disabled?: boolean;
-  disabledReason?: string;
   onSaveJob: SaveJobForGenerationHandler;
   onGenerationFinished?: () => void;
 };
 
-export function ResumeDraftPanel({
+export function GenerateTailoredResumeSection({
   inventory,
   jobDescriptions,
   jobForm,
   editingJobId = null,
   isSignedIn,
   disabled = false,
-  disabledReason,
   onSaveJob,
   onGenerationFinished,
-}: ResumeDraftPanelProps) {
+}: GenerateTailoredResumeSectionProps) {
   const router = useRouter();
   const [selectedBaseResumeId, setSelectedBaseResumeId] = useState("");
   const [providerStatus, setProviderStatus] =
@@ -203,18 +202,9 @@ export function ResumeDraftPanel({
   const storedPreference = readLastBaseResumeId();
 
   return (
-    <SetupCard
-      title="Generate tailored resume"
-      description="Paste a job description above, choose a base resume for formatting, then generate. Your job is saved automatically — no separate save step."
-    >
-      {disabled && disabledReason ? (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {disabledReason}
-        </p>
-      ) : null}
-
+    <div className="border-t border-slate-200 pt-5">
       {providerStatus ? (
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="text-sm text-slate-600">
           Provider: {providerStatus.providerLabel}
           {providerStatus.modelName ? ` · ${providerStatus.modelName}` : ""}
           {providerStatus.isMock ? " (test mode)" : ""}
@@ -306,7 +296,7 @@ export function ResumeDraftPanel({
 
       {!hasJobText ? (
         <p className="mt-3 text-sm text-amber-800">
-          Paste a job description above to enable generation.
+          Paste a job description to enable generation.
         </p>
       ) : null}
 
@@ -315,6 +305,6 @@ export function ResumeDraftPanel({
           Upload at least one resume in Manage Uploads before generating.
         </p>
       ) : null}
-    </SetupCard>
+    </div>
   );
 }

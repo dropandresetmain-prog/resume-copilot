@@ -1,28 +1,16 @@
-# Test Checklist — v0.7.2 Generate Flow UX
+# Test Checklist — v0.7.3 Generate Box UX
 
-## Generate page flow
+## Single-card generate flow
 
-- [ ] Paste JD in textarea — no separate **Save job** button on Generate
-- [ ] Base resume dropdown lists uploaded resumes
-- [ ] Default base resume = last used (after first generate) or most recent upload
-- [ ] Click **Generate Tailored Resume**
-  - [ ] Progress panel shows staged messages + bar
-  - [ ] Job appears in Saved Jobs list (new or reused duplicate)
-  - [ ] Navigates to resume preview on success
-- [ ] On failure: clear error + **Retry Generate Tailored Resume**
-- [ ] Cannot double-click generate while loading
+- [ ] `/generate` shows **one** primary card (not a separate box below for the CTA)
+- [ ] Inside the card: paste JD → base resume dropdown → **Generate Tailored Resume**
+- [ ] Progress panel appears in the same card after clicking Generate
+- [ ] Saved jobs list appears below a visual divider in the same card
+- [ ] No separate Save Job button on Generate
+- [ ] Pasting/editing JD does **not** create saved job rows until Generate is clicked
 
-## Records regression
+## Regression
 
-- [ ] Saved jobs list still visible on Generate and Records
-- [ ] Edit saved job on Records → **Update saved job** still works
-- [ ] Draft history on Records unchanged
-
-## Download buttons
-
-- [ ] Disabled PDF/DOCX buttons look disabled without ugly not-allowed cursor on hover
-
-## Automated
-
+- [ ] Records page edit/save still works
+- [ ] Duplicate generate clicks blocked during loading
 - [ ] `npm run test:generate-flow` passes
-- [ ] `npm run test` / `lint` / `build` pass

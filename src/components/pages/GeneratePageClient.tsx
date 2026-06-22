@@ -10,7 +10,6 @@ import {
   EMPTY_JOB_DESCRIPTION_FORM,
   JDInputPanel,
 } from "@/components/setup/JDInputPanel";
-import { ResumeDraftPanel } from "@/components/setup/ResumeDraftPanel";
 import type { JobDescriptionInput } from "@/types/jd";
 
 export function GeneratePageClient() {
@@ -37,7 +36,7 @@ export function GeneratePageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.7.2 · Generate Flow"
+        milestone="v0.7.3 · Generate Box UX"
         title="Generate tailored resume"
         description="Paste a job description, choose a base resume for formatting, and generate a one-page tailored resume from your career inventory."
       />
@@ -58,8 +57,8 @@ export function GeneratePageClient() {
         </p>
       ) : (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Paste a job below, select a base resume, and click Generate Tailored Resume. The job
-          saves automatically — no separate save step.
+          Everything you need is in one card below: paste the job, pick a base resume, and click
+          Generate Tailored Resume.
         </p>
       )}
 
@@ -75,18 +74,12 @@ export function GeneratePageClient() {
         onFormChange={setJobForm}
         editingId={editingJobId}
         onEditingIdChange={setEditingJobId}
-      />
-
-      <ResumeDraftPanel
-        inventory={inventory}
-        jobDescriptions={jobDescriptions}
-        jobForm={jobForm}
-        editingJobId={editingJobId}
-        isSignedIn={isSignedIn}
-        disabled={cloudEnabled && !isSignedIn}
-        disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        onSaveJob={handleSaveJobDescription}
-        onGenerationFinished={handleGenerationFinished}
+        generateFlow={{
+          inventory,
+          isSignedIn,
+          onSaveJob: handleSaveJobDescription,
+          onGenerationFinished: handleGenerationFinished,
+        }}
       />
     </>
   );

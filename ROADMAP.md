@@ -4,7 +4,14 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.7.2 — Generate Flow UX Simplification** (complete)
+**v0.7.3 — Generate Box UX Fix** (complete)
+
+- One card: JD paste + base resume + Generate + progress
+- Saved jobs separated by divider below primary action
+
+## Previous
+
+**v0.7.2 — Generate Flow UX Simplification**
 
 - Paste JD → base resume → Generate Tailored Resume
 - Auto-save/reuse job on generate

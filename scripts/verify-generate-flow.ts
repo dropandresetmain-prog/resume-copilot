@@ -116,12 +116,12 @@ async function main() {
     join(process.cwd(), "src/components/pages/GeneratePageClient.tsx"),
     "utf8",
   );
-  const resumeDraftPanel = readFileSync(
-    join(process.cwd(), "src/components/setup/ResumeDraftPanel.tsx"),
+  const generateSection = readFileSync(
+    join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
     "utf8",
   );
   const jdPanel = readFileSync(
-    join(process.cwd(), "src/components/pages/../setup/JDInputPanel.tsx"),
+    join(process.cwd(), "src/components/setup/JDInputPanel.tsx"),
     "utf8",
   );
   const pdfButton = readFileSync(
@@ -144,11 +144,14 @@ async function main() {
     ["last base resume storage key exported", LAST_BASE_RESUME_STORAGE_KEY.includes("lastBaseResumeId")],
     ["generate page hides save button", generatePage.includes("showSaveButton={false}")],
     ["generate page removed coming later", !generatePage.includes("Coming later")],
-    ["primary CTA copy", resumeDraftPanel.includes("Generate Tailored Resume")],
-    ["auto save helper used", resumeDraftPanel.includes("ensureJobDescriptionForGeneration")],
-    ["reference resume passed to payload", resumeDraftPanel.includes("referenceResumeId: effectiveBaseResumeId")],
-    ["progress panel rendered while generating", resumeDraftPanel.includes("GenerationProgressPanel")],
-    ["duplicate generate guard", resumeDraftPanel.includes("if (isGenerating)")],
+    ["generate page uses single jd panel", generatePage.includes("generateFlow={{") && !generatePage.includes("ResumeDraftPanel")],
+    ["generate cta inside jd panel", jdPanel.includes("GenerateTailoredResumeSection")],
+    ["primary CTA copy", generateSection.includes("Generate Tailored Resume")],
+    ["auto save helper used", generateSection.includes("ensureJobDescriptionForGeneration")],
+    ["reference resume passed to payload", generateSection.includes("referenceResumeId: effectiveBaseResumeId")],
+    ["progress panel rendered while generating", generateSection.includes("GenerationProgressPanel")],
+    ["duplicate generate guard", generateSection.includes("if (isGenerating)")],
+    ["saved jobs visually separated", jdPanel.includes("border-t border-slate-200 pt-8")],
     ["progress stages defined", GENERATION_PROGRESS_STAGES.length >= 5],
     ["progress percent helper", generationProgressPercent(0) < generationProgressPercent(4)],
     ["jd panel supports hide save", jdPanel.includes("showSaveButton")],

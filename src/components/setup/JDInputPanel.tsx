@@ -19,6 +19,9 @@ import { findDuplicateJobDescription } from "@/lib/jd/persistence";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 
 import { SavedJobCard } from "@/components/setup/SavedJobCard";
+import { GenerateTailoredResumeSection } from "@/components/setup/GenerateTailoredResumeSection";
+import type { SaveJobForGenerationHandler } from "@/lib/generate/save-job-for-generation";
+import type { InventoryState } from "@/types/resume";
 
 type JDInputPanelProps = {
   jobDescriptions: StoredJobDescription[];
@@ -45,6 +48,13 @@ type JDInputPanelProps = {
   editingId?: string | null;
   onEditingIdChange?: (id: string | null) => void;
   onJobSaved?: (job: StoredJobDescription) => void;
+  /** Inline generate flow — base resume, CTA, and progress inside this card. */
+  generateFlow?: {
+    inventory: InventoryState;
+    isSignedIn: boolean;
+    onSaveJob: SaveJobForGenerationHandler;
+    onGenerationFinished?: () => void;
+  };
 };
 
 const EMPTY_FORM: JobDescriptionInput = {
@@ -54,9 +64,9 @@ const EMPTY_FORM: JobDescriptionInput = {
   jobUrl: "",
 };
 
-const DEFAULT_INTAKE_TITLE = "Job description";
+const DEFAULT_INTAKE_TITLE = "Tailor your resume";
 const DEFAULT_INTAKE_DESCRIPTION =
-  "Paste the job description here. Company and role are extracted when possible and saved automatically when you generate.";
+  "Paste the job description, choose a base resume for formatting, then click Generate Tailored Resume. The job is saved when you generate — not while you type.";
 const DEFAULT_MANAGE_TITLE = "Manage Saved Jobs";
 const DEFAULT_MANAGE_DESCRIPTION =
   "View, edit, or delete jobs you saved while tailoring resumes. Paste new jobs on the Generate page.";
@@ -79,6 +89,7 @@ export function JDInputPanel({
   editingId: controlledEditingId,
   onEditingIdChange,
   onJobSaved,
+  generateFlow,
 }: JDInputPanelProps) {
   const [internalForm, setInternalForm] = useState<JobDescriptionInput>(EMPTY_FORM);
   const [internalEditingId, setInternalEditingId] = useState<string | null>(null);
@@ -352,11 +363,32 @@ export function JDInputPanel({
               {editingId && !showIntakeForm ? "Cancel edit" : "Clear form"}
             </button>
           </div>
+
+          {generateFlow && showIntakeForm ? (
+            <GenerateTailoredResumeSection
+              inventory={generateFlow.inventory}
+              jobDescriptions={jobDescriptions}
+              jobForm={form}
+              editingJobId={editingId}
+              isSignedIn={generateFlow.isSignedIn}
+              disabled={disabled}
+              onSaveJob={generateFlow.onSaveJob}
+              onGenerationFinished={generateFlow.onGenerationFinished}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {showSavedJobsList ? (
-        <div className={showForm ? "mt-8" : "mt-4"}>
+        <div
+          className={
+            showForm
+              ? generateFlow
+                ? "mt-8 border-t border-slate-200 pt-8"
+                : "mt-8"
+              : "mt-4"
+          }
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-900">{resolvedListTitle}</h3>
             <button
