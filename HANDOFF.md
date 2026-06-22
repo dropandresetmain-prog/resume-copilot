@@ -2,34 +2,37 @@
 
 ## Current milestone
 
-**v0.9.4 — Auto Company Context + Gemini Resilience**
+**v0.9.5 — Firecrawl Company Research**
 
-Combined generation auto-creates company context when missing (one-click flow). Shared `callGeminiWithRetry` handles transient 503/429/5xx with backoff and optional model fallback. Company context failure does not block resume generation.
+Company website content is scraped server-side via Firecrawl, summarized by Gemini into structured company research, saved per application, and reused by resume + cover letter generation.
 
-## v0.9.3 highlights
+## v0.9.4 highlights
 
-Gemini company context per application; manual generate/edit/save; reused by resume and cover letter.
+Auto company research in combined flow; Gemini retry/backoff; company research failure non-blocking.
 
 ## Product flow
 
 ```
-Paste JD → Generate Resume & Cover Letter (one click)
-  → [auto company context if missing] → resume → cover letter → preview
+JD + Company Website → [Firecrawl scrape] → Gemini company research → Save
+  → Generate Resume & Cover Letter
 ```
 
-## Company context (v0.9.4)
+Without company website: **JD-based context only** (no Firecrawl, no Gemini research call on auto path).
 
-- **Auto** — combined mode generates + saves context when application has none.
-- **Manual** — Advanced → Preview/Edit or Regenerate (secondary).
-- **Failure** — falls back to JD/company fields; resume still generates; warning shown.
-- **Retry cover letter** — reuses saved context; does not regenerate context or resume.
+## Company research
 
-## Gemini resilience (v0.9.4)
+- **Website-backed** — Firecrawl scrape + Gemini (`sourceType: website_research`)
+- **JD-based** — local fallback or Gemini without scrape (`sourceType: jd_based_context`)
+- **Job posting URL** — never used as company website; `jobUrl` is separate field
+- **UI** — Research Company Website, Edit Saved Company Research, Clear Saved Company Research (Advanced)
 
-- `callGeminiWithRetry` in `src/lib/ai/call-gemini.ts` — 3 attempts, 1s/2s/4s backoff + jitter.
-- Retries: 503 UNAVAILABLE, 429, 5xx, network timeouts.
-- Does not retry: 400, parse/validation errors.
-- Env: `GEMINI_MODEL_PRIMARY` (default `gemini-2.5-flash`), `GEMINI_MODEL_FALLBACK` (default `gemini-2.0-flash`).
+## Environment
+
+```bash
+FIRECRAWL_API_KEY=   # server-side only
+GEMINI_API_KEY=
+AI_PROVIDER=gemini
+```
 
 ## Run
 

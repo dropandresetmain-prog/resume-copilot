@@ -6,17 +6,41 @@ export function generateMockCompanyContext(
 ): CompanyContext {
   const displayName = normalizeCompanyDisplayName(input.companyName);
   const role = input.roleTitle ?? "this role";
+  const hasWebsiteContent = Boolean(input.websiteScrapeMarkdown?.trim());
+  const sourceType = hasWebsiteContent ? "website_research" : "jd_based_context";
 
   return {
     companyName: input.companyName,
     displayName,
     country: input.country ?? "Singapore",
     website: input.website,
-    companySummary: `${displayName} appears to be hiring for ${role} based on the pasted job description. The role likely emphasizes operational execution, stakeholder coordination, and practical problem-solving in ${input.country ?? "Singapore"}.`,
-    industry: "Inferred from JD keywords",
-    businessModel: "Inferred from JD — review before using",
-    productsAndServices: ["Inferred offering — confirm from JD"],
-    customers: ["Inferred customer type — confirm from JD"],
+    sourceType,
+    sources: hasWebsiteContent
+      ? [
+          {
+            type: "firecrawl",
+            url: input.website,
+            title: input.websiteScrapeTitle,
+            retrievedAt: new Date().toISOString(),
+            success: true,
+          },
+        ]
+      : [
+          {
+            type: "jd",
+            success: true,
+            retrievedAt: new Date().toISOString(),
+          },
+        ],
+    companySummary: hasWebsiteContent
+      ? `${displayName} summary based on mock website scrape and JD for ${role}.`
+      : `${displayName} appears to be hiring for ${role} based on the pasted job description. The role likely emphasizes operational execution, stakeholder coordination, and practical problem-solving in ${input.country ?? "Singapore"}.`,
+    industry: hasWebsiteContent ? "From mock website content" : "Inferred from JD keywords",
+    businessModel: hasWebsiteContent ? "From mock website content" : "Inferred from JD — review before using",
+    productsAndServices: hasWebsiteContent
+      ? ["From mock website scrape"]
+      : ["Inferred offering — confirm from JD"],
+    customers: hasWebsiteContent ? ["From mock website scrape"] : ["Inferred customer type — confirm from JD"],
     mission: undefined,
     vision: undefined,
     coreValues: [],
@@ -33,19 +57,14 @@ export function generateMockCompanyContext(
         supportingStories: ["Small business operations", "Workflow automation prototypes"],
         avoidOveremphasizing: ["Founder positioning jargon", "Unsupported fintech scale claims"],
       },
-      {
-        angle: "Stakeholder Management",
-        relevance: "Useful when the JD mentions partners, clients, or cross-functional work.",
-        supportingStories: ["Consulting-style delivery", "Customer operations"],
-        avoidOveremphasizing: ["Senior product authority"],
-      },
     ],
-    confidence: input.website ? "medium" : "low",
-    limitations: [
-      "Mock provider — no Gemini call.",
-      "No external web research; based on JD and company fields only.",
-      "Mission/vision not inferred in mock mode.",
-    ],
+    confidence: hasWebsiteContent ? "medium" : "low",
+    limitations: hasWebsiteContent
+      ? ["Mock provider — simulated Firecrawl website scrape."]
+      : [
+          "Mock provider — JD-based context only.",
+          "No website research performed.",
+        ],
     generatedAt: new Date().toISOString(),
   };
 }

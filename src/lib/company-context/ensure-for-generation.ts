@@ -2,15 +2,24 @@ import {
   buildCompanyContextGenerationRequest,
   requestCompanyContextGeneration,
 } from "@/lib/company-context/client";
-import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
+import { buildFallbackCompanyContext } from "@/lib/company-context/build-company-context";
+import {
+  hasUsableCompanyContext,
+  hasWebsiteBackedResearch,
+} from "@/lib/company-context/normalize";
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
-import { saveApplicationCompanyContextInCloud } from "@/lib/supabase/application-records";
+import {
+  clearApplicationCompanyResearchInCloud,
+  saveApplicationCompanyContextInCloud,
+} from "@/lib/supabase/application-records";
+import { resolveCompanyWebsiteForResearch } from "@/lib/firecrawl/url";
 import type { CompanyContext } from "@/types/company-context";
 import type { StoredJobDescription } from "@/types/jd";
 
 export type CompanyContextEnsureStatus =
   | "saved"
   | "auto_generated"
+  | "jd_fallback"
   | "failed"
   | "skipped";
 
@@ -20,8 +29,11 @@ export type CompanyContextEnsureResult = {
   warning?: string;
 };
 
-export const COMPANY_CONTEXT_AUTO_FAIL_WARNING =
-  "Company context generation failed. Resume and cover letter used JD/company fields only. You can retry company context later.";
+export const COMPANY_RESEARCH_WEBSITE_FAIL_WARNING =
+  "Website research failed; using JD-based context. Resume and cover letter generation continued. You can retry research later.";
+
+export const COMPANY_RESEARCH_AUTO_FAIL_WARNING =
+  "Company research failed. Resume and cover letter used JD-based context only. You can retry research later.";
 
 export type EnsureCompanyContextInput = {
   applicationId: string;
@@ -33,6 +45,28 @@ export type EnsureCompanyContextInput = {
   additionalInstructions?: string;
   autoGenerate: boolean;
 };
+
+async function saveJdBasedContext(
+  applicationId: string,
+  input: {
+    companyName: string;
+    country?: string;
+    website?: string;
+    job: StoredJobDescription;
+    additionalInstructions?: string;
+  },
+): Promise<CompanyContext> {
+  const fallback = buildFallbackCompanyContext({
+    companyName: input.companyName,
+    country: input.country,
+    website: input.website,
+    jobDescriptionText: input.job.rawText,
+    roleTitle: input.job.roleTitle,
+    additionalInstructions: input.additionalInstructions,
+  });
+  const saved = await saveApplicationCompanyContextInCloud(applicationId, fallback);
+  return saved.companyContext ?? fallback;
+}
 
 export async function ensureCompanyContextForGeneration(
   input: EnsureCompanyContextInput,
@@ -57,8 +91,30 @@ export async function ensureCompanyContextForGeneration(
   if (!companyName.trim() || companyName === "the company") {
     return {
       status: "failed",
-      warning: COMPANY_CONTEXT_AUTO_FAIL_WARNING,
+      warning: COMPANY_RESEARCH_AUTO_FAIL_WARNING,
     };
+  }
+
+  const companyWebsite = resolveCompanyWebsiteForResearch(input.companyWebsite);
+
+  if (!companyWebsite) {
+    try {
+      const companyContext = await saveJdBasedContext(input.applicationId, {
+        companyName,
+        country: input.country,
+        job: input.job,
+        additionalInstructions: input.additionalInstructions,
+      });
+      return {
+        companyContext,
+        status: "jd_fallback",
+      };
+    } catch {
+      return {
+        status: "failed",
+        warning: COMPANY_RESEARCH_AUTO_FAIL_WARNING,
+      };
+    }
   }
 
   try {
@@ -68,7 +124,7 @@ export async function ensureCompanyContextForGeneration(
         jobDescriptionText: input.job.rawText,
         companyName,
         country: input.country,
-        website: input.companyWebsite || input.job.jobUrl,
+        website: companyWebsite,
         roleTitle: input.job.roleTitle,
         additionalInstructions: input.additionalInstructions,
       }),
@@ -77,14 +133,39 @@ export async function ensureCompanyContextForGeneration(
     const saved = await saveApplicationCompanyContextInCloud(input.applicationId, generated);
     const companyContext = saved.companyContext ?? generated;
 
+    if (generated.researchWarning || !hasWebsiteBackedResearch(companyContext)) {
+      return {
+        companyContext,
+        status: hasWebsiteBackedResearch(companyContext) ? "auto_generated" : "jd_fallback",
+        warning: generated.researchWarning ?? COMPANY_RESEARCH_WEBSITE_FAIL_WARNING,
+      };
+    }
+
     return {
       companyContext,
       status: "auto_generated",
     };
   } catch {
-    return {
-      status: "failed",
-      warning: COMPANY_CONTEXT_AUTO_FAIL_WARNING,
-    };
+    try {
+      const companyContext = await saveJdBasedContext(input.applicationId, {
+        companyName,
+        country: input.country,
+        website: companyWebsite,
+        job: input.job,
+        additionalInstructions: input.additionalInstructions,
+      });
+      return {
+        companyContext,
+        status: "jd_fallback",
+        warning: COMPANY_RESEARCH_WEBSITE_FAIL_WARNING,
+      };
+    } catch {
+      return {
+        status: "failed",
+        warning: COMPANY_RESEARCH_AUTO_FAIL_WARNING,
+      };
+    }
   }
 }
+
+export { clearApplicationCompanyResearchInCloud };

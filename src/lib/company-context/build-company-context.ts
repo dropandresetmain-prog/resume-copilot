@@ -52,6 +52,14 @@ export function buildFallbackCompanyContext(input: CompanyContextInput): Company
     displayName,
     country,
     website,
+    sourceType: "jd_based_context",
+    sources: [
+      {
+        type: "jd",
+        success: true,
+        retrievedAt: new Date().toISOString(),
+      },
+    ],
     companySummary: summary,
     productsAndServices: [],
     likelyHiringPriorities: hiringSignals,
@@ -61,8 +69,8 @@ export function buildFallbackCompanyContext(input: CompanyContextInput): Company
     suggestedNarrativeAngles: [],
     confidence,
     limitations: [
-      "No saved Gemini company context — derived from JD and company fields only.",
-      "No external web research was performed.",
+      "JD-based context only — derived from job description and company fields.",
+      "No company website research was performed.",
     ],
     generatedAt: new Date().toISOString(),
     summary,

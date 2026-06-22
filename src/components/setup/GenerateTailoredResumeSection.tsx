@@ -543,13 +543,13 @@ export function GenerateTailoredResumeSection({
               </div>
               <div>
                 <label htmlFor="company-website" className={labelClassName}>
-                  Company website (optional)
+                  Company website (for research — not the job posting URL)
                 </label>
                 <input
                   id="company-website"
                   value={companyWebsite}
                   onChange={(event) => setCompanyWebsite(event.target.value)}
-                  placeholder={jobForm.jobUrl ?? "https://"}
+                  placeholder="https://company.com"
                   className={formFieldClassName}
                 />
               </div>

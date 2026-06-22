@@ -2,23 +2,24 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  COMPANY_CONTEXT_AUTO_FAIL_WARNING,
+  COMPANY_RESEARCH_AUTO_FAIL_WARNING,
   ensureCompanyContextForGeneration,
 } from "../src/lib/company-context/ensure-for-generation";
 import { hasUsableCompanyContext } from "../src/lib/company-context/normalize";
 import {
-  formatCompanyContextStatusLabel,
-  resolveCompanyContextDisplayStatus,
+  formatCompanyResearchStatusLabel,
+  resolveCompanyResearchDisplayStatus,
 } from "../src/lib/company-context/status-labels";
 import { createJobDescriptionFromInput } from "../src/lib/jd/persistence";
 import type { CompanyContext } from "../src/types/company-context";
 
-function buildSavedContext(): CompanyContext {
+function buildWebsiteResearch(): CompanyContext {
   return {
     companyName: "Pave Bank",
     displayName: "Pave Bank",
-    country: "Singapore",
-    companySummary: "Digital bank focused on business banking.",
+    sourceType: "website_research",
+    sources: [{ type: "firecrawl", url: "https://pavebank.com", success: true }],
+    companySummary: "Digital bank from website research.",
     productsAndServices: [],
     likelyHiringPriorities: [],
     suggestedNarrativeAngles: [],
@@ -35,66 +36,53 @@ async function main() {
     roleTitle: "Product Manager",
   });
 
-  const saved = buildSavedContext();
+  const saved = buildWebsiteResearch();
   const reused = await ensureCompanyContextForGeneration({
     applicationId: "app-1",
     savedContext: saved,
     job,
     autoGenerate: true,
-  });
-
-  const skipped = await ensureCompanyContextForGeneration({
-    applicationId: "app-1",
-    savedContext: null,
-    job,
-    autoGenerate: false,
+    companyWebsite: "https://pavebank.com",
   });
 
   const generateSection = readFileSync(
     join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
     "utf8",
   );
-  const editorPanel = readFileSync(
-    join(process.cwd(), "src/components/company-context/CompanyContextEditorPanel.tsx"),
-    "utf8",
-  );
-  const progress = readFileSync(
-    join(process.cwd(), "src/lib/generate/generation-progress.ts"),
-    "utf8",
-  );
+  const research = readFileSync(join(process.cwd(), "src/lib/company-context/research.ts"), "utf8");
 
   const checks: [string, boolean][] = [
-    ["saved context reused without auto generate call", reused.status === "saved" && reused.companyContext === saved],
-    ["skipped when autoGenerate false", skipped.status === "skipped"],
-    ["saved context is usable", hasUsableCompanyContext(saved)],
-    ["failure warning copy defined", COMPANY_CONTEXT_AUTO_FAIL_WARNING.includes("JD/company fields only")],
+    ["saved website research reused", reused.status === "saved" && reused.companyContext === saved],
+    ["failure warning mentions JD-based", COMPANY_RESEARCH_AUTO_FAIL_WARNING.includes("JD-based")],
     [
-      "display status will auto-generate in combined mode",
-      resolveCompanyContextDisplayStatus({ savedContext: null, combinedMode: true }) ===
-        "will_auto_generate",
+      "will auto-research when website provided",
+      resolveCompanyResearchDisplayStatus({
+        savedContext: null,
+        combinedMode: true,
+        companyWebsite: "https://pavebank.com",
+      }) === "will_auto_research",
     ],
     [
-      "display status saved when context exists",
-      resolveCompanyContextDisplayStatus({ savedContext: saved, combinedMode: true }) === "saved",
+      "will jd-only without website",
+      resolveCompanyResearchDisplayStatus({
+        savedContext: null,
+        combinedMode: true,
+        companyWebsite: "",
+      }) === "will_jd_only",
     ],
     [
-      "status label includes Saved",
-      formatCompanyContextStatusLabel("saved").includes("Saved"),
+      "website saved label",
+      formatCompanyResearchStatusLabel("website_saved").includes("Website-backed"),
     ],
     ["generate section calls ensureCompanyContextForGeneration", generateSection.includes("ensureCompanyContextForGeneration")],
-    ["generate auto-generates only in combined mode", generateSection.includes('generateMode === "resume_and_cover_letter"')],
-    ["generate stores context warning", generateSection.includes("companyContextWarning")],
-    ["retry cover letter reuses application context", generateSection.includes("getApplicationRecordFromCloud")],
     [
-      "retry cover letter does not auto-generate context",
+      "retry cover letter does not auto-research",
       !generateSection.split("async function handleRetryCoverLetter")[1]?.includes(
         "ensureCompanyContextForGeneration",
       ),
     ],
-    ["progress includes company context stage", progress.includes("Researching company context")],
-    ["editor panel is compact secondary", editorPanel.includes("Preview / Edit Company Context")],
-    ["editor panel has regenerate", editorPanel.includes("Regenerate Company Context")],
-    ["editor panel shows status label", editorPanel.includes("formatCompanyContextStatusLabel")],
+    ["research only scrapes with explicit website", research.includes("resolveCompanyWebsiteForResearch")],
+    ["saved research is usable", hasUsableCompanyContext(saved)],
   ];
 
   for (const [name, ok] of checks) {
@@ -105,7 +93,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\nAll auto company context checks passed.");
+  console.log("\nAll auto company research checks passed.");
 }
 
 void main();

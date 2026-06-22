@@ -14,6 +14,17 @@ export type GeminiCallStep = {
 
 export const GEMINI_END_TO_END_CALL_MAP: GeminiCallStep[] = [
   {
+    step: "Firecrawl website scrape",
+    geminiCall: false,
+    route: "server: scrapeCompanyWebsiteWithFirecrawl",
+    providerFile: "src/lib/firecrawl/scrape-company-website.ts",
+    model: "n/a",
+    optional: true,
+    persistedTo: "embedded in application_records.company_context.sources",
+    retryCanDuplicate: true,
+    notes: "Only when explicit company website URL provided; not job posting URLs.",
+  },
+  {
     step: "Enrichment",
     geminiCall: true,
     route: "/api/ai/enrich",
@@ -25,15 +36,15 @@ export const GEMINI_END_TO_END_CALL_MAP: GeminiCallStep[] = [
     notes: "Transient HTTP retry via callGeminiWithRetry (503/429/5xx).",
   },
   {
-    step: "Company context generation",
+    step: "Company research generation",
     geminiCall: true,
     route: "/api/ai/generate-company-context",
-    providerFile: "src/lib/ai/company-context-gemini.ts",
+    providerFile: "src/lib/company-context/research.ts",
     model: GEMINI_MODEL_PRIMARY,
     optional: true,
     persistedTo: "application_records.company_context",
     retryCanDuplicate: true,
-    notes: "v0.9.4 auto-runs when missing in combined flow; failure falls back to JD fields.",
+    notes: "Firecrawl scrape (if website) + Gemini summarize; auto-runs in combined flow when missing.",
   },
   {
     step: "Resume generation",

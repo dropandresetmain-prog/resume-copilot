@@ -29,6 +29,8 @@ function buildSavedContext(): CompanyContext {
     displayName: "Pave Bank",
     country: "Singapore",
     website: "https://pavebank.com",
+    sourceType: "website_research",
+    sources: [{ type: "firecrawl", url: "https://pavebank.com", success: true }],
     companySummary: "Digital bank focused on business banking and payment operations.",
     productsAndServices: ["Business accounts", "Payment rails"],
     likelyHiringPriorities: ["Payment operations", "Stakeholder management"],
@@ -141,9 +143,13 @@ function main() {
     join(process.cwd(), "src/lib/supabase/application-records.ts"),
     "utf8",
   );
+  const editorPanel = readFileSync(
+    join(process.cwd(), "src/components/company-context/CompanyContextEditorPanel.tsx"),
+    "utf8",
+  );
 
   const checks: [string, boolean][] = [
-    ["company context prompt includes no-web-search rule", promptIncludesCompanyContextRules(prompt)],
+    ["company context prompt includes source metadata", promptIncludesCompanyContextRules(prompt)],
     ["company context prompt includes narrative angles", prompt.includes("suggestedNarrativeAngles")],
     ["mock company context parses", parsed.companySummary.length > 0],
     ["parser validates save requires summary", validateCompanyContextForSave(parsed) === null],
@@ -158,7 +164,7 @@ function main() {
     ["schema has company_context column", schema.includes("company_context jsonb")],
     ["migration adds company_context", migration.includes("company_context")],
     ["application records save company context", applicationRecords.includes("saveApplicationCompanyContextInCloud")],
-    ["generate section wires company context editor", generateSection.includes("CompanyContextEditorPanel")],
+    ["editor panel has research controls", editorPanel.includes("Research Company Website")],
     ["generate auto-ensures company context", generateSection.includes("ensureCompanyContextForGeneration")],
     ["generate passes company context to resume payload", generateSection.includes("companyContext: companyContextForGeneration")],
     ["generate passes saved context to cover letter", generateSection.includes("savedCompanyContext: context.companyContext")],

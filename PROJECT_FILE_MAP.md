@@ -219,7 +219,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 
 | File | Purpose |
 |------|---------|
-| `src/lib/ai/call-gemini.ts` | Shared Gemini HTTP + retry/backoff + model fallback (v0.9.4) |
+| `src/lib/firecrawl/scrape-company-website.ts` | Firecrawl scrape helper (v0.9.5) |
+| `src/lib/firecrawl/url.ts` | Company website URL validation + job board detection |
+| `src/lib/company-context/research.ts` | Firecrawl + Gemini research orchestration (v0.9.5) |
 | `src/lib/ai/config.ts` | `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` env overrides |
 | `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save when missing (v0.9.4) |
 | `src/lib/company-context/status-labels.ts` | Compact UI status labels (v0.9.4) |

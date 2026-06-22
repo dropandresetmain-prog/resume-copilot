@@ -30,7 +30,7 @@ export function buildCoverLetterGenerationOptions(input: {
       jobDescriptionText: input.job.rawText,
     }),
     country: input.fields.country?.trim() || "Singapore",
-    companyWebsite: input.fields.companyWebsite?.trim() || input.job.jobUrl,
+    companyWebsite: input.fields.companyWebsite?.trim() || undefined,
     additionalInstructions: input.fields.additionalInstructions,
   };
 }

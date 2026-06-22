@@ -1,7 +1,7 @@
 import { GEMINI_MODEL } from "@/lib/ai/config";
-import { generateCompanyContextWithGemini } from "@/lib/ai/company-context-gemini";
-import { generateMockCompanyContext } from "@/lib/ai/company-context-mock";
+import { generateCompanyResearchWithProvider } from "@/lib/company-context/research";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
+import { isFirecrawlConfigured } from "@/lib/firecrawl/scrape-company-website";
 import type { AIProviderId } from "@/lib/ai/types";
 import type {
   CompanyContext,
@@ -28,34 +28,32 @@ export function getCompanyContextProviderStatus() {
     configured,
     configurationError,
     supportsCompanyContext: true,
+    firecrawlConfigured: isFirecrawlConfigured(),
   };
 }
 
 export async function generateCompanyContextWithAI(
   input: CompanyContextGenerationRequest,
   providerId?: string | null,
-): Promise<CompanyContext & { providerId: AIProviderId }> {
+): Promise<
+  CompanyContext & {
+    providerId: AIProviderId;
+    firecrawlUsed?: boolean;
+    researchWarning?: string;
+  }
+> {
   const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const apiKey = provider === "gemini" ? process.env.GEMINI_API_KEY?.trim() : undefined;
 
-  if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
-    const result = await generateCompanyContextWithGemini(input, apiKey);
-    return { ...result, providerId: "gemini" };
-  }
-
-  if (provider === "openai") {
-    throw new Error("OpenAI company context generation is not implemented yet.");
-  }
-
-  const result = generateMockCompanyContext(input);
-  return { ...result, providerId: "mock" };
+  return generateCompanyResearchWithProvider(input, provider, apiKey);
 }
 
 export function toCompanyContextApiResponse(
-  result: CompanyContext & { providerId: AIProviderId },
+  result: CompanyContext & {
+    providerId: AIProviderId;
+    firecrawlUsed?: boolean;
+    researchWarning?: string;
+  },
   options: { modelName?: string; timestamp: string },
 ): CompanyContextGenerationResponse {
   const status = getCompanyContextProviderStatus();
@@ -66,5 +64,7 @@ export function toCompanyContextApiResponse(
     providerLabel: getProviderLabel(result.providerId),
     modelName: options.modelName ?? status.modelName,
     timestamp: options.timestamp,
+    firecrawlUsed: result.firecrawlUsed,
+    researchWarning: result.researchWarning,
   };
 }

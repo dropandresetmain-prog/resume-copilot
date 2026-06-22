@@ -1,39 +1,55 @@
-import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
+import {
+  hasUsableCompanyContext,
+  hasWebsiteBackedResearch,
+} from "@/lib/company-context/normalize";
 import type { CompanyContext } from "@/types/company-context";
 import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
+import { resolveCompanyWebsiteForResearch } from "@/lib/firecrawl/url";
 
-export type CompanyContextDisplayStatus =
-  | "saved"
-  | "will_auto_generate"
-  | "failed"
+export type CompanyResearchDisplayStatus =
+  | "website_saved"
+  | "jd_saved"
+  | "will_auto_research"
+  | "will_jd_only"
+  | "research_failed"
   | "unavailable";
 
-export function resolveCompanyContextDisplayStatus(options: {
+export function resolveCompanyResearchDisplayStatus(options: {
   savedContext?: CompanyContext | null;
   lastEnsureStatus?: CompanyContextEnsureStatus;
   combinedMode: boolean;
-}): CompanyContextDisplayStatus {
+  companyWebsite?: string;
+}): CompanyResearchDisplayStatus {
   if (hasUsableCompanyContext(options.savedContext)) {
-    return "saved";
+    return hasWebsiteBackedResearch(options.savedContext)
+      ? "website_saved"
+      : "jd_saved";
   }
   if (options.lastEnsureStatus === "failed") {
-    return "failed";
+    return "research_failed";
   }
   if (!options.combinedMode) {
     return "unavailable";
   }
-  return "will_auto_generate";
+  if (resolveCompanyWebsiteForResearch(options.companyWebsite)) {
+    return "will_auto_research";
+  }
+  return "will_jd_only";
 }
 
-export function formatCompanyContextStatusLabel(status: CompanyContextDisplayStatus): string {
+export function formatCompanyResearchStatusLabel(status: CompanyResearchDisplayStatus): string {
   switch (status) {
-    case "saved":
-      return "Company Context: Saved";
-    case "will_auto_generate":
-      return "Company Context: Will auto-generate";
-    case "failed":
-      return "Company Context: Not available / failed";
+    case "website_saved":
+      return "Website-backed research saved";
+    case "jd_saved":
+      return "JD-based context only";
+    case "will_auto_research":
+      return "Will auto-research company website";
+    case "will_jd_only":
+      return "No company research saved (JD-based on generate)";
+    case "research_failed":
+      return "Website research failed; using JD-based fallback";
     case "unavailable":
-      return "Company Context: Not used (resume only)";
+      return "Company research not used (resume only)";
   }
 }

@@ -1,30 +1,32 @@
-# Test Checklist — v0.9.4 Auto Company Context + Gemini Resilience
+# Test Checklist — v0.9.5 Firecrawl Company Research
 
-## One-click combined flow
+## Website research
 
-- [ ] Generate Resume & Cover Letter with no saved context → company context auto-generated and saved
-- [ ] Second generate for same application → reuses saved context (no duplicate context call)
-- [ ] Resume only mode → does not auto-generate company context
+- [ ] Enter company website (e.g. `https://company.com`) → Research Company Website → summary reflects real site content
+- [ ] Saved research shows `Website-backed research saved`
+- [ ] `FIRECRAWL_API_KEY` set in server env (`.env.local`)
 
-## Failure handling
+## URL separation
 
-- [ ] Simulate company context 503 → resume still generates; warning shown
-- [ ] Cover letter uses JD fallback when context failed
-- [ ] Retry Cover Letter after partial failure → does not regenerate resume or company context
+- [ ] Job posting URL in JD form does NOT auto-fill company website
+- [ ] LinkedIn/Greenhouse job URL in company website field is rejected or falls back to JD-based
+- [ ] Company website field label clarifies it is not the job posting URL
 
-## Advanced UI
+## Auto flow
 
-- [ ] Company context not in primary card — only in Advanced
-- [ ] Status: Saved / Will auto-generate / Not available
-- [ ] Preview/Edit and Regenerate work manually
+- [ ] Combined generate with website + no saved research → Firecrawl + Gemini + resume + cover letter
+- [ ] Second generate reuses saved research (no Firecrawl)
+- [ ] No website → JD-based context only, no Firecrawl
+- [ ] Firecrawl failure → warning + JD-based fallback, resume still generates
 
-## Gemini retry
+## Advanced actions
 
-- [ ] Transient 503 on resume/cover letter retries before failing (check logs)
-- [ ] Validation errors fail without endless retry
+- [ ] Edit Saved Company Research
+- [ ] Clear Saved Company Research
+- [ ] Regenerate via Research Company Website
 
 ## Regression
 
-- [ ] v0.9.1 partial failure recovery
-- [ ] v0.9.2 cover letter quality controls
+- [ ] v0.9.4 Gemini retry still works
+- [ ] Retry Cover Letter does not re-scrape or regenerate resume
 - [ ] `npm run test` passes

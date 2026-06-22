@@ -88,6 +88,13 @@
 - Delete is permanent. Draft edits never mutate inventory.
 - **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
+## Company research (v0.9.5)
+
+- **Firecrawl is server-side only** — requires `FIRECRAWL_API_KEY`; never exposed to browser.
+- **Job posting URLs** are not scraped as company homepages.
+- **Website scrape failure** falls back to JD-based context; does not block resume generation.
+- **Mock provider** simulates research without Firecrawl.
+
 ## Company context (v0.9.4)
 
 - **Auto-generation** in combined mode when application has no saved context.

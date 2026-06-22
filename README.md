@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.9.4 — Auto Company Context + Gemini Resilience**
+**v0.9.5 — Firecrawl Company Research**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
@@ -13,7 +13,7 @@ Upload resumes → Build inventory → Paste profile → Paste JD → Generate R
 
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.
 2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review.
-3. **Generate** (`/generate`) — paste JD, **Generate Resume & Cover Letter** auto-creates company context when missing; Advanced options for manual review/regenerate.
+3. **Generate** (`/generate`) — paste JD + **company website** (not job URL); combined flow auto-researches via Firecrawl when website provided and no saved research exists.
 4. **Resume Preview** (`/resume-preview/[draftId]`) — **PDF Preview** (local approximation), layout controls, **server one-page validation on Approve**, export.
 5. **Records** (`/records`) — applications (status, notes, linked draft), saved jobs, and unlinked draft history.
 

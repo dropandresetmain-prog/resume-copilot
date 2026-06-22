@@ -36,11 +36,13 @@ export function CompanyContextPreviewPanel({
       onToggle={(event) => setIsOpen((event.target as HTMLDetailsElement).open)}
     >
       <summary className="cursor-pointer text-sm font-medium text-slate-900">
-        Company context used ({context.displayName || context.companyName})
+        Company research used ({context.displayName || context.companyName})
       </summary>
 
       <p className="mt-2 text-xs text-slate-600">
-        Gemini-generated context based on JD and company fields. Review before using.
+        {context.sourceType === "website_research"
+          ? "Website-backed research via Firecrawl + Gemini."
+          : "JD-based context — no website scrape."}
       </p>
 
       <div className="mt-4">

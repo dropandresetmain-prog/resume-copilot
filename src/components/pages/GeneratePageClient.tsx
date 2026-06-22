@@ -54,9 +54,9 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
   return (
     <>
       <PageHeader
-        milestone="v0.9.4 · Auto Company Context"
+        milestone="v0.9.5 · Company Research"
         title="Generate tailored resume"
-        description="Paste a job description, optionally generate company context, then generate a tailored resume and cover letter."
+        description="Paste a job description and company website for Firecrawl-backed research, then generate a tailored resume and cover letter."
       />
 
       {!isSignedIn || !hasInventory ? (

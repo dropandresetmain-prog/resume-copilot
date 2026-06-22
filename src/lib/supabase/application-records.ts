@@ -220,6 +220,12 @@ export async function ensureApplicationRecordForJobDescription(
   return createApplicationRecordInCloud(applicationRecordFromJobDescription(job));
 }
 
+export async function clearApplicationCompanyResearchInCloud(
+  applicationId: string,
+): Promise<StoredApplicationRecord> {
+  return updateApplicationRecordInCloud(applicationId, { companyContext: null });
+}
+
 export async function saveApplicationCompanyContextInCloud(
   applicationId: string,
   companyContext: CompanyContext,

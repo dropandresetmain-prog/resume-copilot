@@ -275,7 +275,9 @@ export function ApplicationRecordsPanel({
                   Resume {artifactSummary.resumeLabel} · Cover letter{" "}
                   {artifactSummary.coverLetterLabel} · Company context{" "}
                   {hasUsableCompanyContext(application.companyContext)
-                    ? "✓"
+                    ? application.companyContext?.sourceType === "website_research"
+                      ? "✓ website research"
+                      : "✓ JD-based"
                     : "— none"}
                 </p>
 
@@ -285,7 +287,7 @@ export function ApplicationRecordsPanel({
                       href={`/generate?jobId=${application.jobDescriptionId}`}
                       className="text-xs font-medium text-blue-700 underline"
                     >
-                      Edit company context on Generate page
+                      Edit company research on Generate page
                     </Link>
                   </p>
                 ) : null}

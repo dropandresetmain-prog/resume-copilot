@@ -1,7 +1,7 @@
 export const GENERATION_PROGRESS_STAGES = [
   "Reading job description",
   "Saving job record",
-  "Researching company context",
+  "Researching company website",
   "Selecting relevant experience",
   "Drafting tailored resume",
   "Checking resume structure",

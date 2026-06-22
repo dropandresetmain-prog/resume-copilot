@@ -11,19 +11,20 @@ import {
   buildCompanyContextGenerationRequest,
   requestCompanyContextGeneration,
 } from "@/lib/company-context/client";
-import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
-import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
 import {
-  formatCompanyContextStatusLabel,
-  resolveCompanyContextDisplayStatus,
-} from "@/lib/company-context/status-labels";
-import { validateCompanyContextForSave } from "@/lib/company-context/parse";
-import { ensureJobDescriptionForGeneration, type SaveJobForGenerationHandler } from "@/lib/generate/save-job-for-generation";
-import {
+  clearApplicationCompanyResearchInCloud,
   ensureApplicationRecordForJobDescription,
   findApplicationRecordByJobDescriptionId,
   saveApplicationCompanyContextInCloud,
 } from "@/lib/supabase/application-records";
+import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
+import {
+  formatCompanyResearchStatusLabel,
+  resolveCompanyResearchDisplayStatus,
+} from "@/lib/company-context/status-labels";
+import { validateCompanyContextForSave } from "@/lib/company-context/parse";
+import { ensureJobDescriptionForGeneration, type SaveJobForGenerationHandler } from "@/lib/generate/save-job-for-generation";
+import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
 import type { CompanyContext } from "@/types/company-context";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 
@@ -57,12 +58,14 @@ export function CompanyContextEditorPanel({
   onSaved,
 }: CompanyContextEditorPanelProps) {
   const [draft, setDraft] = useState<CompanyContext | null>(null);
-  const [hasSavedContext, setHasSavedContext] = useState(false);
+  const [hasSavedResearch, setHasSavedResearch] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editingJobId) {
@@ -79,11 +82,13 @@ export function CompanyContextEditorPanel({
         }
         const saved = application?.companyContext ?? null;
         setDraft(saved);
-        setHasSavedContext(hasUsableCompanyContext(saved));
+        setHasSavedResearch(hasUsableCompanyContext(saved));
+        setApplicationId(application?.id ?? null);
       } catch {
         if (!cancelled) {
           setDraft(null);
-          setHasSavedContext(false);
+          setHasSavedResearch(false);
+          setApplicationId(null);
         }
       }
     })();
@@ -93,12 +98,13 @@ export function CompanyContextEditorPanel({
     };
   }, [editingJobId, lastEnsureStatus]);
 
-  const displayStatus = resolveCompanyContextDisplayStatus({
-    savedContext: hasSavedContext ? draft : null,
+  const displayStatus = resolveCompanyResearchDisplayStatus({
+    savedContext: hasSavedResearch ? draft : null,
     lastEnsureStatus,
     combinedMode,
+    companyWebsite,
   });
-  const statusLabel = formatCompanyContextStatusLabel(displayStatus);
+  const statusLabel = formatCompanyResearchStatusLabel(displayStatus);
 
   async function ensureJobAndApplication(): Promise<{
     job: StoredJobDescription;
@@ -110,50 +116,60 @@ export function CompanyContextEditorPanel({
       editingId: editingJobId,
     });
     const application = await ensureApplicationRecordForJobDescription(job);
+    setApplicationId(application.id);
     return { job, applicationId: application.id };
   }
 
-  async function handleRegenerate() {
+  async function handleResearchWebsite() {
     if (!jobForm.rawText.trim()) {
-      setError("Paste a job description before regenerating company context.");
+      setError("Paste a job description before researching the company website.");
       return;
     }
     if (!companyNameOverride.trim() && !jobForm.companyName?.trim()) {
-      setError("Company name is required to generate company context.");
+      setError("Company name is required for company research.");
+      return;
+    }
+    if (!companyWebsite.trim()) {
+      setError("Enter a company website URL to research. Job posting URLs are not used.");
       return;
     }
 
-    setIsGenerating(true);
+    setIsResearching(true);
     setError(null);
     setMessage(null);
 
     try {
-      const { job, applicationId } = await ensureJobAndApplication();
+      const { job, applicationId: appId } = await ensureJobAndApplication();
       const response = await requestCompanyContextGeneration(
         buildCompanyContextGenerationRequest({
           jobDescriptionId: job.id,
           jobDescriptionText: job.rawText,
           companyName: companyNameOverride || jobForm.companyName || job.companyName || "",
           country,
-          website: companyWebsite || jobForm.jobUrl || job.jobUrl,
+          website: companyWebsite,
           roleTitle: jobForm.roleTitle || job.roleTitle,
           additionalInstructions,
         }),
       );
-      const saved = await saveApplicationCompanyContextInCloud(applicationId, response);
+      const saved = await saveApplicationCompanyContextInCloud(appId, response);
       setDraft(saved.companyContext ?? response);
-      setHasSavedContext(true);
+      setHasSavedResearch(true);
       setShowEditor(true);
-      setMessage("Company context regenerated and saved.");
+      setMessage(
+        response.researchWarning ??
+          (response.firecrawlUsed
+            ? "Website-backed company research saved."
+            : "JD-based company research saved."),
+      );
       onSaved?.();
-    } catch (generationError) {
+    } catch (researchError) {
       setError(
-        generationError instanceof Error
-          ? generationError.message
-          : "Company context generation failed.",
+        researchError instanceof Error
+          ? researchError.message
+          : "Company website research failed.",
       );
     } finally {
-      setIsGenerating(false);
+      setIsResearching(false);
     }
   }
 
@@ -173,17 +189,46 @@ export function CompanyContextEditorPanel({
 
     try {
       const { applicationId: appId } = await ensureJobAndApplication();
-      const saved = await saveApplicationCompanyContextInCloud(appId, draft);
+      const saved = await saveApplicationCompanyContextInCloud(appId, {
+        ...draft,
+        sourceType: draft.sourceType ?? "manual",
+      });
       setDraft(saved.companyContext ?? draft);
-      setHasSavedContext(hasUsableCompanyContext(saved.companyContext));
-      setMessage("Company context saved to this application.");
+      setHasSavedResearch(hasUsableCompanyContext(saved.companyContext));
+      setMessage("Company research saved.");
       onSaved?.();
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : "Failed to save company context.",
+        saveError instanceof Error ? saveError.message : "Failed to save company research.",
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleClear() {
+    if (!applicationId) {
+      setError("Save the job to an application before clearing company research.");
+      return;
+    }
+
+    setIsClearing(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      await clearApplicationCompanyResearchInCloud(applicationId);
+      setDraft(null);
+      setHasSavedResearch(false);
+      setShowEditor(false);
+      setMessage("Saved company research cleared.");
+      onSaved?.();
+    } catch (clearError) {
+      setError(
+        clearError instanceof Error ? clearError.message : "Failed to clear company research.",
+      );
+    } finally {
+      setIsClearing(false);
     }
   }
 
@@ -191,9 +236,8 @@ export function CompanyContextEditorPanel({
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 lg:col-span-2">
       <p className="text-sm font-medium text-slate-900">{statusLabel}</p>
       <p className="mt-1 text-xs text-slate-600">
-        {combinedMode
-          ? "Combined generation auto-creates company context when missing. Gemini uses JD and company fields only — no web search."
-          : "Company context is used for cover letter generation in combined mode."}
+        Company website is researched via Firecrawl (server-side). Job posting URLs are not
+        scraped. Without a company website, generation uses JD-based context only.
       </p>
 
       {generationWarning ? (
@@ -203,18 +247,26 @@ export function CompanyContextEditorPanel({
       <div className="mt-3 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={() => setShowEditor((current) => !current)}
+          onClick={() => void handleResearchWebsite()}
+          disabled={isResearching || isSaving || isClearing}
           className={secondaryButtonClassName}
         >
-          {showEditor ? "Hide preview / edit" : "Preview / Edit Company Context"}
+          {isResearching ? "Researching website…" : "Research Company Website"}
         </button>
         <button
           type="button"
-          onClick={() => void handleRegenerate()}
-          disabled={isGenerating || isSaving}
+          onClick={() => setShowEditor((current) => !current)}
           className={secondaryButtonClassName}
         >
-          {isGenerating ? "Regenerating…" : "Regenerate Company Context"}
+          {showEditor ? "Hide saved research" : "Edit Saved Company Research"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleClear()}
+          disabled={!hasSavedResearch || isClearing || isResearching}
+          className={secondaryButtonClassName}
+        >
+          {isClearing ? "Clearing…" : "Clear Saved Company Research"}
         </button>
       </div>
 
@@ -223,11 +275,11 @@ export function CompanyContextEditorPanel({
           {draft ? (
             <>
               <div>
-                <label htmlFor="company-context-summary" className={labelClassName}>
+                <label htmlFor="company-research-summary" className={labelClassName}>
                   Company summary
                 </label>
                 <textarea
-                  id="company-context-summary"
+                  id="company-research-summary"
                   value={draft.companySummary}
                   onChange={(event) =>
                     setDraft((current) =>
@@ -259,16 +311,14 @@ export function CompanyContextEditorPanel({
               <button
                 type="button"
                 onClick={() => void handleSave()}
-                disabled={!draft || isSaving || isGenerating}
+                disabled={!draft || isSaving || isResearching}
                 className={secondaryButtonClassName}
               >
                 {isSaving ? "Saving…" : "Save edits"}
               </button>
             </>
           ) : (
-            <p className="text-sm text-slate-600">
-              No company context saved yet for this application.
-            </p>
+            <p className="text-sm text-slate-600">No company research saved for this application.</p>
           )}
         </div>
       ) : null}

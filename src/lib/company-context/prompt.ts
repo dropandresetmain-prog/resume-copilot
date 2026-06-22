@@ -2,17 +2,37 @@ import type { CompanyContextGenerationRequest } from "@/types/company-context";
 
 export function buildCompanyContextPrompt(input: CompanyContextGenerationRequest): string {
   const displayName = input.companyName.trim();
+  const hasWebsiteContent = Boolean(input.websiteScrapeMarkdown?.trim());
+  const researchMode = input.researchMode ?? (hasWebsiteContent ? "website_backed" : "jd_only");
+
+  const websiteSection = hasWebsiteContent
+    ? `## Company website content (scraped via Firecrawl — treat as primary source for company facts)
+Source URL: ${input.website ?? "unknown"}
+${input.websiteScrapeTitle ? `Page title: ${input.websiteScrapeTitle}` : ""}
+
+${input.websiteScrapeMarkdown}
+
+Use website content for company facts (products, mission, customers, industry).
+Use the JD for role-specific hiring priorities and responsibilities.
+Clearly label anything inferred beyond website + JD in limitations.`
+    : researchMode === "jd_fallback"
+      ? `## Website research
+A company website URL was provided but scraping failed or returned no usable content.
+Use JD and company fields only. Set sourceType to "jd_based_context".
+Do NOT pretend website content was available.`
+      : `## Website research
+No company website content was scraped. Use JD and company fields only.
+Set sourceType to "jd_based_context". Do NOT claim you visited the website.`;
 
   return `You are helping Min Htet prepare application materials for a specific job.
 
 IMPORTANT:
-- You do NOT have live web search, scraping, or browsing access.
-- Use ONLY the job description and company fields provided below.
-- If a website URL is provided, treat it as a clue about the company name/industry — do NOT claim you visited or read the site.
-- Clearly distinguish facts stated in the JD from reasonable inferences.
-- Mark inferred mission/vision/values as inferred in limitations when not explicit in the JD.
-- Do not pretend to know private or unreleased company information.
-- Avoid hype and unsupported claims.
+- Prioritize scraped website content (when provided) over guesses.
+- Use the JD for role/hiring context, not for inventing company facts.
+- Clearly distinguish website facts from JD facts from inferences.
+- Include mission/vision/values only if found on the website or explicit in JD — do not fabricate.
+- Mark inferred mission/vision/values in limitations.
+- Avoid hype, unsupported claims, and generic admiration language.
 - Use real industry language.
 
 Return ONLY valid JSON:
@@ -21,6 +41,17 @@ Return ONLY valid JSON:
   "displayName": string,
   "country": string,
   "website": string | null,
+  "sourceType": "website_research" | "jd_based_context" | "manual",
+  "sources": [
+    {
+      "type": "firecrawl" | "jd" | "manual" | "fallback",
+      "url": string | null,
+      "title": string | null,
+      "retrievedAt": string,
+      "success": boolean,
+      "error": string | null
+    }
+  ],
   "companySummary": string,
   "industry": string | null,
   "businessModel": string | null,
@@ -54,30 +85,36 @@ For each angle:
 - note what to avoid overemphasizing to prevent founder soup / AI soup
 
 ## Mission / vision / values
-Include only if present in JD or reasonably inferable from the company description.
+Include only if present on the website or explicit in the JD.
 If inferred, say so in limitations.
 Do NOT write generic admiration language.
+
+${websiteSection}
 
 ## Company fields
 Company name (raw): ${displayName}
 Country: ${input.country ?? "Singapore"}
-${input.website ? `Website (clue only, not fetched): ${input.website}` : "Website: not provided"}
+${input.website ? `Company website URL: ${input.website}` : "Company website: not provided"}
 ${input.roleTitle ? `Role title: ${input.roleTitle}` : ""}
 ${input.additionalInstructions ? `Additional instructions: ${input.additionalInstructions}` : ""}
 
-## Job description
+## Job description (role / hiring context)
 ${input.jobDescriptionText}
 `;
 }
 
 export function promptIncludesCompanyContextRules(prompt: string): boolean {
   return (
-    prompt.includes("do NOT have live web search") &&
     prompt.includes("suggestedNarrativeAngles") &&
-    prompt.includes("limitations")
+    prompt.includes("limitations") &&
+    prompt.includes("sourceType")
   );
 }
 
+export function promptIncludesWebsiteScrapeContent(prompt: string): boolean {
+  return prompt.includes("Company website content (scraped via Firecrawl");
+}
+
 export function promptAvoidsGenericPraise(prompt: string): boolean {
-  return prompt.includes("Do NOT write generic admiration");
+  return prompt.includes("generic admiration");
 }
