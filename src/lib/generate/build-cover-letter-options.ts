@@ -1,4 +1,5 @@
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
+import type { CompanyContext } from "@/types/company-context";
 import type { CoverLetterGenerationOptions } from "@/lib/generate/cover-letter-generation";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
@@ -16,11 +17,13 @@ export function buildCoverLetterGenerationOptions(input: {
   resumeDraft: GeneratedResumeDraftRecord;
   applicationId?: string;
   fields: CoverLetterFieldInput;
+  savedCompanyContext?: CompanyContext | null;
 }): CoverLetterGenerationOptions {
   return {
     job: input.job,
     resumeDraft: input.resumeDraft,
     applicationId: input.applicationId,
+    savedCompanyContext: input.savedCompanyContext,
     companyName: resolveCompanyNameForGeneration({
       override: input.fields.companyNameOverride || input.fields.jobFormCompanyName,
       jobCompanyName: input.job.companyName,

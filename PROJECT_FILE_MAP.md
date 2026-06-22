@@ -15,6 +15,7 @@
 | `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Formal cover letter preview/edit + export (v0.9.0) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
+| `/api/ai/generate-company-context` | `src/app/api/ai/generate-company-context/route.ts` | Company context generation (v0.9.3) |
 | `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Server-side cover letter generation (v0.9.0) |
 | `/api/ai/revise-cover-letter` | `src/app/api/ai/revise-cover-letter/route.ts` | Cover letter quick revision (v0.9.2) |
 | `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved draft → DOCX export (v0.6.0) |
@@ -110,7 +111,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/types/resume-draft.ts` | Generated resume draft types (4A) |
 | `src/types/cover-letter-draft.ts` | Cover letter draft + secondary format types (v0.9.0) |
 | `src/types/application-communication-profile.ts` | Application Communication Profile type (v0.9.0) |
-| `src/types/company-context.ts` | Company context pipeline type (v0.9.0) |
+| `src/types/company-context.ts` | Company context type + generation request/response (v0.9.3) |
 | `src/types/files.ts` | Stored file metadata types |
 
 ## Pure helpers (not active persistence)
@@ -218,7 +219,16 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 
 | File | Purpose |
 |------|---------|
-| `src/lib/company-context/build-company-context.ts` | JD + user fields → `CompanyContext` (no live web search) |
+| `src/lib/company-context/build-company-context.ts` | JD fallback context + company name resolution |
+| `src/lib/company-context/prompt.ts` | Gemini company context prompt (no web search) |
+| `src/lib/company-context/parse.ts` | JSON parse + save validation |
+| `src/lib/company-context/normalize.ts` | Legacy → v0.9.3 shape + prompt formatting |
+| `src/lib/company-context/resolve-for-generation.ts` | Saved context or JD fallback |
+| `src/lib/company-context/client.ts` | Browser client for generate-company-context API |
+| `src/lib/company-context/gemini-call-map.ts` | Static end-to-end Gemini call audit |
+| `src/lib/ai/company-context-gemini.ts` | Gemini company context provider |
+| `src/components/company-context/CompanyContextEditorPanel.tsx` | Generate page editor (v0.9.3) |
+| `src/components/company-context/CompanyContextPreviewPanel.tsx` | Cover letter preview collapsible context (v0.9.3) |
 | `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + tone/length rules |
 | `src/lib/cover-letter/word-limits.ts` | 420-word hard max + target range (v0.9.2) |
 | `src/lib/cover-letter/company-name.ts` | Company display name normalization (v0.9.2) |

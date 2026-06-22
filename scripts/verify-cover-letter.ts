@@ -110,7 +110,7 @@ function main() {
   const schema = readFileSync(join(process.cwd(), "supabase/schema.sql"), "utf8");
 
   const checks: [string, boolean][] = [
-    ["company context builder sets confidence", companyContext.confidence === "high"],
+    ["company context builder sets confidence", companyContext.confidence === "medium"],
     ["resolve company name prefers override", resolveCompanyNameForGeneration({ override: "Beta Co", jobDescriptionText: "at Alpha" }) === "Beta Co"],
     ["resume evidence spine includes bullet", input.resumeEvidenceSpine.includes("workflow automation")],
     ["prompt includes cover letter rules", promptIncludesCoverLetterRules(prompt)],

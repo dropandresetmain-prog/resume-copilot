@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -12,7 +11,11 @@ import {
 } from "@/components/setup/JDInputPanel";
 import type { JobDescriptionInput } from "@/types/jd";
 
-export function GeneratePageClient() {
+type GeneratePageClientProps = {
+  initialJobId?: string;
+};
+
+export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {}) {
   const {
     inventory,
     jobDescriptions,
@@ -25,8 +28,23 @@ export function GeneratePageClient() {
     handleClearSavedJobDescriptions,
   } = useWorkspace();
 
-  const [jobForm, setJobForm] = useState<JobDescriptionInput>(EMPTY_JOB_DESCRIPTION_FORM);
-  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const prefilledJob = useMemo(
+    () =>
+      initialJobId ? jobDescriptions.find((item) => item.id === initialJobId) : undefined,
+    [initialJobId, jobDescriptions],
+  );
+
+  const [jobForm, setJobForm] = useState<JobDescriptionInput>(() =>
+    prefilledJob
+      ? {
+          rawText: prefilledJob.rawText,
+          companyName: prefilledJob.companyName ?? "",
+          roleTitle: prefilledJob.roleTitle ?? "",
+          jobUrl: prefilledJob.jobUrl ?? "",
+        }
+      : EMPTY_JOB_DESCRIPTION_FORM,
+  );
+  const [editingJobId, setEditingJobId] = useState<string | null>(initialJobId ?? null);
 
   function handleGenerationFinished() {
     setJobForm(EMPTY_JOB_DESCRIPTION_FORM);
@@ -36,9 +54,9 @@ export function GeneratePageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.7.6 · Generation Input Quality"
+        milestone="v0.9.3 · Company Context"
         title="Generate tailored resume"
-        description="Paste a job description, choose a base resume for formatting, and generate a one-page tailored resume from your career inventory."
+        description="Paste a job description, optionally generate company context, then generate a tailored resume and cover letter."
       />
 
       {!isSignedIn || !hasInventory ? (

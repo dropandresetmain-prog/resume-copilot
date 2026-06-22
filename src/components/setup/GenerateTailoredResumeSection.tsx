@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
+import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import {
   formFieldClassName,
   labelClassName,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/resume-draft/client";
 import {
   ensureApplicationRecordForJobDescription,
+  getApplicationRecordFromCloud,
   markApplicationResumeGenerated,
 } from "@/lib/supabase/application-records";
 import {
@@ -76,6 +78,7 @@ type ResumeGenerationContext = {
   savedJob: StoredJobDescription;
   applicationId: string;
   resumeDraft: GeneratedResumeDraftRecord;
+  companyContext?: import("@/types/company-context").CompanyContext;
 };
 
 export function GenerateTailoredResumeSection({
@@ -107,6 +110,7 @@ export function GenerateTailoredResumeSection({
     useState<ArtifactGenerationStatus>("pending");
   const [partialCoverLetterFailure, setPartialCoverLetterFailure] =
     useState<PartialCoverLetterFailure | null>(null);
+  const [companyContextEditorKey, setCompanyContextEditorKey] = useState(0);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -185,6 +189,7 @@ export function GenerateTailoredResumeSection({
     });
 
     const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
+    const companyContextForGeneration = applicationRecord.companyContext ?? undefined;
 
     await advanceStage(1);
 
@@ -196,6 +201,7 @@ export function GenerateTailoredResumeSection({
       inventory,
       jobDescription: savedJob,
       referenceResumeId: effectiveBaseResumeId,
+      companyContext: companyContextForGeneration,
     });
 
     await advanceStage(3);
@@ -224,6 +230,7 @@ export function GenerateTailoredResumeSection({
       savedJob,
       applicationId: applicationRecord.id,
       resumeDraft,
+      companyContext: companyContextForGeneration,
     };
   }
 
@@ -244,6 +251,7 @@ export function GenerateTailoredResumeSection({
         resumeDraft: context.resumeDraft,
         applicationId: context.applicationId,
         fields: readCoverLetterFields(),
+        savedCompanyContext: context.companyContext,
       }),
     );
   }
@@ -325,12 +333,16 @@ export function GenerateTailoredResumeSection({
     setProgressStageIndex(5);
 
     try {
+      const application = await getApplicationRecordFromCloud(
+        partialCoverLetterFailure.applicationId,
+      );
       const coverRecord = await generateAndSaveCoverLetterDraft(
         buildCoverLetterGenerationOptions({
           job: partialCoverLetterFailure.savedJob,
           resumeDraft: partialCoverLetterFailure.resumeDraft,
           applicationId: partialCoverLetterFailure.applicationId,
           fields: readCoverLetterFields(),
+          savedCompanyContext: application?.companyContext,
         }),
       );
       setCoverLetterStatus("success");
@@ -507,7 +519,22 @@ export function GenerateTailoredResumeSection({
                   onChange={(event) => setAdditionalInstructions(event.target.value)}
                   rows={3}
                   className={formFieldClassName}
-                  placeholder="Tone, addressee hints, or pasted company context if web research is unavailable."
+                  placeholder="Tone, addressee hints, or extra company notes."
+                />
+              </div>
+
+              <div className="lg:col-span-2">
+                <CompanyContextEditorPanel
+                  key={`${editingJobId ?? "new"}-${companyContextEditorKey}`}
+                  jobForm={jobForm}
+                  jobDescriptions={jobDescriptions}
+                  editingJobId={editingJobId}
+                  companyNameOverride={companyNameOverride}
+                  country={country}
+                  companyWebsite={companyWebsite}
+                  additionalInstructions={additionalInstructions}
+                  onSaveJob={onSaveJob}
+                  onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
                 />
               </div>
             </div>

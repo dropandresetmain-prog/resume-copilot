@@ -117,6 +117,8 @@ create table if not exists public.application_records (
   job_url text,
   status text not null default 'drafting',
   notes text,
+  company_context jsonb,
+  company_context_updated_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   applied_at timestamptz

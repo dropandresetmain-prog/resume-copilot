@@ -1,15 +1,14 @@
-import {
-  buildCompanyContext,
-  resolveCompanyNameForGeneration,
-} from "@/lib/company-context/build-company-context";
+import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
+import { resolveCompanyContextForGeneration } from "@/lib/company-context/resolve-for-generation";
 import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import { requestCoverLetterGeneration } from "@/lib/cover-letter/client";
 import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
 import { getApplicationCommunicationProfileFromCloud } from "@/lib/supabase/application-communication-profiles";
 import { createGeneratedCoverLetterDraftInCloud } from "@/lib/supabase/generated-cover-letter-drafts";
-import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
+import type { CompanyContext } from "@/types/company-context";
 import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
+import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 export type CoverLetterGenerationOptions = {
   job: StoredJobDescription;
@@ -19,6 +18,7 @@ export type CoverLetterGenerationOptions = {
   country?: string;
   companyWebsite?: string;
   additionalInstructions?: string;
+  savedCompanyContext?: CompanyContext | null;
 };
 
 export function resolveCoverLetterCompanyNames(options: CoverLetterGenerationOptions): {
@@ -43,12 +43,16 @@ export async function generateAndSaveCoverLetterDraft(
   const { companyNameRaw, companyDisplayName } = resolveCoverLetterCompanyNames(options);
   const country = options.country?.trim() || "Singapore";
   const companyWebsite = options.companyWebsite?.trim() || options.job.jobUrl?.trim();
-  const companyContext = buildCompanyContext({
-    companyName: companyDisplayName,
-    country,
-    website: companyWebsite,
-    jobDescriptionText: options.job.rawText,
-    additionalInstructions: options.additionalInstructions,
+  const companyContext = resolveCompanyContextForGeneration({
+    savedContext: options.savedCompanyContext,
+    input: {
+      companyName: companyNameRaw,
+      country,
+      website: companyWebsite,
+      jobDescriptionText: options.job.rawText,
+      roleTitle: options.job.roleTitle,
+      additionalInstructions: options.additionalInstructions,
+    },
   });
 
   const response = await requestCoverLetterGeneration({

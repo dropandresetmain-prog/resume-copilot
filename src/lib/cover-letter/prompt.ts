@@ -1,5 +1,6 @@
 import type { CoverLetterGenerationInput } from "@/types/cover-letter-draft";
 import { COVER_LETTER_BANNED_PHRASES } from "@/lib/cover-letter/banned-phrases";
+import { formatCompanyContextForPrompt } from "@/lib/company-context/normalize";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
   FORMAL_COVER_LETTER_TARGET_MAX_WORDS,
@@ -67,6 +68,13 @@ Do NOT paste all-caps legal entity names or parenthetical country labels into pr
 14. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at company. Avoid "To whom it may concern."
 15. Closing: default "Regards,\\nMin Htet" unless JD tone suggests formal (Yours sincerely) or casual startup (Best/Cheers).
 
+## Company context usage (critical)
+- Use saved company context to strengthen why this company / why this role and to choose 1–3 narrative angles.
+- Prefer suggestedNarrativeAngles when supported by resume evidence.
+- Mission, vision, and values may be referenced ONLY when connected to specific role fit or Min Htet's actual evidence.
+- NEVER write generic admiration such as "I deeply resonate with your mission", "I strongly align with your values", or "I admire your commitment to excellence".
+- Better: connect practical work (operations, customers, payments, execution) to what the company appears to need.
+
 ## Formal cover letter structure
 Opening → Why this role → Selected evidence themes → Why this company → Close
 
@@ -87,14 +95,7 @@ ${input.resumeEvidenceSpine}
 ${input.communicationProfile || "(No profile provided — use resume evidence only, conservative tone.)"}
 
 ## Company context (confidence: ${input.companyContext.confidence})
-${JSON.stringify(
-  {
-    ...input.companyContext,
-    companyName: displayCompany,
-  },
-  null,
-  2,
-)}
+${formatCompanyContextForPrompt(input.companyContext)}
 
 ${input.additionalInstructions ? `## Additional instructions\n${input.additionalInstructions}` : ""}
 `;
@@ -132,4 +133,11 @@ export function promptIncludesBannedPhraseRules(prompt: string): boolean {
 
 export function promptIncludesToneRules(prompt: string): boolean {
   return prompt.includes("warm") && prompt.includes("human");
+}
+
+export function promptIncludesCoverLetterCompanyContextRules(prompt: string): boolean {
+  return (
+    prompt.includes("Company context usage (critical)") &&
+    prompt.includes("NEVER write generic admiration")
+  );
 }

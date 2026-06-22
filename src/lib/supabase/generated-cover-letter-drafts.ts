@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { GeneratedCoverLetterDraftRow } from "@/lib/supabase/types";
+import { normalizeCompanyContext } from "@/lib/company-context/normalize";
 import type { CompanyContext } from "@/types/company-context";
 import type { AIProviderId } from "@/types/enrichment";
 import type {
@@ -14,10 +15,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function parseCompanyContext(value: unknown): CompanyContext | undefined {
-  if (!isObject(value) || typeof value.companyName !== "string") {
-    return undefined;
-  }
-  return value as unknown as CompanyContext;
+  return normalizeCompanyContext(value) ?? undefined;
 }
 
 function parseCoverLetterRationale(value: unknown): CoverLetterRationale | undefined {

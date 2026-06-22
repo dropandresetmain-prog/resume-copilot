@@ -7,6 +7,7 @@ import {
 } from "@/lib/resume-draft/bullet-payload";
 import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
+import type { CompanyContext } from "@/types/company-context";
 import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState, KeywordBankItem } from "@/types/enrichment";
 import type { StoredJobDescription } from "@/types/jd";
@@ -55,6 +56,7 @@ export function buildResumeDraftGenerationInput(options: {
   referenceResume: ParsedResume;
   maxBullets?: number;
   regenerationControls?: ResumeDraftRegenerationControls;
+  companyContext?: CompanyContext;
 }): ResumeDraftGenerationInput {
   const maxBullets = options.maxBullets ?? MAX_RESUME_DRAFT_BULLETS;
   const jdText = options.jobDescription.rawText;
@@ -140,6 +142,7 @@ export function buildResumeDraftGenerationInput(options: {
       unavailableForcedBulletKeys: unavailableForcedKeys,
     },
     regenerationControls,
+    companyContext: options.companyContext,
   };
 }
 
@@ -198,6 +201,7 @@ export function buildResumeDraftPayloadFromInventory(options: {
   referenceResumeId: string;
   maxBullets?: number;
   regenerationControls?: ResumeDraftRegenerationControls;
+  companyContext?: CompanyContext;
 }): {
   generationInput: ResumeDraftGenerationInput;
   inputSnapshot: ResumeDraftInputSnapshot;
@@ -218,6 +222,7 @@ export function buildResumeDraftPayloadFromInventory(options: {
     referenceResume,
     maxBullets: options.maxBullets,
     regenerationControls: options.regenerationControls,
+    companyContext: options.companyContext,
   });
   const inputSnapshot = buildResumeDraftInputSnapshot({
     jobDescription: options.jobDescription,

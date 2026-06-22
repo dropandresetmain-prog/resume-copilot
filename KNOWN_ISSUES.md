@@ -88,7 +88,16 @@
 - Delete is permanent. Draft edits never mutate inventory.
 - **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
-## Fit score (preview)
+## Company context (v0.9.3)
+
+- **Gemini only** — no live web search, scraping, or website fetch. Website URL is a naming/industry clue only.
+- **Per-application scope** — context on `application_records`, not a global company database.
+- **Must save before generation uses it** — generated-but-unsaved context is not injected into resume/cover letter.
+- **Confidence** — model may infer mission/vision/values; user should review limitations array.
+- **Migration required** — `20260623_application_company_context_v093.sql` must be pushed to live Supabase.
+
+## Cover letter / communication (v0.9.x)
+
 
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional.
 - **Layout Fit (One Page)** heuristic is separate from server validation.

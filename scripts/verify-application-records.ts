@@ -67,6 +67,7 @@ async function main() {
     ["application label formats role and company", label === "Product Manager @ Pave Bank"],
     ["status label formats resume_generated", formatApplicationStatusLabel("resume_generated") === "Resume generated"],
     ["schema defines application_records", schema.includes("create table if not exists public.application_records")],
+    ["schema stores company context on applications", schema.includes("company_context jsonb")],
     ["schema links drafts to applications", schema.includes("application_id uuid references public.application_records")],
     ["draft create accepts application id", draftCreate.includes("application_id: input.applicationId")],
     ["generate flow ensures application record", generateSection.includes("ensureApplicationRecordForJobDescription")],

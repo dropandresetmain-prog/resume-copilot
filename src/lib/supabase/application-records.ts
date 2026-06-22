@@ -1,3 +1,4 @@
+import { normalizeCompanyContext } from "@/lib/company-context/normalize";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { ApplicationRecordRow } from "@/lib/supabase/types";
@@ -8,8 +9,13 @@ import {
   type StoredApplicationRecord,
 } from "@/types/application-record";
 import type { StoredJobDescription } from "@/types/jd";
+import type { CompanyContext } from "@/types/company-context";
 
 function mapApplicationRecordRow(row: ApplicationRecordRow): StoredApplicationRecord {
+  const companyContext = normalizeCompanyContext(row.company_context, {
+    companyName: row.company_name ?? undefined,
+  }) ?? undefined;
+
   return {
     id: row.id,
     jobDescriptionId: row.job_description_id ?? undefined,
@@ -21,6 +27,8 @@ function mapApplicationRecordRow(row: ApplicationRecordRow): StoredApplicationRe
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     appliedAt: row.applied_at ?? undefined,
+    companyContext,
+    companyContextUpdatedAt: row.company_context_updated_at ?? undefined,
   };
 }
 
@@ -91,6 +99,29 @@ export async function findApplicationRecordByJobDescriptionId(
   return mapApplicationRecordRow(data as ApplicationRecordRow);
 }
 
+export async function getApplicationRecordFromCloud(
+  id: string,
+): Promise<StoredApplicationRecord | null> {
+  const user = await getCurrentUser();
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("application_records")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    return null;
+  }
+
+  return mapApplicationRecordRow(data as ApplicationRecordRow);
+}
+
 export async function createApplicationRecordInCloud(
   input: ApplicationRecordInput,
 ): Promise<StoredApplicationRecord> {
@@ -120,6 +151,7 @@ export type UpdateApplicationRecordInput = {
   companyName?: string;
   roleTitle?: string;
   appliedAt?: string | null;
+  companyContext?: CompanyContext | null;
 };
 
 export async function updateApplicationRecordInCloud(
@@ -154,6 +186,12 @@ export async function updateApplicationRecordInCloud(
   if (input.roleTitle !== undefined) {
     updatePayload.role_title = input.roleTitle.trim() || null;
   }
+  if (input.companyContext !== undefined) {
+    updatePayload.company_context = input.companyContext;
+    updatePayload.company_context_updated_at = input.companyContext
+      ? new Date().toISOString()
+      : null;
+  }
 
   const { data, error } = await supabase
     .from("application_records")
@@ -180,6 +218,13 @@ export async function ensureApplicationRecordForJobDescription(
   }
 
   return createApplicationRecordInCloud(applicationRecordFromJobDescription(job));
+}
+
+export async function saveApplicationCompanyContextInCloud(
+  applicationId: string,
+  companyContext: CompanyContext,
+): Promise<StoredApplicationRecord> {
+  return updateApplicationRecordInCloud(applicationId, { companyContext });
 }
 
 export async function markApplicationResumeGenerated(

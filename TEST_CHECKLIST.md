@@ -1,45 +1,38 @@
-# Test Checklist — v0.9.2 Cover Letter Quality
+# Test Checklist — v0.9.3 Company Context
 
-## Profile
+## Company context (Generate)
 
-- [ ] `/profile` loads for signed-in user
-- [ ] Paste profile content → Save → refresh → content persists
-- [ ] Empty profile still allows generation (with risk flag)
+- [ ] Advanced section shows company context panel with disclaimer (no web search)
+- [ ] **Generate Company Context** requires JD + company name
+- [ ] Generated context is editable (summary, narrative angles visible)
+- [ ] **Save Company Context** persists to application record
+- [ ] Without saved context: message "Generation will use JD and company fields only"
+- [ ] With saved context: message "Company context ready for this application"
+- [ ] Generate resume/cover letter uses saved context (check stronger why-company in letter)
+- [ ] Generate works when company context skipped entirely
 
-## Generate
+## Records
 
-- [ ] Mode: Resume + Cover Letter generates both artifacts
-- [ ] Mode: Resume only skips cover letter
-- [ ] Cover letter failure shows resume success + Retry Cover Letter (v0.9.1)
-- [ ] Advanced: company name, country, website, additional instructions passed through
-- [ ] Combined flow lands on cover letter preview with resume link
-- [ ] Company name like `FAR EAST FACADE (SINGAPORE)` appears as `Far East Facade` in letter prose
+- [ ] Application card shows Company context ✓ or — none
+- [ ] **Edit company context on Generate page** link opens `/generate?jobId=...`
 
 ## Cover letter preview
 
-- [ ] Formal letter editable and saveable
-- [ ] Word count shown; warning when >420 words
-- [ ] Export disabled when >420 words or banned phrases
-- [ ] **Shorten to 420 words** quick action works
-- [ ] Other quick actions (warmer, conversational, remove AI phrases, etc.)
-- [ ] Custom revision instruction works
-- [ ] Download PDF (one page, ≤420 words)
-- [ ] Download DOCX
-- [ ] Secondary formats visible with Copy buttons
-- [ ] Revision does not regenerate resume
+- [ ] Collapsible company context panel when context exists
+- [ ] Edit summary + save updates application record
 
-## Records / Resume preview
+## Regression (v0.9.2)
 
-- [ ] Application card links to formal cover letter
-- [ ] Resume preview → Generate / Retry cover letter if missing/failed
-
-## Regression
-
+- [ ] 420-word cap, banned phrases, quick revision, export guards
+- [ ] Partial failure recovery (v0.9.1)
 - [ ] Resume generate / approve / export unchanged
-- [ ] Application shell (v0.8.0)
 - [ ] `npm run test` passes
+
+## Schema
+
+- [ ] `supabase db push` applies `20260623_application_company_context_v093.sql`
 
 ## Parked
 
-- [ ] Live web company research
-- [ ] Secondary format export
+- [ ] Live web company research (Tavily/Serper/Perplexity)
+- [ ] Reuse context across different roles at same company

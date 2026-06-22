@@ -1,4 +1,5 @@
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
+import { formatCompanyContextForPrompt } from "@/lib/company-context/normalize";
 
 export const RESUME_DRAFT_SYSTEM_INSTRUCTIONS = `You are a resume draft generation assistant.
 
@@ -95,6 +96,16 @@ Skills & Interests groups:
 - Interests: hobbies/interests.`;
 
 export function buildResumeDraftPrompt(input: ResumeDraftGenerationInput): string {
+  const companyContextSection = input.companyContext
+    ? `
+
+## Saved company context (light use only)
+Use this to improve role fit and keyword relevance. Do NOT override inventory evidence.
+Do NOT invent facts from company context. Do NOT add unsupported claims.
+Avoid generic admiration of mission/vision/values.
+${formatCompanyContextForPrompt(input.companyContext)}`
+    : "";
+
   return `${RESUME_DRAFT_SYSTEM_INSTRUCTIONS}
 
 Generate a tailored resume draft and return JSON with this exact shape:
@@ -184,7 +195,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
 }
 
 Input payload:
-${JSON.stringify(input, null, 2)}`;
+${JSON.stringify(input, null, 2)}${companyContextSection}`;
 }
 
 export function promptIncludesJsonSchemaInstructions(prompt: string): boolean {
@@ -232,6 +243,10 @@ export function promptIncludesAcceptedWordingRules(prompt: string): boolean {
     prompt.includes("user-reviewed preferred phrasing") &&
     prompt.includes("Preserve original facts")
   );
+}
+
+export function promptIncludesResumeCompanyContextRules(prompt: string): boolean {
+  return prompt.includes("Saved company context (light use only)");
 }
 
 export function promptIncludesKeywordDistinctionRules(prompt: string): boolean {

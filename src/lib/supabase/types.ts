@@ -61,6 +61,8 @@ export type ApplicationRecordRow = {
   job_url: string | null;
   status: string;
   notes: string | null;
+  company_context: unknown | null;
+  company_context_updated_at: string | null;
   created_at: string;
   updated_at: string;
   applied_at: string | null;

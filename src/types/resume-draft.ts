@@ -1,5 +1,6 @@
 import type { SourceCitation } from "@/types/collated";
 import type { AIProviderId } from "@/types/enrichment";
+import type { CompanyContext } from "@/types/company-context";
 
 export const RESUME_DRAFT_SCHEMA_VERSION = 1 as const;
 
@@ -252,6 +253,7 @@ export type ResumeDraftGenerationInput = {
   referenceResume: ResumeDraftReferenceResumeExcerpt;
   auditHints?: ResumeDraftGenerationAuditHints;
   regenerationControls?: ResumeDraftRegenerationControls;
+  companyContext?: CompanyContext;
 };
 
 export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {

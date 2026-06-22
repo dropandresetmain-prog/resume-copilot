@@ -7,6 +7,7 @@ import {
   formatApplicationLabel,
   formatApplicationStatusLabel,
 } from "@/lib/application/labels";
+import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
 import { formatApplicationArtifactSummary } from "@/lib/generate/generation-artifact-status";
 import { formatDraftStatusLabel } from "@/lib/resume-draft/draft-labels";
 import {
@@ -272,8 +273,22 @@ export function ApplicationRecordsPanel({
 
                 <p className="mt-2 text-xs text-slate-600">
                   Resume {artifactSummary.resumeLabel} · Cover letter{" "}
-                  {artifactSummary.coverLetterLabel}
+                  {artifactSummary.coverLetterLabel} · Company context{" "}
+                  {hasUsableCompanyContext(application.companyContext)
+                    ? "✓"
+                    : "— none"}
                 </p>
+
+                {application.jobDescriptionId ? (
+                  <p className="mt-2">
+                    <Link
+                      href={`/generate?jobId=${application.jobDescriptionId}`}
+                      className="text-xs font-medium text-blue-700 underline"
+                    >
+                      Edit company context on Generate page
+                    </Link>
+                  </p>
+                ) : null}
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div>

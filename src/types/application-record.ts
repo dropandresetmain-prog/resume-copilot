@@ -9,6 +9,8 @@ export const APPLICATION_RECORD_STATUSES = [
 
 export type ApplicationRecordStatus = (typeof APPLICATION_RECORD_STATUSES)[number];
 
+import type { CompanyContext } from "@/types/company-context";
+
 export type ApplicationRecordInput = {
   jobDescriptionId?: string;
   companyName?: string;
@@ -29,6 +31,8 @@ export type StoredApplicationRecord = {
   createdAt: string;
   updatedAt: string;
   appliedAt?: string;
+  companyContext?: CompanyContext;
+  companyContextUpdatedAt?: string;
 };
 
 export function isApplicationRecordStatus(value: string): value is ApplicationRecordStatus {

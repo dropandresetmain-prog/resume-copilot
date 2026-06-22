@@ -2,9 +2,13 @@
 
 ## Current milestone
 
-**v0.9.2 — Cover Letter Quality & Quick Revision**
+**v0.9.3 — Company Context Generator**
 
-420-word hard cap, banned AI-ish phrases, company name normalization, warmer conversational prompts, quick revision buttons on cover letter preview, export blocked when over limit or banned phrases present.
+Gemini-powered company context per application (JD + company fields only — no web search). Generate → preview/edit → save on `application_records`. Saved context reused by resume and cover letter generation. Generation still works without saved context (JD fallback).
+
+## v0.9.2 highlights
+
+420-word hard cap, banned AI-ish phrases, company name normalization, warmer conversational prompts, quick revision buttons on cover letter preview.
 
 ## v0.9.1 highlights
 
@@ -12,32 +16,40 @@ Partial failure recovery: cover letter failure no longer loses resume; Retry Cov
 
 ## v0.9.0 highlights
 
-Formal cover letter generation from JD + resume draft + Application Communication Profile + company context. Combined generate mode, `/profile` editor, `/cover-letter-preview/[draftId]` with PDF/DOCX export, secondary formats copyable on preview and via Records links.
-
-## v0.8.0 highlights
-
-Application shell: `application_records` linked to JD and resume drafts; Records → Applications panel.
+Formal cover letter generation from JD + resume draft + Application Communication Profile. Combined generate mode, `/profile` editor, `/cover-letter-preview/[draftId]` with PDF/DOCX export.
 
 ## Product flow
 
 ```
-Paste JD → Generate Resume (& optional Cover Letter) → Application record
-  → Resume preview / Cover letter preview → Edit → Download PDF / DOCX
+Paste JD → (optional) Generate Company Context → Save → Generate Resume (& Cover Letter)
+  → Application record → Resume / Cover letter preview → Edit → Download PDF / DOCX
 ```
+
+## Company context (v0.9.3)
+
+- **Scope** — saved on `application_records.company_context` (per job attempt, not global).
+- **Generate** (`/generate` → Advanced) — Company Name, Country, Website, Additional Instructions → **Generate Company Context** → edit → **Save Company Context**.
+- **Reuse** — saved context passed to resume (light) and cover letter (stronger) prompts.
+- **Fallback** — if no saved context, JD + company fields only (`buildFallbackCompanyContext`).
+- **API** — `POST /api/ai/generate-company-context` (`company-context-gemini.ts`).
+- **No external research** — Gemini only; website is a clue, not fetched.
 
 ## Cover letter (v0.9.x)
 
-- **Profile** (`/profile`) — paste/save Application Communication Profile (one blob per user).
-- **Generate** — mode: resume only OR resume + formal cover letter; advanced company fields; partial failure recovery (v0.9.1).
-- **Cover letter preview** — edit formal letter, quick revision actions, download PDF/DOCX when ≤420 words, copy secondary formats.
-- **Quality (v0.9.2)** — hard max 420 words; company names normalized for prose; banned internal positioning phrases; warmer conversational tone rules.
-- **Revision API** — `POST /api/ai/revise-cover-letter` (shorten, tone, emphasis, custom instruction); does not touch resume.
-- **Company context** — JD extraction + user fields; no live web search (paste context in additional instructions).
+- **Profile** (`/profile`) — Application Communication Profile.
+- **Generate** — resume only OR resume + cover letter; partial failure recovery (v0.9.1).
+- **Cover letter preview** — edit, quick revision, export when ≤420 words.
+- **Quality (v0.9.2)** — 420-word max, banned phrases, company name normalization.
+- **Company context in preview** — collapsible panel; edit/save back to application when linked.
+
+## Gemini call map
+
+See `src/lib/company-context/gemini-call-map.ts`. Full flow (company context + resume + cover letter, no enrichment): **3 Gemini calls**.
 
 ## Run
 
 ```bash
 npm run dev
 npm run test
-supabase db push   # applies 20260622_application_communication_v090.sql
+supabase db push   # applies 20260623_application_company_context_v093.sql (+ prior migrations)
 ```

@@ -1,19 +1,20 @@
+import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import type { CompanyContext, CompanyContextInput } from "@/types/company-context";
 
 function extractHiringSignals(jobDescriptionText: string): string[] {
   const signals: string[] = [];
   const lines = jobDescriptionText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 
-  for (const line of lines.slice(0, 12)) {
-    if (/looking for|seeking|we need|you will|responsibilit|requirement/i.test(line)) {
+  for (const line of lines) {
+    if (/looking for|seeking|we need|you will|responsibilit|requirement|must have/i.test(line)) {
       signals.push(line.slice(0, 200));
     }
   }
 
-  return signals.slice(0, 5);
+  return signals.slice(0, 6);
 }
 
-function extractSummaryFromJd(jobDescriptionText: string, companyName: string): string | undefined {
+function extractSummaryFromJd(jobDescriptionText: string, companyName: string): string {
   const paragraphs = jobDescriptionText
     .split(/\n\s*\n/)
     .map((part) => part.trim())
@@ -21,40 +22,58 @@ function extractSummaryFromJd(jobDescriptionText: string, companyName: string): 
 
   const first = paragraphs[0];
   if (!first) {
-    return undefined;
+    return `${companyName}: role details inferred from the pasted job description only.`;
   }
 
-  return `${companyName}: ${first.slice(0, 400)}`;
+  return `${companyName}: ${first.slice(0, 500)}`;
 }
 
-/** Minimal company context — JD extraction + user fields; no live web search in v0.9.0. */
-export function buildCompanyContext(input: CompanyContextInput): CompanyContext {
+/** JD + user fields fallback when no saved Gemini company context exists. */
+export function buildFallbackCompanyContext(input: CompanyContextInput): CompanyContext {
   const companyName = input.companyName.trim() || "the company";
+  const displayName = normalizeCompanyDisplayName(companyName);
   const country = input.country?.trim() || "Singapore";
   const website = input.website?.trim() || undefined;
   const hiringSignals = extractHiringSignals(input.jobDescriptionText);
-  const summaryParts = [
-    extractSummaryFromJd(input.jobDescriptionText, companyName),
+  const summary = [
+    extractSummaryFromJd(input.jobDescriptionText, displayName),
     input.additionalInstructions?.trim(),
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   let confidence: CompanyContext["confidence"] = "low";
   if (companyName && country) {
     confidence = "medium";
   }
-  if (website) {
-    confidence = "high";
-  }
 
   return {
     companyName,
+    displayName,
     country,
     website,
-    summary: summaryParts.join("\n\n") || undefined,
+    companySummary: summary,
+    productsAndServices: [],
+    likelyHiringPriorities: hiringSignals,
+    whyThisRoleMayMatter: input.roleTitle
+      ? `Role focus: ${input.roleTitle}`
+      : undefined,
+    suggestedNarrativeAngles: [],
+    confidence,
+    limitations: [
+      "No saved Gemini company context — derived from JD and company fields only.",
+      "No external web research was performed.",
+    ],
+    generatedAt: new Date().toISOString(),
+    summary,
     hiringSignals: hiringSignals.length > 0 ? hiringSignals : undefined,
     sourceUrls: website ? [website] : undefined,
-    confidence,
   };
+}
+
+/** @deprecated use buildFallbackCompanyContext */
+export function buildCompanyContext(input: CompanyContextInput): CompanyContext {
+  return buildFallbackCompanyContext(input);
 }
 
 export function resolveCompanyNameForGeneration(options: {

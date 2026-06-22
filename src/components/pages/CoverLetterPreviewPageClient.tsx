@@ -15,8 +15,10 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
-import { countWords } from "@/lib/cover-letter/resume-evidence";
+import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
+import { normalizeCompanyContext } from "@/lib/company-context/normalize";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import { countWords } from "@/lib/cover-letter/resume-evidence";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
   formatWordCountLabel,
@@ -26,6 +28,8 @@ import {
   getGeneratedCoverLetterDraftFromCloud,
   updateGeneratedCoverLetterDraftInCloud,
 } from "@/lib/supabase/generated-cover-letter-drafts";
+import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
+import type { CompanyContext } from "@/types/company-context";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 
 type CoverLetterPreviewPageClientProps = {
@@ -40,6 +44,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +61,16 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           } else {
             setDraft(record);
             setBodyDraft(record.body);
+            let resolvedContext =
+              normalizeCompanyContext(record.companyContext) ??
+              null;
+            if (record.applicationId) {
+              const application = await getApplicationRecordFromCloud(record.applicationId);
+              if (application?.companyContext) {
+                resolvedContext = application.companyContext;
+              }
+            }
+            setCompanyContext(resolvedContext);
           }
         }
       } catch (loadError) {
@@ -123,9 +138,9 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   return (
     <>
       <PageHeader
-        milestone="v0.9.2 · Cover Letter"
+        milestone="v0.9.3 · Cover Letter"
         title="Formal cover letter"
-        description="Preview and edit the formal cover letter. Download PDF or DOCX when within 420 words."
+        description="Preview and edit the formal cover letter. Company context is shown below when available."
       />
 
       <div className="flex flex-wrap gap-3">
@@ -171,6 +186,14 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         {saveMessage ? <p className="mt-3 text-sm text-emerald-800">{saveMessage}</p> : null}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       </SetupCard>
+
+      {companyContext ? (
+        <CompanyContextPreviewPanel
+          context={companyContext}
+          applicationId={draft.applicationId}
+          onSaved={setCompanyContext}
+        />
+      ) : null}
 
       <CoverLetterQuickRevisionPanel
         draftId={draft.id}
