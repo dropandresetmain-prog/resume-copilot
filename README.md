@@ -1,14 +1,14 @@
 # Career Resume Copilot
 
-**v0.8.0 — Application Shell**
+**v0.9.0 — Application Communication / Cover Letter MVP**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
 ## Product flow
 
 ```
-Upload resumes → Build inventory → Paste JD → Select base resume → Generate Tailored Resume
-  → Application record (status / notes) → Tune layout → PDF Preview → Approve → Download PDF / DOCX
+Upload resumes → Build inventory → Paste profile → Paste JD → Generate Resume (& Cover Letter)
+  → Preview / Edit → Download PDF / DOCX
 ```
 
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.

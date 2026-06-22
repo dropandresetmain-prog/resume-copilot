@@ -4,6 +4,7 @@ export const GENERATION_PROGRESS_STAGES = [
   "Selecting relevant experience",
   "Drafting tailored resume",
   "Checking resume structure",
+  "Drafting formal cover letter",
   "Preparing preview",
 ] as const;
 

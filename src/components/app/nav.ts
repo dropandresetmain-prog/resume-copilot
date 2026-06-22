@@ -8,6 +8,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: "/generate", label: "Generate" },
   { href: "/inventory", label: "Inventory" },
   { href: "/records", label: "Records" },
+  { href: "/profile", label: "Profile" },
   { href: "/setup", label: "Manage Uploads" },
   { href: "/dev-tools", label: "Dev Tools" },
 ];

@@ -7,13 +7,18 @@
 | `/` | `src/app/page.tsx` | Landing page (CTA → Manage Uploads) |
 | `/generate` | `src/app/(workspace)/generate/page.tsx` | Job intake + tailor resume (main product) |
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
-| `/records` | `src/app/(workspace)/records/page.tsx` | Applications + saved jobs + unlinked draft history |
+| `/records` | `src/app/(workspace)/records/page.tsx` | Applications + saved jobs + communications + unlinked draft history |
+| `/profile` | `src/app/(workspace)/profile/page.tsx` | Application Communication Profile editor (v0.9.0) |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
 | `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1+) |
 | `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
+| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Formal cover letter preview/edit + export (v0.9.0) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
+| `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Server-side cover letter generation (v0.9.0) |
 | `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved draft → DOCX export (v0.6.0) |
+| `/api/export/cover-letter-pdf` | `src/app/api/export/cover-letter-pdf/route.ts` | Cover letter → PDF export (v0.9.0) |
+| `/api/export/cover-letter-docx` | `src/app/api/export/cover-letter-docx/route.ts` | Cover letter → DOCX export (v0.9.0) |
 
 Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `AppShell`).
 
@@ -33,7 +38,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 |------|-------|
 | `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + generate tailored resume (v0.7.2) |
 | `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
-| `src/components/pages/RecordsPageClient.tsx` | `/records` — applications + saved jobs + draft history (v0.8.0) |
+| `src/components/pages/RecordsPageClient.tsx` | `/records` — applications + saved jobs + communications + draft history (v0.8.0+) |
+| `src/components/pages/ProfilePageClient.tsx` | `/profile` — Application Communication Profile editor (v0.9.0) |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` — cover letter preview/edit/export (v0.9.0) |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
 
@@ -45,12 +52,12 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
 | `src/components/setup/JDInputPanel.tsx` | JD intake + inline generate flow on `/generate` (v0.7.3) |
-| `src/components/setup/GenerateTailoredResumeSection.tsx` | Base resume, CTA, progress (embedded in JD card) |
+| `src/components/setup/GenerateTailoredResumeSection.tsx` | Base resume, CTA, progress, cover letter mode + advanced company fields (v0.9.0) |
 | `src/components/setup/GenerationProgressPanel.tsx` | Staged loading UI during generation |
 | `src/lib/generate/base-resume-preference.ts` | Last-used base resume (`localStorage`) + default resolution |
 | `src/lib/generate/save-job-for-generation.ts` | Auto-save/reuse job on generate |
 | `src/lib/generate/generation-progress.ts` | Progress stage labels + percent helper |
-| `src/components/setup/ApplicationRecordsPanel.tsx` | Application cards: status, notes, linked draft (Records) |
+| `src/components/setup/ApplicationRecordsPanel.tsx` | Application cards: status, notes, linked draft + cover letter links (Records) |
 | `src/components/setup/DraftHistoryPanel.tsx` | Unlinked legacy draft list (Records) |
 | `src/components/landing/LandingCta.tsx` | Auth-aware single landing CTA |
 | `src/components/setup/SavedJobCard.tsx` | Saved job card with summary + full JD expand |
@@ -77,7 +84,10 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `supabase/schema.sql` | Tables, RLS, storage buckets and policies |
 | `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes |
 | `supabase/migrations/20260620_add_saved_job_summary.sql` | Adds `summary` column to `job_descriptions` |
+| `supabase/migrations/20260622_application_communication_v090.sql` | Profile table + extended cover letter draft columns (v0.9.0) |
 | `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
+| `src/lib/supabase/generated-cover-letter-drafts.ts` | Create/list/get/update cover letter drafts (v0.9.0) |
+| `src/lib/supabase/application-communication-profiles.ts` | Load/save Application Communication Profile (v0.9.0) |
 | `src/lib/supabase/application-records.ts` | Application records CRUD + ensure per JD (v0.8.0) |
 | `src/types/application-record.ts` | Application status types |
 | `src/lib/application/labels.ts` | Application card labels |
@@ -97,6 +107,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/types/enrichment.ts` | AI enrichment and keyword bank types |
 | `src/types/jd.ts` | Job description types |
 | `src/types/resume-draft.ts` | Generated resume draft types (4A) |
+| `src/types/cover-letter-draft.ts` | Cover letter draft + secondary format types (v0.9.0) |
+| `src/types/application-communication-profile.ts` | Application Communication Profile type (v0.9.0) |
+| `src/types/company-context.ts` | Company context pipeline type (v0.9.0) |
 | `src/types/files.ts` | Stored file metadata types |
 
 ## Pure helpers (not active persistence)
@@ -200,6 +213,29 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/resume-drafts/ResumeDraftBulletCard.tsx` | Experience bullet review card |
 | `src/components/resume-drafts/ResumeDraftReviewPanel.tsx` | Re-export of review workspace |
 
+## Application communication / cover letter (v0.9.0)
+
+| File | Purpose |
+|------|---------|
+| `src/lib/company-context/build-company-context.ts` | JD + user fields → `CompanyContext` (no live web search) |
+| `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + rules |
+| `src/lib/cover-letter/parse.ts` | Parse model JSON (formal + secondary formats) |
+| `src/lib/cover-letter/generation-validation.ts` | Word count + required formal letter validation |
+| `src/lib/cover-letter/resume-evidence.ts` | Resume draft → evidence spine for prompt |
+| `src/lib/cover-letter/client.ts` | Browser client for generate-cover-letter API |
+| `src/lib/cover-letter/export-client.ts` | Browser client for cover letter PDF/DOCX export |
+| `src/lib/cover-letter/pdf-html.ts` | Simple professional letter HTML |
+| `src/lib/cover-letter/pdf-export.ts` | Puppeteer PDF for cover letter |
+| `src/lib/cover-letter/docx-export.ts` | DOCX for cover letter |
+| `src/lib/ai/cover-letter-provider.ts` | Cover letter provider selection |
+| `src/lib/ai/cover-letter-mock.ts` | Mock cover letter provider (tests) |
+| `src/lib/ai/cover-letter-gemini.ts` | Gemini cover letter provider |
+| `src/lib/generate/cover-letter-generation.ts` | Orchestrate context + AI + Supabase save |
+| `src/components/cover-letters/DownloadCoverLetterPdfButton.tsx` | Download PDF button |
+| `src/components/cover-letters/DownloadCoverLetterDocxButton.tsx` | Download DOCX button |
+| `src/components/cover-letters/SecondaryCommunicationsPanel.tsx` | Email/LinkedIn/DM/WhatsApp copy blocks |
+| `src/components/cover-letters/ResumeCoverLetterPanel.tsx` | Resume preview: generate/link cover letter |
+
 ## Inventory and parser
 
 | File | Purpose |
@@ -233,6 +269,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
 | `scripts/verify-inventory-edits.ts` | Hidden/edited overlay + regeneration payload (v0.7.7) |
 | `scripts/verify-application-records.ts` | Application shell wiring + types (v0.8.0) |
+| `scripts/verify-cover-letter.ts` | Profile, payload, prompt, validation, persistence (v0.9.0) |
 | `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.7) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |

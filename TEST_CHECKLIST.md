@@ -1,37 +1,37 @@
-# Test Checklist — v0.8.0 Application Shell
+# Test Checklist — v0.9.0 Cover Letter MVP
 
-## Generate → Application link
+## Profile
 
-- [ ] Sign in with inventory uploaded
-- [ ] Paste JD on Generate → **Generate Tailored Resume**
-- [ ] Draft saves and opens in preview
-- [ ] Records → Applications shows new application for that job
-- [ ] Application status is **Resume generated**
-- [ ] **Open latest draft** opens the new draft
-- [ ] Draft History does **not** duplicate the linked draft (shows unlinked only)
+- [ ] `/profile` loads for signed-in user
+- [ ] Paste profile content → Save → refresh → content persists
+- [ ] Empty profile still allows generation (with risk flag)
 
-## Application management
+## Generate
 
-- [ ] Change status (e.g. Ready to apply, Applied)
-- [ ] Add notes → **Save notes** → refresh page → notes persist
-- [ ] Job URL link visible when JD has `jobUrl`
-- [ ] Generate again for same JD reuses application; new draft links to same application
-- [ ] Application card shows latest draft by `updated_at`
+- [ ] Mode: Resume + Cover Letter generates both artifacts
+- [ ] Mode: Resume only skips cover letter
+- [ ] Advanced: company name, country, website, additional instructions passed through
+- [ ] Combined flow lands on cover letter preview with resume link
 
-## Backwards compatibility
+## Cover letter preview
 
-- [ ] Pre-existing drafts without `application_id` still appear in Draft History
-- [ ] Delete unlinked draft still works
-- [ ] Approve / export flow unchanged for linked drafts
+- [ ] Formal letter editable and saveable
+- [ ] Download PDF (one page)
+- [ ] Download DOCX
+- [ ] Secondary formats visible with Copy buttons
+
+## Records / Resume preview
+
+- [ ] Application card links to formal cover letter
+- [ ] Resume preview → Generate formal cover letter if missing
 
 ## Regression
 
-- [ ] Inventory edits (v0.7.8)
-- [ ] Regeneration on resume preview
+- [ ] Resume generate / approve / export unchanged
+- [ ] Application shell (v0.8.0)
 - [ ] `npm run test` passes
 
-## Parked (not in v0.8.0)
+## Parked
 
-- [ ] Cover letter generation
-- [ ] Lazy backfill application records for old drafts
-- [ ] Applied timestamp UI beyond status change
+- [ ] Live web company research
+- [ ] Secondary format export

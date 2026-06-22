@@ -13,6 +13,7 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import { ResumeCoverLetterPanel } from "@/components/cover-letters/ResumeCoverLetterPanel";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
@@ -532,6 +533,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           serverPdfValidation={serverPdfValidation}
           validationFailure={validationFailure}
           isValidating={isApproving}
+        />
+
+        <ResumeCoverLetterPanel
+          draft={draft}
+          job={jobDescriptions.find((job) => job.id === draft.jobDescriptionId)}
         />
 
         <ResumeEvidenceRegenerationPanel

@@ -152,7 +152,7 @@ async function main() {
     ["progress panel rendered while generating", generateSection.includes("GenerationProgressPanel")],
     ["duplicate generate guard", generateSection.includes("if (isGenerating)")],
     ["saved jobs visually separated", jdPanel.includes("border-t border-slate-200 pt-8")],
-    ["progress stages defined", GENERATION_PROGRESS_STAGES.length >= 5],
+    ["progress stages defined", GENERATION_PROGRESS_STAGES.length >= 6],
     ["progress percent helper", generationProgressPercent(0) < generationProgressPercent(4)],
     ["jd panel supports hide save", jdPanel.includes("showSaveButton")],
     ["records still supports explicit save", jdPanel.includes("Save job")],

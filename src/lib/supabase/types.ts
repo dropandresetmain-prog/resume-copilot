@@ -66,6 +66,33 @@ export type ApplicationRecordRow = {
   applied_at: string | null;
 };
 
+export type ApplicationCommunicationProfileRow = {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GeneratedCoverLetterDraftRow = {
+  id: string;
+  user_id: string;
+  application_id: string | null;
+  job_description_id: string | null;
+  resume_draft_id: string | null;
+  company_name: string | null;
+  country: string | null;
+  company_website: string | null;
+  additional_instructions: string | null;
+  company_context: unknown | null;
+  body: string;
+  rationale: unknown | null;
+  provider: string | null;
+  model_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type GeneratedResumeDraftRow = {
   id: string;
   user_id: string;

@@ -12,6 +12,7 @@ import {
   listApplicationRecordsFromCloud,
   updateApplicationRecordInCloud,
 } from "@/lib/supabase/application-records";
+import { listGeneratedCoverLetterDraftsFromCloud } from "@/lib/supabase/generated-cover-letter-drafts";
 import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import {
   APPLICATION_RECORD_STATUSES,
@@ -19,6 +20,7 @@ import {
   type StoredApplicationRecord,
 } from "@/types/application-record";
 import type { StoredJobDescription } from "@/types/jd";
+import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 import {
@@ -59,12 +61,29 @@ function buildLatestDraftByApplicationId(
   return latest;
 }
 
+function buildLatestCoverLetterByApplicationId(
+  coverLetters: GeneratedCoverLetterDraftRecord[],
+): Map<string, GeneratedCoverLetterDraftRecord> {
+  const latest = new Map<string, GeneratedCoverLetterDraftRecord>();
+  for (const letter of coverLetters) {
+    if (!letter.applicationId) {
+      continue;
+    }
+    const current = latest.get(letter.applicationId);
+    if (!current || new Date(letter.updatedAt) > new Date(current.updatedAt)) {
+      latest.set(letter.applicationId, letter);
+    }
+  }
+  return latest;
+}
+
 export function ApplicationRecordsPanel({
   isSignedIn,
   jobDescriptions,
 }: ApplicationRecordsPanelProps) {
   const [applications, setApplications] = useState<StoredApplicationRecord[]>([]);
   const [drafts, setDrafts] = useState<GeneratedResumeDraftRecord[]>([]);
+  const [coverLetters, setCoverLetters] = useState<GeneratedCoverLetterDraftRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cardState, setCardState] = useState<Record<string, ApplicationCardState>>({});
 
@@ -77,15 +96,17 @@ export function ApplicationRecordsPanel({
 
     async function load() {
       try {
-        const [applicationRows, draftRows] = await Promise.all([
+        const [applicationRows, draftRows, coverLetterRows] = await Promise.all([
           listApplicationRecordsFromCloud(),
           listGeneratedResumeDraftsFromCloud(),
+          listGeneratedCoverLetterDraftsFromCloud(),
         ]);
         if (cancelled) {
           return;
         }
         setApplications(applicationRows);
         setDrafts(draftRows);
+        setCoverLetters(coverLetterRows);
         setCardState(
           Object.fromEntries(
             applicationRows.map((record) => [
@@ -123,6 +144,10 @@ export function ApplicationRecordsPanel({
   const latestDraftByApplicationId = useMemo(
     () => buildLatestDraftByApplicationId(drafts),
     [drafts],
+  );
+  const latestCoverLetterByApplicationId = useMemo(
+    () => buildLatestCoverLetterByApplicationId(coverLetters),
+    [coverLetters],
   );
 
   function updateCardState(
@@ -208,6 +233,7 @@ export function ApplicationRecordsPanel({
               : undefined;
             const label = formatApplicationLabel(application, job);
             const latestDraft = latestDraftByApplicationId.get(application.id);
+            const latestCoverLetter = latestCoverLetterByApplicationId.get(application.id);
             const jobUrl = application.jobUrl ?? job?.jobUrl;
             const state = cardState[application.id] ?? {
               notesDraft: application.notes ?? "",
@@ -292,6 +318,14 @@ export function ApplicationRecordsPanel({
                     ) : (
                       <p className="text-sm text-slate-600">No linked draft yet.</p>
                     )}
+                    {latestCoverLetter ? (
+                      <Link
+                        href={`/cover-letter-preview/${latestCoverLetter.id}`}
+                        className={`mt-2 inline-flex ${secondaryButtonClassName}`}
+                      >
+                        Open formal cover letter
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
 

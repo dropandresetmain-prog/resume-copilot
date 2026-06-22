@@ -20,6 +20,8 @@ import {
   type SaveJobForGenerationHandler,
 } from "@/lib/generate/save-job-for-generation";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
+import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
+import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import {
   fetchResumeDraftProviderStatus,
@@ -49,6 +51,8 @@ type GenerateTailoredResumeSectionProps = {
   onGenerationFinished?: () => void;
 };
 
+type GenerateMode = "resume_only" | "resume_and_cover_letter";
+
 export function GenerateTailoredResumeSection({
   inventory,
   jobDescriptions,
@@ -67,6 +71,12 @@ export function GenerateTailoredResumeSection({
   const [progressStageIndex, setProgressStageIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
+  const [generateMode, setGenerateMode] = useState<GenerateMode>("resume_and_cover_letter");
+  const [companyNameOverride, setCompanyNameOverride] = useState("");
+  const [country, setCountry] = useState("Singapore");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -190,6 +200,29 @@ export function GenerateTailoredResumeSection({
 
       await markApplicationResumeGenerated(applicationRecord.id);
 
+      if (generateMode === "resume_and_cover_letter") {
+        await advanceStage(5);
+        const coverRecord = await generateAndSaveCoverLetterDraft({
+          job: savedJob,
+          resumeDraft: record,
+          applicationId: applicationRecord.id,
+          companyName: resolveCompanyNameForGeneration({
+            override: companyNameOverride || jobForm.companyName,
+            jobCompanyName: savedJob.companyName,
+            jobDescriptionText: savedJob.rawText,
+          }),
+          country,
+          companyWebsite: companyWebsite || savedJob.jobUrl,
+          additionalInstructions,
+        });
+
+        await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
+        await delay(200);
+        onGenerationFinished?.();
+        router.push(`/cover-letter-preview/${coverRecord.id}`);
+        return;
+      }
+
       await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
       await delay(200);
 
@@ -232,46 +265,130 @@ export function GenerateTailoredResumeSection({
           <GenerationProgressPanel stageIndex={progressStageIndex} />
         </div>
       ) : (
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1">
-            <label htmlFor="base-resume-select" className={labelClassName}>
-              Base resume (formatting template)
+        <>
+          <div className="mt-4">
+            <label htmlFor="generate-mode" className={labelClassName}>
+              Generation mode
             </label>
             <select
-              id="base-resume-select"
-              value={effectiveBaseResumeId}
-              onChange={(event) => setSelectedBaseResumeId(event.target.value)}
-              disabled={disabled || inventory.resumes.length === 0 || isGenerating}
+              id="generate-mode"
+              value={generateMode}
+              onChange={(event) => setGenerateMode(event.target.value as GenerateMode)}
               className={formFieldClassName}
             >
-              {inventory.resumes.length === 0 ? (
-                <option value="">No uploaded resumes</option>
-              ) : (
-                inventory.resumes.map((resume) => (
-                  <option key={resume.id} value={resume.id}>
-                    {resume.filename}
-                  </option>
-                ))
-              )}
+              <option value="resume_and_cover_letter">
+                Generate Tailored Resume &amp; Formal Cover Letter
+              </option>
+              <option value="resume_only">Generate Tailored Resume only</option>
             </select>
-            <p className="mt-1 text-xs text-slate-500">
-              Uses layout and bullet style only — tailored content comes from your career
-              inventory, not this file&apos;s text.
-              {storedPreference && storedPreference === effectiveBaseResumeId
-                ? " Last used base resume selected."
-                : null}
-            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void handleGenerate()}
-            disabled={!canGenerate || isGenerating}
-            className={`${primaryButtonClassName} shrink-0`}
-          >
-            Generate Tailored Resume
-          </button>
-        </div>
+          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="base-resume-select" className={labelClassName}>
+                Base resume (formatting template)
+              </label>
+              <select
+                id="base-resume-select"
+                value={effectiveBaseResumeId}
+                onChange={(event) => setSelectedBaseResumeId(event.target.value)}
+                disabled={disabled || inventory.resumes.length === 0 || isGenerating}
+                className={formFieldClassName}
+              >
+                {inventory.resumes.length === 0 ? (
+                  <option value="">No uploaded resumes</option>
+                ) : (
+                  inventory.resumes.map((resume) => (
+                    <option key={resume.id} value={resume.id}>
+                      {resume.filename}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Uses layout and bullet style only — tailored content comes from your career
+                inventory, not this file&apos;s text.
+                {storedPreference && storedPreference === effectiveBaseResumeId
+                  ? " Last used base resume selected."
+                  : null}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate || isGenerating}
+              className={`${primaryButtonClassName} shrink-0`}
+            >
+              {generateMode === "resume_and_cover_letter"
+                ? "Generate Resume & Cover Letter"
+                : "Generate Tailored Resume"}
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              className="text-sm font-medium text-slate-700 underline"
+              onClick={() => setShowAdvanced((current) => !current)}
+            >
+              {showAdvanced ? "Hide advanced options" : "Show advanced options"}
+            </button>
+          </div>
+
+          {showAdvanced ? (
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              <div>
+                <label htmlFor="company-name-override" className={labelClassName}>
+                  Company name
+                </label>
+                <input
+                  id="company-name-override"
+                  value={companyNameOverride}
+                  onChange={(event) => setCompanyNameOverride(event.target.value)}
+                  placeholder={jobForm.companyName ?? "Extracted from JD if blank"}
+                  className={formFieldClassName}
+                />
+              </div>
+              <div>
+                <label htmlFor="company-country" className={labelClassName}>
+                  Country
+                </label>
+                <input
+                  id="company-country"
+                  value={country}
+                  onChange={(event) => setCountry(event.target.value)}
+                  className={formFieldClassName}
+                />
+              </div>
+              <div>
+                <label htmlFor="company-website" className={labelClassName}>
+                  Company website (optional)
+                </label>
+                <input
+                  id="company-website"
+                  value={companyWebsite}
+                  onChange={(event) => setCompanyWebsite(event.target.value)}
+                  placeholder={jobForm.jobUrl ?? "https://"}
+                  className={formFieldClassName}
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <label htmlFor="additional-instructions" className={labelClassName}>
+                  Additional instructions (optional)
+                </label>
+                <textarea
+                  id="additional-instructions"
+                  value={additionalInstructions}
+                  onChange={(event) => setAdditionalInstructions(event.target.value)}
+                  rows={3}
+                  className={formFieldClassName}
+                  placeholder="Tone, addressee hints, or pasted company context if web research is unavailable."
+                />
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       <p className="mt-3 text-sm text-slate-600">

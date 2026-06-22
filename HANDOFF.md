@@ -2,52 +2,33 @@
 
 ## Current milestone
 
-**v0.8.0 — Application Shell**
+**v0.9.0 — Application Communication / Cover Letter MVP**
 
-Minimal application workflow spine: generate creates/reuses an `application_records` row per job, links `generated_resume_drafts.application_id`, Records page shows Applications (status, notes, latest draft) above legacy unlinked Draft History.
+Formal cover letter generation from JD + resume draft + Application Communication Profile + company context. Combined generate mode, `/profile` editor, `/cover-letter-preview/[draftId]` with PDF/DOCX export, secondary formats copyable on preview and via Records links.
 
-## v0.7.8 highlights
+## v0.8.0 highlights
 
-Inventory edit UX hardening — draft edits lifted to page level, unsaved banner, save feedback, `SetupAlerts` on `/inventory`, immediate cloud save on inventory edits.
-
-## v0.7.7 highlights
-
-Non-destructive inventory edit overlay (`hiddenBulletKeys`, `editedBulletTextByBulletKey`), Edit Bullets tab on Inventory, evidence/regeneration panel on resume preview, regeneration updates the same draft row.
+Application shell: `application_records` linked to JD and resume drafts; Records → Applications panel.
 
 ## Product flow
 
 ```
-Paste JD → Select base resume → Generate Tailored Resume → Application record (status / notes)
-  → Review → PDF Preview → Approve → Download PDF / DOCX
+Paste JD → Generate Resume (& optional Cover Letter) → Application record
+  → Resume preview / Cover letter preview → Edit → Download PDF / DOCX
 ```
 
-If layout changes after approval → status `layout_changed` → re-approve (re-validates server PDF).
+## Cover letter (v0.9.0)
 
-## Application workflow (v0.8.0)
-
-- **Generate** creates or reuses one application per saved job (`job_description_id`).
-- New drafts link via `generated_resume_drafts.application_id`.
-- Application status set to `resume_generated` after successful generate.
-- **Records** → Applications: update status, edit notes, open latest linked draft.
-- **Draft History** below shows only **unlinked** legacy drafts (no data loss).
-
-Statuses: `drafting`, `resume_generated`, `ready_to_apply`, `applied`, `rejected`, `archived`.
-
-## Roadmap
-
-| Milestone | Status |
-|-----------|--------|
-| **v0.8.0 — Application shell** | **Current** |
-| v0.7.8 — Inventory edit UX hardening | Complete |
-| v0.7.7 — Inventory editing & regeneration | Complete |
-| Cover letter generation | Next (after application shell stable) |
-| Online company enrichment | Parked |
-
-See `ROADMAP.md`.
+- **Profile** (`/profile`) — paste/save Application Communication Profile (one blob per user).
+- **Generate** — mode: resume only OR resume + formal cover letter; advanced company fields.
+- **Cover letter preview** — edit formal letter, download PDF/DOCX, copy email/LinkedIn/DM/WhatsApp variants.
+- **Company context** — JD extraction + user fields; no live web search in v0.9.0 (paste context in additional instructions).
+- **Prompt rules** — Min Htet naming, real industry terms, story execution status, 350–450 words formal letter.
 
 ## Run
 
 ```bash
 npm run dev
 npm run test
+supabase db push   # applies 20260622_application_communication_v090.sql
 ```
