@@ -67,6 +67,10 @@ function main() {
     join(process.cwd(), "src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx"),
     "utf8",
   );
+  const revisionClient = readFileSync(
+    join(process.cwd(), "src/lib/cover-letter/revision-client.ts"),
+    "utf8",
+  );
   const revisionRoute = readFileSync(
     join(process.cwd(), "src/app/api/ai/revise-cover-letter/route.ts"),
     "utf8",
@@ -142,6 +146,44 @@ function main() {
         currentBody: "hello",
         action: "shorten",
       }) !== null,
+    ],
+    [
+      "custom revision validation requires instruction",
+      validateCoverLetterRevisionRequest({
+        draftId: "cl-1",
+        currentBody: "hello",
+        action: "custom",
+      }) === "customInstruction is required for custom revisions.",
+    ],
+    [
+      "custom revision validation accepts instruction",
+      validateCoverLetterRevisionRequest({
+        draftId: "cl-1",
+        currentBody: "hello",
+        action: "custom",
+        customInstruction: "Make this warmer.",
+      }) === null,
+    ],
+    [
+      "revision client sends bearer token",
+      revisionClient.includes("Authorization: `Bearer ${accessToken}`") &&
+        revisionClient.includes("getRevisionAccessToken"),
+    ],
+    [
+      "revision client maps missing session to sign-in error",
+      revisionClient.includes("Sign in required to revise cover letters."),
+    ],
+    [
+      "revision route requires access token",
+      revisionRoute.includes("getAccessTokenFromRequest"),
+    ],
+    [
+      "revision route loads draft for authenticated user",
+      revisionRoute.includes("getGeneratedCoverLetterDraftForUser"),
+    ],
+    [
+      "revision route updates draft scoped to user",
+      revisionRoute.includes("updateGeneratedCoverLetterDraftInCloudForUser"),
     ],
     ["revision route does not load resume generation", !revisionRoute.includes("requestResumeDraftGeneration")],
     ["revision route does not create resume draft", !revisionRoute.includes("createGeneratedResumeDraftInCloud")],

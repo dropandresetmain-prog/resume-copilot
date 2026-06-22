@@ -1,21 +1,47 @@
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type {
   CoverLetterRevisionRequest,
   CoverLetterRevisionResponse,
 } from "@/types/cover-letter-draft";
 import { isCoverLetterRevisionAction } from "@/lib/cover-letter/revision-prompt";
 
+async function getRevisionAccessToken(): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(error.message);
+  }
+  const accessToken = data.session?.access_token;
+  if (!accessToken) {
+    throw new Error("Sign in required to revise cover letters.");
+  }
+  return accessToken;
+}
+
 export async function requestCoverLetterRevision(
   input: CoverLetterRevisionRequest,
 ): Promise<CoverLetterRevisionResponse> {
+  const accessToken = await getRevisionAccessToken();
   const response = await fetch("/api/ai/revise-cover-letter", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(input),
   });
 
   const payload = (await response.json().catch(() => null)) as
     | (CoverLetterRevisionResponse & { error?: string })
     | null;
+
+  if (response.status === 401) {
+    throw new Error(
+      payload?.error === "Authorization required."
+        ? "Sign in required to revise cover letters."
+        : payload?.error ?? "Sign in required to revise cover letters.",
+    );
+  }
 
   if (!response.ok || !payload?.body) {
     throw new Error(payload?.error ?? "Cover letter revision failed.");
