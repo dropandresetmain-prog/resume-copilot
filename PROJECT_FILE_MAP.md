@@ -1,4 +1,4 @@
-# Project File Map
+**v0.9.8B** — See `HANDOFF.md` for current milestone.
 
 ## App routes
 
@@ -10,17 +10,21 @@
 | `/records` | `src/app/(workspace)/records/page.tsx` | Applications + saved jobs + communications + unlinked draft history |
 | `/profile` | `src/app/(workspace)/profile/page.tsx` | Application Communication Profile editor (v0.9.0) |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
-| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1+) |
+| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Application package — resume, cover letter, research (v0.9.8) |
 | `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
-| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Formal cover letter preview/edit + export (v0.9.0) |
+| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Cover letter editor + export (v0.9.0) |
+| `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Dev utilities (profile backfill, etc.) |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
-| `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Server-side resume draft generation (4A) |
-| `/api/ai/generate-company-context` | `src/app/api/ai/generate-company-context/route.ts` | Company context generation (v0.9.3) |
-| `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Server-side cover letter generation (v0.9.0) |
+| `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Resume draft generation |
+| `/api/ai/generate-company-context` | `src/app/api/ai/generate-company-context/route.ts` | Company context generation (v0.9.3+) |
+| `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Cover letter generation (v0.9.0) |
 | `/api/ai/revise-cover-letter` | `src/app/api/ai/revise-cover-letter/route.ts` | Cover letter quick revision (v0.9.2) |
-| `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved draft → DOCX export (v0.6.0) |
-| `/api/export/cover-letter-pdf` | `src/app/api/export/cover-letter-pdf/route.ts` | Cover letter → PDF export (v0.9.0) |
-| `/api/export/cover-letter-docx` | `src/app/api/export/cover-letter-docx/route.ts` | Cover letter → DOCX export (v0.9.0) |
+| `/api/approve/resume-draft` | `src/app/api/approve/resume-draft/route.ts` | Approve + server PDF validation (v0.7.0) |
+| `/api/validate/resume-pdf` | `src/app/api/validate/resume-pdf/route.ts` | Server PDF page-count check |
+| `/api/export/resume-pdf` | `src/app/api/export/resume-pdf/route.ts` | Approved resume → PDF |
+| `/api/export/resume-docx` | `src/app/api/export/resume-docx/route.ts` | Approved resume → DOCX |
+| `/api/export/cover-letter-pdf` | `src/app/api/export/cover-letter-pdf/route.ts` | Cover letter → PDF |
+| `/api/export/cover-letter-docx` | `src/app/api/export/cover-letter-docx/route.ts` | Cover letter → DOCX |
 
 Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `AppShell`).
 
@@ -86,7 +90,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `supabase/schema.sql` | Tables, RLS, storage buckets and policies |
 | `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes |
 | `supabase/migrations/20260620_add_saved_job_summary.sql` | Adds `summary` column to `job_descriptions` |
-| `supabase/migrations/20260622_application_communication_v090.sql` | Profile table + extended cover letter draft columns (v0.9.0) |
+| `supabase/migrations/20260622_application_communication_v090.sql` | Profile table + cover letter columns (v0.9.0) |
+| `supabase/migrations/20260623_application_company_context_v093.sql` | `company_context` on application_records (v0.9.3) |
 | `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
 | `src/lib/supabase/generated-cover-letter-drafts.ts` | Create/list/get/update cover letter drafts (v0.9.0) |
 | `src/lib/supabase/application-communication-profiles.ts` | Load/save Application Communication Profile (v0.9.0) |
@@ -171,8 +176,14 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/types/inventory-edits.ts` | `InventoryEdits` overlay type (v0.7.7) |
 | `src/lib/resume-draft/bullet-payload.ts` | Bullet ranking/cap/force/exclude selection (v0.7.7) |
 | `src/lib/resume-draft/enrichment-wording.ts` | Accepted enrichment wording lookup by bulletKey (v0.7.6) |
-| `src/lib/resume-draft/generation-validation.ts` | Normalize, validate, prepare generated content + hard/soft issue classification (v0.9.8B) |
-| `src/lib/resume-draft/repair-generated-content.ts` | Auto-repair excess roles/bullets before save (v0.9.8B) |
+| `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
+| `src/lib/resume-draft/generation-validation.ts` | Normalize, validate, prepare + hard/soft classification (v0.9.8B) |
+| `src/lib/resume-draft/repair-generated-content.ts` | Auto-repair excess roles/bullets (v0.9.8B) |
+| `src/lib/resume-draft/additional-experience.ts` | Title:Detail normalization for additional experience |
+| `src/lib/resume-draft/draft-status.ts` | Draft status constants (`approved`, `needs_review`, etc.) |
+| `src/lib/resume-draft/build-export-document-model.ts` | Shared export document model builder |
+| `src/lib/resume-draft/resolve-export-request.ts` | Export/approve shared draft resolution + company context |
+| `src/lib/resume-draft/approve-resume-draft-client.ts` | Client approve + one-page validation |
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
@@ -186,9 +197,6 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/pdf-export.ts` | Puppeteer PDF generation (v0.6.2+) |
 | `src/lib/supabase/resume-pdf-storage.ts` | PDF upload to `generated-documents` (v0.6.2+) |
 | `src/app/api/export/resume-pdf/route.ts` | POST PDF export API (v0.6.2+) |
-| `src/lib/resume-draft/pdf-export.ts` | Puppeteer PDF generation from document model (v0.6.2) |
-| `src/lib/supabase/resume-pdf-storage.ts` | PDF upload to `generated-documents` (v0.6.2) |
-| `src/app/api/export/resume-pdf/route.ts` | POST PDF export API (v0.6.2) |
 | `src/lib/resume-draft/docx-font.ts` | DOCX font + px→pt mapping (v0.6.1+) |
 | `src/lib/resume-draft/docx-layout-helpers.ts` | Company line segments + layout constants (v0.6.1) |
 | `src/lib/resume-draft/docx-export.ts` | DOCX generation from document model (v0.6.0+) |
@@ -197,6 +205,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/export-client.ts` | Browser client for DOCX export API (v0.6.0) |
 | `src/lib/supabase/server-client.ts` | Supabase client from user access token (v0.6.0) |
 | `src/lib/supabase/resume-docx-storage.ts` | Upload exported DOCX to storage (v0.6.0) |
+| `src/components/resume-drafts/DownloadResumePdfButton.tsx` | Download PDF UI button (v0.6.2+) |
 | `src/components/resume-drafts/DownloadResumeDocxButton.tsx` | Download DOCX UI button (v0.6.0) |
 | `src/lib/resume-draft/education-layout.ts` | Render-time education normalization (v0.5.5) |
 | `src/lib/resume-draft/keyword-repair.ts` | Generic `Experience:` bullet repair (v0.5.4) |
@@ -216,61 +225,63 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/resume-drafts/ResumeDraftBulletCard.tsx` | Experience bullet review card |
 | `src/components/resume-drafts/ResumeDraftReviewPanel.tsx` | Re-export of review workspace |
 
-## Application communication / cover letter (v0.9.0)
+## Application package / company research / cover letter (v0.9.x)
 
 | File | Purpose |
 |------|---------|
 | `src/lib/firecrawl/scrape-company-website.ts` | Firecrawl scrape helper (v0.9.5) |
 | `src/lib/firecrawl/url.ts` | Company website URL validation + job board detection |
 | `src/lib/company-context/research.ts` | Firecrawl + Gemini research orchestration (v0.9.5) |
-| `src/lib/ai/config.ts` | `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` env overrides |
-| `src/lib/generate/generation-progress.ts` | Progress percent helper; re-exports stage builders (v0.9.6) |
-| `src/lib/company-context/research-plan.ts` | Research plan + dynamic progress stage labels (v0.9.6) |
-| `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save; website-backed reuse only (v0.9.6) |
-| `src/lib/company-context/status-labels.ts` | Compact `Company research:` status labels (v0.9.6) |
-| `src/lib/company-context/prompt.ts` | Gemini company context prompt (no web search) |
+| `src/lib/company-context/build-company-context.ts` | Build context from JD/website inputs |
+| `src/lib/company-context/research-plan.ts` | Research plan + dynamic progress stages (v0.9.6) |
+| `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save; website-backed reuse (v0.9.6) |
+| `src/lib/company-context/status-labels.ts` | Compact company research status labels (v0.9.6) |
+| `src/lib/company-context/prompt.ts` | Gemini company context prompt |
 | `src/lib/company-context/parse.ts` | JSON parse + save validation |
-| `src/lib/company-context/normalize.ts` | Legacy → v0.9.3 shape + prompt formatting |
+| `src/lib/company-context/normalize.ts` | Legacy shape + usable/website-backed helpers |
 | `src/lib/company-context/resolve-for-generation.ts` | Saved context or JD fallback |
 | `src/lib/company-context/client.ts` | Browser client for generate-company-context API |
-| `src/lib/company-context/gemini-call-map.ts` | Static end-to-end Gemini call audit |
+| `src/lib/ai/company-context-provider.ts` | Company context provider selection |
 | `src/lib/ai/company-context-gemini.ts` | Gemini company context provider |
-| `src/lib/cover-letter/company-name.ts` | Display name + URL detection + brand from hostname (v0.9.7) |
-| `src/lib/cover-letter/story-ranking.ts` | Relevance-based experience ranking (v0.9.7) |
-| `src/lib/cover-letter/export-filename.ts` | Cover letter export naming (v0.9.7) |
-| `src/lib/cover-letter/prompt.ts` | Structured bridge architecture prompt (v0.9.7) |
-| `src/lib/cover-letter/generation-validation.ts` | URL + rationale quality validation (v0.9.7) |
-| `src/components/application-package/ApplicationPackageSummary.tsx` | Compact package status header (v0.9.8) |
-| `src/components/application-package/ApplicationPackageCoverLetterPanel.tsx` | Inline cover letter + actions (v0.9.8) |
-| `src/components/pages/ResumePreviewPageClient.tsx` | Application package layout (v0.9.8) |
-| `src/components/company-context/CompanyContextPreviewPanel.tsx` | Full research display (v0.9.7) |
-| `src/components/company-context/CompanyContextEditorPanel.tsx` | Optional collapsed research editor (v0.9.6) |
-| `src/components/company-context/CompanyContextPreviewPanel.tsx` | Cover letter preview collapsible context (v0.9.3) |
-| `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + tone/length rules |
-| `src/lib/cover-letter/word-limits.ts` | 420-word hard max + target range (v0.9.2) |
-| `src/lib/cover-letter/company-name.ts` | Company display name normalization (v0.9.2) |
-| `src/lib/cover-letter/banned-phrases.ts` | Banned AI-ish phrase detection (v0.9.2) |
-| `src/lib/cover-letter/revision-prompt.ts` | Quick revision prompt + action labels (v0.9.2) |
-| `src/lib/cover-letter/revision-parse.ts` | Revision JSON parse + validation (v0.9.2) |
-| `src/lib/cover-letter/revision-client.ts` | Browser client for revise-cover-letter API (v0.9.2) |
-| `src/lib/ai/revise-cover-letter-provider.ts` | Revision provider selection (v0.9.2) |
-| `src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx` | Quick adjustment buttons (v0.9.2) |
-| `src/lib/cover-letter/parse.ts` | Parse model JSON (formal + secondary formats) |
-| `src/lib/cover-letter/generation-validation.ts` | Word count + required formal letter validation |
-| `src/lib/cover-letter/resume-evidence.ts` | Resume draft → evidence spine for prompt |
-| `src/lib/cover-letter/client.ts` | Browser client for generate-cover-letter API |
-| `src/lib/cover-letter/export-client.ts` | Browser client for cover letter PDF/DOCX export |
-| `src/lib/cover-letter/pdf-html.ts` | Simple professional letter HTML |
-| `src/lib/cover-letter/pdf-export.ts` | Puppeteer PDF for cover letter |
-| `src/lib/cover-letter/docx-export.ts` | DOCX for cover letter |
+| `src/lib/ai/call-gemini.ts` | Gemini retry + fallback model (v0.9.4) |
+| `src/lib/ai/config.ts` | `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` overrides |
+| `src/components/company-context/CompanyContextPreviewPanel.tsx` | Research display (package + cover letter) |
+| `src/components/company-context/CompanyContextEditorPanel.tsx` | Collapsed research editor (Generate Advanced) |
+| `src/components/company-context/CompanyResearchCompactStatus.tsx` | Compact status on Generate (v0.9.6) |
+| `src/components/application-package/ApplicationPackageSummary.tsx` | Package status header (v0.9.8) |
+| `src/components/application-package/ApplicationPackageCoverLetterPanel.tsx` | Inline cover letter (v0.9.8) |
+| `src/components/pages/ResumePreviewPageClient.tsx` | Application package + repair banner (v0.9.8B) |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | Cover letter editor page |
+| `src/lib/cover-letter/company-name.ts` | Display name + URL detection (v0.9.7 / v0.9.8A) |
+| `src/lib/cover-letter/format-body.ts` | Inline cover letter paragraph split (v0.9.8A) |
+| `src/lib/cover-letter/story-ranking.ts` | Experience ranking for cover letter (v0.9.7) |
+| `src/lib/cover-letter/export-filename.ts` | Structured export filenames (v0.9.7) |
+| `src/lib/cover-letter/prompt.ts` | Bridge architecture prompt (v0.9.7) |
+| `src/lib/cover-letter/generation-validation.ts` | Word count, URLs, bridges |
+| `src/lib/cover-letter/word-limits.ts` | 420-word hard max (v0.9.2) |
+| `src/lib/cover-letter/banned-phrases.ts` | Banned phrase detection (v0.9.2) |
+| `src/lib/cover-letter/revision-prompt.ts` | Quick revision prompt (v0.9.2) |
+| `src/lib/cover-letter/revision-parse.ts` | Revision JSON parse (v0.9.2) |
+| `src/lib/cover-letter/revision-client.ts` | Revise API browser client (v0.9.2) |
+| `src/lib/cover-letter/resume-evidence.ts` | Resume → evidence spine |
+| `src/lib/cover-letter/parse.ts` | Parse formal + secondary formats |
+| `src/lib/cover-letter/client.ts` | Generate-cover-letter API client |
+| `src/lib/cover-letter/export-client.ts` | Cover letter export download client |
+| `src/lib/cover-letter/pdf-html.ts` | Cover letter print HTML |
+| `src/lib/cover-letter/pdf-export.ts` | Puppeteer PDF |
+| `src/lib/cover-letter/docx-export.ts` | DOCX export |
 | `src/lib/ai/cover-letter-provider.ts` | Cover letter provider selection |
-| `src/lib/ai/cover-letter-mock.ts` | Mock cover letter provider (tests) |
-| `src/lib/ai/cover-letter-gemini.ts` | Gemini cover letter provider |
-| `src/lib/generate/cover-letter-generation.ts` | Orchestrate context + AI + Supabase save |
-| `src/components/cover-letters/DownloadCoverLetterPdfButton.tsx` | Download PDF button |
-| `src/components/cover-letters/DownloadCoverLetterDocxButton.tsx` | Download DOCX button |
-| `src/components/cover-letters/SecondaryCommunicationsPanel.tsx` | Email/LinkedIn/DM/WhatsApp copy blocks |
-| `src/components/cover-letters/ResumeCoverLetterPanel.tsx` | Resume preview: generate/link cover letter |
+| `src/lib/ai/cover-letter-mock.ts` | Mock provider |
+| `src/lib/ai/cover-letter-gemini.ts` | Gemini provider |
+| `src/lib/ai/revise-cover-letter-provider.ts` | Revision provider selection |
+| `src/lib/generate/build-cover-letter-options.ts` | Cover letter generation input builder |
+| `src/lib/generate/cover-letter-generation.ts` | Orchestrate + save cover letter |
+| `src/lib/generate/generation-artifact-status.ts` | Application artifact summary labels |
+| `src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx` | Quick revision buttons |
+| `src/components/cover-letters/DownloadCoverLetterPdfButton.tsx` | Download PDF |
+| `src/components/cover-letters/DownloadCoverLetterDocxButton.tsx` | Download DOCX |
+| `src/components/cover-letters/SecondaryCommunicationsPanel.tsx` | Secondary outreach formats |
+| `src/components/cover-letters/ResumeCoverLetterPanel.tsx` | Legacy panel (superseded on package page) |
 
 ## Inventory and parser
 
@@ -318,6 +329,26 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-resume-export-strategy.ts` | Export strategy + download behavior + PDF Preview tests (v0.6.4) |
 | `scripts/verify-draft-inventory-safety.ts` | Draft edit paths must not mutate inventory (v0.5.4+) |
 | `scripts/verify-supabase.ts` | Supabase pure helpers (no live project) |
+| `scripts/verify-profile-contact.ts` | Profile/contact parser |
+| `scripts/verify-profile-backfill.ts` | Profile backfill for legacy inventories |
+| `scripts/verify-inventory-edit-ux.ts` | Inventory edit UX wiring |
+| `scripts/verify-company-context.ts` | Company context prompt/parse (v0.9.3) |
+| `scripts/verify-gemini-retry.ts` | Gemini retry behavior (v0.9.4) |
+| `scripts/verify-auto-company-context.ts` | Auto context in combined flow (v0.9.4) |
+| `scripts/verify-firecrawl-research.ts` | Firecrawl research (v0.9.5) |
+| `scripts/verify-research-progress.ts` | Research progress stages (v0.9.6) |
+| `scripts/verify-generate-flow.ts` | Generate flow wiring |
+| `scripts/verify-generation-partial-failure.ts` | Partial cover letter failure (v0.9.1) |
+| `scripts/verify-cover-letter-application-package.ts` | Cover letter package integration (v0.9.7) |
+| `scripts/verify-application-package-ux.ts` | Application package layout order (v0.9.8) |
+| `scripts/verify-workflow-paper-cuts.ts` | Naming, navigation, display helpers (v0.9.8A) |
+| `scripts/verify-resume-approve-validation.ts` | Approve + server PDF validation |
+| `scripts/verify-resume-pdf-page-count.ts` | PDF page count helper |
+| `scripts/verify-resume-pdf-preview-overflow.ts` | PDF preview overflow badge |
+| `scripts/verify-resume-export-delivery.ts` | Export download delivery |
+| `scripts/verify-resume-export-model-parity.ts` | Export model parity |
+| `scripts/verify-resume-approval-layout.ts` | Approval layout persistence |
+| `scripts/verify-skills-section.ts` | Skills section extraction |
 
 ## Documentation
 

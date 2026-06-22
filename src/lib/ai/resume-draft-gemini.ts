@@ -1,7 +1,6 @@
 import { callGeminiWithRetry } from "@/lib/ai/call-gemini";
 import {
   getHardBlockValidationErrors,
-  mergeGenerationWarningsIntoContent,
   prepareGeneratedResumeContent,
   ResumeDraftValidationError,
 } from "@/lib/resume-draft/generation-validation";
@@ -33,6 +32,9 @@ export async function generateResumeDraftWithGemini(
   const prepared = prepareGeneratedResumeContent(parsed.value.content, {
     jdText: input.jobDescription.rawText,
     targetRoleTitle: input.jobDescription.roleTitle,
+    forcedBulletKeys: input.regenerationControls?.forcedBulletKeys,
+    unavailableForcedKeys: input.auditHints?.unavailableForcedBulletKeys,
+    excludedBulletKeys: input.regenerationControls?.excludedBulletKeys,
   });
 
   const hardBlockErrors = getHardBlockValidationErrors(prepared.validation);
@@ -44,14 +46,21 @@ export async function generateResumeDraftWithGemini(
   }
 
   const rationale =
-    prepared.repairMessages.length > 0
+    prepared.repairMessages.length > 0 || prepared.forcedBulletAudit
       ? {
           ...parsed.value.rationale,
-          structureRepair: {
-            actions: prepared.repairActions,
-            messages: prepared.repairMessages,
-            needsReview: prepared.needsReview,
-          },
+          ...(prepared.forcedBulletAudit
+            ? { forcedBulletAudit: prepared.forcedBulletAudit }
+            : {}),
+          ...(prepared.repairMessages.length > 0
+            ? {
+                structureRepair: {
+                  actions: prepared.repairActions,
+                  messages: prepared.repairMessages,
+                  needsReview: prepared.needsReview,
+                },
+              }
+            : {}),
         }
       : parsed.value.rationale;
 

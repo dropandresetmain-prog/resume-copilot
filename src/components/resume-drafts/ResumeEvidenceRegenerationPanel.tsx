@@ -10,6 +10,14 @@ import {
 import { listCollatedBulletsWithEditState } from "@/lib/inventory/edits";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
+import {
+  auditForcedBullets,
+  buildRegenerationOutcomeSummary,
+  collectPayloadBulletKeys,
+  explainUnavailableForcedKeys,
+  findForcedKeysAlreadyInPayload,
+  type RegenerationOutcomeSummary,
+} from "@/lib/resume-draft/forced-bullets";
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import { formatSourceRefLabel, hasSourceRefs } from "@/lib/resume-draft/preview-helpers";
@@ -43,7 +51,6 @@ export function ResumeEvidenceRegenerationPanel({
   jobDescription,
   onDraftUpdated,
 }: ResumeEvidenceRegenerationPanelProps) {
-  const activeCollated = useMemo(() => buildActiveCollatedInventory(inventory), [inventory]);
   const rawCollated = useMemo(() => buildCollatedInventory(inventory), [inventory]);
   const availableBullets = useMemo(
     () =>
@@ -62,6 +69,9 @@ export function ResumeEvidenceRegenerationPanel({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [outcomeSummary, setOutcomeSummary] = useState<RegenerationOutcomeSummary | null>(
+    null,
+  );
 
   const regenerationControls: ResumeDraftRegenerationControls = useMemo(
     () => ({
@@ -75,6 +85,58 @@ export function ResumeEvidenceRegenerationPanel({
     () => assessRegenerationFeasibility({ regenerationControls }),
     [regenerationControls],
   );
+
+  const payloadPreview = useMemo(() => {
+    if (!jobDescription || !draft.referenceResumeId) {
+      return null;
+    }
+
+    try {
+      const baseline = buildResumeDraftPayloadFromInventory({
+        inventory,
+        jobDescription,
+        referenceResumeId: draft.referenceResumeId,
+        regenerationControls: {
+          forcedBulletKeys: [],
+          excludedBulletKeys: regenerationControls.excludedBulletKeys,
+        },
+      });
+      const withControls = buildResumeDraftPayloadFromInventory({
+        inventory,
+        jobDescription,
+        referenceResumeId: draft.referenceResumeId,
+        regenerationControls,
+      });
+      return { baseline, withControls };
+    } catch {
+      return null;
+    }
+  }, [inventory, jobDescription, draft.referenceResumeId, regenerationControls]);
+
+  const unavailableForcedEntries = useMemo(() => {
+    if (!payloadPreview || forcedKeys.size === 0) {
+      return [];
+    }
+
+    return explainUnavailableForcedKeys({
+      unavailableKeys:
+        payloadPreview.withControls.generationInput.auditHints?.unavailableForcedBulletKeys ??
+        [],
+      excludedBulletKeys: regenerationControls.excludedBulletKeys,
+      hiddenBulletKeys: inventory.edits?.hiddenBulletKeys,
+    });
+  }, [payloadPreview, forcedKeys.size, regenerationControls.excludedBulletKeys, inventory.edits]);
+
+  const alreadyInPayloadKeys = useMemo(() => {
+    if (!payloadPreview || forcedKeys.size === 0) {
+      return [];
+    }
+
+    return findForcedKeysAlreadyInPayload({
+      forcedKeys: regenerationControls.forcedBulletKeys,
+      baselinePayloadKeys: collectPayloadBulletKeys(payloadPreview.baseline.generationInput),
+    });
+  }, [payloadPreview, forcedKeys.size, regenerationControls.forcedBulletKeys]);
 
   function toggleExcluded(key: string) {
     setExcludedGeneratedKeys((current) => {
@@ -114,7 +176,10 @@ export function ResumeEvidenceRegenerationPanel({
 
     setIsRegenerating(true);
     setError(null);
+    setOutcomeSummary(null);
     setWarnings(feasibility.warnings);
+
+    const priorContent = draft.content;
 
     try {
       const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
@@ -136,6 +201,27 @@ export function ResumeEvidenceRegenerationPanel({
         status: response.draftStatus ?? "generated",
       });
 
+      const audit = auditForcedBullets({
+        forcedKeys: regenerationControls.forcedBulletKeys,
+        unavailableKeys: generationInput.auditHints?.unavailableForcedBulletKeys,
+        excludedBulletKeys: regenerationControls.excludedBulletKeys,
+        hiddenBulletKeys: inventory.edits?.hiddenBulletKeys,
+        alreadyInPayloadKeys,
+        contentBeforeRepair: priorContent,
+        contentAfterRepair: updated.content,
+        removedDuringRepair: response.rationale?.forcedBulletAudit?.removedDuringRepair,
+        unableToPreserveDuringRepair:
+          response.rationale?.forcedBulletAudit?.unableToPreserveDuringRepair,
+      });
+
+      setOutcomeSummary(
+        buildRegenerationOutcomeSummary({
+          priorContent,
+          newContent: updated.content,
+          audit,
+        }),
+      );
+
       onDraftUpdated(updated);
       setExcludedGeneratedKeys(new Set());
     } catch (regenerationError) {
@@ -155,7 +241,7 @@ export function ResumeEvidenceRegenerationPanel({
       description="Inspect evidence, exclude or force inventory bullets, and regenerate the resume. Does not change source inventory."
     >
       <p className="mt-3 text-sm text-slate-600">
-        Active inventory bullets available: {activeCollated.experiences.reduce(
+        Active inventory bullets available: {buildActiveCollatedInventory(inventory).experiences.reduce(
           (total, experience) => total + experience.bullets.length,
           0,
         )}
@@ -218,8 +304,30 @@ export function ResumeEvidenceRegenerationPanel({
         <section>
           <h3 className="text-sm font-semibold text-slate-900">Force inventory bullets</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Include bullets in the next regeneration even if ranking would omit them.
+            Include bullets in the next regeneration even if ranking would omit them. Forced bullets
+            must appear in the regenerated resume when available.
           </p>
+
+          {alreadyInPayloadKeys.length > 0 ? (
+            <ul className="mt-3 space-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              {alreadyInPayloadKeys.map((key) => (
+                <li key={key}>
+                  Already in generation payload — forcing may not change bullet selection.
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {unavailableForcedEntries.length > 0 ? (
+            <ul className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              {unavailableForcedEntries.map((entry) => (
+                <li key={entry.key}>
+                  <span className="font-medium">Unavailable forced bullet:</span> {entry.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
           <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
             {availableBullets.map((listing) => (
               <li
@@ -254,6 +362,17 @@ export function ResumeEvidenceRegenerationPanel({
         </ul>
       ) : null}
 
+      {outcomeSummary ? (
+        <ul
+          className="mt-4 space-y-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+          data-testid="regeneration-outcome-summary"
+        >
+          {outcomeSummary.lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+
       {error ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
@@ -274,6 +393,7 @@ export function ResumeEvidenceRegenerationPanel({
           onClick={() => {
             setExcludedGeneratedKeys(new Set());
             setForcedKeys(new Set());
+            setOutcomeSummary(null);
           }}
           disabled={isRegenerating}
           className={secondaryButtonClassName}

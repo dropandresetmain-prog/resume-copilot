@@ -4,6 +4,12 @@ import {
   parseAdditionalExperienceItemText,
 } from "@/lib/resume-draft/additional-experience";
 import {
+  auditForcedBullets,
+  normalizeForcedBulletKeys,
+  validateForcedBulletsInOutput,
+  type ForcedBulletAudit,
+} from "@/lib/resume-draft/forced-bullets";
+import {
   repairGeneratedResumeContent,
   RESUME_STRUCTURE_NEEDS_REVIEW_FLAG,
   type RepairGeneratedResumeContext,
@@ -213,6 +219,7 @@ export type PreparedGeneratedResumeContent = {
   repairMessages: string[];
   needsReview: boolean;
   draftStatus: string;
+  forcedBulletAudit?: ForcedBulletAudit;
 };
 
 function downgradeSoftStructureErrors(
@@ -252,6 +259,28 @@ export function prepareGeneratedResumeContent(
   let validation = validateGeneratedResumeContent(repaired.content);
   const repairRan = repaired.repairActions.length > 0;
   const needsReview = repaired.needsReview || repairRan;
+  const forcedKeys = normalizeForcedBulletKeys(context?.forcedBulletKeys);
+  let forcedBulletAudit: ForcedBulletAudit | undefined;
+
+  if (forcedKeys.length > 0) {
+    forcedBulletAudit = auditForcedBullets({
+      forcedKeys,
+      unavailableKeys: context?.unavailableForcedKeys,
+      excludedBulletKeys: context?.excludedBulletKeys,
+      hiddenBulletKeys: context?.hiddenBulletKeys,
+      alreadyInPayloadKeys: context?.alreadyInPayloadKeys,
+      contentBeforeRepair: normalized,
+      contentAfterRepair: repaired.content,
+      removedDuringRepair: repaired.forcedBulletsRemovedDuringRepair,
+      unableToPreserveDuringRepair: repaired.unableToPreserveForcedBullets,
+    });
+
+    for (const forcedIssue of validateForcedBulletsInOutput(forcedBulletAudit)) {
+      validation.warnings.push(
+        issue(forcedIssue.code, forcedIssue.message, forcedIssue.severity),
+      );
+    }
+  }
 
   if (repairRan || repaired.needsReview) {
     validation = downgradeSoftStructureErrors(validation);
@@ -311,6 +340,7 @@ export function prepareGeneratedResumeContent(
     repairMessages: repaired.repairMessages,
     needsReview,
     draftStatus: needsReview ? RESUME_DRAFT_STATUS_NEEDS_REVIEW : "generated",
+    forcedBulletAudit,
   };
 }
 

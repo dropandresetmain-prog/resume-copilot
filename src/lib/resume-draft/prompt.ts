@@ -1,5 +1,6 @@
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
 import { formatCompanyContextForPrompt } from "@/lib/company-context/normalize";
+import { buildForcedBulletPromptSectionFromInput } from "@/lib/resume-draft/forced-bullets";
 
 export const RESUME_DRAFT_SYSTEM_INSTRUCTIONS = `You are a resume draft generation assistant.
 
@@ -195,7 +196,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
 }
 
 Input payload:
-${JSON.stringify(input, null, 2)}${companyContextSection}`;
+${JSON.stringify(input, null, 2)}${companyContextSection}${buildForcedBulletPromptSectionFromInput(input)}`;
 }
 
 export function promptIncludesJsonSchemaInstructions(prompt: string): boolean {

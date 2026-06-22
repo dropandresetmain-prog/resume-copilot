@@ -8,8 +8,8 @@
 - Approve runs server PDF generation (~3–15s cold on Vercel) — validating state shown in UI.
 - **Post-approval layout edits** set `layout_changed` and clear `serverPdfValidation`; re-approve required.
 - **DOCX** is secondary/editable — no one-page server gate; may reflow in Word.
-- PDF/DOCX delivery uses blob download with intended filename (v0.6.8).
-- Export APIs use shared `buildExportResumeDocumentModel()` + `resolveExportDocumentModelForDraft()`.
+- PDF/DOCX delivery uses blob download with structured filenames (v0.9.7+).
+- Export APIs use shared `buildExportResumeDocumentModel()` + `resolveExportDocumentModelForDraft()` (loads application company context for naming).
 
 ## One-page enforcement
 
@@ -27,9 +27,6 @@
 
 - Body font slider **10–20px** (default **12.5px**). Optimizer starts at 12.5px then tightens if needed.
 - **Wrapped line height** (`lineSpacing`, default 1.08) vs **item spacing** (`itemLineSpacing`, default 1.2) are separate in print CSS.
-- `itemLineSpacing` is optional in stored `exportLayoutSettings`; missing values default safely.
-- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (bullet padding reduced ~75% in v0.7.1).
-- PDF via `puppeteer-core` + `@sparticuz/chromium`; Vercel `maxDuration: 60`.
 - Default 12.5px body may require slider tuning to pass server one-page validation on dense drafts.
 
 ## DOCX export
@@ -37,94 +34,80 @@
 - DOCX uses Gill Sans MT; Word may substitute.
 - Not pixel-identical to PDF.
 
-## Mobile preview
-
-- PDF Preview scales A4; overflow badge when local content exceeds one page.
-
 ## Generate flow (v0.7.2+)
 
-- **Generate page:** Paste JD → select base resume → **Generate Tailored Resume**. Job saves automatically (reuses duplicate saved jobs when content matches).
-- **Records page:** Explicit Save/Update when editing saved jobs (unchanged).
+- **Generate page:** Paste JD → select base resume → **Generate** (resume only or combined). Job saves automatically.
 - **Base resume** = formatting/reference template only; content from inventory.
-- Last-used base resume stored in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`) — no Supabase migration.
+- Last-used base resume in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`).
 
-## Application workflow (v0.8.0)
+## Application workflow (v0.8.0+)
 
-- **Generate** creates or reuses `application_records` per `job_description_id` and links new drafts via `application_id`.
-- Application status defaults to `drafting`; set to `resume_generated` after successful generate.
-- **Records → Applications:** status dropdown, notes, open latest linked draft.
+- **Generate** creates or reuses `application_records` per `job_description_id`; links drafts via `application_id`.
+- Post-generate navigation lands on **application package** (`/resume-preview/{id}`).
 - **Draft History** shows only drafts without `application_id` (legacy/unlinked).
-- **Parked:** lazy backfill of application records for old drafts, apply tracking UI, kanban.
+- **Parked:** lazy backfill for old drafts, kanban, apply tracking UI.
 
-## Cover letter & communications (v0.9.x)
+## Resume structure auto-repair (v0.9.8B)
 
-- **Profile** (`/profile`) stores one Application Communication Profile blob per user.
-- **Generate** can produce formal cover letter + secondary outreach formats (stored in `rationale` JSON).
-- **Partial failure (v0.9.1):** cover letter failure preserves resume; retry cover letter only.
-- **Quality (v0.9.2):** hard 420-word max; banned internal positioning phrases; company name normalization; quick revision on preview.
-- **Company context** built from JD + user fields; no live web search — paste context in additional instructions.
-- **Export** formal cover letter PDF/DOCX blocked when >420 words or banned phrases (client + server).
-- **Investigate Now:** external web search API for company research.
+- Gemini output with 5+ roles or bullet overages is **auto-repaired** before save — no longer hard-fails.
+- Repaired drafts: `status: needs_review`, `resume_structure_needs_review` flag, amber banner on package page.
+- Dropped roles move to Additional Experience as `Company: Role — detail` lines — may need manual polish.
+- Repair ranking uses JD keyword overlap (same family as generation bullet ranking) — not ML; edge cases may drop wrong role.
+- **Hard-block remains:** no work experience, missing Skills/Languages/Interests groups, unparseable JSON, additional experience that cannot normalize.
+- `needs_review` does **not** block approve/export — user must read repair banner.
+
+## Cover letter (v0.9.x)
+
+- **Profile** (`/profile`) stores Application Communication Profile.
+- **Partial failure (v0.9.1):** cover letter failure preserves resume; retry without regenerating resume.
+- **Quality gates:** 420-word max; banned phrases; company URL detection in prose.
+- **Architecture (v0.9.7):** story ranking + explicit bridges; validation may return 422 — user retries.
+- **Export** blocked when over word limit or banned phrases (client + server).
+- Hostname-derived brand may be `Shelfperfect` vs marketing `ShelfPerfect` without saved research `displayName`.
+
+## Company research (v0.9.5–v0.9.6)
+
+- **Firecrawl** is server-side only — requires `FIRECRAWL_API_KEY`.
+- **Automatic in combined flow** when website provided and no website-backed research saved.
+- **JD-only saved context** does not block Firecrawl when user later adds a website.
+- **Job posting URLs** are not scraped as company homepages.
+- **Scrape failure** falls back to JD-based context; does not block resume generation.
+- **Manual research panel** optional (collapsed Advanced on Generate; expandable on package page).
+- **Parked:** Tavily/Serper/Perplexity; reuse research across roles at same company.
+
+## Company context (v0.9.3–v0.9.4)
+
+- **Per-application scope** — stored on `application_records.company_context`, not a global company DB.
+- **Gemini synthesizes** context from JD and/or Firecrawl scrape text.
+- **Auto-generation** in combined mode when no usable context; failure is non-blocking (JD fallback + warning).
+- **503 / high demand** — retried via `callGeminiWithRetry`.
+- User should review `limitations` array and collapsed research summary before trusting cover letter facts.
 
 ## Inventory editing (v0.7.7+)
 
 - **Active inventory overlay** on `InventoryState.edits` — does not mutate uploaded source resumes.
-- **Edit Bullets** tab: exclude redundant bullets (e.g. 60+/80+/100+ variants), edit active wording, restore hidden bullets.
-- **Collated view** reflects active inventory (hidden bullets omitted).
-- **Regeneration** on resume preview: inspect `sourceRefs`, exclude generated bullets, force inventory bullets; updates same `generated_resume_drafts` row.
-- **Enrichment accepted wording** copy clarifies it is preferred phrasing during generation.
-- **Parked:** bulk duplicate cleanup automation, canonical metric governance UI, full manual resume editor.
+- **Edit Bullets** tab: exclude redundant bullets, edit active wording, restore hidden bullets.
+- **Regeneration** on application package: exclude/force bullets; updates same draft row.
+- **Parked:** bulk duplicate cleanup, canonical metric governance, full structured resume editor.
 
 ## Generation input quality (v0.7.6)
 
-- **Accepted wording** from enrichment review is sent per bullet (`acceptedWording`) — inventory source text is preserved separately.
-- **Bullet cap (40)** applies after lightweight ranking: recent roles first, then source-backed / accepted-wording / JD-overlap bullets within each role. Not a fit rubric.
-- **Approved keywords** are advisory (`usage: advisory_keyword_bank`) — not standalone evidence.
-- **JD analysis** remains prompt-level; structured `selectionAudit` in rationale is optional metadata for debugging.
-- **Parked:** JD-filtered keyword ranking, structured JD parse object, opportunity intelligence, auto keyword injection into inventory.
+- **Accepted wording** from enrichment review sent per bullet — inventory source text preserved separately.
+- **Bullet cap (40)** with lightweight ranking before prompt assembly.
+- **Approved keywords** advisory only — not standalone evidence.
+- **Parked:** JD-filtered keyword ranking, structured JD parse, opportunity intelligence.
 
 ## Generated drafts
 
 - Delete is permanent. Draft edits never mutate inventory.
-- **Structure auto-repair (v0.9.8B):** Gemini output with 5+ roles or bullet overages is repaired before save; user sees repair summary on application package. Status `needs_review` until user reviews.
-- **Hard-block remains** for: no work experience, missing Skills/Languages/Interests groups, unparseable JSON, additional experience that cannot normalize to `Title: Detail`.
-- **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated` or `needs_review`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
+- **Draft row policy:** `create` on first generate; **regenerate** updates same row; status `generated` or `needs_review`; layout edits may set `layout_changed`.
+- No retention/cleanup automation yet.
 
-## Cover letter (v0.9.7)
+## Fit heuristics
 
-- **URL-as-company-name** — can still enter URL in company website field; display name resolution and validation prevent URLs in prose.
-- **Rationale validation** — Gemini may occasionally fail bridge/fact requirements; generation returns 422 and user retries.
-- **Story ranking** — heuristic keyword overlap, not ML; edge cases may mis-rank niche roles.
+- **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional, not export gate.
+- **Layout Fit (One Page)** browser estimate is separate from server validation.
 
-## Company research (v0.9.6)
+## Documentation
 
-- **Automatic in combined flow** — website research runs on Generate when website provided and no website-backed research saved.
-- **JD-only saved context** does not prevent Firecrawl when user later provides a company website.
-- **Manual panel** is optional (collapsed Advanced); not required for generation.
-
-## Company research (v0.9.5)
-
-- **Firecrawl is server-side only** — requires `FIRECRAWL_API_KEY`; never exposed to browser.
-- **Job posting URLs** are not scraped as company homepages.
-- **Website scrape failure** falls back to JD-based context; does not block resume generation.
-- **Mock provider** simulates research without Firecrawl.
-
-## Company context (v0.9.4)
-
-- **Auto-generation** in combined mode when application has no saved context.
-- **Failure is non-blocking** — resume/cover letter use JD fallback with warning.
-- **503 / high demand** — retried via `callGeminiWithRetry`; not the same as quota exceeded.
-
-## Company context (v0.9.3)
-
-- **Gemini only** — no live web search, scraping, or website fetch. Website URL is a naming/industry clue only.
-- **Per-application scope** — context on `application_records`, not a global company database.
-- **Must save before generation uses it** — generated-but-unsaved context is not injected into resume/cover letter.
-- **Confidence** — model may infer mission/vision/values; user should review limitations array.
-- **Migration required** — `20260623_application_company_context_v093.sql` must be pushed to live Supabase.
-
-## Cover letter / communication (v0.9.x)
-
-
-- **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional.
-- **Layout Fit (One Page)** heuristic is separate from server validation.
+- **v0.9.8C** doc audit — README/roadmap were stale through v0.9.7; synced in this pass.

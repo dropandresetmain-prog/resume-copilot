@@ -130,6 +130,19 @@ export type ResumeDraftRationale = {
     messages: string[];
     needsReview: boolean;
   };
+  forcedBulletAudit?: {
+    requestedKeys: string[];
+    unavailableKeys: Array<{
+      key: string;
+      reason: "excluded" | "hidden" | "not_in_active_inventory" | "unknown";
+      message: string;
+    }>;
+    alreadyInPayloadKeys: string[];
+    includedInOutput: string[];
+    missingFromOutput: string[];
+    removedDuringRepair: string[];
+    unableToPreserveDuringRepair: string[];
+  };
 };
 
 export type ResumeDraftInputSnapshot = {

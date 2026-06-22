@@ -183,6 +183,7 @@ export function generateMockResumeDraft(
   const prepared = prepareGeneratedResumeContent(draftContent, {
     jdText: input.jobDescription.rawText,
     targetRoleTitle: input.jobDescription.roleTitle,
+    forcedBulletKeys: input.regenerationControls?.forcedBulletKeys,
   });
   const acceptedWordingUsed = input.experiences
     .flatMap((experience) => experience.bullets)
@@ -213,14 +214,21 @@ export function generateMockResumeDraft(
     content: prepared.content,
     draftStatus: prepared.draftStatus,
     rationale:
-      prepared.repairMessages.length > 0
+      prepared.repairMessages.length > 0 || prepared.forcedBulletAudit
         ? {
             ...rationale,
-            structureRepair: {
-              actions: prepared.repairActions,
-              messages: prepared.repairMessages,
-              needsReview: prepared.needsReview,
-            },
+            ...(prepared.forcedBulletAudit
+              ? { forcedBulletAudit: prepared.forcedBulletAudit }
+              : {}),
+            ...(prepared.repairMessages.length > 0
+              ? {
+                  structureRepair: {
+                    actions: prepared.repairActions,
+                    messages: prepared.repairMessages,
+                    needsReview: prepared.needsReview,
+                  },
+                }
+              : {}),
           }
         : rationale,
   };

@@ -4,6 +4,12 @@ import {
   extractJdMatchTerms,
 } from "@/lib/resume-draft/bullet-payload";
 import {
+  bulletReferencesForcedKey,
+  collectForcedKeysFromBullets,
+  collectForcedKeysPresentInOutput,
+  normalizeForcedBulletKeys,
+} from "@/lib/resume-draft/forced-bullets";
+import {
   MAX_BULLETS_PER_ROLE,
   MAX_WORK_EXPERIENCE_ROLES,
   MIN_BULLETS_PER_ROLE,
@@ -25,11 +31,19 @@ export type ResumeRepairAction =
   | "moved_role_to_additional_experience"
   | "stripped_professional_summary"
   | "allowed_underfilled_work_experience"
-  | "marked_needs_review";
+  | "marked_needs_review"
+  | "protected_forced_bullet"
+  | "forced_bullet_removed_during_repair";
 
 export type RepairGeneratedResumeContext = {
   jdText?: string;
   targetRoleTitle?: string;
+  /** Inventory bullet keys the user forced — never trim these before non-forced bullets. */
+  forcedBulletKeys?: readonly string[];
+  unavailableForcedKeys?: readonly string[];
+  excludedBulletKeys?: readonly string[];
+  hiddenBulletKeys?: readonly string[];
+  alreadyInPayloadKeys?: readonly string[];
 };
 
 export type RepairGeneratedResumeResult = {
@@ -38,6 +52,8 @@ export type RepairGeneratedResumeResult = {
   repairActions: ResumeRepairAction[];
   repairMessages: string[];
   needsReview: boolean;
+  forcedBulletsRemovedDuringRepair: string[];
+  unableToPreserveForcedBullets: string[];
 };
 
 function scoreGeneratedBullet(
@@ -128,15 +144,41 @@ function trimRoleBulletsToMax(
   role: ResumeDraftExperienceSection,
   jdTerms: readonly string[],
   maxBullets: number,
-): { role: ResumeDraftExperienceSection; trimmedCount: number } {
+  forcedKeys: ReadonlySet<string>,
+): {
+  role: ResumeDraftExperienceSection;
+  trimmedCount: number;
+  removedForcedKeys: string[];
+  unableToPreserveForcedKeys: string[];
+} {
   if (role.bullets.length <= maxBullets) {
-    return { role, trimmedCount: 0 };
+    return { role, trimmedCount: 0, removedForcedKeys: [], unableToPreserveForcedKeys: [] };
   }
 
-  const kept = sortBulletsByRelevance(role.bullets, jdTerms).slice(0, maxBullets);
+  // Keep user-forced bullets first; only non-forced bullets are candidates for removal.
+  const forcedBullets = role.bullets.filter((bullet) => bulletReferencesForcedKey(bullet, forcedKeys));
+  const nonForcedBullets = role.bullets.filter(
+    (bullet) => !bulletReferencesForcedKey(bullet, forcedKeys),
+  );
+  const rankedNonForced = sortBulletsByRelevance(nonForcedBullets, jdTerms);
+  const remainingSlots = Math.max(0, maxBullets - forcedBullets.length);
+  const keptNonForced = rankedNonForced.slice(0, remainingSlots);
+  const kept = [...forcedBullets, ...keptNonForced];
+
+  const keptForcedKeys = new Set(collectForcedKeysFromBullets(kept, [...forcedKeys]));
+  const removedForcedKeys = collectForcedKeysFromBullets(role.bullets, [...forcedKeys]).filter(
+    (key) => !keptForcedKeys.has(key),
+  );
+  const unableToPreserveForcedKeys =
+    forcedBullets.length > maxBullets
+      ? collectForcedKeysFromBullets(forcedBullets.slice(maxBullets), [...forcedKeys])
+      : [];
+
   return {
     role: { ...role, bullets: kept },
     trimmedCount: role.bullets.length - kept.length,
+    removedForcedKeys,
+    unableToPreserveForcedKeys,
   };
 }
 
@@ -144,9 +186,15 @@ function trimTotalBulletsToMax(
   experience: ResumeDraftExperienceSection[],
   jdTerms: readonly string[],
   maxTotal: number,
-): { experience: ResumeDraftExperienceSection[]; trimmedCount: number } {
+  forcedKeys: ReadonlySet<string>,
+): {
+  experience: ResumeDraftExperienceSection[];
+  trimmedCount: number;
+  removedForcedKeys: string[];
+} {
   const roles = experience.map((role) => ({ ...role, bullets: [...role.bullets] }));
   let trimmedCount = 0;
+  const removedForcedKeys = new Set<string>();
 
   const countTotal = () => roles.reduce((total, role) => total + role.bullets.length, 0);
 
@@ -160,7 +208,12 @@ function trimTotalBulletsToMax(
       }
 
       for (let bulletIndex = 0; bulletIndex < role.bullets.length; bulletIndex += 1) {
-        const score = scoreGeneratedBullet(role.bullets[bulletIndex], jdTerms);
+        const bullet = role.bullets[bulletIndex];
+        if (bulletReferencesForcedKey(bullet, forcedKeys)) {
+          continue;
+        }
+
+        const score = scoreGeneratedBullet(bullet, jdTerms);
         if (!candidate || score < candidate.score) {
           candidate = { roleIndex, bulletIndex, score };
         }
@@ -171,11 +224,26 @@ function trimTotalBulletsToMax(
       break;
     }
 
+    const removedBullet = roles[candidate.roleIndex].bullets[candidate.bulletIndex];
+    for (const ref of removedBullet.sourceRefs) {
+      const key = ref.bulletKey?.trim();
+      if (key && forcedKeys.has(key)) {
+        removedForcedKeys.add(key);
+      }
+    }
+
     roles[candidate.roleIndex].bullets.splice(candidate.bulletIndex, 1);
     trimmedCount += 1;
   }
 
-  return { experience: roles, trimmedCount };
+  return { experience: roles, trimmedCount, removedForcedKeys: [...removedForcedKeys] };
+}
+
+function roleContainsForcedBullet(
+  role: ResumeDraftExperienceSection,
+  forcedKeys: ReadonlySet<string>,
+): boolean {
+  return role.bullets.some((bullet) => bulletReferencesForcedKey(bullet, forcedKeys));
 }
 
 export function repairGeneratedResumeContent(
@@ -185,17 +253,21 @@ export function repairGeneratedResumeContent(
   const jdTerms = extractJdMatchTerms(
     [context.jdText, context.targetRoleTitle].filter(Boolean).join(" "),
   );
+  const forcedKeys = new Set(normalizeForcedBulletKeys(context.forcedBulletKeys));
+  const keysBeforeRepair = collectForcedKeysPresentInOutput(content, [...forcedKeys]);
 
   const repairActions: ResumeRepairAction[] = [];
   const repairMessages: string[] = [];
   const warnings: string[] = [];
+  const forcedBulletsRemovedDuringRepair = new Set<string>();
+  const unableToPreserveForcedBullets = new Set<string>();
   let needsReview = false;
 
   let experience = content.experience.map((role) => ({
     ...role,
     bullets: [...role.bullets],
   }));
-  let additionalExperience = [...content.additionalExperience];
+  const additionalExperience = [...content.additionalExperience];
   let professionalSummary = { ...content.professionalSummary };
 
   if (professionalSummary.text.trim()) {
@@ -209,7 +281,9 @@ export function repairGeneratedResumeContent(
       .map((role, index) => ({
         role,
         index,
-        score: scoreGeneratedRole(role, jdTerms),
+        score:
+          scoreGeneratedRole(role, jdTerms) +
+          (roleContainsForcedBullet(role, forcedKeys) ? 10_000 : 0),
       }))
       .sort((a, b) => {
         if (b.score !== a.score) {
@@ -224,6 +298,10 @@ export function repairGeneratedResumeContent(
     experience = kept.map((entry) => entry.role);
     for (const entry of dropped) {
       additionalExperience.push(roleToAdditionalExperienceItem(entry.role));
+      for (const key of collectForcedKeysFromBullets(entry.role.bullets, [...forcedKeys])) {
+        forcedBulletsRemovedDuringRepair.add(key);
+        unableToPreserveForcedBullets.add(key);
+      }
     }
 
     repairActions.push("dropped_excess_role", "moved_role_to_additional_experience");
@@ -238,27 +316,36 @@ export function repairGeneratedResumeContent(
   }
 
   experience = experience.map((role) => {
-    const { role: trimmedRole, trimmedCount } = trimRoleBulletsToMax(
-      role,
-      jdTerms,
-      MAX_BULLETS_PER_ROLE,
-    );
+    const { role: trimmedRole, trimmedCount, removedForcedKeys, unableToPreserveForcedKeys } =
+      trimRoleBulletsToMax(role, jdTerms, MAX_BULLETS_PER_ROLE, forcedKeys);
     if (trimmedCount > 0) {
       repairActions.push("trimmed_role_bullets");
       repairMessages.push(
         `Trimmed ${role.company} from ${role.bullets.length} bullets to ${trimmedRole.bullets.length}`,
       );
     }
+    for (const key of removedForcedKeys) {
+      forcedBulletsRemovedDuringRepair.add(key);
+      repairActions.push("forced_bullet_removed_during_repair");
+      repairMessages.push(`Forced bullet removed while trimming ${role.company}: ${key}`);
+    }
+    for (const key of unableToPreserveForcedKeys) {
+      unableToPreserveForcedBullets.add(key);
+      repairActions.push("forced_bullet_removed_during_repair");
+      repairMessages.push(
+        `Could not preserve forced bullet within ${MAX_BULLETS_PER_ROLE}-bullet role limit: ${key}`,
+      );
+    }
+    if (roleContainsForcedBullet(trimmedRole, forcedKeys) && trimmedCount > 0) {
+      repairActions.push("protected_forced_bullet");
+    }
     return trimmedRole;
   });
 
   const totalBeforeTrim = experience.reduce((total, role) => total + role.bullets.length, 0);
   if (totalBeforeTrim > TARGET_TOTAL_WORK_BULLETS_MAX) {
-    const { experience: trimmedExperience, trimmedCount } = trimTotalBulletsToMax(
-      experience,
-      jdTerms,
-      TARGET_TOTAL_WORK_BULLETS_MAX,
-    );
+    const { experience: trimmedExperience, trimmedCount, removedForcedKeys } =
+      trimTotalBulletsToMax(experience, jdTerms, TARGET_TOTAL_WORK_BULLETS_MAX, forcedKeys);
     experience = trimmedExperience;
     if (trimmedCount > 0) {
       repairActions.push("trimmed_total_bullets");
@@ -268,6 +355,24 @@ export function repairGeneratedResumeContent(
           0,
         )}`,
       );
+    }
+    for (const key of removedForcedKeys) {
+      forcedBulletsRemovedDuringRepair.add(key);
+      repairActions.push("forced_bullet_removed_during_repair");
+      repairMessages.push(`Forced bullet removed while trimming total bullets: ${key}`);
+    }
+    if (forcedKeys.size > 0 && trimmedCount > 0) {
+      repairActions.push("protected_forced_bullet");
+    }
+  }
+
+  for (const key of keysBeforeRepair) {
+    const keysAfterRepair = collectForcedKeysPresentInOutput(
+      { ...content, experience },
+      [...forcedKeys],
+    );
+    if (!keysAfterRepair.includes(key)) {
+      forcedBulletsRemovedDuringRepair.add(key);
     }
   }
 
@@ -300,6 +405,10 @@ export function repairGeneratedResumeContent(
     );
   }
 
+  if (forcedBulletsRemovedDuringRepair.size > 0) {
+    needsReview = true;
+  }
+
   return {
     content: {
       ...content,
@@ -311,5 +420,7 @@ export function repairGeneratedResumeContent(
     repairActions: [...new Set(repairActions)],
     repairMessages,
     needsReview,
+    forcedBulletsRemovedDuringRepair: [...forcedBulletsRemovedDuringRepair],
+    unableToPreserveForcedBullets: [...unableToPreserveForcedBullets],
   };
 }

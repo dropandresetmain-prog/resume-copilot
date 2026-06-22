@@ -1,22 +1,25 @@
 # Career Resume Copilot
 
-**v0.9.8 — Application Package Preview UX Cleanup**
+**v0.9.8B** — Application package, company research, cover letters, and resume auto-repair
 
-Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
+Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Combined generation can produce resume + cover letter with automatic company research when a website is provided.
+
+Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
 ## Product flow
 
 ```
-Upload resumes → Build inventory → Paste profile → Paste JD → Generate Resume & Cover Letter (auto company context when missing)
-  → Preview / Edit → Download PDF / DOCX
+Upload resumes → Build inventory → (optional) Enrich bullets → Paste JD → Generate Resume & Cover Letter
+  → Application package (resume + cover letter + company research) → Approve → Download PDF / DOCX
 ```
 
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.
-2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review.
-3. **Generate** (`/generate`) — paste JD; in **Advanced**, optionally add **company website** (not job URL). Combined flow **automatically** researches the website via Firecrawl when provided and no website-backed research exists — no manual research step required.
-4. **Application package** (`/resume-preview/[draftId]`) — resume is the primary review surface; cover letter and company research appear alongside. Cover letter editing remains at `/cover-letter-preview/[draftId]`.
-5. **Resume Preview** — PDF Preview, layout controls, approve-for-export, PDF/DOCX download.
-5. **Records** (`/records`) — applications (status, notes, linked draft), saved jobs, and unlinked draft history.
+2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review; **Edit Bullets** overlay (hide/edit wording without mutating source files).
+3. **Generate** (`/generate`) — paste JD; combined flow researches company website via **Firecrawl** when provided and no website-backed research exists; generates resume and cover letter.
+4. **Application package** (`/resume-preview/[draftId]`) — resume preview, approve/export, inline cover letter, collapsed company research, optional evidence regeneration.
+5. **Cover letter editor** (`/cover-letter-preview/[draftId]`) — full edit, quick revision, PDF/DOCX export.
+6. **Records** (`/records`) — applications (status, notes, linked drafts), saved jobs, unlinked draft history.
+7. **Profile** (`/profile`) — Application Communication Profile for cover letter tone.
 
 ## What is built
 
@@ -26,56 +29,66 @@ Upload resumes → Build inventory → Paste profile → Paste JD → Generate R
 | Supabase inventory + JD sync | ✅ |
 | Original resume file storage | ✅ |
 | AI enrichment review (mock / Gemini) | ✅ |
-| Resume draft generation (mock / API) | ✅ |
+| Inventory bullet editing overlay (v0.7.7) | ✅ |
+| Resume draft generation (mock / Gemini) | ✅ |
+| Resume structure auto-repair (v0.9.8B) | ✅ |
 | One-page layout preview + optimizer | ✅ |
-| **PDF export** (canonical print HTML → Puppeteer) | ✅ **Primary deliverable** — **one-page server validation (v0.7.0+)** |
-| **PDF Preview** | ✅ Local approximation; server page count is export truth |
-| **DOCX export** (from shared document model) | ✅ **Secondary / editable** |
-| Cover letter generation | ✅ |
-| Company context generator (Gemini, per-application) | ✅ v0.9.3 |
-| Manual inventory editing | ❌ Deferred |
+| **PDF export** + server one-page validation | ✅ Primary deliverable |
+| **DOCX export** (shared document model) | ✅ Secondary / editable |
+| Cover letter generation + revision | ✅ |
+| Company context (Gemini, per-application) | ✅ v0.9.3 |
+| Firecrawl website research | ✅ v0.9.5 |
+| Auto research in combined generate | ✅ v0.9.6 |
+| Application package UX | ✅ v0.9.8 |
 
 ## Export strategy
 
 | Format | Role | Notes |
 |--------|------|--------|
-| **PDF** | Primary final deliverable | Puppeteer + one-page gate. Desktop/mobile: blob download with filename. |
-| **DOCX** | Secondary editable output | Word may reflow; mobile may open instead of download. |
+| **PDF** | Primary final deliverable | Puppeteer + one-page gate on Approve. Structured filename: `Name - Resume_Company_Role.pdf` |
+| **DOCX** | Secondary editable output | Word may reflow; same document model as PDF preview. |
 
-Both formats use the same canonical `ResumeDocumentModel` and approved layout settings (`content.exportLayoutSettings` saved on approve).
-
-Resumes do **not** include a Professional Summary section (reserved for future cover letters).
+Resumes do **not** include a Professional Summary section. Cover letters are separate artifacts with a 420-word export cap.
 
 ## Architecture
 
 | Layer | Role |
 |-------|------|
-| **Supabase Postgres** | Resume inventory JSON, job descriptions, generated resume drafts, `stored_files` metadata |
-| **Supabase Storage** | `original-resume-files` (uploads), `generated-documents` (exported PDF/DOCX) |
-| **Supabase Auth** | Required for cloud sync, drafts, and export (email/password or magic link) |
-| **Browser** | DOCX parsing, layout preview UI, enrichment review |
-| **Next.js API routes** | AI enrichment, resume generation, PDF/DOCX export |
-| **RLS** | Users access only their own rows (`auth.uid() = user_id`) |
+| **Supabase Postgres** | Inventory JSON, job descriptions, application records, company context, generated drafts |
+| **Supabase Storage** | `original-resume-files`, `generated-documents` |
+| **Supabase Auth** | Required for cloud sync, drafts, export |
+| **Browser** | DOCX parsing, layout preview, enrichment review |
+| **Next.js API routes** | AI enrichment/generation, Firecrawl research (server-only), PDF/DOCX export |
+| **RLS** | `auth.uid() = user_id` on all user tables |
 
-Parsing uses a layered architecture: generic section detection → profile-based extraction → unparsed fallbacks when confidence is low.
+Parsing: generic section detection → profile-based extraction → unparsed fallbacks.
 
-**Not active:** `localStorage` / JSON export-import as primary persistence. Pre-Supabase browser data may trigger a one-time legacy warning only.
+**Not active:** `localStorage` as primary persistence (only base-resume preference + legacy warning).
 
 ## Routes
 
 | Path | Purpose |
 |------|---------|
 | `/` | Landing |
-| `/setup` | Manage Uploads (auth, upload, parsing) |
-| `/inventory` | Career inventory + enrichment |
-| `/generate` | Job intake + resume generation |
-| `/records` | Saved jobs + draft history |
-| `/resume-preview/[draftId]` | Layout preview, PDF Preview, approve, export |
-| `/resume-preview/[draftId]/edit` | Draft review / edit workspace |
+| `/setup` | Manage Uploads |
+| `/inventory` | Career inventory + enrichment + edit bullets |
+| `/generate` | Job intake + combined resume/cover letter generation |
+| `/records` | Applications, saved jobs, draft history |
+| `/profile` | Application Communication Profile |
+| `/resume-preview/[draftId]` | **Application package** — resume, cover letter, research |
+| `/resume-preview/[draftId]/edit` | Draft content review workspace |
+| `/cover-letter-preview/[draftId]` | Cover letter editor + export |
 | `/api/ai/enrich` | Server-side enrichment |
-| `/api/ai/generate-resume` | Server-side draft generation |
-| `/api/export/resume-pdf` | Approved draft → PDF |
-| `/api/export/resume-docx` | Approved draft → DOCX |
+| `/api/ai/generate-resume` | Resume draft generation |
+| `/api/ai/generate-cover-letter` | Cover letter generation |
+| `/api/ai/generate-company-context` | Company context (JD or Firecrawl-backed) |
+| `/api/ai/revise-cover-letter` | Quick cover letter revision |
+| `/api/approve/resume-draft` | Approve + server PDF validation |
+| `/api/validate/resume-pdf` | Server PDF page-count check |
+| `/api/export/resume-pdf` | Approved resume → PDF |
+| `/api/export/resume-docx` | Approved resume → DOCX |
+| `/api/export/cover-letter-pdf` | Cover letter → PDF |
+| `/api/export/cover-letter-docx` | Cover letter → DOCX |
 
 ## Local development
 
@@ -88,76 +101,47 @@ cp .env.example .env.local
 
 ### 2. Environment variables
 
-Edit `.env.local`:
-
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes (for sync) | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes (for sync) | Public anon key — **never** use the service role key in the frontend |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes (for sync) | Public anon key |
 | `AI_PROVIDER` | No | `mock` (default), `gemini`, or `openai` |
-| `GEMINI_API_KEY` | When using Gemini | Server-side enrichment / generation |
-| `OPENAI_API_KEY` | Reserved | Future OpenAI support |
-| `LOCAL_CHROME_PATH` | PDF export (local) | Path to Chrome/Chromium if not auto-detected |
-| `CHROME_EXECUTABLE_PATH` | PDF export (local) | Alias for Chrome path |
+| `GEMINI_API_KEY` | When using Gemini | Server-side AI |
+| `FIRECRAWL_API_KEY` | For website research | Server-side only; combined generate |
+| `LOCAL_CHROME_PATH` / `CHROME_EXECUTABLE_PATH` | PDF export (local) | Chrome/Chromium path |
+| `OPENAI_API_KEY` | Reserved | Not implemented |
 
-### 3. Supabase project setup
+### 3. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor** and run the full contents of [`supabase/schema.sql`](supabase/schema.sql).
-   - Tables: `resume_inventories`, `job_descriptions`, `application_records`, `generated_resume_drafts`, `generated_cover_letter_drafts`, `stored_files`
-   - RLS on all user tables
-   - Private buckets: `original-resume-files`, `generated-documents`
-3. **Authentication → Providers**: enable Email (password and/or magic link).
-4. **Authentication → URL Configuration**: add redirect URLs:
-   - Local: `http://localhost:3000/**`
-   - Production: `https://your-app.vercel.app/**`
-5. Copy **Project URL** and **anon public** key into `.env.local`.
+2. Run [`supabase/schema.sql`](supabase/schema.sql) and migrations under `supabase/migrations/`.
+3. Enable Email auth; add redirect URLs (`http://localhost:3000/**`, production URL).
+4. Copy URL + anon key to `.env.local`.
 
-### 4. PDF export (local)
-
-PDF generation requires a Chromium-based browser locally. Install Google Chrome, or set `LOCAL_CHROME_PATH` to your Chrome/Chromium executable. On Vercel, `@sparticuz/chromium` is used automatically (`maxDuration: 60`, Node.js runtime).
-
-### 5. Vercel deployment
-
-Set the same variables as `.env.local` in **Settings → Environment Variables** (at minimum `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus AI vars if using Gemini). Redeploy after changes.
-
-Add your Vercel URL to Supabase **Authentication → Redirect URLs**.
-
-### 6. Run
+### 4. Run
 
 ```bash
-npm run dev      # http://localhost:3000
-npm run test     # verification scripts (no live Supabase required)
-npm run build
+npm run dev
+npm run test
 npm run lint
+npm run build
 ```
 
 ## AI providers
 
-The **mock provider** is the default (rule-based local output for enrichment and draft generation). Real AI requires `AI_PROVIDER=gemini` plus `GEMINI_API_KEY` on the server. AI calls run through Next.js API routes — keys are not exposed in the browser.
+**Mock** is the default (local rule-based output). **Gemini** requires `AI_PROVIDER=gemini` + `GEMINI_API_KEY`. **Firecrawl** requires `FIRECRAWL_API_KEY` for website-backed company research. All keys stay server-side.
 
 ## Testing
 
-`npm run test` runs parser, inventory, collation, resume draft, layout, export, and safety verification scripts. See `TEST_CHECKLIST.md` for manual export smoke tests (PDF Preview → download parity).
+`npm run test` runs 45+ verification scripts (parser, inventory, generation, export, cover letter, company research, application package). See [`TEST_CHECKLIST.md`](TEST_CHECKLIST.md) for manual QA.
 
 ## Known limitations
 
-See [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md). Highlights:
-
-- PDF Preview iframe is the source of truth for final layout; browser layout preview is for slider tuning only.
-- DOCX may overshoot one page in MS Word even when preview fits.
-- Gill Sans MT renders in PDF/DOCX only if installed on the export machine.
-- Fit score in preview is a heuristic — not the full rubric in `docs/FIT_SCORE_RUBRIC.md`.
+See [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
 
 ## Roadmap
 
-| Milestone | Status |
-|-----------|--------|
-| v0.6.x — Resume export (DOCX + PDF) | Complete |
-| **v0.6.5 — Preview truth & mobile export** | **Current** |
-| v0.7.0 — One-page enforcement foundation | Next |
-| Cover letter generation | After one-page foundation |
-| Manual inventory editing | Deferred |
+See [`ROADMAP.md`](ROADMAP.md). **Next:** v0.9.9 Application Quality Checker.
 
 ## Docs
 
