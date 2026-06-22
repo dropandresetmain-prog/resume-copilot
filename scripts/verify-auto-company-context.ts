@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { buildFallbackCompanyContext } from "../src/lib/company-context/build-company-context";
 import {
   COMPANY_RESEARCH_AUTO_FAIL_WARNING,
   ensureCompanyContextForGeneration,
 } from "../src/lib/company-context/ensure-for-generation";
 import { hasUsableCompanyContext } from "../src/lib/company-context/normalize";
+import { planCompanyResearchForGeneration } from "../src/lib/company-context/research-plan";
 import {
   formatCompanyResearchStatusLabel,
   resolveCompanyResearchDisplayStatus,
@@ -37,6 +39,11 @@ async function main() {
   });
 
   const saved = buildWebsiteResearch();
+  const jdOnly = buildFallbackCompanyContext({
+    companyName: "Pave Bank",
+    jobDescriptionText: job.rawText,
+  });
+
   const reused = await ensureCompanyContextForGeneration({
     applicationId: "app-1",
     savedContext: saved,
@@ -51,8 +58,25 @@ async function main() {
   );
   const research = readFileSync(join(process.cwd(), "src/lib/company-context/research.ts"), "utf8");
 
+  const editorPanel = readFileSync(
+    join(process.cwd(), "src/components/company-context/CompanyContextEditorPanel.tsx"),
+    "utf8",
+  );
+  const compactStatus = readFileSync(
+    join(process.cwd(), "src/components/company-context/CompanyResearchCompactStatus.tsx"),
+    "utf8",
+  );
+
   const checks: [string, boolean][] = [
     ["saved website research reused", reused.status === "saved" && reused.companyContext === saved],
+    [
+      "jd-only saved does not block when website provided",
+      planCompanyResearchForGeneration({
+        savedContext: jdOnly,
+        companyWebsite: "https://pavebank.com",
+        combinedMode: true,
+      }) === "run_firecrawl",
+    ],
     ["failure warning mentions JD-based", COMPANY_RESEARCH_AUTO_FAIL_WARNING.includes("JD-based")],
     [
       "will auto-research when website provided",
@@ -72,7 +96,21 @@ async function main() {
     ],
     [
       "website saved label",
-      formatCompanyResearchStatusLabel("website_saved").includes("Website-backed"),
+      formatCompanyResearchStatusLabel("website_saved").includes(
+        "Company research: website-backed research saved",
+      ),
+    ],
+    [
+      "auto research label",
+      formatCompanyResearchStatusLabel("will_auto_research").includes("will run automatically"),
+    ],
+    [
+      "compact status component exists",
+      compactStatus.includes("CompanyResearchCompactStatus"),
+    ],
+    [
+      "manual research collapsed in editor",
+      editorPanel.includes("<details"),
     ],
     ["generate section calls ensureCompanyContextForGeneration", generateSection.includes("ensureCompanyContextForGeneration")],
     [

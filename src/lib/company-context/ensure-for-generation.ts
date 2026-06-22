@@ -71,7 +71,9 @@ async function saveJdBasedContext(
 export async function ensureCompanyContextForGeneration(
   input: EnsureCompanyContextInput,
 ): Promise<CompanyContextEnsureResult> {
-  if (hasUsableCompanyContext(input.savedContext)) {
+  const website = resolveCompanyWebsiteForResearch(input.companyWebsite);
+
+  if (hasWebsiteBackedResearch(input.savedContext)) {
     return {
       companyContext: input.savedContext,
       status: "saved",
@@ -79,7 +81,20 @@ export async function ensureCompanyContextForGeneration(
   }
 
   if (!input.autoGenerate) {
+    if (hasUsableCompanyContext(input.savedContext)) {
+      return {
+        companyContext: input.savedContext,
+        status: "saved",
+      };
+    }
     return { status: "skipped" };
+  }
+
+  if (!website && hasUsableCompanyContext(input.savedContext)) {
+    return {
+      companyContext: input.savedContext,
+      status: "saved",
+    };
   }
 
   const companyName = resolveCompanyNameForGeneration({
@@ -95,7 +110,7 @@ export async function ensureCompanyContextForGeneration(
     };
   }
 
-  const companyWebsite = resolveCompanyWebsiteForResearch(input.companyWebsite);
+  const companyWebsite = website;
 
   if (!companyWebsite) {
     try {

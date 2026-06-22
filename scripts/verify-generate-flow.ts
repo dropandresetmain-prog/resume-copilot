@@ -11,7 +11,7 @@ import {
   normalizeJobDescriptionInput,
 } from "../src/lib/generate/save-job-for-generation";
 import {
-  GENERATION_PROGRESS_STAGES,
+  buildCombinedProgressStages,
   generationProgressPercent,
 } from "../src/lib/generate/generation-progress";
 import { createJobDescriptionFromInput, findDuplicateJobDescription } from "../src/lib/jd/persistence";
@@ -152,8 +152,8 @@ async function main() {
     ["progress panel rendered while generating", generateSection.includes("GenerationProgressPanel")],
     ["duplicate generate guard", generateSection.includes("if (isGenerating)")],
     ["saved jobs visually separated", jdPanel.includes("border-t border-slate-200 pt-8")],
-    ["progress stages defined", GENERATION_PROGRESS_STAGES.length >= 6],
-    ["progress percent helper", generationProgressPercent(0) < generationProgressPercent(4)],
+    ["progress stages defined", buildCombinedProgressStages("Researching company website").length >= 7],
+    ["progress percent helper", generationProgressPercent(0, 7) < generationProgressPercent(4, 7)],
     ["jd panel supports hide save", jdPanel.includes("showSaveButton")],
     ["records still supports explicit save", jdPanel.includes("Save job")],
     ["disabled download uses default cursor", ui.includes("disabled:cursor-default")],

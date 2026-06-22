@@ -1,22 +1,22 @@
 "use client";
 
-import {
-  GENERATION_PROGRESS_STAGES,
-  generationProgressPercent,
-} from "@/lib/generate/generation-progress";
+import { generationProgressPercent } from "@/lib/generate/generation-progress";
 
 type GenerationProgressPanelProps = {
   stageIndex: number;
+  stages: string[];
+  title?: string;
   className?: string;
 };
 
 export function GenerationProgressPanel({
   stageIndex,
+  stages,
+  title = "Generating tailored resume",
   className = "",
 }: GenerationProgressPanelProps) {
-  const percent = generationProgressPercent(stageIndex);
-  const label =
-    GENERATION_PROGRESS_STAGES[stageIndex] ?? GENERATION_PROGRESS_STAGES[0];
+  const percent = generationProgressPercent(stageIndex, stages.length);
+  const label = stages[stageIndex] ?? stages[0] ?? "Working";
 
   return (
     <div
@@ -25,7 +25,7 @@ export function GenerationProgressPanel({
       aria-live="polite"
       aria-busy="true"
     >
-      <p className="text-sm font-medium text-slate-900">Generating tailored resume</p>
+      <p className="text-sm font-medium text-slate-900">{title}</p>
       <p className="mt-1 text-sm text-slate-600">
         {label}… This may take a moment while we tailor content from your inventory.
       </p>
@@ -36,9 +36,9 @@ export function GenerationProgressPanel({
         />
       </div>
       <ol className="mt-4 space-y-1 text-xs text-slate-500">
-        {GENERATION_PROGRESS_STAGES.map((stage, index) => (
+        {stages.map((stage, index) => (
           <li
-            key={stage}
+            key={`${stage}-${index}`}
             className={
               index <= stageIndex ? "font-medium text-slate-700" : "text-slate-400"
             }

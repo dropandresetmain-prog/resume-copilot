@@ -164,7 +164,7 @@ function main() {
     ["schema has company_context column", schema.includes("company_context jsonb")],
     ["migration adds company_context", migration.includes("company_context")],
     ["application records save company context", applicationRecords.includes("saveApplicationCompanyContextInCloud")],
-    ["editor panel has research controls", editorPanel.includes("Research Company Website")],
+    ["editor panel has research controls", editorPanel.includes("Refresh research")],
     ["generate auto-ensures company context", generateSection.includes("ensureCompanyContextForGeneration")],
     ["generate passes company context to resume payload", generateSection.includes("companyContext: companyContextForGeneration")],
     ["generate passes saved context to cover letter", generateSection.includes("savedCompanyContext: context.companyContext")],

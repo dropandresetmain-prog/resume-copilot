@@ -1,23 +1,18 @@
-export const GENERATION_PROGRESS_STAGES = [
-  "Reading job description",
-  "Saving job record",
-  "Researching company website",
-  "Selecting relevant experience",
-  "Drafting tailored resume",
-  "Checking resume structure",
-  "Drafting formal cover letter",
-  "Preparing preview",
-] as const;
+export {
+  buildCombinedProgressStages,
+  combinedProgressResearchStageIndex,
+  getGenerationStageIndices,
+  researchProgressLabelAfterEnsure,
+  researchProgressLabelForPlan,
+  RESUME_ONLY_PROGRESS_STAGES,
+} from "@/lib/company-context/research-plan";
 
-export type GenerationProgressStage = (typeof GENERATION_PROGRESS_STAGES)[number];
-
-export function generationProgressPercent(stageIndex: number): number {
-  const total = GENERATION_PROGRESS_STAGES.length;
-  if (total <= 1) {
+export function generationProgressPercent(stageIndex: number, totalStages: number): number {
+  if (totalStages <= 1) {
     return 100;
   }
-  const clamped = Math.min(Math.max(stageIndex, 0), total - 1);
-  return Math.round(((clamped + 1) / total) * 100);
+  const clamped = Math.min(Math.max(stageIndex, 0), totalStages - 1);
+  return Math.round(((clamped + 1) / totalStages) * 100);
 }
 
 export function delay(ms: number): Promise<void> {

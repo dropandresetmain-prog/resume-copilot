@@ -223,8 +223,10 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/firecrawl/url.ts` | Company website URL validation + job board detection |
 | `src/lib/company-context/research.ts` | Firecrawl + Gemini research orchestration (v0.9.5) |
 | `src/lib/ai/config.ts` | `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` env overrides |
-| `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save when missing (v0.9.4) |
-| `src/lib/company-context/status-labels.ts` | Compact UI status labels (v0.9.4) |
+| `src/lib/generate/generation-progress.ts` | Progress percent helper; re-exports stage builders (v0.9.6) |
+| `src/lib/company-context/research-plan.ts` | Research plan + dynamic progress stage labels (v0.9.6) |
+| `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save; website-backed reuse only (v0.9.6) |
+| `src/lib/company-context/status-labels.ts` | Compact `Company research:` status labels (v0.9.6) |
 | `src/lib/company-context/prompt.ts` | Gemini company context prompt (no web search) |
 | `src/lib/company-context/parse.ts` | JSON parse + save validation |
 | `src/lib/company-context/normalize.ts` | Legacy → v0.9.3 shape + prompt formatting |
@@ -232,7 +234,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/company-context/client.ts` | Browser client for generate-company-context API |
 | `src/lib/company-context/gemini-call-map.ts` | Static end-to-end Gemini call audit |
 | `src/lib/ai/company-context-gemini.ts` | Gemini company context provider |
-| `src/components/company-context/CompanyContextEditorPanel.tsx` | Generate page editor (v0.9.3) |
+| `src/components/company-context/CompanyResearchCompactStatus.tsx` | Compact research status in Generate Advanced (v0.9.6) |
+| `src/components/company-context/CompanyContextEditorPanel.tsx` | Optional collapsed research editor (v0.9.6) |
 | `src/components/company-context/CompanyContextPreviewPanel.tsx` | Cover letter preview collapsible context (v0.9.3) |
 | `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + tone/length rules |
 | `src/lib/cover-letter/word-limits.ts` | 420-word hard max + target range (v0.9.2) |

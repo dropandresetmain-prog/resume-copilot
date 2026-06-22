@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
+import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
 import {
   formFieldClassName,
   labelClassName,
@@ -21,7 +22,15 @@ import {
   buildCoverLetterGenerationOptions,
   readCoverLetterFieldsFromJobForm,
 } from "@/lib/generate/build-cover-letter-options";
-import { delay, GENERATION_PROGRESS_STAGES } from "@/lib/generate/generation-progress";
+import {
+  buildCombinedProgressStages,
+  delay,
+  getGenerationStageIndices,
+  researchProgressLabelAfterEnsure,
+  researchProgressLabelForPlan,
+  RESUME_ONLY_PROGRESS_STAGES,
+} from "@/lib/generate/generation-progress";
+import { planCompanyResearchForGeneration } from "@/lib/company-context/research-plan";
 import {
   buildArtifactSnapshot,
   classifyCombinedGenerationFailure,
@@ -101,6 +110,9 @@ export function GenerateTailoredResumeSection({
     useState<ResumeDraftProviderStatusResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progressStageIndex, setProgressStageIndex] = useState(0);
+  const [progressStages, setProgressStages] = useState<string[]>([
+    ...RESUME_ONLY_PROGRESS_STAGES,
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
   const [generateMode, setGenerateMode] = useState<GenerateMode>("resume_and_cover_letter");
@@ -189,7 +201,10 @@ export function GenerateTailoredResumeSection({
   async function runResumeGeneration(): Promise<
     ResumeGenerationContext & { companyContextWarning?: string }
   > {
-    await advanceStage(0);
+    const isCombined = generateMode === "resume_and_cover_letter";
+    const stages = getGenerationStageIndices(isCombined);
+
+    await advanceStage(stages.savingJob);
 
     const savedJob = await ensureJobDescriptionForGeneration(jobForm, {
       jobDescriptions,
@@ -201,10 +216,18 @@ export function GenerateTailoredResumeSection({
     let companyContextForGeneration = applicationRecord.companyContext ?? undefined;
     let contextWarning: string | undefined;
 
-    await advanceStage(1);
+    await advanceStage(stages.preparingApplication);
 
-    if (generateMode === "resume_and_cover_letter") {
-      await advanceStage(2);
+    if (isCombined) {
+      const plan = planCompanyResearchForGeneration({
+        savedContext: applicationRecord.companyContext,
+        companyWebsite,
+        combinedMode: true,
+      });
+      setProgressStages(
+        buildCombinedProgressStages(researchProgressLabelForPlan(plan)),
+      );
+      await advanceStage(stages.companyResearch!);
       const ensured = await ensureCompanyContextForGeneration({
         applicationId: applicationRecord.id,
         savedContext: applicationRecord.companyContext,
@@ -216,6 +239,14 @@ export function GenerateTailoredResumeSection({
         autoGenerate: true,
       });
       setCompanyContextEnsureStatus(ensured.status);
+      setProgressStages((current) => {
+        const next = [...current];
+        next[stages.companyResearch!] = researchProgressLabelAfterEnsure(
+          ensured.status,
+          Boolean(ensured.warning),
+        );
+        return next;
+      });
       if (ensured.companyContext) {
         companyContextForGeneration = ensured.companyContext;
       }
@@ -232,7 +263,7 @@ export function GenerateTailoredResumeSection({
 
     writeLastBaseResumeId(effectiveBaseResumeId);
 
-    await advanceStage(3);
+    await advanceStage(stages.buildingEvidence);
 
     const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
       inventory,
@@ -241,14 +272,12 @@ export function GenerateTailoredResumeSection({
       companyContext: companyContextForGeneration,
     });
 
-    await advanceStage(4);
+    await advanceStage(stages.generatingResume);
 
     const response = await requestResumeDraftGeneration({
       ...generationInput,
       inputSnapshot,
     });
-
-    await advanceStage(5);
 
     const resumeDraft = await createGeneratedResumeDraftInCloud({
       jobDescriptionId: savedJob.id,
@@ -262,6 +291,10 @@ export function GenerateTailoredResumeSection({
     });
 
     await markApplicationResumeGenerated(applicationRecord.id);
+
+    if (!isCombined) {
+      await advanceStage(stages.savingDrafts);
+    }
 
     return {
       savedJob,
@@ -282,7 +315,8 @@ export function GenerateTailoredResumeSection({
   }
 
   async function runCoverLetterGeneration(context: ResumeGenerationContext) {
-    await advanceStage(6);
+    const stages = getGenerationStageIndices(true);
+    await advanceStage(stages.generatingCoverLetter!);
     return generateAndSaveCoverLetterDraft(
       buildCoverLetterGenerationOptions({
         job: context.savedJob,
@@ -308,6 +342,11 @@ export function GenerateTailoredResumeSection({
     setCoverLetterStatus(generateMode === "resume_and_cover_letter" ? "pending" : "pending");
     setIsGenerating(true);
     setProgressStageIndex(0);
+    setProgressStages(
+      generateMode === "resume_and_cover_letter"
+        ? buildCombinedProgressStages("Researching company website")
+        : [...RESUME_ONLY_PROGRESS_STAGES],
+    );
 
     try {
       const context = await runResumeGeneration();
@@ -322,7 +361,7 @@ export function GenerateTailoredResumeSection({
         try {
           const coverRecord = await runCoverLetterGeneration(context);
           setCoverLetterStatus("success");
-          await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
+          await advanceStage(getGenerationStageIndices(true).savingDrafts);
           await delay(200);
           onGenerationFinished?.();
           router.push(`/cover-letter-preview/${coverRecord.id}`);
@@ -345,7 +384,7 @@ export function GenerateTailoredResumeSection({
       }
 
       setCoverLetterStatus("pending");
-      await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
+      await advanceStage(getGenerationStageIndices(false).savingDrafts);
       await delay(200);
 
       onGenerationFinished?.();
@@ -374,7 +413,8 @@ export function GenerateTailoredResumeSection({
     setDebugRaw(null);
     setCoverLetterStatus("generating");
     setIsGenerating(true);
-    setProgressStageIndex(6);
+    setProgressStages(buildCombinedProgressStages("Using saved company research"));
+    setProgressStageIndex(getGenerationStageIndices(true).generatingCoverLetter!);
 
     try {
       const application = await getApplicationRecordFromCloud(
@@ -442,7 +482,15 @@ export function GenerateTailoredResumeSection({
 
       {isGenerating ? (
         <div className="mt-4">
-          <GenerationProgressPanel stageIndex={progressStageIndex} />
+          <GenerationProgressPanel
+            stageIndex={progressStageIndex}
+            stages={progressStages}
+            title={
+              generateMode === "resume_and_cover_letter"
+                ? "Generating tailored resume & cover letter"
+                : "Generating tailored resume"
+            }
+          />
         </div>
       ) : (
         <>
@@ -567,23 +615,28 @@ export function GenerateTailoredResumeSection({
                 />
               </div>
 
-              <div className="lg:col-span-2">
-                <CompanyContextEditorPanel
-                  key={`${editingJobId ?? "new"}-${companyContextEditorKey}`}
-                  jobForm={jobForm}
-                  jobDescriptions={jobDescriptions}
-                  editingJobId={editingJobId}
-                  companyNameOverride={companyNameOverride}
-                  country={country}
-                  companyWebsite={companyWebsite}
-                  additionalInstructions={additionalInstructions}
-                  onSaveJob={onSaveJob}
-                  combinedMode={generateMode === "resume_and_cover_letter"}
-                  lastEnsureStatus={companyContextEnsureStatus}
-                  generationWarning={companyContextWarning}
-                  onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
-                />
-              </div>
+              <CompanyResearchCompactStatus
+                editingJobId={editingJobId}
+                combinedMode={generateMode === "resume_and_cover_letter"}
+                companyWebsite={companyWebsite}
+                lastEnsureStatus={companyContextEnsureStatus}
+                generationWarning={companyContextWarning}
+              />
+
+              <CompanyContextEditorPanel
+                key={`${editingJobId ?? "new"}-${companyContextEditorKey}`}
+                jobForm={jobForm}
+                jobDescriptions={jobDescriptions}
+                editingJobId={editingJobId}
+                companyNameOverride={companyNameOverride}
+                country={country}
+                companyWebsite={companyWebsite}
+                additionalInstructions={additionalInstructions}
+                onSaveJob={onSaveJob}
+                combinedMode={generateMode === "resume_and_cover_letter"}
+                lastEnsureStatus={companyContextEnsureStatus}
+                onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
+              />
             </div>
           ) : null}
         </>

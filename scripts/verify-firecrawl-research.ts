@@ -115,8 +115,8 @@ async function main() {
     ["ensure skips firecrawl when no website", ensureTs.includes("resolveCompanyWebsiteForResearch")],
     ["ensure saves jd context without gemini when no website", ensureTs.includes("saveJdBasedContext")],
     ["cover letter options do not use jobUrl as company website", !coverOptions.includes("input.job.jobUrl")],
-    ["editor uses research terminology", editorPanel.includes("Research Company Website")],
-    ["editor has clear research action", editorPanel.includes("Clear Saved Company Research")],
+    ["editor uses refresh terminology", editorPanel.includes("Refresh research")],
+    ["editor collapsed optional panel", editorPanel.includes("<details")],
     ["mock without scrape is jd-based", generateMockCompanyContext({ jobDescriptionText: job.rawText, companyName: "Acme" }).sourceType === "jd_based_context"],
   ];
 

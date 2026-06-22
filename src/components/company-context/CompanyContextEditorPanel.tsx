@@ -18,10 +18,6 @@ import {
   saveApplicationCompanyContextInCloud,
 } from "@/lib/supabase/application-records";
 import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
-import {
-  formatCompanyResearchStatusLabel,
-  resolveCompanyResearchDisplayStatus,
-} from "@/lib/company-context/status-labels";
 import { validateCompanyContextForSave } from "@/lib/company-context/parse";
 import { ensureJobDescriptionForGeneration, type SaveJobForGenerationHandler } from "@/lib/generate/save-job-for-generation";
 import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
@@ -39,7 +35,6 @@ type CompanyContextEditorPanelProps = {
   onSaveJob: SaveJobForGenerationHandler;
   combinedMode: boolean;
   lastEnsureStatus?: CompanyContextEnsureStatus;
-  generationWarning?: string | null;
   onSaved?: () => void;
 };
 
@@ -54,7 +49,6 @@ export function CompanyContextEditorPanel({
   onSaveJob,
   combinedMode,
   lastEnsureStatus,
-  generationWarning,
   onSaved,
 }: CompanyContextEditorPanelProps) {
   const [draft, setDraft] = useState<CompanyContext | null>(null);
@@ -98,13 +92,9 @@ export function CompanyContextEditorPanel({
     };
   }, [editingJobId, lastEnsureStatus]);
 
-  const displayStatus = resolveCompanyResearchDisplayStatus({
-    savedContext: hasSavedResearch ? draft : null,
-    lastEnsureStatus,
-    combinedMode,
-    companyWebsite,
-  });
-  const statusLabel = formatCompanyResearchStatusLabel(displayStatus);
+  if (!combinedMode) {
+    return null;
+  }
 
   async function ensureJobAndApplication(): Promise<{
     job: StoredJobDescription;
@@ -120,9 +110,9 @@ export function CompanyContextEditorPanel({
     return { job, applicationId: application.id };
   }
 
-  async function handleResearchWebsite() {
+  async function handleRefreshResearch() {
     if (!jobForm.rawText.trim()) {
-      setError("Paste a job description before researching the company website.");
+      setError("Paste a job description before refreshing company research.");
       return;
     }
     if (!companyNameOverride.trim() && !jobForm.companyName?.trim()) {
@@ -130,7 +120,7 @@ export function CompanyContextEditorPanel({
       return;
     }
     if (!companyWebsite.trim()) {
-      setError("Enter a company website URL to research. Job posting URLs are not used.");
+      setError("Enter a company website URL to refresh research. Job posting URLs are not used.");
       return;
     }
 
@@ -233,98 +223,100 @@ export function CompanyContextEditorPanel({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 lg:col-span-2">
-      <p className="text-sm font-medium text-slate-900">{statusLabel}</p>
-      <p className="mt-1 text-xs text-slate-600">
-        Company website is researched via Firecrawl (server-side). Job posting URLs are not
-        scraped. Without a company website, generation uses JD-based context only.
-      </p>
+    <details className="rounded-lg border border-slate-200 bg-slate-50 lg:col-span-2">
+      <summary className="cursor-pointer p-4 text-sm font-medium text-slate-900">
+        View / edit company research (optional)
+      </summary>
+      <div className="space-y-4 border-t border-slate-200 p-4">
+        <p className="text-xs text-slate-600">
+          Research runs automatically during combined generation when a company website is
+          provided. Use this panel to preview, edit, refresh, or clear saved research.
+        </p>
 
-      {generationWarning ? (
-        <p className="mt-2 text-sm text-amber-900">{generationWarning}</p>
-      ) : null}
-
-      <div className="mt-3 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => void handleResearchWebsite()}
-          disabled={isResearching || isSaving || isClearing}
-          className={secondaryButtonClassName}
-        >
-          {isResearching ? "Researching website…" : "Research Company Website"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowEditor((current) => !current)}
-          className={secondaryButtonClassName}
-        >
-          {showEditor ? "Hide saved research" : "Edit Saved Company Research"}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleClear()}
-          disabled={!hasSavedResearch || isClearing || isResearching}
-          className={secondaryButtonClassName}
-        >
-          {isClearing ? "Clearing…" : "Clear Saved Company Research"}
-        </button>
-      </div>
-
-      {showEditor ? (
-        <div className="mt-4 space-y-4">
-          {draft ? (
-            <>
-              <div>
-                <label htmlFor="company-research-summary" className={labelClassName}>
-                  Company summary
-                </label>
-                <textarea
-                  id="company-research-summary"
-                  value={draft.companySummary}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current ? { ...current, companySummary: event.target.value } : current,
-                    )
-                  }
-                  rows={5}
-                  className={formFieldClassName}
-                />
-              </div>
-
-              {draft.suggestedNarrativeAngles.length > 0 ? (
-                <div>
-                  <p className={labelClassName}>Suggested narrative angles</p>
-                  <ul className="mt-2 space-y-2 text-sm text-slate-700">
-                    {draft.suggestedNarrativeAngles.map((angle) => (
-                      <li
-                        key={angle.angle}
-                        className="rounded-md border border-slate-200 bg-white p-3"
-                      >
-                        <p className="font-medium">{angle.angle}</p>
-                        <p className="mt-1">{angle.relevance}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={!draft || isSaving || isResearching}
-                className={secondaryButtonClassName}
-              >
-                {isSaving ? "Saving…" : "Save edits"}
-              </button>
-            </>
-          ) : (
-            <p className="text-sm text-slate-600">No company research saved for this application.</p>
-          )}
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setShowEditor((current) => !current)}
+            className={secondaryButtonClassName}
+          >
+            {showEditor ? "Hide research" : "View / edit research"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleRefreshResearch()}
+            disabled={isResearching || isSaving || isClearing}
+            className={secondaryButtonClassName}
+          >
+            {isResearching ? "Refreshing research…" : "Refresh research"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleClear()}
+            disabled={!hasSavedResearch || isClearing || isResearching}
+            className={secondaryButtonClassName}
+          >
+            {isClearing ? "Clearing…" : "Clear research"}
+          </button>
         </div>
-      ) : null}
 
-      {message ? <p className="mt-3 text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-    </div>
+        {showEditor ? (
+          <div className="space-y-4">
+            {draft ? (
+              <>
+                <div>
+                  <label htmlFor="company-research-summary" className={labelClassName}>
+                    Company summary
+                  </label>
+                  <textarea
+                    id="company-research-summary"
+                    value={draft.companySummary}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current ? { ...current, companySummary: event.target.value } : current,
+                      )
+                    }
+                    rows={5}
+                    className={formFieldClassName}
+                  />
+                </div>
+
+                {draft.suggestedNarrativeAngles.length > 0 ? (
+                  <div>
+                    <p className={labelClassName}>Suggested narrative angles</p>
+                    <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                      {draft.suggestedNarrativeAngles.map((angle) => (
+                        <li
+                          key={angle.angle}
+                          className="rounded-md border border-slate-200 bg-white p-3"
+                        >
+                          <p className="font-medium">{angle.angle}</p>
+                          <p className="mt-1">{angle.relevance}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={!draft || isSaving || isResearching}
+                  className={secondaryButtonClassName}
+                >
+                  {isSaving ? "Saving…" : "Save edits"}
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-slate-600">
+                No company research saved for this application yet.
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
+        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      </div>
+    </details>
   );
 }

@@ -2,14 +2,16 @@
 
 ## Current milestone
 
-**v0.9.5 — Firecrawl Company Research**
+**v0.9.6 — Auto Research Flow & Progress Bar Integration**
 
-- Firecrawl server-side website scrape
-- Website-backed vs JD-based research distinction
-- Source metadata on saved company research
-- Job posting URL separated from company website
+- Automatic website research during combined generation (no manual pre-step)
+- Dynamic progress stages with accurate research messaging
+- Compact company research status in Advanced; manual panel collapsed by default
+- JD-only saved context no longer blocks Firecrawl when website is provided
 
 ## Previous
+
+**v0.9.5 — Firecrawl Company Research**
 
 **v0.9.4 — Auto Company Context + Gemini Resilience**
 

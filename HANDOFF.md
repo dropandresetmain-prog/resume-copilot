@@ -2,29 +2,44 @@
 
 ## Current milestone
 
-**v0.9.5 — Firecrawl Company Research**
+**v0.9.6 — Auto Research Flow & Progress Bar Integration**
 
-Company website content is scraped server-side via Firecrawl, summarized by Gemini into structured company research, saved per application, and reused by resume + cover letter generation.
+Combined Resume + Cover Letter generation automatically researches the company website when a website is provided and no website-backed research is saved. Progress stages reflect the actual research path. Manual research is demoted to an optional Advanced panel.
 
-## v0.9.4 highlights
+## v0.9.5 highlights
 
-Auto company research in combined flow; Gemini retry/backoff; company research failure non-blocking.
+Firecrawl server-side website scrape; website-backed vs JD-based research; source metadata on `application_records.company_context`.
 
 ## Product flow
 
 ```
-JD + Company Website → [Firecrawl scrape] → Gemini company research → Save
-  → Generate Resume & Cover Letter
+Generate Resume & Cover Letter (one click)
+  → Save job + application
+  → [if website + no website-backed research] Firecrawl + Gemini company research → Save
+  → Build resume evidence → Generate resume → Generate cover letter → Save drafts
 ```
 
-Without company website: **JD-based context only** (no Firecrawl, no Gemini research call on auto path).
+Without company website: **JD-based context only** (no Firecrawl).
 
-## Company research
+If website-backed research already exists: **reuse saved research** (no Firecrawl).
 
-- **Website-backed** — Firecrawl scrape + Gemini (`sourceType: website_research`)
-- **JD-based** — local fallback or Gemini without scrape (`sourceType: jd_based_context`)
-- **Job posting URL** — never used as company website; `jobUrl` is separate field
-- **UI** — Research Company Website, Edit Saved Company Research, Clear Saved Company Research (Advanced)
+## Company research (automatic)
+
+| Condition | Behavior | Progress label |
+|-----------|----------|----------------|
+| Website-backed research saved | Reuse | Using saved company research |
+| Website provided, no website-backed research | Firecrawl + Gemini | Researching company website |
+| No website | JD-based context | Using JD-based context |
+| Firecrawl/Gemini fails | JD fallback + warning | Company research failed; continuing with JD context |
+
+**Note:** JD-only saved context does **not** block auto Firecrawl when user later provides a company website.
+
+## UI (Generate page)
+
+- **Advanced:** Company name, country, company website, additional instructions
+- **Compact status:** `Company research: will run automatically` / `website-backed research saved` / etc.
+- **Optional panel (collapsed):** View / edit research, Refresh research, Clear research
+- No prominent “Research Company Website” CTA in the main generation card
 
 ## Environment
 
@@ -39,4 +54,6 @@ AI_PROVIDER=gemini
 ```bash
 npm run dev
 npm run test
+npm run lint
+npm run build
 ```

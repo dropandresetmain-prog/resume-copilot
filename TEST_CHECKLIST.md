@@ -1,32 +1,32 @@
-# Test Checklist — v0.9.5 Firecrawl Company Research
+# Test Checklist — v0.9.6 Auto Research Flow & Progress Bar
 
-## Website research
+## Automatic research (primary flow)
 
-- [ ] Enter company website (e.g. `https://company.com`) → Research Company Website → summary reflects real site content
-- [ ] Saved research shows `Website-backed research saved`
-- [ ] `FIRECRAWL_API_KEY` set in server env (`.env.local`)
+- [ ] Combined generate with website + no website-backed research → progress shows **Researching company website** → resume + cover letter succeed
+- [ ] Compact status in Advanced shows **Company research: will run automatically** before generate
+- [ ] No need to click manual research before Generate
+- [ ] Second generate reuses saved website-backed research → progress **Using saved company research**, no Firecrawl
+- [ ] No website → progress **Using JD-based context**, no Firecrawl
+- [ ] Firecrawl failure → warning + progress **Company research failed; continuing with JD context**, resume still generates
 
-## URL separation
+## Progress bar
 
-- [ ] Job posting URL in JD form does NOT auto-fill company website
-- [ ] LinkedIn/Greenhouse job URL in company website field is rejected or falls back to JD-based
-- [ ] Company website field label clarifies it is not the job posting URL
+- [ ] Combined mode shows 7 stages including dynamic research stage
+- [ ] Resume-only mode shows 5 stages (no research stage)
+- [ ] Stage labels match actual behavior (no fake “researching” when skipping)
 
-## Auto flow
+## JD-only + website edge case
 
-- [ ] Combined generate with website + no saved research → Firecrawl + Gemini + resume + cover letter
-- [ ] Second generate reuses saved research (no Firecrawl)
-- [ ] No website → JD-based context only, no Firecrawl
-- [ ] Firecrawl failure → warning + JD-based fallback, resume still generates
+- [ ] Application has JD-only saved context; user adds company website → next generate runs Firecrawl (does not reuse JD-only as final)
 
-## Advanced actions
+## Advanced / manual panel (secondary)
 
-- [ ] Edit Saved Company Research
-- [ ] Clear Saved Company Research
-- [ ] Regenerate via Research Company Website
+- [ ] Manual panel collapsed by default under Advanced
+- [ ] View / edit research, Refresh research, Clear research work
+- [ ] Compact status updates after generation (saved / failed / will run automatically)
 
 ## Regression
 
-- [ ] v0.9.4 Gemini retry still works
 - [ ] Retry Cover Letter does not re-scrape or regenerate resume
-- [ ] `npm run test` passes
+- [ ] Job posting URL not used as company website
+- [ ] `npm run test`, `npm run lint`, `npm run build` pass

@@ -88,6 +88,12 @@
 - Delete is permanent. Draft edits never mutate inventory.
 - **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
+## Company research (v0.9.6)
+
+- **Automatic in combined flow** — website research runs on Generate when website provided and no website-backed research saved.
+- **JD-only saved context** does not prevent Firecrawl when user later provides a company website.
+- **Manual panel** is optional (collapsed Advanced); not required for generation.
+
 ## Company research (v0.9.5)
 
 - **Firecrawl is server-side only** — requires `FIRECRAWL_API_KEY`; never exposed to browser.
