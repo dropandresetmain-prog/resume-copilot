@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 
 import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
+import {
+  CoverLetterBodyViewSwitch,
+  type CoverLetterBodyView,
+} from "@/components/cover-letters/CoverLetterBodyViewSwitch";
+import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdfPreview";
 import { CoverLetterQuickRevisionPanel } from "@/components/cover-letters/CoverLetterQuickRevisionPanel";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -46,6 +51,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
+  const [bodyView, setBodyView] = useState<CoverLetterBodyView>("pdf");
 
   useEffect(() => {
     let cancelled = false;
@@ -176,12 +182,29 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
               : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
           </p>
         ) : null}
-        <textarea
-          value={bodyDraft}
-          onChange={(event) => setBodyDraft(event.target.value)}
-          rows={18}
-          className={`${formFieldClassName} mt-4 font-serif leading-7`}
-        />
+
+        <div className="mt-4">
+          <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} disabled={isSaving} />
+        </div>
+
+        {bodyView === "pdf" ? (
+          <CoverLetterPdfPreview body={bodyDraft} draftId={draft.id} className="mt-4" />
+        ) : (
+          <textarea
+            value={bodyDraft}
+            onChange={(event) => setBodyDraft(event.target.value)}
+            rows={18}
+            className={`${formFieldClassName} mt-4 font-serif leading-7`}
+            data-testid="cover-letter-raw-text-editor"
+          />
+        )}
+
+        {bodyView === "pdf" ? (
+          <p className="mt-3 text-sm text-slate-600">
+            Switch to Raw Text to edit manually. PDF Preview reflects the current letter text,
+            including quick revisions before save.
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             type="button"

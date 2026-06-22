@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import {
+  CoverLetterBodyViewSwitch,
+  type CoverLetterBodyView,
+} from "@/components/cover-letters/CoverLetterBodyViewSwitch";
+import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdfPreview";
 import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
 import {
@@ -36,6 +41,7 @@ export function ApplicationPackageCoverLetterPanel({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
+  const [bodyView, setBodyView] = useState<CoverLetterBodyView>("pdf");
 
   useEffect(() => {
     let cancelled = false;
@@ -107,18 +113,24 @@ export function ApplicationPackageCoverLetterPanel({
         <p className="mt-3 text-sm text-slate-600">Loading cover letter…</p>
       ) : coverLetter ? (
         <div className="mt-4 space-y-4">
-          <div
-            className="max-h-[32rem] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/70 p-5 md:p-6 shadow-inner"
-            data-testid="application-package-cover-letter-body"
-          >
-            <div className="space-y-4 font-serif text-base leading-7 text-slate-800">
-              {splitCoverLetterParagraphs(coverLetter.body).map((paragraph, index) => (
-                <p key={index} className="m-0">
-                  {paragraph}
-                </p>
-              ))}
+          <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
+
+          {bodyView === "pdf" ? (
+            <CoverLetterPdfPreview body={coverLetter.body} draftId={coverLetter.id} />
+          ) : (
+            <div
+              className="max-h-[32rem] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/70 p-5 md:p-6 shadow-inner"
+              data-testid="application-package-cover-letter-body"
+            >
+              <div className="space-y-4 font-serif text-base leading-7 text-slate-800">
+                {splitCoverLetterParagraphs(coverLetter.body).map((paragraph, index) => (
+                  <p key={index} className="m-0">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/cover-letter-preview/${coverLetter.id}`}

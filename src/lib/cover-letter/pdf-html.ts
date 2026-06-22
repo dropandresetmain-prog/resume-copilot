@@ -7,6 +7,7 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Single source of truth for cover letter PDF export and browser preview. */
 export function renderCoverLetterPdfHtml(content: string): string {
   const paragraphs = content
     .split(/\n\s*\n/)
