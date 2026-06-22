@@ -7,6 +7,8 @@ import {
   promptIncludesAdditionalExperienceColonFormat,
   promptIncludesJdAnalysisGuardrails,
   promptIncludesSkillsInterestsStructure,
+  promptIncludesAcceptedWordingRules,
+  promptIncludesKeywordDistinctionRules,
 } from "../src/lib/resume-draft/prompt";
 import {
   DEFAULT_ADDITIONAL_EXPERIENCE_TITLE,
@@ -258,6 +260,8 @@ function main() {
     ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
     ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
     ["prompt includes skills interests structure", promptIncludesSkillsInterestsStructure(prompt)],
+    ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
+    ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
     ["invalid draft fails validation after normalization", !invalidPrepared.validation.ok],
     ["invalid draft flags too many roles", invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles")],

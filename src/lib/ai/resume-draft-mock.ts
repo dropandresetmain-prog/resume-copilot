@@ -100,7 +100,7 @@ export function generateMockResumeDraft(
     const maxBullets = index === 0 ? MAX_BULLETS_PRIMARY : MAX_BULLETS_SECONDARY;
     const mappedBullets: ResumeDraftExperienceBullet[] = entry.bullets.slice(0, maxBullets).map((bullet) => {
       const keyword = bullet.keyword?.trim() || "Operations";
-      const statement = bullet.description.trim();
+      const statement = bullet.acceptedWording?.trim() || bullet.description.trim();
       return {
         text: repairBulletText(formatKeywordBullet(keyword, statement)),
         sourceRefs: bullet.sourceCitations.map((citation) => ({
@@ -184,13 +184,31 @@ export function generateMockResumeDraft(
   };
 
   const { content, validation } = prepareGeneratedResumeContent(draftContent);
+  const acceptedWordingUsed = input.experiences
+    .flatMap((experience) => experience.bullets)
+    .filter((bullet) => bullet.acceptedWording)
+    .map((bullet) => bullet.bulletKey);
+
   return {
     content: mergeGenerationWarningsIntoContent(content, validation.warnings),
     rationale: {
       overall: `Draft tailored for ${targetRole} using inventory content only. Reference resume (${input.referenceResume.filename}) informed layout and bullet style.`,
       toneNotes: `One-page discipline: 2–3 bullets on primary roles, compact skills section.`,
       omissions: [],
-      keywordUsage: input.approvedKeywords.map((item) => item.keyword),
+      keywordUsage: input.approvedKeywords.slice(0, 5).map((item) => item.keyword),
+      selectionAudit: {
+        jdThemes: input.auditHints?.jdTermSample ?? [],
+        selectedBulletKeys: input.experiences.flatMap((experience) =>
+          experience.bullets.map((bullet) => bullet.bulletKey),
+        ),
+        acceptedWordingUsed,
+        approvedKeywordsUsed: input.approvedKeywords
+          .filter((item) => item.overlapsJobDescription)
+          .map((item) => item.keyword),
+        approvedKeywordsSkipped: input.approvedKeywords
+          .filter((item) => !item.overlapsJobDescription)
+          .map((item) => item.keyword),
+      },
     },
   };
 }

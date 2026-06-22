@@ -1,6 +1,11 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
+import {
+  groupGenerationBulletsByExperience,
+  selectGenerationBullets,
+} from "@/lib/resume-draft/bullet-payload";
+import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
 import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState, KeywordBankItem } from "@/types/enrichment";
@@ -21,11 +26,24 @@ export function filterApprovedKeywords(
   return enrichment.keywordBank.filter((item) => item.approved);
 }
 
-function toKeywordInput(item: KeywordBankItem): ResumeDraftKeywordInput {
+function keywordOverlapsJobDescription(keyword: string, jdText: string): boolean {
+  const normalized = keyword.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return jdText.toLowerCase().includes(normalized);
+}
+
+function toKeywordInput(
+  item: KeywordBankItem,
+  jdText: string,
+): ResumeDraftKeywordInput {
   return {
     id: item.id,
     keyword: item.keyword,
     category: item.category,
+    usage: "advisory_keyword_bank",
+    overlapsJobDescription: keywordOverlapsJobDescription(item.keyword, jdText),
   };
 }
 
@@ -37,51 +55,46 @@ export function buildResumeDraftGenerationInput(options: {
   maxBullets?: number;
 }): ResumeDraftGenerationInput {
   const maxBullets = options.maxBullets ?? MAX_RESUME_DRAFT_BULLETS;
-  const approvedKeywords = filterApprovedKeywords(options.enrichment).map(toKeywordInput);
+  const jdText = options.jobDescription.rawText;
+  const approvedKeywords = filterApprovedKeywords(options.enrichment).map((item) =>
+    toKeywordInput(item, jdText),
+  );
+  const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(options.enrichment);
+  const { selected, totalBullets, jdTerms } = selectGenerationBullets({
+    experiences: options.collated.experiences,
+    maxBullets,
+    jdText,
+    acceptedWordingByBulletKey,
+  });
 
-  const experiences: ResumeDraftGenerationInput["experiences"] = [];
-  let bulletCount = 0;
-
-  for (const experience of options.collated.experiences) {
-    const bullets = [];
-    for (const bullet of experience.bullets) {
-      if (bulletCount >= maxBullets) {
-        break;
-      }
-      bullets.push({
-        bulletKey: buildBulletEnrichmentKey(
-          experience.company,
-          experience.role,
-          bullet.description,
-        ),
+  const experiences: ResumeDraftGenerationInput["experiences"] =
+    groupGenerationBulletsByExperience(selected).map(({ experience, bullets }) => ({
+      collatedExperienceId: experience.id,
+      company: experience.company,
+      companyDescriptor: experience.descriptor,
+      role: experience.role,
+      location: experience.location,
+      dateRange: experience.dateRange,
+      sourceCitations: experience.sourceCitations,
+      bullets: bullets.map(({ bullet, bulletKey }) => ({
+        bulletKey,
         collatedBulletId: bullet.id,
         company: experience.company,
         role: experience.role,
+        dateRange: experience.dateRange,
         keyword: bullet.keyword,
         description: bullet.description,
         rawTexts: bullet.rawTexts,
+        acceptedWording: acceptedWordingByBulletKey.get(bulletKey),
         sourceCitations: bullet.sourceCitations,
-      });
-      bulletCount += 1;
-    }
+      })),
+    }));
 
-    if (bullets.length > 0) {
-      experiences.push({
-        collatedExperienceId: experience.id,
-        company: experience.company,
-        companyDescriptor: experience.descriptor,
-        role: experience.role,
-        location: experience.location,
-        dateRange: experience.dateRange,
-        sourceCitations: experience.sourceCitations,
-        bullets,
-      });
-    }
-
-    if (bulletCount >= maxBullets) {
-      break;
-    }
-  }
+  const bulletsWithAcceptedWording = experiences.reduce(
+    (total, experience) =>
+      total + experience.bullets.filter((bullet) => Boolean(bullet.acceptedWording)).length,
+    0,
+  );
 
   return {
     jobDescription: {
@@ -112,6 +125,14 @@ export function buildResumeDraftGenerationInput(options: {
       sourceCitations: item.sourceCitations,
     })),
     referenceResume: buildReferenceResumeFormatProfile(options.referenceResume),
+    auditHints: {
+      bulletCap: maxBullets,
+      totalInventoryBullets: totalBullets,
+      bulletsIncluded: selected.length,
+      bulletsOmitted: Math.max(0, totalBullets - selected.length),
+      bulletsWithAcceptedWording,
+      jdTermSample: jdTerms.slice(0, 12),
+    },
   };
 }
 
@@ -218,5 +239,118 @@ export function summarizeResumeDraftContent(content: {
     experienceCount: experiences.length,
     bulletCount,
     riskFlagCount: sectionRiskFlags + (content.globalRiskFlags?.length ?? 0),
+  };
+}
+
+/** @internal Test helper — exposes collation-order bullet cap behavior. */
+export function buildResumeDraftGenerationInputLegacyOrder(options: {
+  collated: CollatedInventory;
+  enrichment: EnrichmentState;
+  jobDescription: StoredJobDescription;
+  referenceResume: ParsedResume;
+  maxBullets?: number;
+}): ResumeDraftGenerationInput {
+  const maxBullets = options.maxBullets ?? MAX_RESUME_DRAFT_BULLETS;
+  const jdText = options.jobDescription.rawText;
+  const approvedKeywords = filterApprovedKeywords(options.enrichment).map((item) =>
+    toKeywordInput(item, jdText),
+  );
+  const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(options.enrichment);
+
+  const experiences: ResumeDraftGenerationInput["experiences"] = [];
+  let bulletCount = 0;
+  let totalBullets = 0;
+
+  for (const experience of options.collated.experiences) {
+    totalBullets += experience.bullets.length;
+    const bullets = [];
+
+    for (const bullet of experience.bullets) {
+      if (bulletCount >= maxBullets) {
+        break;
+      }
+
+      const bulletKey = buildBulletEnrichmentKey(
+        experience.company,
+        experience.role,
+        bullet.description,
+      );
+
+      bullets.push({
+        bulletKey,
+        collatedBulletId: bullet.id,
+        company: experience.company,
+        role: experience.role,
+        dateRange: experience.dateRange,
+        keyword: bullet.keyword,
+        description: bullet.description,
+        rawTexts: bullet.rawTexts,
+        acceptedWording: acceptedWordingByBulletKey.get(bulletKey),
+        sourceCitations: bullet.sourceCitations,
+      });
+      bulletCount += 1;
+    }
+
+    if (bullets.length > 0) {
+      experiences.push({
+        collatedExperienceId: experience.id,
+        company: experience.company,
+        companyDescriptor: experience.descriptor,
+        role: experience.role,
+        location: experience.location,
+        dateRange: experience.dateRange,
+        sourceCitations: experience.sourceCitations,
+        bullets,
+      });
+    }
+
+    if (bulletCount >= maxBullets) {
+      break;
+    }
+  }
+
+  const bulletsWithAcceptedWording = experiences.reduce(
+    (total, experience) =>
+      total + experience.bullets.filter((bullet) => Boolean(bullet.acceptedWording)).length,
+    0,
+  );
+
+  return {
+    jobDescription: {
+      id: options.jobDescription.id,
+      rawText: options.jobDescription.rawText,
+      companyName: options.jobDescription.companyName,
+      roleTitle: options.jobDescription.roleTitle,
+      jobUrl: options.jobDescription.jobUrl,
+    },
+    approvedKeywords,
+    experiences,
+    education: options.collated.educationItems.map((item) => ({
+      institution: item.institution,
+      location: item.location,
+      programmes: item.programmes,
+      dateRange: item.dateRange,
+      bullets: item.bullets,
+      sourceCitations: item.sourceCitations,
+    })),
+    additionalExperience: options.collated.additionalExperienceItems.map((item) => ({
+      category: item.category,
+      text: item.text,
+      sourceCitations: item.sourceCitations,
+    })),
+    skills: options.collated.skillItems.map((item) => ({
+      category: item.category,
+      text: item.text,
+      sourceCitations: item.sourceCitations,
+    })),
+    referenceResume: buildReferenceResumeFormatProfile(options.referenceResume),
+    auditHints: {
+      bulletCap: maxBullets,
+      totalInventoryBullets: totalBullets,
+      bulletsIncluded: bulletCount,
+      bulletsOmitted: Math.max(0, totalBullets - bulletCount),
+      bulletsWithAcceptedWording,
+      jdTermSample: [],
+    },
   };
 }

@@ -143,7 +143,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/ai/resume-draft-provider.ts` | Resume draft provider selection |
 | `src/lib/ai/resume-draft-mock.ts` | Mock resume draft provider |
 | `src/lib/ai/resume-draft-gemini.ts` | Gemini resume draft provider |
-| `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot |
+| `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot (v0.7.6 ranked bullets) |
+| `src/lib/resume-draft/bullet-payload.ts` | Bullet ranking/cap selection for generation input (v0.7.6) |
+| `src/lib/resume-draft/enrichment-wording.ts` | Accepted enrichment wording lookup by bulletKey (v0.7.6) |
 | `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
@@ -173,7 +175,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/resume-draft/education-layout.ts` | Render-time education normalization (v0.5.5) |
 | `src/lib/resume-draft/keyword-repair.ts` | Generic `Experience:` bullet repair (v0.5.4) |
 | `src/lib/resume-draft/preview-optimizer.ts` | Auto one-page preview settings (v0.5.4) |
-| `src/lib/resume-draft/skills-section.ts` | Tech/Skills/Languages/Interests extraction (v0.5.4) |
+| `src/lib/resume-draft/skills-section.ts` | Skills/Languages/Interests extraction (v0.7.5) |
 | `src/lib/resume-draft/draft-labels.ts` | Generated draft list labels (v0.5.4) |
 | `src/lib/resume-draft/preview-settings.ts` | Preview font/spacing constants (v0.5.3+) |
 | `src/lib/resume-draft/reference-format.ts` | Reference resume formatting profile (no content) |
@@ -219,6 +221,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-jd.ts` | JD pure helpers + JSON round-trip (test helpers) |
 | `scripts/verify-files.ts` | File hash + metadata |
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
+| `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.6) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |
 | `scripts/verify-resume-docx-export.ts` | Document model + filename + DOCX buffer tests (v0.6.0) |

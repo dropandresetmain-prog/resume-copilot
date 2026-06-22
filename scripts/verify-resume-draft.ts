@@ -14,6 +14,8 @@ import {
   promptIncludesJdAnalysisGuardrails,
   promptIncludesAdditionalExperienceColonFormat,
   promptIncludesSkillsInterestsStructure,
+  promptIncludesAcceptedWordingRules,
+  promptIncludesKeywordDistinctionRules,
 } from "../src/lib/resume-draft/prompt";
 import {
   mapResumeDraftPayload,
@@ -180,6 +182,8 @@ const checks: [string, boolean][] = [
   ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
   ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
   ["prompt includes skills interests structure", promptIncludesSkillsInterestsStructure(prompt)],
+  ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
+  ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
   ["parser accepts valid JSON", parsedValid.ok === true],
   ["parser rejects malformed JSON", parsedInvalid.ok === false],
   ["mapper handles optional fields", mapped.content.education.length === 0],

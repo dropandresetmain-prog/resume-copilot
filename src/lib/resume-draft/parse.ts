@@ -68,6 +68,20 @@ function mapSourceRefs(value: unknown) {
     );
 }
 
+function mapSelectionAudit(value: unknown) {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  return {
+    jdThemes: asStringArray(value.jdThemes),
+    selectedBulletKeys: asStringArray(value.selectedBulletKeys),
+    acceptedWordingUsed: asStringArray(value.acceptedWordingUsed),
+    approvedKeywordsUsed: asStringArray(value.approvedKeywordsUsed),
+    approvedKeywordsSkipped: asStringArray(value.approvedKeywordsSkipped),
+  };
+}
+
 function mapRationale(value: unknown): ResumeDraftRationale {
   if (!isObject(value)) {
     return {
@@ -77,6 +91,8 @@ function mapRationale(value: unknown): ResumeDraftRationale {
     };
   }
 
+  const selectionAudit = mapSelectionAudit(value.selectionAudit);
+
   return {
     overall:
       asString(value.overall) ??
@@ -84,6 +100,15 @@ function mapRationale(value: unknown): ResumeDraftRationale {
     toneNotes: asString(value.toneNotes),
     omissions: asStringArray(value.omissions),
     keywordUsage: asStringArray(value.keywordUsage),
+    selectionAudit:
+      selectionAudit &&
+      (selectionAudit.jdThemes.length > 0 ||
+        selectionAudit.selectedBulletKeys.length > 0 ||
+        selectionAudit.acceptedWordingUsed.length > 0 ||
+        selectionAudit.approvedKeywordsUsed.length > 0 ||
+        selectionAudit.approvedKeywordsSkipped.length > 0)
+        ? selectionAudit
+        : undefined,
   };
 }
 

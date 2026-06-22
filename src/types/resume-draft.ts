@@ -104,11 +104,20 @@ export type ResumeDraftServerPdfValidation = {
   validatedAt: string;
 };
 
+export type ResumeDraftSelectionAudit = {
+  jdThemes?: string[];
+  selectedBulletKeys?: string[];
+  acceptedWordingUsed?: string[];
+  approvedKeywordsUsed?: string[];
+  approvedKeywordsSkipped?: string[];
+};
+
 export type ResumeDraftRationale = {
   overall: string;
   toneNotes?: string;
   omissions: string[];
   keywordUsage: string[];
+  selectionAudit?: ResumeDraftSelectionAudit;
 };
 
 export type ResumeDraftInputSnapshot = {
@@ -148,6 +157,9 @@ export type ResumeDraftKeywordInput = {
   id: string;
   keyword: string;
   category: string;
+  /** Advisory market-language bank — not standalone evidence. */
+  usage: "advisory_keyword_bank";
+  overlapsJobDescription?: boolean;
 };
 
 export type ResumeDraftBulletInput = {
@@ -155,10 +167,21 @@ export type ResumeDraftBulletInput = {
   collatedBulletId: string;
   company: string;
   role: string;
+  dateRange?: string;
   keyword?: string;
   description: string;
   rawTexts: string[];
+  acceptedWording?: string;
   sourceCitations: SourceCitation[];
+};
+
+export type ResumeDraftGenerationAuditHints = {
+  bulletCap: number;
+  totalInventoryBullets: number;
+  bulletsIncluded: number;
+  bulletsOmitted: number;
+  bulletsWithAcceptedWording: number;
+  jdTermSample: string[];
 };
 
 export type ResumeDraftExperienceInput = {
@@ -219,6 +242,7 @@ export type ResumeDraftGenerationInput = {
     sourceCitations: SourceCitation[];
   }[];
   referenceResume: ResumeDraftReferenceResumeExcerpt;
+  auditHints?: ResumeDraftGenerationAuditHints;
 };
 
 export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {

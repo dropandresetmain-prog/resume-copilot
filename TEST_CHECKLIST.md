@@ -1,15 +1,20 @@
-# Test Checklist — v0.7.5 Skills & Interests Cleanup
+# Test Checklist — v0.7.6 Generation Input Quality
 
-## Skills & Interests structure
+## Generation payload
 
-- [ ] Preview/PDF/DOCX show **Skills:** (technical only), **Languages:**, **Interests:**
-- [ ] No **Tech:** row
-- [ ] No separate soft/business **Skills:** row (Business Development, Negotiation, etc.)
-- [ ] Legacy drafts with Tech + soft Skills groups still render technical items under **Skills** only
-- [ ] `Python (basic automation & data handling)` renders as **Python**
+- [ ] Bullets in Gemini input include `keyword`, `description`, `acceptedWording` (when reviewed), `sourceCitations`, `bulletKey`, `dateRange`
+- [ ] Accepted enrichment wording appears in payload but does not mutate inventory
+- [ ] Recent/current role bullets survive low caps better than legacy collation-order cap
+- [ ] `auditHints` shows cap, included/omitted counts, JD term sample
+
+## Prompt
+
+- [ ] Distinguishes bullet-level keywords vs advisory `approvedKeywords` vs JD terms
+- [ ] Instructs Gemini to prefer `acceptedWording` when truthful
+- [ ] `rationale.selectionAudit` schema documented in prompt
 
 ## Regression
 
-- [ ] Work Experience bullets unchanged
-- [ ] Additional Experience normalization (v0.7.4) still works
-- [ ] Generation validation still requires Skills, Languages, Interests groups
+- [ ] Generation validation still passes
+- [ ] Skills & Interests cleanup (v0.7.5) unchanged
+- [ ] Additional experience normalization (v0.7.4) unchanged

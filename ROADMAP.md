@@ -4,15 +4,16 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.7.5 — Skills & Interests Cleanup**
+**v0.7.6 — Generation Input Quality Foundation**
 
-- Skills & Interests: Skills (technical only), Languages, Interests
-- No Tech row; no soft/business skills row
-- Python renders without unnecessary qualifiers
+- Accepted enrichment wording included per bullet in generation payload
+- Bullet cap uses recency + source-backed + JD-overlap ordering (not raw collation order)
+- Prompt distinguishes bullet keywords vs advisory keyword bank vs JD terms
+- Optional `rationale.selectionAudit` for generation traceability
 
 ## Previous
 
-**v0.7.4 — Additional Experience Normalization Fix**
+**v0.7.5 — Skills & Interests Cleanup**
 
 - One card: JD paste + base resume + Generate + progress
 - Saved jobs separated by divider below primary action

@@ -2,9 +2,13 @@
 
 ## Current milestone
 
-**v0.7.5 — Skills & Interests Cleanup**
+**v0.7.6 — Generation Input Quality Foundation**
 
-Skills & Interests now renders only **Skills** (technical), **Languages**, and **Interests**. Soft/business skills are dropped from the section; Tech label renamed to Skills.
+Generation payload now includes accepted enrichment wording per bullet, ranked bullet selection (recent/source-backed/JD-overlap before cap), advisory keyword bank distinction, and optional `selectionAudit` in rationale.
+
+## v0.7.5 highlights
+
+Skills & Interests renders only **Skills** (technical), **Languages**, and **Interests** — no soft/business skills row.
 
 ## v0.7.4 highlights
 
@@ -40,8 +44,8 @@ If layout changes after approval → status `layout_changed` → re-approve (re-
 | Milestone | Status |
 |-----------|--------|
 | v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.5 — Skills & Interests cleanup** | **Current** |
-| v0.7.4 — Additional experience normalization | Complete |
+| **v0.7.6 — Generation input quality** | **Current** |
+| v0.7.5 — Skills & Interests cleanup | Complete |
 | Cover letter generation | Next (same CTA family) |
 | Online company enrichment | Parked |
 

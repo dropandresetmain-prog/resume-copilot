@@ -23,6 +23,21 @@ Content rules:
 - If the job description asks for unsupported experience, add risk flags and list omissions in rationale.
 - Approved keywords may be incorporated only when truthful for the candidate's inventory.
 
+Keyword and evidence rules (critical):
+- Bullet-level keywords (experiences[].bullets[].keyword) are tied to actual inventory evidence — prefer these when they accurately describe the bullet.
+- approvedKeywords is an advisory keyword bank (usage: "advisory_keyword_bank") — market language only, not standalone proof.
+- Job description terms indicate role-specific language to mirror when inventory supports it — do not invent unsupported claims.
+- Prefer bullet-level keywords when they fit the evidence; use approved keywords only when truthful and relevant to the JD.
+- Do not force approved keywords into bullets where they do not fit.
+- Do not use keyword bank items as unsupported standalone claims.
+
+Accepted enrichment wording (critical):
+- When experiences[].bullets[].acceptedWording is present, treat it as user-reviewed preferred phrasing for that bullet.
+- Prefer acceptedWording over raw description when truthful and relevant to the JD.
+- Preserve original facts from description/rawTexts/sourceCitations — do not invent new employers, metrics, tools, or outcomes.
+- Only rewrite acceptedWording when needed for JD fit or one-page line economy.
+- Always include sourceRefs (collatedBulletId, bulletKey, resumeId, filename) when matching inventory bullets exist.
+
 One-page discipline (critical):
 - Target one A4 page. Resumes must NOT include a Professional Summary section in preview or export.
 - The professionalSummary JSON field is kept empty for resumes — backward compatibility and future cover letter generation only. Do not treat it as a critical resume output rule.
@@ -157,7 +172,14 @@ Generate a tailored resume draft and return JSON with this exact shape:
     "overall": "string — must summarize JD must-haves, responsibilities, nice-to-haves, and selection rationale",
     "toneNotes": "string",
     "omissions": ["string"],
-    "keywordUsage": ["string"]
+    "keywordUsage": ["string — approved keyword bank items actually used"],
+    "selectionAudit": {
+      "jdThemes": ["string — JD themes that drove bullet/role selection"],
+      "selectedBulletKeys": ["string — bulletKey values included in Work Experience"],
+      "acceptedWordingUsed": ["string — bulletKey values where acceptedWording informed output"],
+      "approvedKeywordsUsed": ["string"],
+      "approvedKeywordsSkipped": ["string — relevant approved keywords intentionally not used"]
+    }
   }
 }
 
@@ -201,5 +223,21 @@ export function promptIncludesSkillsInterestsStructure(prompt: string): boolean 
     prompt.includes("Do NOT list business/soft/strategy skills") &&
     prompt.includes('"label": "Skills"') &&
     !prompt.includes('"label": "Tech"')
+  );
+}
+
+export function promptIncludesAcceptedWordingRules(prompt: string): boolean {
+  return (
+    prompt.includes("acceptedWording") &&
+    prompt.includes("user-reviewed preferred phrasing") &&
+    prompt.includes("Preserve original facts")
+  );
+}
+
+export function promptIncludesKeywordDistinctionRules(prompt: string): boolean {
+  return (
+    prompt.includes("advisory_keyword_bank") &&
+    prompt.includes("Bullet-level keywords") &&
+    prompt.includes("Do not force approved keywords")
   );
 }

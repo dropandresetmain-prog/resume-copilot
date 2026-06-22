@@ -41,12 +41,20 @@
 
 - PDF Preview scales A4; overflow badge when local content exceeds one page.
 
-## Generate flow (v0.7.2)
+## Generate flow (v0.7.2+)
 
 - **Generate page:** Paste JD → select base resume → **Generate Tailored Resume**. Job saves automatically (reuses duplicate saved jobs when content matches).
 - **Records page:** Explicit Save/Update when editing saved jobs (unchanged).
 - **Base resume** = formatting/reference template only; content from inventory.
 - Last-used base resume stored in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`) — no Supabase migration.
+
+## Generation input quality (v0.7.6)
+
+- **Accepted wording** from enrichment review is sent per bullet (`acceptedWording`) — inventory source text is preserved separately.
+- **Bullet cap (40)** applies after lightweight ranking: recent roles first, then source-backed / accepted-wording / JD-overlap bullets within each role. Not a fit rubric.
+- **Approved keywords** are advisory (`usage: advisory_keyword_bank`) — not standalone evidence.
+- **JD analysis** remains prompt-level; structured `selectionAudit` in rationale is optional metadata for debugging.
+- **Parked:** JD-filtered keyword ranking, structured JD parse object, opportunity intelligence, auto keyword injection into inventory.
 
 ## Generated drafts
 
