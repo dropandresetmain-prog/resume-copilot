@@ -193,6 +193,52 @@ export function resolveCompanyDisplayNameForProse(options: {
   };
 }
 
+export type FormatCompanyNameForDisplayOptions = {
+  rawName?: string | null;
+  website?: string | null;
+  savedDisplayName?: string | null;
+  /** Shown when no company hint is available. Default: "Company TBD". */
+  fallback?: string;
+};
+
+/** User-facing company label — normalizes URLs, ALL CAPS, and legal suffixes. */
+export function formatCompanyNameForDisplay(
+  options?: FormatCompanyNameForDisplayOptions,
+): string {
+  const fallback = options?.fallback ?? "Company TBD";
+  const rawName = options?.rawName?.trim();
+  const savedDisplayName = options?.savedDisplayName?.trim();
+  const website = options?.website?.trim();
+
+  if (!rawName && !savedDisplayName && !website) {
+    return fallback;
+  }
+
+  if (savedDisplayName && !isUrlLikeCompanyName(savedDisplayName)) {
+    return savedDisplayName;
+  }
+
+  if (rawName && !isUrlLikeCompanyName(rawName)) {
+    const words = rawName.split(/\s+/).filter(Boolean);
+    const isAllCapsInput = words.length > 0 && words.every((word) => word === word.toUpperCase());
+    if (!isAllCapsInput) {
+      return rawName;
+    }
+  }
+
+  const display = resolveCompanyDisplayNameForProse({
+    rawName,
+    website,
+    savedDisplayName,
+  }).companyDisplayName;
+
+  if (!display || display === "the company") {
+    return fallback;
+  }
+
+  return display;
+}
+
 /** Detect URLs in cover letter prose where a company name should appear. */
 export function detectCompanyUrlInCoverLetterProse(body: string): string[] {
   const matches = body.match(/https?:\/\/[^\s)]+/gi) ?? [];

@@ -8,6 +8,7 @@ import {
   primaryButtonClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { validateCompanyContextForSave } from "@/lib/company-context/parse";
 import { saveApplicationCompanyContextInCloud } from "@/lib/supabase/application-records";
 import type { CompanyContext } from "@/types/company-context";
@@ -43,6 +44,14 @@ export function CompanyContextPreviewPanel({
   const [error, setError] = useState<string | null>(null);
 
   const researchTimestamp = formatTimestamp(context.generatedAt);
+  const displayCompany = formatCompanyNameForDisplay({
+    rawName: context.companyName,
+    website: context.website,
+    savedDisplayName: context.displayName,
+  });
+  const summaryPreview = context.companySummary?.trim().slice(0, 160);
+  const summaryTruncated =
+    summaryPreview && context.companySummary && summaryPreview.length < context.companySummary.trim().length;
 
   return (
     <details
@@ -51,13 +60,21 @@ export function CompanyContextPreviewPanel({
       onToggle={(event) => setIsOpen((event.target as HTMLDetailsElement).open)}
     >
       <summary className="cursor-pointer text-sm font-medium text-slate-900">
-        Company research — {context.displayName || context.companyName}
+        Company research — {displayCompany}
         <span className="mt-1 block text-xs font-normal text-slate-500">
           {context.sourceType === "website_research" ? "Website-backed" : "JD-based"}
           {researchTimestamp ? ` · Updated ${researchTimestamp}` : ""}
           {" · "}
+          Feeds cover letter generation
+          {" · "}
           View / edit
         </span>
+        {summaryPreview ? (
+          <span className="mt-2 block text-xs font-normal leading-relaxed text-slate-600">
+            {summaryPreview}
+            {summaryTruncated ? "…" : ""}
+          </span>
+        ) : null}
       </summary>
 
       <p className="mt-2 text-xs text-slate-600">

@@ -133,7 +133,7 @@ export function ResumeEvidenceRegenerationPanel({
         content: response.content,
         rationale: response.rationale,
         inputSnapshot: response.inputSnapshot,
-        status: "generated",
+        status: response.draftStatus ?? "generated",
       });
 
       onDraftUpdated(updated);

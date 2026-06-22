@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 
-import {
-  buildExportResumeDocumentModel,
-  findReferenceResumeInInventory,
-} from "@/lib/resume-draft/build-export-document-model";
 import { generateResumeDocxBuffer } from "@/lib/resume-draft/docx-export";
 import {
   isApprovedDraftStatus,
   parseResumeDocxExportRequestBody,
 } from "@/lib/resume-draft/export-request";
-import { getGeneratedResumeDraftForUser } from "@/lib/supabase/generated-resume-drafts";
-import { getJobDescriptionForUser } from "@/lib/supabase/job-descriptions";
-import { getResumeInventoryForUser } from "@/lib/supabase/resume-inventories";
+import {
+  ExportRequestError,
+  resolveExportDocumentModelForDraft,
+} from "@/lib/resume-draft/resolve-export-request";
 import { uploadResumeDocxExport } from "@/lib/supabase/resume-docx-storage";
 import {
   createSupabaseClientWithAccessToken,
@@ -30,10 +27,12 @@ export async function POST(request: Request) {
     const supabase = createSupabaseClientWithAccessToken(accessToken);
     const body = parseResumeDocxExportRequestBody(await request.json());
 
-    const draft = await getGeneratedResumeDraftForUser(supabase, body.draftId, userId);
-    if (!draft) {
-      return NextResponse.json({ error: "Resume draft not found." }, { status: 404 });
-    }
+    const { draft, documentModel } = await resolveExportDocumentModelForDraft(
+      supabase,
+      userId,
+      body.draftId,
+      body.layoutSettings,
+    );
 
     if (!isApprovedDraftStatus(draft.status)) {
       return NextResponse.json(
@@ -41,22 +40,6 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
-
-    const jobDescription = draft.jobDescriptionId
-      ? await getJobDescriptionForUser(supabase, draft.jobDescriptionId, userId)
-      : null;
-
-    const inventory = await getResumeInventoryForUser(supabase, userId);
-    const referenceResume = inventory
-      ? findReferenceResumeInInventory(inventory.resumes, draft.referenceResumeId)
-      : null;
-
-    const documentModel = buildExportResumeDocumentModel({
-      draft,
-      jobDescription,
-      referenceResume,
-      layoutSettings: body.layoutSettings,
-    });
 
     const buffer = await generateResumeDocxBuffer(documentModel);
 
@@ -90,6 +73,9 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof ExportRequestError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     const message = error instanceof Error ? error.message : "Resume DOCX export failed.";
     const status = message.includes("signed in") ? 401 : 400;
     return NextResponse.json({ error: message }, { status });

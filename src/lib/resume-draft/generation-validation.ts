@@ -3,6 +3,13 @@ import {
   normalizeAdditionalExperienceItems,
   parseAdditionalExperienceItemText,
 } from "@/lib/resume-draft/additional-experience";
+import {
+  repairGeneratedResumeContent,
+  RESUME_STRUCTURE_NEEDS_REVIEW_FLAG,
+  type RepairGeneratedResumeContext,
+  type ResumeRepairAction,
+} from "@/lib/resume-draft/repair-generated-content";
+import { RESUME_DRAFT_STATUS_NEEDS_REVIEW } from "@/lib/resume-draft/draft-status";
 import type { ResumeDraftContent } from "@/types/resume-draft";
 
 export const MAX_WORK_EXPERIENCE_ROLES = 4;
@@ -24,6 +31,20 @@ export type GenerationValidationResult = {
   errors: GenerationValidationIssue[];
   warnings: GenerationValidationIssue[];
 };
+
+export const HARD_BLOCK_VALIDATION_CODES = new Set([
+  "no_work_experience",
+  "skills_group_missing",
+  "additional_experience_format",
+]);
+
+/** Repairable structure issues — downgraded to warnings when auto-repair ran. */
+export const SOFT_STRUCTURE_VALIDATION_CODES = new Set([
+  "too_many_roles",
+  "role_bullet_count",
+  "professional_summary_present",
+  "total_bullet_count",
+]);
 
 export class ResumeDraftValidationError extends Error {
   readonly issues: GenerationValidationIssue[];
@@ -61,6 +82,16 @@ export function validateGeneratedResumeContent(
 ): GenerationValidationResult {
   const errors: GenerationValidationIssue[] = [];
   const warnings: GenerationValidationIssue[] = [];
+
+  if (content.experience.length === 0) {
+    errors.push(
+      issue(
+        "no_work_experience",
+        "Resume draft must include at least one Work Experience role.",
+        "error",
+      ),
+    );
+  }
 
   if (content.professionalSummary.text.trim()) {
     errors.push(
@@ -118,7 +149,7 @@ export function validateGeneratedResumeContent(
       issue(
         "total_bullet_count",
         `Target ${TARGET_TOTAL_WORK_BULLETS_MIN}–${TARGET_TOTAL_WORK_BULLETS_MAX} total Work Experience bullets (found ${totalBullets}).`,
-        "warning",
+        totalBullets > TARGET_TOTAL_WORK_BULLETS_MAX ? "error" : "warning",
       ),
     );
   }
@@ -175,15 +206,56 @@ export function validateGeneratedResumeContent(
   };
 }
 
-export function prepareGeneratedResumeContent(content: ResumeDraftContent): {
+export type PreparedGeneratedResumeContent = {
   content: ResumeDraftContent;
   validation: GenerationValidationResult;
-} {
+  repairActions: ResumeRepairAction[];
+  repairMessages: string[];
+  needsReview: boolean;
+  draftStatus: string;
+};
+
+function downgradeSoftStructureErrors(
+  validation: GenerationValidationResult,
+): GenerationValidationResult {
+  const errors: GenerationValidationIssue[] = [];
+  const warnings = [...validation.warnings];
+
+  for (const entry of validation.errors) {
+    if (SOFT_STRUCTURE_VALIDATION_CODES.has(entry.code)) {
+      warnings.push({ ...entry, severity: "warning" });
+      continue;
+    }
+    errors.push(entry);
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+function buildStructureRepairSummary(messages: string[]): string {
+  return `Resume generated with automatic structure repair:\n${messages.map((line) => `- ${line}`).join("\n")}`;
+}
+
+export function prepareGeneratedResumeContent(
+  content: ResumeDraftContent,
+  context?: RepairGeneratedResumeContext,
+): PreparedGeneratedResumeContent {
   const hadPlainAdditionalExperience = additionalExperienceNeedsNormalization(
     content.additionalExperience,
   );
   const normalized = normalizeGeneratedResumeContent(content);
-  const validation = validateGeneratedResumeContent(normalized);
+  const repaired = repairGeneratedResumeContent(normalized, context);
+  let validation = validateGeneratedResumeContent(repaired.content);
+  const repairRan = repaired.repairActions.length > 0;
+  const needsReview = repaired.needsReview || repairRan;
+
+  if (repairRan || repaired.needsReview) {
+    validation = downgradeSoftStructureErrors(validation);
+  }
 
   if (hadPlainAdditionalExperience) {
     validation.warnings.push(
@@ -195,7 +267,57 @@ export function prepareGeneratedResumeContent(content: ResumeDraftContent): {
     );
   }
 
-  return { content: normalized, validation };
+  for (const warning of repaired.warnings) {
+    validation.warnings.push(issue("structure_repair_warning", warning, "warning"));
+  }
+
+  if (repairRan) {
+    validation.warnings.push(
+      issue(
+        "structure_repair_applied",
+        buildStructureRepairSummary(repaired.repairMessages),
+        "warning",
+      ),
+    );
+  }
+
+  if (needsReview) {
+    validation.warnings.push(
+      issue(
+        "resume_structure_needs_review",
+        "Resume structure was auto-repaired — review Work Experience density before export.",
+        "warning",
+      ),
+    );
+  }
+
+  const riskFlags = new Set(repaired.content.globalRiskFlags);
+  if (needsReview) {
+    riskFlags.add(RESUME_STRUCTURE_NEEDS_REVIEW_FLAG);
+  }
+  if (repairRan) {
+    riskFlags.add(buildStructureRepairSummary(repaired.repairMessages));
+  }
+
+  const mergedContent = mergeGenerationWarningsIntoContent(
+    { ...repaired.content, globalRiskFlags: [...riskFlags] },
+    validation.warnings,
+  );
+
+  return {
+    content: mergedContent,
+    validation,
+    repairActions: repaired.repairActions,
+    repairMessages: repaired.repairMessages,
+    needsReview,
+    draftStatus: needsReview ? RESUME_DRAFT_STATUS_NEEDS_REVIEW : "generated",
+  };
+}
+
+export function getHardBlockValidationErrors(
+  validation: GenerationValidationResult,
+): GenerationValidationIssue[] {
+  return validation.errors.filter((entry) => HARD_BLOCK_VALIDATION_CODES.has(entry.code));
 }
 
 export function assertGeneratedResumeContentValid(content: ResumeDraftContent): void {

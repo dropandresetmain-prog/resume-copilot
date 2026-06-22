@@ -86,7 +86,9 @@
 ## Generated drafts
 
 - Delete is permanent. Draft edits never mutate inventory.
-- **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
+- **Structure auto-repair (v0.9.8B):** Gemini output with 5+ roles or bullet overages is repaired before save; user sees repair summary on application package. Status `needs_review` until user reviews.
+- **Hard-block remains** for: no work experience, missing Skills/Languages/Interests groups, unparseable JSON, additional experience that cannot normalize to `Title: Detail`.
+- **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated` or `needs_review`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
 ## Cover letter (v0.9.7)
 

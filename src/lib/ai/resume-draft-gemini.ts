@@ -1,5 +1,6 @@
 import { callGeminiWithRetry } from "@/lib/ai/call-gemini";
 import {
+  getHardBlockValidationErrors,
   mergeGenerationWarningsIntoContent,
   prepareGeneratedResumeContent,
   ResumeDraftValidationError,
@@ -29,16 +30,34 @@ export async function generateResumeDraftWithGemini(
     throw new ResumeDraftParseError(parsed.error, parsed.rawText);
   }
 
-  const { content, validation } = prepareGeneratedResumeContent(parsed.value.content);
-  if (!validation.ok) {
+  const prepared = prepareGeneratedResumeContent(parsed.value.content, {
+    jdText: input.jobDescription.rawText,
+    targetRoleTitle: input.jobDescription.roleTitle,
+  });
+
+  const hardBlockErrors = getHardBlockValidationErrors(prepared.validation);
+  if (hardBlockErrors.length > 0) {
     throw new ResumeDraftValidationError(
-      validation.errors.map((entry) => entry.message).join(" "),
-      validation.errors,
+      hardBlockErrors.map((entry) => entry.message).join(" "),
+      hardBlockErrors,
     );
   }
 
+  const rationale =
+    prepared.repairMessages.length > 0
+      ? {
+          ...parsed.value.rationale,
+          structureRepair: {
+            actions: prepared.repairActions,
+            messages: prepared.repairMessages,
+            needsReview: prepared.needsReview,
+          },
+        }
+      : parsed.value.rationale;
+
   return {
-    content: mergeGenerationWarningsIntoContent(content, validation.warnings),
-    rationale: parsed.value.rationale,
+    content: prepared.content,
+    rationale,
+    draftStatus: prepared.draftStatus,
   };
 }

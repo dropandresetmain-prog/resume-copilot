@@ -1,3 +1,7 @@
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
+import type { CompanyContext } from "@/types/company-context";
+import type { StoredJobDescription } from "@/types/jd";
+
 const UNSAFE_FILENAME_CHARS = /[\\/:*?"<>|]/g;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
@@ -18,6 +22,26 @@ export type ResumeExportFileNameInput = {
   companyName?: string | null;
   roleTitle?: string | null;
 };
+
+export function buildResumeExportFileNameInput(options: {
+  fullName?: string | null;
+  job?: Pick<StoredJobDescription, "companyName" | "roleTitle" | "jobUrl"> | null;
+  companyContext?: Pick<CompanyContext, "displayName" | "website"> | null;
+  targetRoleTitle?: string | null;
+}): ResumeExportFileNameInput {
+  const companyDisplay = formatCompanyNameForDisplay({
+    rawName: options.job?.companyName,
+    website: options.companyContext?.website ?? options.job?.jobUrl,
+    savedDisplayName: options.companyContext?.displayName,
+    fallback: "",
+  });
+
+  return {
+    fullName: options.fullName?.trim() || undefined,
+    companyName: companyDisplay || undefined,
+    roleTitle: options.job?.roleTitle ?? options.targetRoleTitle ?? undefined,
+  };
+}
 
 /** Shared stem: `<FULL NAME> - Resume_<COMPANY>_<ROLE>` or `<FULL NAME> - Resume` */
 export function buildResumeExportFileStem(input: ResumeExportFileNameInput): string {

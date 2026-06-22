@@ -1,7 +1,4 @@
-import {
-  mergeGenerationWarningsIntoContent,
-  prepareGeneratedResumeContent,
-} from "@/lib/resume-draft/generation-validation";
+import { prepareGeneratedResumeContent } from "@/lib/resume-draft/generation-validation";
 import {
   compactAdditionalExperience,
   filterAdditionalExperienceItems,
@@ -183,15 +180,16 @@ export function generateMockResumeDraft(
         : [],
   };
 
-  const { content, validation } = prepareGeneratedResumeContent(draftContent);
+  const prepared = prepareGeneratedResumeContent(draftContent, {
+    jdText: input.jobDescription.rawText,
+    targetRoleTitle: input.jobDescription.roleTitle,
+  });
   const acceptedWordingUsed = input.experiences
     .flatMap((experience) => experience.bullets)
     .filter((bullet) => bullet.acceptedWording)
     .map((bullet) => bullet.bulletKey);
 
-  return {
-    content: mergeGenerationWarningsIntoContent(content, validation.warnings),
-    rationale: {
+  const rationale = {
       overall: `Draft tailored for ${targetRole} using inventory content only. Reference resume (${input.referenceResume.filename}) informed layout and bullet style.`,
       toneNotes: `One-page discipline: 2–3 bullets on primary roles, compact skills section.`,
       omissions: [],
@@ -209,6 +207,21 @@ export function generateMockResumeDraft(
           .filter((item) => !item.overlapsJobDescription)
           .map((item) => item.keyword),
       },
-    },
+    };
+
+  return {
+    content: prepared.content,
+    draftStatus: prepared.draftStatus,
+    rationale:
+      prepared.repairMessages.length > 0
+        ? {
+            ...rationale,
+            structureRepair: {
+              actions: prepared.repairActions,
+              messages: prepared.repairMessages,
+              needsReview: prepared.needsReview,
+            },
+          }
+        : rationale,
   };
 }

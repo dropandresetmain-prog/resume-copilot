@@ -171,7 +171,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/types/inventory-edits.ts` | `InventoryEdits` overlay type (v0.7.7) |
 | `src/lib/resume-draft/bullet-payload.ts` | Bullet ranking/cap/force/exclude selection (v0.7.7) |
 | `src/lib/resume-draft/enrichment-wording.ts` | Accepted enrichment wording lookup by bulletKey (v0.7.6) |
-| `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
+| `src/lib/resume-draft/generation-validation.ts` | Normalize, validate, prepare generated content + hard/soft issue classification (v0.9.8B) |
+| `src/lib/resume-draft/repair-generated-content.ts` | Auto-repair excess roles/bullets before save (v0.9.8B) |
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
 | `src/lib/resume-draft/client.ts` | Browser client for generate-resume API |
 | `src/lib/resume-draft/review-state.ts` | Draft review state + apply edits (4B) |
@@ -307,6 +308,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-cover-letter.ts` | Profile, payload, prompt, validation, persistence (v0.9.0) |
 | `scripts/verify-cover-letter-quality.ts` | Word cap, banned phrases, normalization, revision (v0.9.2) |
 | `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.7) |
+| `scripts/verify-resume-generation-validation.ts` | Generation validation rules + additional experience normalization |
+| `scripts/verify-resume-generation-repair.ts` | Auto-repair for excess roles/bullets (v0.9.8B) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |
 | `scripts/verify-resume-docx-export.ts` | Document model + filename + DOCX buffer tests (v0.6.0) |

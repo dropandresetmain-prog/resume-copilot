@@ -5,6 +5,8 @@ import {
 } from "@/lib/resume-draft/document-model";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
 import { DEFAULT_RESUME_FONT_FAMILY } from "@/lib/resume-draft/preview-settings";
+import { buildResumeExportFileNameInput } from "@/lib/resume-draft/export-filename";
+import type { CompanyContext } from "@/types/company-context";
 import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 import type { ParsedResume } from "@/types/resume";
@@ -16,7 +18,8 @@ export type ExportTypography = {
 
 export type BuildExportResumeDocumentModelInput = {
   draft: Pick<GeneratedResumeDraftRecord, "id" | "status" | "content" | "referenceResumeId">;
-  jobDescription?: Pick<StoredJobDescription, "companyName" | "roleTitle"> | null;
+  jobDescription?: Pick<StoredJobDescription, "companyName" | "roleTitle" | "jobUrl"> | null;
+  companyContext?: Pick<CompanyContext, "displayName" | "website"> | null;
   referenceResume?: ParsedResume | null;
   layoutSettings?: Partial<ResumeLayoutSettings>;
 };
@@ -60,6 +63,13 @@ export function buildExportResumeDocumentModel(
     input.referenceResume,
   );
 
+  const exportNames = buildResumeExportFileNameInput({
+    fullName: input.draft.content.header.fullName,
+    job: input.jobDescription,
+    companyContext: input.companyContext,
+    targetRoleTitle: input.draft.content.targetRoleTitle,
+  });
+
   return buildResumeDocumentModel({
     draftId: input.draft.id,
     draftStatus: input.draft.status,
@@ -67,8 +77,8 @@ export function buildExportResumeDocumentModel(
     layoutSettings: input.layoutSettings,
     fontFamily,
     headerAlignment,
-    fullName: input.draft.content.header.fullName,
-    companyName: input.jobDescription?.companyName,
-    roleTitle: input.jobDescription?.roleTitle ?? input.draft.content.targetRoleTitle,
+    fullName: exportNames.fullName ?? undefined,
+    companyName: exportNames.companyName ?? undefined,
+    roleTitle: exportNames.roleTitle ?? undefined,
   });
 }

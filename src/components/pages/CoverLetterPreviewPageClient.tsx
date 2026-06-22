@@ -17,6 +17,7 @@ import {
 } from "@/components/setup/ui";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { normalizeCompanyContext } from "@/lib/company-context/normalize";
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
 import {
@@ -97,6 +98,12 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const job = draft?.jobDescriptionId
     ? jobDescriptions.find((item) => item.id === draft.jobDescriptionId)
     : undefined;
+  const displayCompany = formatCompanyNameForDisplay({
+    rawName: draft?.companyName ?? job?.companyName,
+    website: draft?.companyWebsite ?? companyContext?.website ?? job?.jobUrl,
+    savedDisplayName: companyContext?.displayName ?? draft?.companyContext?.displayName,
+    fallback: "",
+  });
   const wordCount = countWords(bodyDraft);
   const bannedPhrases = detectBannedPhrases(bodyDraft);
   const exportBlocked = isOverWordLimit(wordCount) || bannedPhrases.length > 0;
@@ -155,7 +162,11 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       </div>
 
       <SetupCard
-        title={job?.roleTitle && job.companyName ? `${job.roleTitle} @ ${job.companyName}` : "Cover letter"}
+        title={
+          job?.roleTitle && displayCompany
+            ? `${job.roleTitle} @ ${displayCompany}`
+            : "Cover letter"
+        }
         description={formatWordCountLabel(wordCount)}
       >
         {exportBlocked ? (

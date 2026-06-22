@@ -1,3 +1,4 @@
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { formatSavedJobLabel } from "@/lib/jd/labels";
 import type { StoredApplicationRecord } from "@/types/application-record";
 import type { StoredJobDescription } from "@/types/jd";
@@ -6,7 +7,12 @@ export function formatApplicationLabel(
   record: StoredApplicationRecord,
   job?: StoredJobDescription,
 ): string {
-  const company = record.companyName?.trim() || job?.companyName?.trim();
+  const company = formatCompanyNameForDisplay({
+    rawName: record.companyName ?? job?.companyName,
+    website: record.companyContext?.website ?? job?.jobUrl,
+    savedDisplayName: record.companyContext?.displayName,
+    fallback: "",
+  });
   const role = record.roleTitle?.trim() || job?.roleTitle?.trim();
 
   if (role && company) {

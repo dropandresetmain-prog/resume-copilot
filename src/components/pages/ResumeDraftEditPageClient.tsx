@@ -65,7 +65,7 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
           href={`/resume-preview/${draftId}`}
           className={`mt-4 inline-flex ${secondaryButtonClassName}`}
         >
-          Back to layout preview
+          Back to application package
         </Link>
       </SetupCard>
     );
@@ -78,9 +78,9 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
   return (
     <>
       <PageHeader
-        milestone="v0.5.2 · Resume Layout Fidelity Fixes"
+        milestone="v0.9.8A · Resume Editor"
         title="Edit resume details"
-        description="Review and edit generated content. Changes save back to this draft. Return to the layout preview when ready."
+        description="Review and edit generated content. Changes save back to this draft. Return to the application package when ready."
       />
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -88,7 +88,7 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
           href={`/resume-preview/${draftId}`}
           className={`inline-flex ${secondaryButtonClassName}`}
         >
-          Back to layout preview
+          Back to application package
         </Link>
         <Link href="/generate" className={`inline-flex ${secondaryButtonClassName}`}>
           Back to Generate

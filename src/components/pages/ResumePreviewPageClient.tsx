@@ -203,6 +203,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     return buildExportResumeDocumentModel({
       draft,
       jobDescription: linkedJob,
+      companyContext,
       referenceResume,
       layoutSettings: {
         bodyFontPx,
@@ -223,6 +224,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     sectionSpacing,
     linkedJob,
     referenceResume,
+    companyContext,
   ]);
 
   const layout = documentModel?.layout ?? null;
@@ -399,7 +401,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.9.8 · Application Package"
+        milestone="v0.9.8B · Application Package"
         title="Application package"
         description="Review your resume, cover letter, and company research in one place."
       />
@@ -413,6 +415,20 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           coverLetterLoading={coverLetterLoading}
           companyContext={companyContext}
         />
+
+        {draft.rationale?.structureRepair?.messages?.length ? (
+          <div
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            data-testid="resume-structure-repair-banner"
+          >
+            <p className="font-medium">Resume generated with automatic structure repair</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {draft.rationale.structureRepair.messages.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <SetupCard
           title="Resume"

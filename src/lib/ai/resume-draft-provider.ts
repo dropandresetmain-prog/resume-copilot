@@ -80,6 +80,7 @@ export function toResumeDraftApiResponse(
     content: result.content,
     rationale: result.rationale,
     inputSnapshot: context.inputSnapshot,
+    draftStatus: result.draftStatus,
     provider,
     isMock: provider === "mock",
     providerLabel: getProviderLabel(provider),

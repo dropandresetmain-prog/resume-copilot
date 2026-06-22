@@ -3,7 +3,7 @@ import {
   buildCoverLetterPdfFileName,
   type ResumeExportFileNameInput,
 } from "@/lib/resume-draft/export-filename";
-import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 import type { StoredJobDescription } from "@/types/jd";
@@ -14,15 +14,16 @@ export function buildCoverLetterExportFileNameInput(options: {
   job?: Pick<StoredJobDescription, "companyName" | "roleTitle"> | null;
 }): ResumeExportFileNameInput {
   const fullName = options.resumeDraft?.content.header.fullName?.trim() || "Min Htet";
-  const display = resolveCompanyDisplayNameForProse({
+  const display = formatCompanyNameForDisplay({
     rawName: options.draft.companyName ?? options.job?.companyName,
     website: options.draft.companyWebsite ?? options.draft.companyContext?.website,
     savedDisplayName: options.draft.companyContext?.displayName,
-  }).companyDisplayName;
+    fallback: "",
+  });
 
   return {
     fullName,
-    companyName: display,
+    companyName: display || undefined,
     roleTitle: options.job?.roleTitle ?? options.resumeDraft?.content.targetRoleTitle,
   };
 }

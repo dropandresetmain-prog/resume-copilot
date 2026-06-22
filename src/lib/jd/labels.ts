@@ -1,8 +1,13 @@
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import type { StoredJobDescription } from "@/types/jd";
 
 /** User-facing saved job label: Company — Role with sensible fallbacks. */
-export function formatSavedJobLabel(jd: Pick<StoredJobDescription, "companyName" | "roleTitle" | "rawText">): string {
-  const company = jd.companyName?.trim();
+export function formatSavedJobLabel(
+  jd: Pick<StoredJobDescription, "companyName" | "roleTitle" | "rawText" | "jobUrl">,
+): string {
+  const company = jd.companyName?.trim()
+    ? formatCompanyNameForDisplay({ rawName: jd.companyName, website: jd.jobUrl, fallback: "" })
+    : "";
   const role = jd.roleTitle?.trim();
 
   if (company && role) return `${company} — ${role}`;

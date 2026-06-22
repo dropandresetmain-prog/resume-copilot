@@ -7,6 +7,7 @@ export function formatDraftStatusLabel(status: string): string {
   if (normalized === "approved") return "Approved";
   if (normalized === "reviewed") return "Reviewed";
   if (normalized === "generated") return "Generated";
+  if (normalized === "needs_review") return "Needs review";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 

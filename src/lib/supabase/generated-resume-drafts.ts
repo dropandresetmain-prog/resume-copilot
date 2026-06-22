@@ -31,6 +31,19 @@ function parseResumeDraftContent(value: unknown): ResumeDraftContent | null {
 function parseResumeDraftRationale(value: unknown): ResumeDraftRationale | undefined {
   if (!isObject(value)) return undefined;
   if (typeof value.overall !== "string") return undefined;
+
+  const structureRepair = isObject(value.structureRepair)
+    ? {
+        actions: Array.isArray(value.structureRepair.actions)
+          ? value.structureRepair.actions.filter((item): item is string => typeof item === "string")
+          : [],
+        messages: Array.isArray(value.structureRepair.messages)
+          ? value.structureRepair.messages.filter((item): item is string => typeof item === "string")
+          : [],
+        needsReview: value.structureRepair.needsReview === true,
+      }
+    : undefined;
+
   return {
     overall: value.overall,
     toneNotes: typeof value.toneNotes === "string" ? value.toneNotes : undefined,
@@ -40,6 +53,7 @@ function parseResumeDraftRationale(value: unknown): ResumeDraftRationale | undef
     keywordUsage: Array.isArray(value.keywordUsage)
       ? value.keywordUsage.filter((item): item is string => typeof item === "string")
       : [],
+    structureRepair,
   };
 }
 

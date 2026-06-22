@@ -2,13 +2,17 @@
 
 ## Current milestone
 
-**v0.9.8 — Application Package Preview UX Cleanup**
+**v0.9.8B — Resume Generation Auto-Repair & Non-Blocking Validation**
+
+Gemini structure violations (too many roles/bullets) are auto-repaired before save. Repaired drafts get `needs_review` status, visible repair banner on application package, and `resume_structure_needs_review` risk flag. Hard-block only on missing work experience, unparseable JSON, missing skills groups, or unnormalizable additional experience.
+
+## v0.9.8A highlights
+
+Company name display consistency, export naming, cover letter inline readability, company research discoverability.
+
+## v0.9.8 highlights
 
 Application package page reorganized: resume approve/export next to layout controls, inline cover letter preview, collapsed company research and advanced/debug sections, edit resume content behind a toggle.
-
-## v0.9.7 highlights
-
-Cover letter relevance (bridges, ranking, display names), application package landing on resume preview.
 
 ## Application package page order
 

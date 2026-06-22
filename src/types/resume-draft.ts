@@ -125,6 +125,11 @@ export type ResumeDraftRationale = {
   omissions: string[];
   keywordUsage: string[];
   selectionAudit?: ResumeDraftSelectionAudit;
+  structureRepair?: {
+    actions: string[];
+    messages: string[];
+    needsReview: boolean;
+  };
 };
 
 export type ResumeDraftInputSnapshot = {
@@ -263,6 +268,7 @@ export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {
 export type ResumeDraftGenerationResult = {
   content: ResumeDraftContent;
   rationale: ResumeDraftRationale;
+  draftStatus?: string;
 };
 
 export type ResumeDraftGenerationResponse = ResumeDraftGenerationResult & {
@@ -272,6 +278,7 @@ export type ResumeDraftGenerationResponse = ResumeDraftGenerationResult & {
   providerLabel: string;
   modelName?: string;
   timestamp: string;
+  draftStatus?: string;
 };
 
 export type ResumeDraftProviderStatusResponse = {

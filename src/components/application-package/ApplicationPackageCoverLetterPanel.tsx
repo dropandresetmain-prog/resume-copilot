@@ -10,6 +10,7 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
 import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
 import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-cover-letter-drafts";
@@ -107,10 +108,16 @@ export function ApplicationPackageCoverLetterPanel({
       ) : coverLetter ? (
         <div className="mt-4 space-y-4">
           <div
-            className="max-h-[28rem] overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800"
+            className="max-h-[32rem] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/70 p-5 md:p-6 shadow-inner"
             data-testid="application-package-cover-letter-body"
           >
-            {coverLetter.body}
+            <div className="space-y-4 font-serif text-base leading-7 text-slate-800">
+              {splitCoverLetterParagraphs(coverLetter.body).map((paragraph, index) => (
+                <p key={index} className="m-0">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link

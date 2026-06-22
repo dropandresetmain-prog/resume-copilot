@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { isApprovedDraftStatus } from "@/lib/resume-draft/draft-status";
 import { hasWebsiteBackedResearch } from "@/lib/company-context/normalize";
 import type { CompanyContext } from "@/types/company-context";
@@ -16,6 +17,9 @@ type ApplicationPackageSummaryProps = {
 };
 
 function resumeStatusLabel(draft: GeneratedResumeDraftRecord): string {
+  if (draft.status === "needs_review") {
+    return "Needs structure review";
+  }
   if (isApprovedDraftStatus(draft.status)) {
     return draft.content.serverPdfValidation?.pageCount === 1
       ? "Approved for export"
@@ -58,7 +62,11 @@ export function ApplicationPackageSummary({
   coverLetterLoading,
   companyContext,
 }: ApplicationPackageSummaryProps) {
-  const displayCompany = companyContext?.displayName || companyName || "Company TBD";
+  const displayCompany = formatCompanyNameForDisplay({
+    rawName: companyName,
+    website: companyContext?.website,
+    savedDisplayName: companyContext?.displayName,
+  });
   const displayRole = roleTitle || resumeDraft.content.targetRoleTitle || "Role TBD";
 
   return (

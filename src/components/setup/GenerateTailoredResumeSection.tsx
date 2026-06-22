@@ -288,6 +288,7 @@ export function GenerateTailoredResumeSection({
       inputSnapshot: response.inputSnapshot,
       provider: response.provider,
       modelName: response.modelName,
+      status: response.draftStatus ?? "generated",
     });
 
     await markApplicationResumeGenerated(applicationRecord.id);

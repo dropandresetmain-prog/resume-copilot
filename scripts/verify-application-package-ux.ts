@@ -48,6 +48,7 @@ function main() {
     ["application package summary component", resumePreview.includes("ApplicationPackageSummary")],
     ["no open formal cover letter only cta", !resumePreview.includes("ResumeCoverLetterPanel")],
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
+    ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],
     ["edit toggle before advanced section", editToggleIndex < advancedIndex],
   ];
 

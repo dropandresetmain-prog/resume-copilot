@@ -215,7 +215,10 @@ function main() {
   const prompt = buildResumeDraftPrompt(generationInput);
   const mockDraft = generateMockResumeDraft(generationInput);
   const invalidDraft = buildInvalidDraft();
-  const invalidPrepared = prepareGeneratedResumeContent(invalidDraft);
+  const invalidPrepared = prepareGeneratedResumeContent(invalidDraft, {
+    jdText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
   const plainExamplesDraft = buildValidDraftSkeleton(
     PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES.map((text) => ({ text, riskFlags: [] })),
   );
@@ -263,9 +266,19 @@ function main() {
     ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
-    ["invalid draft fails validation after normalization", !invalidPrepared.validation.ok],
-    ["invalid draft flags too many roles", invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles")],
-    ["invalid draft flags bullet count", invalidPrepared.validation.errors.some((issue) => issue.code === "role_bullet_count")],
+    ["invalid draft still missing skills after repair", !invalidPrepared.validation.ok],
+    [
+      "invalid draft repairs excess roles before skills check",
+      invalidPrepared.content.experience.length === MAX_WORK_EXPERIENCE_ROLES,
+    ],
+    [
+      "invalid draft no longer flags too many roles as hard error",
+      !invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles"),
+    ],
+    [
+      "invalid draft still flags missing skills groups",
+      invalidPrepared.validation.errors.some((issue) => issue.code === "skills_group_missing"),
+    ],
     [
       "invalid draft does not flag additional format after normalization",
       !invalidPrepared.validation.errors.some((issue) => issue.code === "additional_experience_format"),
