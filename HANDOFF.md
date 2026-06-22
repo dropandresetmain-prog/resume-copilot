@@ -2,7 +2,11 @@
 
 ## Current milestone
 
-**v0.7.3 — Generate Box UX Fix**
+**v0.7.4 — Additional Experience Normalization Fix**
+
+Plain/legacy Additional Experience strings (e.g. `BayCurrent Consulting – …`) are normalized to **Title: Detail** before generation validation hard-fails. Multiple plain items combine under **Other Past Roles**. Output/PDF still renders colon format.
+
+## v0.7.3 highlights
 
 Primary generate flow (paste JD, base resume, Generate Tailored Resume, progress) is consolidated in one card. Job saves only on Generate click.
 
@@ -32,8 +36,8 @@ If layout changes after approval → status `layout_changed` → re-approve (re-
 | Milestone | Status |
 |-----------|--------|
 | v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.3 — Generate box UX** | **Current** |
-| v0.7.2 — Generate flow UX | Complete |
+| **v0.7.4 — Additional experience normalization** | **Current** |
+| v0.7.3 — Generate box UX | Complete |
 | Cover letter generation | Next (same CTA family) |
 | Online company enrichment | Parked |
 

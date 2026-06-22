@@ -4,6 +4,14 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
+**v0.7.4 — Additional Experience Normalization Fix**
+
+- Plain Additional Experience strings normalized to Title: Detail before validation
+- Multiple plain items combined under Other Past Roles
+- Generation no longer hard-fails on legacy additional experience format
+
+## Previous
+
 **v0.7.3 — Generate Box UX Fix** (complete)
 
 - One card: JD paste + base resume + Generate + progress

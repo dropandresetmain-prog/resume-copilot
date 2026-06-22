@@ -36,7 +36,7 @@ export function GeneratePageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.7.3 · Generate Box UX"
+        milestone="v0.7.4 · Additional Experience Normalization"
         title="Generate tailored resume"
         description="Paste a job description, choose a base resume for formatting, and generate a one-page tailored resume from your career inventory."
       />

@@ -1,16 +1,16 @@
-# Test Checklist — v0.7.3 Generate Box UX
+# Test Checklist — v0.7.4 Additional Experience Normalization
 
-## Single-card generate flow
+## Generation validation
 
-- [ ] `/generate` shows **one** primary card (not a separate box below for the CTA)
-- [ ] Inside the card: paste JD → base resume dropdown → **Generate Tailored Resume**
-- [ ] Progress panel appears in the same card after clicking Generate
-- [ ] Saved jobs list appears below a visual divider in the same card
-- [ ] No separate Save Job button on Generate
-- [ ] Pasting/editing JD does **not** create saved job rows until Generate is clicked
+- [ ] Plain Additional Experience items (e.g. `BayCurrent Consulting – …`) do **not** block generation
+- [ ] Multiple plain items combine under **Other Past Roles: …**
+- [ ] Existing **Title: Detail** items are preserved unchanged
+- [ ] Mixed colon + plain items normalize correctly
+- [ ] PDF/preview still renders Additional Experience as **Title: Detail**
+- [ ] Normalization emits a warning in draft risk flags (not a hard error)
 
 ## Regression
 
-- [ ] Records page edit/save still works
-- [ ] Duplicate generate clicks blocked during loading
-- [ ] `npm run test:generate-flow` passes
+- [ ] Role count (max 4) and bullet count (2–4 per role) validation still hard-fails
+- [ ] Skills group requirements unchanged
+- [ ] Source/fact validation unchanged

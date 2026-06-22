@@ -9,6 +9,10 @@ import type {
 import { extractSkillsTechLanguagesInterests } from "@/lib/resume-draft/skills-section";
 import { repairKeywordBullet } from "@/lib/resume-draft/keyword-repair";
 import {
+  normalizeAdditionalExperienceItems,
+  parseAdditionalExperienceItemText,
+} from "@/lib/resume-draft/additional-experience";
+import {
   computeMaxLinesOnePage,
   PREVIEW_BODY_FONT_DEFAULT_PX,
   PREVIEW_ITEM_LINE_SPACING_DEFAULT,
@@ -113,10 +117,6 @@ export type ResumeFitAssessment = {
   riskFlags: string[];
 };
 
-const DATE_RANGE_IN_TEXT_PATTERN =
-  /(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i;
-
-/** Sort dated items latest-first; undated items keep relative order after dated items. */
 export function sortReverseChronological<T>(
   items: readonly T[],
   getDateRange: (item: T) => string | undefined,
@@ -144,32 +144,13 @@ export function sortReverseChronological<T>(
     .map((entry) => entry.item);
 }
 
-export function extractDateRangeFromPhrase(text: string): string | undefined {
-  const trimmed = text.trim();
-  const explicitRange = trimmed.match(DATE_RANGE_IN_TEXT_PATTERN);
-  if (explicitRange) {
-    return explicitRange[0];
-  }
-
-  const yearRange = trimmed.match(/\b(19|20)\d{2}\s*[-–—]\s*(Present|Current|(19|20)\d{2})\b/i);
-  if (yearRange) {
-    return yearRange[0];
-  }
-
-  const trailingYear = trimmed.match(/\b(19|20)\d{2}\b/);
-  if (trailingYear) {
-    return `Dec ${trailingYear[0]}`;
-  }
-
-  return undefined;
-}
-
-export function sortAdditionalExperiencePhrases(phrases: string[]): string[] {
-  return sortReverseChronological(phrases, extractDateRangeFromPhrase);
-}
-
-const LANGUAGE_INTEREST_CATEGORY_PATTERN =
-  /language|interest|hobby|technical skill|technical skills|^skills$/i;
+export {
+  extractDateRangeFromPhrase,
+  filterAdditionalExperienceItems,
+  parseAdditionalExperienceItemText,
+  shouldExcludeFromAdditionalExperience,
+  sortAdditionalExperiencePhrases,
+} from "@/lib/resume-draft/additional-experience";
 
 export function parseKeywordBullet(
   text: string,
@@ -231,88 +212,19 @@ export function formatCompanyLine(company: string, companyDescriptor?: string): 
   return `${cleanCompany} (${cleanDescriptor})`;
 }
 
-export function shouldExcludeFromAdditionalExperience(item: {
-  category?: string;
-  text: string;
-}): boolean {
-  const category = item.category?.trim() ?? "";
-  if (LANGUAGE_INTEREST_CATEGORY_PATTERN.test(category)) {
-    return true;
-  }
-
-  const text = item.text.trim();
-  if (/^conversational\s+[a-z]+$/i.test(text)) {
-    return true;
-  }
-
-  return false;
-}
-
-export function filterAdditionalExperienceItems<
-  T extends ResumeDraftAdditionalExperienceItem,
->(items: T[]): T[] {
-  return items.filter((item) => !shouldExcludeFromAdditionalExperience(item));
-}
-
 function buildContactLine(header: ResumeDraftContent["header"]): string {
   const parts = [header.phone?.trim(), header.email?.trim()].filter(Boolean);
   return parts.join(" | ");
 }
 
-export function parseAdditionalExperienceItemText(
-  text: string,
-): AdditionalExperienceLayoutEntry | null {
-  const trimmed = text.trim();
-  const match = trimmed.match(/^([^:]{1,60}):\s*([\s\S]+)$/);
-  if (!match) {
-    return null;
-  }
-
-  const title = match[1].trim();
-  const detail = match[2].trim();
-  if (!title || !detail) {
-    return null;
-  }
-
-  return { title, detail };
-}
-
 export function buildAdditionalExperienceEntries(
   items: ResumeDraftAdditionalExperienceItem[],
 ): AdditionalExperienceLayoutEntry[] {
-  const entries: AdditionalExperienceLayoutEntry[] = [];
+  const normalized = normalizeAdditionalExperienceItems(items);
 
-  for (const item of filterAdditionalExperienceItems(items)) {
-    const parsed = parseAdditionalExperienceItemText(item.text);
-    if (parsed) {
-      entries.push(parsed);
-      continue;
-    }
-
-    const legacyText = item.text.trim();
-    if (!legacyText) {
-      continue;
-    }
-
-    const phrases = legacyText
-      .split(/[;\n]+/)
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .flatMap((part) => part.split(/,\s*(?=[A-Z])/))
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    if (phrases.length === 0) {
-      continue;
-    }
-
-    entries.push({
-      title: "Other Past Roles",
-      detail: sortAdditionalExperiencePhrases(phrases).join(", "),
-    });
-  }
-
-  return entries;
+  return normalized
+    .map((item) => parseAdditionalExperienceItemText(item.text))
+    .filter((entry): entry is AdditionalExperienceLayoutEntry => entry !== null);
 }
 
 export function formatAdditionalExperienceLine(

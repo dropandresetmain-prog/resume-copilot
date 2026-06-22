@@ -1,7 +1,6 @@
 import {
-  assertGeneratedResumeContentValid,
   mergeGenerationWarningsIntoContent,
-  validateGeneratedResumeContent,
+  prepareGeneratedResumeContent,
 } from "@/lib/resume-draft/generation-validation";
 import {
   compactAdditionalExperience,
@@ -136,7 +135,7 @@ export function generateMockResumeDraft(
   );
   const additionalLine = compactAdditionalExperience(additionalItems);
 
-  const content: ResumeDraftContent = {
+  const draftContent: ResumeDraftContent = {
     schemaVersion: RESUME_DRAFT_SCHEMA_VERSION,
     targetRoleTitle: targetRole,
     header: buildHeader(input),
@@ -168,9 +167,7 @@ export function generateMockResumeDraft(
         : [],
   };
 
-  assertGeneratedResumeContentValid(content);
-  const validation = validateGeneratedResumeContent(content);
-
+  const { content, validation } = prepareGeneratedResumeContent(draftContent);
   return {
     content: mergeGenerationWarningsIntoContent(content, validation.warnings),
     rationale: {

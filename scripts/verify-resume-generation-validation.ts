@@ -8,15 +8,21 @@ import {
   promptIncludesJdAnalysisGuardrails,
 } from "../src/lib/resume-draft/prompt";
 import {
+  DEFAULT_ADDITIONAL_EXPERIENCE_TITLE,
+  normalizeAdditionalExperienceItems,
+  parseAdditionalExperienceItemText,
+} from "../src/lib/resume-draft/additional-experience";
+import {
   assertGeneratedResumeContentValid,
   MAX_BULLETS_PER_ROLE,
   MAX_WORK_EXPERIENCE_ROLES,
   MIN_BULLETS_PER_ROLE,
+  prepareGeneratedResumeContent,
   validateGeneratedResumeContent,
 } from "../src/lib/resume-draft/generation-validation";
-import { parseAdditionalExperienceItemText } from "../src/lib/resume-draft/layout";
+import { buildAdditionalExperienceEntries } from "../src/lib/resume-draft/layout";
 import { createGeneratedResumeDraftInCloud, updateGeneratedResumeDraftInCloud } from "../src/lib/supabase/generated-resume-drafts";
-import type { ResumeDraftContent } from "../src/types/resume-draft";
+import type { ResumeDraftContent, ResumeDraftExperienceBullet } from "../src/types/resume-draft";
 import type { InventoryState } from "../src/types/resume";
 import type { StoredJobDescription } from "../src/types/jd";
 
@@ -28,6 +34,14 @@ const sampleJd: StoredJobDescription = {
   createdAt: "2025-01-01T00:00:00.000Z",
   updatedAt: "2025-01-01T00:00:00.000Z",
 };
+
+const PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES = [
+  "BayCurrent Consulting – Enterprise Blockchain (Japan)",
+  "Entrepreneur First – Founders Experience Weekend",
+  "Active Global – Strategy & Operations, elderly primary care",
+  "SE3D – 3D Bioprinting (Silicon Valley)",
+  "Deloitte Consulting – Strategy & Operations (Myanmar)",
+];
 
 function buildInventory(): InventoryState {
   return {
@@ -83,6 +97,49 @@ function buildInventory(): InventoryState {
     ],
     failures: [],
     enrichment: createEmptyEnrichmentState(),
+  };
+}
+
+function sampleBullet(text: string): ResumeDraftExperienceBullet {
+  return {
+    text,
+    sourceRefs: [{ resumeId: "resume-1", bulletKey: "bullet-1" }],
+    confidence: "medium",
+    riskFlags: [],
+  };
+}
+
+function buildValidDraftSkeleton(
+  additionalExperience: ResumeDraftContent["additionalExperience"],
+): ResumeDraftContent {
+  return {
+    schemaVersion: 1,
+    header: { includeHeader: false },
+    professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
+    skills: {
+      groups: [
+        { label: "Tech", items: ["SQL"] },
+        { label: "Skills", items: ["Strategy"] },
+        { label: "Languages", items: ["English"] },
+        { label: "Interests", items: ["Reading"] },
+      ],
+      jdAlignment: [],
+      riskFlags: [],
+    },
+    experience: [
+      {
+        company: "Acme",
+        role: "PM",
+        bullets: [
+          sampleBullet("Ops: Led product operations"),
+          sampleBullet("Strategy: Drove quarterly planning"),
+        ],
+        riskFlags: [],
+      },
+    ],
+    education: [],
+    additionalExperience,
+    globalRiskFlags: [],
   };
 }
 
@@ -156,7 +213,24 @@ function main() {
   const prompt = buildResumeDraftPrompt(generationInput);
   const mockDraft = generateMockResumeDraft(generationInput);
   const invalidDraft = buildInvalidDraft();
-  const invalidResult = validateGeneratedResumeContent(invalidDraft);
+  const invalidPrepared = prepareGeneratedResumeContent(invalidDraft);
+  const plainExamplesDraft = buildValidDraftSkeleton(
+    PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES.map((text) => ({ text, riskFlags: [] })),
+  );
+  const plainExamplesPrepared = prepareGeneratedResumeContent(plainExamplesDraft);
+
+  const normalizedPlain = normalizeAdditionalExperienceItems(
+    PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES.map((text) => ({ text, riskFlags: [] })),
+  );
+  const normalizedPlainText = normalizedPlain[0]?.text ?? "";
+  const normalizedMixed = normalizeAdditionalExperienceItems([
+    { text: "Board Advisor: Acme Corp", riskFlags: [] },
+    { text: "BayCurrent Consulting – Enterprise Blockchain (Japan)", riskFlags: [] },
+    { text: "Entrepreneur First – Founders Experience Weekend", riskFlags: [] },
+  ]);
+  const normalizedVolunteer = normalizeAdditionalExperienceItems([
+    { text: "Volunteer tutor", riskFlags: [] },
+  ]);
 
   let assertFailed = false;
   try {
@@ -164,6 +238,17 @@ function main() {
   } catch {
     assertFailed = true;
   }
+
+  let plainExamplesAssertFailed = false;
+  try {
+    assertGeneratedResumeContentValid(plainExamplesDraft);
+  } catch {
+    plainExamplesAssertFailed = true;
+  }
+
+  const layoutEntries = buildAdditionalExperienceEntries(
+    PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES.map((text) => ({ text, riskFlags: [] })),
+  );
 
   const parsedAdditional = parseAdditionalExperienceItemText(
     "Other Past Roles: BayCurrent Consulting – Enterprise Blockchain (Japan)",
@@ -173,12 +258,41 @@ function main() {
     ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
     ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
-    ["invalid draft fails validation", !invalidResult.ok],
-    ["invalid draft flags too many roles", invalidResult.errors.some((issue) => issue.code === "too_many_roles")],
-    ["invalid draft flags bullet count", invalidResult.errors.some((issue) => issue.code === "role_bullet_count")],
-    ["invalid draft flags additional format", invalidResult.errors.some((issue) => issue.code === "additional_experience_format")],
-    ["assertGeneratedResumeContentValid throws", assertFailed],
+    ["invalid draft fails validation after normalization", !invalidPrepared.validation.ok],
+    ["invalid draft flags too many roles", invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles")],
+    ["invalid draft flags bullet count", invalidPrepared.validation.errors.some((issue) => issue.code === "role_bullet_count")],
+    [
+      "invalid draft does not flag additional format after normalization",
+      !invalidPrepared.validation.errors.some((issue) => issue.code === "additional_experience_format"),
+    ],
+    ["plain volunteer item normalizes to Other Past Roles", normalizedVolunteer.length === 1],
+    [
+      "plain volunteer item uses Title: Detail",
+      normalizedVolunteer[0]?.text === `${DEFAULT_ADDITIONAL_EXPERIENCE_TITLE}: Volunteer tutor`,
+    ],
+    ["plain examples combine into one item", normalizedPlain.length === 1],
+    [
+      "plain examples combine under Other Past Roles",
+      normalizedPlainText.startsWith(`${DEFAULT_ADDITIONAL_EXPERIENCE_TITLE}:`),
+    ],
+    [
+      "plain examples include all listed roles",
+      PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES.every((example) => normalizedPlainText.includes(example)),
+    ],
+    ["mixed items preserve colon format entry", normalizedMixed.some((item) => item.text.startsWith("Board Advisor:"))],
+    [
+      "mixed items combine plain roles under Other Past Roles",
+      normalizedMixed.some((item) => item.text.startsWith(`${DEFAULT_ADDITIONAL_EXPERIENCE_TITLE}:`)),
+    ],
+    ["listed plain examples pass generation validation", plainExamplesPrepared.validation.ok],
+    ["listed plain examples do not throw assert", !plainExamplesAssertFailed],
+    [
+      "listed plain examples emit normalization warning",
+      plainExamplesPrepared.validation.warnings.some((issue) => issue.code === "additional_experience_normalized"),
+    ],
+    ["assertGeneratedResumeContentValid throws on invalid draft", assertFailed],
     ["additional experience parser accepts title detail", parsedAdditional?.title === "Other Past Roles"],
+    ["layout renders plain examples as Title: Detail", layoutEntries.length === 1 && layoutEntries[0]?.title === DEFAULT_ADDITIONAL_EXPERIENCE_TITLE],
     ["max roles constant is 4", MAX_WORK_EXPERIENCE_ROLES === 4],
     ["bullet bounds 2-4", MIN_BULLETS_PER_ROLE === 2 && MAX_BULLETS_PER_ROLE === 4],
     [

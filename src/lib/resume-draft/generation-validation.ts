@@ -1,6 +1,8 @@
 import {
+  additionalExperienceNeedsNormalization,
+  normalizeAdditionalExperienceItems,
   parseAdditionalExperienceItemText,
-} from "@/lib/resume-draft/layout";
+} from "@/lib/resume-draft/additional-experience";
 import type { ResumeDraftContent } from "@/types/resume-draft";
 
 export const MAX_WORK_EXPERIENCE_ROLES = 4;
@@ -43,6 +45,15 @@ function issue(
 
 function normalizeCompanyName(value: string): string {
   return value.trim().toLowerCase();
+}
+
+export function normalizeGeneratedResumeContent(
+  content: ResumeDraftContent,
+): ResumeDraftContent {
+  return {
+    ...content,
+    additionalExperience: normalizeAdditionalExperienceItems(content.additionalExperience),
+  };
 }
 
 export function validateGeneratedResumeContent(
@@ -122,7 +133,7 @@ export function validateGeneratedResumeContent(
       errors.push(
         issue(
           "additional_experience_format",
-          `Additional Experience item must use "Title: Detail" format (found "${text.slice(0, 60)}").`,
+          `Additional Experience could not be normalized to "Title: Detail" format (found "${text.slice(0, 60)}").`,
           "error",
         ),
       );
@@ -164,12 +175,35 @@ export function validateGeneratedResumeContent(
   };
 }
 
+export function prepareGeneratedResumeContent(content: ResumeDraftContent): {
+  content: ResumeDraftContent;
+  validation: GenerationValidationResult;
+} {
+  const hadPlainAdditionalExperience = additionalExperienceNeedsNormalization(
+    content.additionalExperience,
+  );
+  const normalized = normalizeGeneratedResumeContent(content);
+  const validation = validateGeneratedResumeContent(normalized);
+
+  if (hadPlainAdditionalExperience) {
+    validation.warnings.push(
+      issue(
+        "additional_experience_normalized",
+        "Plain Additional Experience items were repaired into Title: Detail format.",
+        "warning",
+      ),
+    );
+  }
+
+  return { content: normalized, validation };
+}
+
 export function assertGeneratedResumeContentValid(content: ResumeDraftContent): void {
-  const result = validateGeneratedResumeContent(content);
-  if (!result.ok) {
+  const { validation } = prepareGeneratedResumeContent(content);
+  if (!validation.ok) {
     throw new ResumeDraftValidationError(
-      result.errors.map((entry) => entry.message).join(" "),
-      result.errors,
+      validation.errors.map((entry) => entry.message).join(" "),
+      validation.errors,
     );
   }
 }

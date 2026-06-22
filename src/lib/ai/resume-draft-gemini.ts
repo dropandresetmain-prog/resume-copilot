@@ -1,8 +1,8 @@
 import { GEMINI_MODEL } from "@/lib/ai/config";
 import {
-  assertGeneratedResumeContentValid,
   mergeGenerationWarningsIntoContent,
-  validateGeneratedResumeContent,
+  prepareGeneratedResumeContent,
+  ResumeDraftValidationError,
 } from "@/lib/resume-draft/generation-validation";
 import {
   ResumeDraftParseError,
@@ -51,11 +51,16 @@ export async function generateResumeDraftWithGemini(
     throw new ResumeDraftParseError(parsed.error, parsed.rawText);
   }
 
-  assertGeneratedResumeContentValid(parsed.value.content);
-  const validation = validateGeneratedResumeContent(parsed.value.content);
+  const { content, validation } = prepareGeneratedResumeContent(parsed.value.content);
+  if (!validation.ok) {
+    throw new ResumeDraftValidationError(
+      validation.errors.map((entry) => entry.message).join(" "),
+      validation.errors,
+    );
+  }
 
   return {
-    content: mergeGenerationWarningsIntoContent(parsed.value.content, validation.warnings),
+    content: mergeGenerationWarningsIntoContent(content, validation.warnings),
     rationale: parsed.value.rationale,
   };
 }
