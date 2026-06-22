@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -8,20 +9,30 @@ import {
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
+  secondaryButtonClassName,
 } from "@/components/setup/ui";
 import {
   readLastBaseResumeId,
   resolveDefaultBaseResumeId,
   writeLastBaseResumeId,
 } from "@/lib/generate/base-resume-preference";
+import {
+  buildCoverLetterGenerationOptions,
+  readCoverLetterFieldsFromJobForm,
+} from "@/lib/generate/build-cover-letter-options";
 import { delay, GENERATION_PROGRESS_STAGES } from "@/lib/generate/generation-progress";
+import {
+  buildArtifactSnapshot,
+  classifyCombinedGenerationFailure,
+  getPrimaryRetryAction,
+  type ArtifactGenerationStatus,
+} from "@/lib/generate/generation-artifact-status";
 import {
   ensureJobDescriptionForGeneration,
   type SaveJobForGenerationHandler,
 } from "@/lib/generate/save-job-for-generation";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
-import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import {
   fetchResumeDraftProviderStatus,
@@ -38,7 +49,7 @@ import {
 } from "@/lib/supabase/generated-resume-drafts";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
-import type { ResumeDraftProviderStatusResponse } from "@/types/resume-draft";
+import type { GeneratedResumeDraftRecord, ResumeDraftProviderStatusResponse } from "@/types/resume-draft";
 
 type GenerateTailoredResumeSectionProps = {
   inventory: InventoryState;
@@ -52,6 +63,20 @@ type GenerateTailoredResumeSectionProps = {
 };
 
 type GenerateMode = "resume_only" | "resume_and_cover_letter";
+
+type PartialCoverLetterFailure = {
+  resumeDraft: GeneratedResumeDraftRecord;
+  savedJob: StoredJobDescription;
+  applicationId: string;
+  coverLetterError: string;
+  coverLetterDebugRaw?: string;
+};
+
+type ResumeGenerationContext = {
+  savedJob: StoredJobDescription;
+  applicationId: string;
+  resumeDraft: GeneratedResumeDraftRecord;
+};
 
 export function GenerateTailoredResumeSection({
   inventory,
@@ -77,6 +102,11 @@ export function GenerateTailoredResumeSection({
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [resumeStatus, setResumeStatus] = useState<ArtifactGenerationStatus>("pending");
+  const [coverLetterStatus, setCoverLetterStatus] =
+    useState<ArtifactGenerationStatus>("pending");
+  const [partialCoverLetterFailure, setPartialCoverLetterFailure] =
+    useState<PartialCoverLetterFailure | null>(null);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -145,6 +175,79 @@ export function GenerateTailoredResumeSection({
     await delay(250);
   }
 
+  async function runResumeGeneration(): Promise<ResumeGenerationContext> {
+    await advanceStage(0);
+
+    const savedJob = await ensureJobDescriptionForGeneration(jobForm, {
+      jobDescriptions,
+      saveJob: onSaveJob,
+      editingId: editingJobId,
+    });
+
+    const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
+
+    await advanceStage(1);
+
+    writeLastBaseResumeId(effectiveBaseResumeId);
+
+    await advanceStage(2);
+
+    const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
+      inventory,
+      jobDescription: savedJob,
+      referenceResumeId: effectiveBaseResumeId,
+    });
+
+    await advanceStage(3);
+
+    const response = await requestResumeDraftGeneration({
+      ...generationInput,
+      inputSnapshot,
+    });
+
+    await advanceStage(4);
+
+    const resumeDraft = await createGeneratedResumeDraftInCloud({
+      jobDescriptionId: savedJob.id,
+      referenceResumeId: effectiveBaseResumeId,
+      applicationId: applicationRecord.id,
+      content: response.content,
+      rationale: response.rationale,
+      inputSnapshot: response.inputSnapshot,
+      provider: response.provider,
+      modelName: response.modelName,
+    });
+
+    await markApplicationResumeGenerated(applicationRecord.id);
+
+    return {
+      savedJob,
+      applicationId: applicationRecord.id,
+      resumeDraft,
+    };
+  }
+
+  function readCoverLetterFields() {
+    return readCoverLetterFieldsFromJobForm(jobForm, {
+      companyNameOverride,
+      country,
+      companyWebsite,
+      additionalInstructions,
+    });
+  }
+
+  async function runCoverLetterGeneration(context: ResumeGenerationContext) {
+    await advanceStage(5);
+    return generateAndSaveCoverLetterDraft(
+      buildCoverLetterGenerationOptions({
+        job: context.savedJob,
+        resumeDraft: context.resumeDraft,
+        applicationId: context.applicationId,
+        fields: readCoverLetterFields(),
+      }),
+    );
+  }
+
   async function handleGenerate() {
     if (isGenerating) {
       return;
@@ -152,84 +255,53 @@ export function GenerateTailoredResumeSection({
 
     setError(null);
     setDebugRaw(null);
+    setPartialCoverLetterFailure(null);
+    setResumeStatus("generating");
+    setCoverLetterStatus(generateMode === "resume_and_cover_letter" ? "pending" : "pending");
     setIsGenerating(true);
     setProgressStageIndex(0);
 
     try {
-      await advanceStage(0);
-
-      const savedJob = await ensureJobDescriptionForGeneration(jobForm, {
-        jobDescriptions,
-        saveJob: onSaveJob,
-        editingId: editingJobId,
-      });
-
-      const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
-
-      await advanceStage(1);
-
-      writeLastBaseResumeId(effectiveBaseResumeId);
-
-      await advanceStage(2);
-
-      const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
-        inventory,
-        jobDescription: savedJob,
-        referenceResumeId: effectiveBaseResumeId,
-      });
-
-      await advanceStage(3);
-
-      const response = await requestResumeDraftGeneration({
-        ...generationInput,
-        inputSnapshot,
-      });
-
-      await advanceStage(4);
-
-      const record = await createGeneratedResumeDraftInCloud({
-        jobDescriptionId: savedJob.id,
-        referenceResumeId: effectiveBaseResumeId,
-        applicationId: applicationRecord.id,
-        content: response.content,
-        rationale: response.rationale,
-        inputSnapshot: response.inputSnapshot,
-        provider: response.provider,
-        modelName: response.modelName,
-      });
-
-      await markApplicationResumeGenerated(applicationRecord.id);
+      const context = await runResumeGeneration();
+      setResumeStatus("success");
 
       if (generateMode === "resume_and_cover_letter") {
-        await advanceStage(5);
-        const coverRecord = await generateAndSaveCoverLetterDraft({
-          job: savedJob,
-          resumeDraft: record,
-          applicationId: applicationRecord.id,
-          companyName: resolveCompanyNameForGeneration({
-            override: companyNameOverride || jobForm.companyName,
-            jobCompanyName: savedJob.companyName,
-            jobDescriptionText: savedJob.rawText,
-          }),
-          country,
-          companyWebsite: companyWebsite || savedJob.jobUrl,
-          additionalInstructions,
-        });
-
-        await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
-        await delay(200);
-        onGenerationFinished?.();
-        router.push(`/cover-letter-preview/${coverRecord.id}`);
-        return;
+        setCoverLetterStatus("generating");
+        try {
+          const coverRecord = await runCoverLetterGeneration(context);
+          setCoverLetterStatus("success");
+          await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
+          await delay(200);
+          onGenerationFinished?.();
+          router.push(`/cover-letter-preview/${coverRecord.id}`);
+          return;
+        } catch (coverLetterError) {
+          const clientError = coverLetterError as ResumeDraftClientError;
+          setCoverLetterStatus("failed");
+          setPartialCoverLetterFailure({
+            resumeDraft: context.resumeDraft,
+            savedJob: context.savedJob,
+            applicationId: context.applicationId,
+            coverLetterError:
+              clientError instanceof Error
+                ? clientError.message
+                : "Cover letter generation failed.",
+            coverLetterDebugRaw: clientError.rawModelResponse,
+          });
+          return;
+        }
       }
 
+      setCoverLetterStatus("pending");
       await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
       await delay(200);
 
       onGenerationFinished?.();
-      router.push(`/resume-preview/${record.id}`);
+      router.push(`/resume-preview/${context.resumeDraft.id}`);
     } catch (generationError) {
       const clientError = generationError as ResumeDraftClientError;
+      setResumeStatus("failed");
+      setCoverLetterStatus("pending");
       setError(
         clientError instanceof Error
           ? clientError.message
@@ -240,6 +312,58 @@ export function GenerateTailoredResumeSection({
       setIsGenerating(false);
     }
   }
+
+  async function handleRetryCoverLetter() {
+    if (isGenerating || !partialCoverLetterFailure) {
+      return;
+    }
+
+    setError(null);
+    setDebugRaw(null);
+    setCoverLetterStatus("generating");
+    setIsGenerating(true);
+    setProgressStageIndex(5);
+
+    try {
+      const coverRecord = await generateAndSaveCoverLetterDraft(
+        buildCoverLetterGenerationOptions({
+          job: partialCoverLetterFailure.savedJob,
+          resumeDraft: partialCoverLetterFailure.resumeDraft,
+          applicationId: partialCoverLetterFailure.applicationId,
+          fields: readCoverLetterFields(),
+        }),
+      );
+      setCoverLetterStatus("success");
+      setPartialCoverLetterFailure(null);
+      onGenerationFinished?.();
+      router.push(`/cover-letter-preview/${coverRecord.id}`);
+    } catch (coverLetterError) {
+      const clientError = coverLetterError as ResumeDraftClientError;
+      setCoverLetterStatus("failed");
+      setPartialCoverLetterFailure((current) =>
+        current
+          ? {
+              ...current,
+              coverLetterError:
+                clientError instanceof Error
+                  ? clientError.message
+                  : "Cover letter generation failed.",
+              coverLetterDebugRaw: clientError.rawModelResponse,
+            }
+          : current,
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  const failureKind = classifyCombinedGenerationFailure(
+    buildArtifactSnapshot({
+      resumeStatus,
+      coverLetterStatus,
+    }),
+  );
+  const primaryRetryAction = getPrimaryRetryAction(failureKind);
 
   const storedPreference = readLastBaseResumeId();
 
@@ -395,7 +519,50 @@ export function GenerateTailoredResumeSection({
         Approved keywords available: {approvedKeywordCount}
       </p>
 
-      {error ? (
+      {partialCoverLetterFailure ? (
+        <div className="mt-3 space-y-3">
+          <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+            Resume generated successfully.
+          </p>
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            Cover letter generation failed: {partialCoverLetterFailure.coverLetterError}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/resume-preview/${partialCoverLetterFailure.resumeDraft.id}`}
+              className={secondaryButtonClassName}
+            >
+              Open resume preview
+            </Link>
+            <button
+              type="button"
+              onClick={() => void handleRetryCoverLetter()}
+              disabled={!canGenerate || isGenerating}
+              className={primaryButtonClassName}
+            >
+              {isGenerating ? "Retrying cover letter…" : "Retry Cover Letter"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate || isGenerating}
+              className={secondaryButtonClassName}
+            >
+              Regenerate Resume
+            </button>
+          </div>
+          {partialCoverLetterFailure.coverLetterDebugRaw ? (
+            <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+                Raw cover letter model response
+              </summary>
+              <pre className="mt-2 max-h-64 overflow-auto text-xs text-slate-800">
+                {partialCoverLetterFailure.coverLetterDebugRaw}
+              </pre>
+            </details>
+          ) : null}
+        </div>
+      ) : error ? (
         <div className="mt-3 space-y-2">
           <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
             {error}
@@ -406,7 +573,9 @@ export function GenerateTailoredResumeSection({
             disabled={!canGenerate || isGenerating}
             className={primaryButtonClassName}
           >
-            Retry Generate Tailored Resume
+            {primaryRetryAction === "regenerate_resume"
+              ? "Regenerate Resume"
+              : "Retry Generate Tailored Resume"}
           </button>
         </div>
       ) : null}

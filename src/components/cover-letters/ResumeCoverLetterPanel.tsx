@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { SetupCard, primaryButtonClassName, secondaryButtonClassName } from "@/components/setup/ui";
+import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
 import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-cover-letter-drafts";
 import type { StoredJobDescription } from "@/types/jd";
@@ -20,6 +21,7 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,12 +53,18 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
     }
     setIsGenerating(true);
     setError(null);
+    setHasAttemptedGeneration(true);
     try {
-      const record = await generateAndSaveCoverLetterDraft({
-        job,
-        resumeDraft: draft,
-        applicationId: draft.applicationId,
-      });
+      const record = await generateAndSaveCoverLetterDraft(
+        buildCoverLetterGenerationOptions({
+          job,
+          resumeDraft: draft,
+          applicationId: draft.applicationId,
+          fields: {
+            jobFormCompanyName: job.companyName,
+          },
+        }),
+      );
       setCoverLetter(record);
     } catch (generationError) {
       setError(
@@ -91,9 +99,13 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
             type="button"
             onClick={() => void handleGenerate()}
             disabled={isGenerating || !job}
-            className={secondaryButtonClassName}
+            className={error ? primaryButtonClassName : secondaryButtonClassName}
           >
-            {isGenerating ? "Generating cover letter…" : "Generate formal cover letter"}
+            {isGenerating
+              ? "Generating cover letter…"
+              : error || hasAttemptedGeneration
+                ? "Retry Cover Letter"
+                : "Generate Cover Letter"}
           </button>
           {!job ? (
             <p className="text-sm text-amber-800">
@@ -102,7 +114,15 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
           ) : null}
         </div>
       )}
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-red-700">Cover letter generation failed: {error}</p>
+          <p className="text-sm text-slate-600">
+            Your resume draft is saved. Retry cover letter generation without regenerating the
+            resume.
+          </p>
+        </div>
+      ) : null}
     </SetupCard>
   );
 }

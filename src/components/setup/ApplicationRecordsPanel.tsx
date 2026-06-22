@@ -7,6 +7,7 @@ import {
   formatApplicationLabel,
   formatApplicationStatusLabel,
 } from "@/lib/application/labels";
+import { formatApplicationArtifactSummary } from "@/lib/generate/generation-artifact-status";
 import { formatDraftStatusLabel } from "@/lib/resume-draft/draft-labels";
 import {
   listApplicationRecordsFromCloud,
@@ -234,6 +235,10 @@ export function ApplicationRecordsPanel({
             const label = formatApplicationLabel(application, job);
             const latestDraft = latestDraftByApplicationId.get(application.id);
             const latestCoverLetter = latestCoverLetterByApplicationId.get(application.id);
+            const artifactSummary = formatApplicationArtifactSummary({
+              hasResume: Boolean(latestDraft),
+              hasCoverLetter: Boolean(latestCoverLetter),
+            });
             const jobUrl = application.jobUrl ?? job?.jobUrl;
             const state = cardState[application.id] ?? {
               notesDraft: application.notes ?? "",
@@ -264,6 +269,11 @@ export function ApplicationRecordsPanel({
                     </a>
                   </p>
                 ) : null}
+
+                <p className="mt-2 text-xs text-slate-600">
+                  Resume {artifactSummary.resumeLabel} · Cover letter{" "}
+                  {artifactSummary.coverLetterLabel}
+                </p>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div>
@@ -324,6 +334,13 @@ export function ApplicationRecordsPanel({
                         className={`mt-2 inline-flex ${secondaryButtonClassName}`}
                       >
                         Open formal cover letter
+                      </Link>
+                    ) : latestDraft ? (
+                      <Link
+                        href={`/resume-preview/${latestDraft.id}`}
+                        className={`mt-2 inline-flex ${secondaryButtonClassName}`}
+                      >
+                        Generate cover letter
                       </Link>
                     ) : null}
                   </div>
