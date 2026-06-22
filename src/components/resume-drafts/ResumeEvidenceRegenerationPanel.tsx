@@ -21,7 +21,16 @@ import {
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import { formatSourceRefLabel, hasSourceRefs } from "@/lib/resume-draft/preview-helpers";
+import { requestResumeRoleRewrite } from "@/lib/resume-draft/role-rewrite-client";
 import { assessRegenerationFeasibility } from "@/lib/resume-draft/regeneration";
+import {
+  applyTargetedRoleRewrites,
+  buildTargetedRewriteOutcomeSummary,
+  planTargetedForcedBulletRewrite,
+  resolveDraftStatusAfterTargetedRewrite,
+  TARGETED_REWRITE_BLOCKED_MESSAGE,
+  type TargetedRewriteOutcomeSummary,
+} from "@/lib/resume-draft/targeted-role-rewrite";
 import { updateGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
 import type { StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
@@ -69,9 +78,9 @@ export function ResumeEvidenceRegenerationPanel({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [outcomeSummary, setOutcomeSummary] = useState<RegenerationOutcomeSummary | null>(
-    null,
-  );
+  const [outcomeSummary, setOutcomeSummary] = useState<
+    RegenerationOutcomeSummary | TargetedRewriteOutcomeSummary | null
+  >(null);
 
   const regenerationControls: ResumeDraftRegenerationControls = useMemo(
     () => ({
@@ -162,7 +171,100 @@ export function ResumeEvidenceRegenerationPanel({
     });
   }
 
-  async function handleRegenerate() {
+  const targetedPlan = useMemo(
+    () =>
+      planTargetedForcedBulletRewrite({
+        content: draft.content,
+        forcedBulletKeys: regenerationControls.forcedBulletKeys,
+        inventoryListings: availableBullets,
+      }),
+    [draft.content, regenerationControls.forcedBulletKeys, availableBullets],
+  );
+
+  const canRunTargetedUpdate =
+    forcedKeys.size > 0 && targetedPlan.mode === "targeted" && feasibility.ok;
+
+  async function handleTargetedUpdate() {
+    if (!jobDescription || !draft.referenceResumeId || !canRunTargetedUpdate) {
+      return;
+    }
+    if (targetedPlan.mode !== "targeted") {
+      return;
+    }
+
+    setIsRegenerating(true);
+    setError(null);
+    setOutcomeSummary(null);
+    setWarnings(feasibility.warnings);
+
+    const priorContent = draft.content;
+
+    try {
+      const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
+        inventory,
+        jobDescription,
+        referenceResumeId: draft.referenceResumeId,
+        regenerationControls,
+      });
+
+      const response = await requestResumeRoleRewrite({
+        jobDescription: generationInput.jobDescription,
+        referenceResume: {
+          bulletStyle: generationInput.referenceResume.bulletStyle,
+        },
+        roles: targetedPlan.roles.map((role) => ({
+          roleIndex: role.roleIndex,
+          currentRole: role.currentRole,
+          forcedBulletKeys: role.forcedBulletKeys,
+          allowedSourceBulletKeys: role.allowedSourceBulletKeys,
+          inventoryBullets: role.inventoryBullets,
+        })),
+      });
+
+      const mergedContent = applyTargetedRoleRewrites(priorContent, response.roles);
+      const nextStatus = resolveDraftStatusAfterTargetedRewrite(draft.status);
+
+      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
+        content: mergedContent,
+        rationale: draft.rationale
+          ? {
+              ...draft.rationale,
+              overall: `${draft.rationale.overall}\n\nTargeted forced-bullet role rewrite applied.`,
+            }
+          : undefined,
+        inputSnapshot: {
+          ...inputSnapshot,
+          regenerationControls,
+        },
+        status: nextStatus,
+      });
+
+      setOutcomeSummary(
+        buildTargetedRewriteOutcomeSummary({
+          priorContent,
+          newContent: updated.content,
+          plan: targetedPlan,
+        }),
+      );
+
+      onDraftUpdated(updated);
+      setExcludedGeneratedKeys(new Set());
+    } catch (targetedError) {
+      const message =
+        targetedError instanceof Error
+          ? targetedError.message
+          : "Targeted forced-bullet update failed.";
+      setError(
+        message.includes("validation")
+          ? `${message} Try full regeneration if you need to restructure roles.`
+          : message,
+      );
+    } finally {
+      setIsRegenerating(false);
+    }
+  }
+
+  async function handleFullRegenerate() {
     if (!jobDescription || !draft.referenceResumeId) {
       setError("Job description or base resume is missing for this draft.");
       return;
@@ -318,6 +420,12 @@ export function ResumeEvidenceRegenerationPanel({
             </ul>
           ) : null}
 
+          {targetedPlan.mode === "blocked" && forcedKeys.size > 0 ? (
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              {TARGETED_REWRITE_BLOCKED_MESSAGE}
+            </p>
+          ) : null}
+
           {unavailableForcedEntries.length > 0 ? (
             <ul className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
               {unavailableForcedEntries.map((entry) => (
@@ -380,13 +488,25 @@ export function ResumeEvidenceRegenerationPanel({
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-3">
+        {canRunTargetedUpdate ? (
+          <button
+            type="button"
+            onClick={() => void handleTargetedUpdate()}
+            disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
+            className={primaryButtonClassName}
+            data-action="apply-forced-bullet-update"
+          >
+            {isRegenerating ? "Updating…" : "Apply forced bullet update"}
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={() => void handleRegenerate()}
+          onClick={() => void handleFullRegenerate()}
           disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
-          className={primaryButtonClassName}
+          className={canRunTargetedUpdate ? secondaryButtonClassName : primaryButtonClassName}
+          data-action="regenerate-full-resume"
         >
-          {isRegenerating ? "Regenerating…" : "Regenerate resume"}
+          {isRegenerating ? "Regenerating…" : "Regenerate full resume"}
         </button>
         <button
           type="button"

@@ -314,6 +314,47 @@ export type ResumeDraftApiErrorResponse = {
   timestamp?: string;
 };
 
+export type ResumeRoleRewriteRequestItem = {
+  roleIndex: number;
+  currentRole: ResumeDraftExperienceSection;
+  forcedBulletKeys: string[];
+  allowedSourceBulletKeys: string[];
+  inventoryBullets: Array<{
+    bulletKey: string;
+    collatedBulletId?: string;
+    description: string;
+    keyword?: string;
+    acceptedWording?: string;
+    company: string;
+    role: string;
+  }>;
+};
+
+export type ResumeRoleRewriteRequest = {
+  jobDescription: {
+    id: string;
+    rawText: string;
+    companyName?: string;
+    roleTitle?: string;
+  };
+  referenceResume?: Pick<ResumeDraftReferenceResumeExcerpt, "bulletStyle">;
+  roles: ResumeRoleRewriteRequestItem[];
+};
+
+export type ResumeRoleRewriteResponse = {
+  roles: Array<{
+    roleIndex: number;
+    bullets: ResumeDraftExperienceBullet[];
+    notes?: string;
+  }>;
+  validationIssues?: string[];
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  timestamp: string;
+};
+
 export type CreateGeneratedResumeDraftInput = {
   jobDescriptionId: string;
   referenceResumeId: string;

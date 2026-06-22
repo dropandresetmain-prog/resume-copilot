@@ -1,4 +1,5 @@
 import { buildBulletEnrichmentKey } from "../src/lib/enrichment/keys";
+import { rewriteMockResumeRole } from "../src/lib/ai/resume-role-rewrite-mock";
 import { selectGenerationBullets } from "../src/lib/resume-draft/bullet-payload";
 import {
   auditForcedBullets,
@@ -12,6 +13,20 @@ import {
 } from "../src/lib/resume-draft/forced-bullets";
 import { buildResumeDraftPrompt, promptIncludesWorkExperienceBulletRules } from "../src/lib/resume-draft/prompt";
 import {
+  promptIncludesRoleRewriteScopeRules,
+  buildResumeRoleRewritePrompt,
+} from "../src/lib/resume-draft/role-rewrite-prompt";
+import {
+  applyTargetedRoleRewrites,
+  planTargetedForcedBulletRewrite,
+  resolveDraftStatusAfterTargetedRewrite,
+  TARGETED_REWRITE_BLOCKED_MESSAGE,
+  validateRewrittenRoleBullets,
+} from "../src/lib/resume-draft/targeted-role-rewrite";
+import { RESUME_DRAFT_STATUS_APPROVED, RESUME_DRAFT_STATUS_LAYOUT_CHANGED } from "../src/lib/resume-draft/draft-status";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
   prepareGeneratedResumeContent,
   TARGET_TOTAL_WORK_BULLETS_MAX,
 } from "../src/lib/resume-draft/generation-validation";
@@ -22,6 +37,7 @@ import type {
   ResumeDraftGenerationInput,
 } from "../src/types/resume-draft";
 import type { CollatedExperience } from "../src/types/collated";
+import type { CollatedBulletListing } from "../src/lib/inventory/edits";
 
 const forcedKey = buildBulletEnrichmentKey(
   "Drop & Reset",
@@ -163,6 +179,37 @@ function buildGenerationInputWithForced(): ResumeDraftGenerationInput {
   };
 }
 
+function makeListing(
+  company: string,
+  role: string,
+  description: string,
+  bulletKey: string,
+): CollatedBulletListing {
+  const experience = {
+    id: `${company}-${role}`,
+    company,
+    role,
+    dateRange: "2024 – Present",
+    bullets: [],
+    sourceCitations: [],
+  } as CollatedExperience;
+
+  return {
+    experience,
+    bullet: {
+      id: bulletKey,
+      description,
+      keyword: "Operations",
+      rawTexts: [description],
+      sourceCitations: [],
+      inventoryBulletKey: bulletKey,
+    },
+    bulletKey,
+    isHidden: false,
+    effectiveDescription: description,
+  };
+}
+
 function main() {
   const jdText = "B2B sales CRM pipeline revenue growth stakeholder management";
 
@@ -240,7 +287,90 @@ function main() {
     excludedBulletKeys: [lowRankKey],
   });
 
+  const targetedContent = buildValidSkeleton({
+    experience: [
+      buildRole("Drop & Reset", [
+        { text: "Ops: Existing bullet one", bulletKey: "drop-1" },
+        { text: "CRM: Existing bullet two", bulletKey: forcedKey },
+        { text: "Growth: Existing bullet three", bulletKey: "drop-3" },
+      ]),
+      buildRole("Socius Living", [
+        { text: "Sales: Socius bullet", bulletKey: "soc-1" },
+        { text: "Ops: Socius bullet two", bulletKey: "soc-2" },
+      ]),
+    ],
+  });
+  const secondForcedKey = buildBulletEnrichmentKey(
+    "Drop & Reset",
+    "Founder",
+    "Hosted community events",
+  );
+  const multiKeyPlan = planTargetedForcedBulletRewrite({
+    content: targetedContent,
+    forcedBulletKeys: [forcedKey, secondForcedKey],
+    inventoryListings: [
+      makeListing("Drop & Reset", "Founder", "Built partner CRM automation workflows", forcedKey),
+      makeListing("Drop & Reset", "Founder", "Hosted community events", secondForcedKey),
+    ],
+  });
   const prompt = buildResumeDraftPrompt(buildGenerationInputWithForced());
+  const targetedPlan = planTargetedForcedBulletRewrite({
+    content: targetedContent,
+    forcedBulletKeys: [forcedKey],
+    inventoryListings: [
+      makeListing("Drop & Reset", "Founder", "Built partner CRM automation workflows", forcedKey),
+    ],
+  });
+  const roleRewritePrompt = buildResumeRoleRewritePrompt({
+    currentRole: targetedContent.experience[0]!,
+    forcedBulletKeys: [forcedKey],
+    inventoryBullets: [
+      {
+        bulletKey: forcedKey,
+        description: "Built partner CRM automation workflows",
+        company: "Drop & Reset",
+        role: "Founder",
+      },
+    ],
+    jobDescriptionText: jdText,
+    targetRoleTitle: "B2B Sales Manager",
+  });
+  const absentRolePlan = planTargetedForcedBulletRewrite({
+    content: targetedContent,
+    forcedBulletKeys: [lowRankKey],
+    inventoryListings: [
+      makeListing("Old Role", "Analyst", "Generic administrative support tasks", lowRankKey),
+    ],
+  });
+  const mockRoleRewrite = rewriteMockResumeRole({
+    currentRole: targetedContent.experience[0]!,
+    forcedBulletKeys: [forcedKey],
+    inventoryBullets: [
+      {
+        bulletKey: forcedKey,
+        description: "Built partner CRM automation workflows",
+        company: "Drop & Reset",
+        role: "Founder",
+      },
+    ],
+    jobDescriptionText: jdText,
+  });
+  const patchedContent = applyTargetedRoleRewrites(targetedContent, [
+    { roleIndex: 0, bullets: mockRoleRewrite.bullets },
+  ]);
+  const invalidRoleIssues = validateRewrittenRoleBullets({
+    bullets: [{ text: "Only one bullet", sourceRefs: [{ bulletKey: forcedKey }], confidence: "high", riskFlags: [] }],
+    forcedBulletKeys: [forcedKey],
+    allowedSourceBulletKeys: [forcedKey],
+  });
+  const regenerationPanel = readFileSync(
+    join(process.cwd(), "src/components/resume-drafts/ResumeEvidenceRegenerationPanel.tsx"),
+    "utf8",
+  );
+  const roleRewriteRoute = readFileSync(
+    join(process.cwd(), "src/app/api/ai/rewrite-resume-role/route.ts"),
+    "utf8",
+  );
 
   const checks: [string, boolean][] = [
     [
@@ -292,6 +422,51 @@ function main() {
     [
       "payload helper collects generation bullet keys",
       collectPayloadBulletKeys(buildGenerationInputWithForced()).size === 0,
+    ],
+    [
+      "targeted plan maps forced bullet to existing role",
+      targetedPlan.mode === "targeted" && targetedPlan.roles.length === 1,
+    ],
+    [
+      "targeted rewrite preserves unrelated roles",
+      patchedContent.experience[1]?.bullets[0]?.text === targetedContent.experience[1]?.bullets[0]?.text,
+    ],
+    [
+      "mock targeted rewrite includes forced bullet sourceRef",
+      mockRoleRewrite.bullets.some((bullet) =>
+        bullet.sourceRefs.some((ref) => ref.bulletKey === forcedKey),
+      ),
+    ],
+    [
+      "multiple forced keys same role produce one targeted plan item",
+      multiKeyPlan.mode === "targeted" && multiKeyPlan.roles.length === 1,
+    ],
+    [
+      "absent role blocked from targeted rewrite",
+      absentRolePlan.mode === "blocked" &&
+        absentRolePlan.message === TARGETED_REWRITE_BLOCKED_MESSAGE,
+    ],
+    [
+      "invalid targeted rewrite validation fails before overwrite",
+      invalidRoleIssues.some((issue) => issue.includes("at least 2 bullets")),
+    ],
+    [
+      "approved draft becomes layout_changed after targeted rewrite",
+      resolveDraftStatusAfterTargetedRewrite(RESUME_DRAFT_STATUS_APPROVED) ===
+        RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
+    ],
+    [
+      "role rewrite prompt includes scoped instructions",
+      promptIncludesRoleRewriteScopeRules(roleRewritePrompt),
+    ],
+    [
+      "regeneration panel exposes targeted and full actions",
+      regenerationPanel.includes("Apply forced bullet update") &&
+        regenerationPanel.includes("Regenerate full resume"),
+    ],
+    [
+      "dedicated role rewrite route exists",
+      roleRewriteRoute.includes("rewriteResumeRoleWithAI"),
     ],
   ];
 
