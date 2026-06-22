@@ -19,6 +19,14 @@ export function isTransientGeminiHttpStatus(status: number): boolean {
   return status === 429 || status === 503 || status >= 500;
 }
 
+/** Model slug retired or unknown — try the next configured model instead of retrying. */
+export function isGeminiModelUnavailableError(error: unknown): boolean {
+  if (!(error instanceof GeminiHttpError) || error.status !== 404) {
+    return false;
+  }
+  return /no longer available|NOT_FOUND|not found|is not supported/i.test(error.body);
+}
+
 export function isTransientGeminiError(error: unknown): boolean {
   if (error instanceof GeminiHttpError) {
     return isTransientGeminiHttpStatus(error.status);
@@ -116,8 +124,13 @@ export async function callGeminiWithRetry(
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         const transient = isTransientGeminiError(lastError);
+        const modelUnavailable = isGeminiModelUnavailableError(lastError);
         const hasRetriesLeft = attempt < GEMINI_MAX_ATTEMPTS - 1;
         const hasFallbackModel = modelIndex < models.length - 1;
+
+        if (modelUnavailable && hasFallbackModel) {
+          break;
+        }
 
         if (transient && hasRetriesLeft) {
           const baseDelay = GEMINI_RETRY_DELAYS_MS[attempt] ?? 4000;

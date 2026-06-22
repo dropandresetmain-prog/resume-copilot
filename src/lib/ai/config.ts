@@ -1,5 +1,6 @@
 const DEFAULT_GEMINI_MODEL_PRIMARY = "gemini-2.5-flash";
-const DEFAULT_GEMINI_MODEL_FALLBACK = "gemini-2.0-flash";
+/** Lighter sibling of 2.5-flash — used when primary hits transient overload errors. */
+const DEFAULT_GEMINI_MODEL_FALLBACK = "gemini-2.5-flash-lite";
 
 /** Primary Gemini model — override via GEMINI_MODEL_PRIMARY or legacy GEMINI_MODEL. */
 export const GEMINI_MODEL_PRIMARY =
