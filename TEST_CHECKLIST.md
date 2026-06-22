@@ -1,16 +1,15 @@
-# Test Checklist — v0.7.4 Additional Experience Normalization
+# Test Checklist — v0.7.5 Skills & Interests Cleanup
 
-## Generation validation
+## Skills & Interests structure
 
-- [ ] Plain Additional Experience items (e.g. `BayCurrent Consulting – …`) do **not** block generation
-- [ ] Multiple plain items combine under **Other Past Roles: …**
-- [ ] Existing **Title: Detail** items are preserved unchanged
-- [ ] Mixed colon + plain items normalize correctly
-- [ ] PDF/preview still renders Additional Experience as **Title: Detail**
-- [ ] Normalization emits a warning in draft risk flags (not a hard error)
+- [ ] Preview/PDF/DOCX show **Skills:** (technical only), **Languages:**, **Interests:**
+- [ ] No **Tech:** row
+- [ ] No separate soft/business **Skills:** row (Business Development, Negotiation, etc.)
+- [ ] Legacy drafts with Tech + soft Skills groups still render technical items under **Skills** only
+- [ ] `Python (basic automation & data handling)` renders as **Python**
 
 ## Regression
 
-- [ ] Role count (max 4) and bullet count (2–4 per role) validation still hard-fails
-- [ ] Skills group requirements unchanged
-- [ ] Source/fact validation unchanged
+- [ ] Work Experience bullets unchanged
+- [ ] Additional Experience normalization (v0.7.4) still works
+- [ ] Generation validation still requires Skills, Languages, Interests groups

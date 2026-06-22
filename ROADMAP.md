@@ -4,15 +4,15 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.7.4 — Additional Experience Normalization Fix**
+**v0.7.5 — Skills & Interests Cleanup**
 
-- Plain Additional Experience strings normalized to Title: Detail before validation
-- Multiple plain items combined under Other Past Roles
-- Generation no longer hard-fails on legacy additional experience format
+- Skills & Interests: Skills (technical only), Languages, Interests
+- No Tech row; no soft/business skills row
+- Python renders without unnecessary qualifiers
 
 ## Previous
 
-**v0.7.3 — Generate Box UX Fix** (complete)
+**v0.7.4 — Additional Experience Normalization Fix**
 
 - One card: JD paste + base resume + Generate + progress
 - Saved jobs separated by divider below primary action

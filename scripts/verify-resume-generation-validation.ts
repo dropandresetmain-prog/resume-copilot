@@ -6,6 +6,7 @@ import {
   buildResumeDraftPrompt,
   promptIncludesAdditionalExperienceColonFormat,
   promptIncludesJdAnalysisGuardrails,
+  promptIncludesSkillsInterestsStructure,
 } from "../src/lib/resume-draft/prompt";
 import {
   DEFAULT_ADDITIONAL_EXPERIENCE_TITLE,
@@ -118,8 +119,7 @@ function buildValidDraftSkeleton(
     professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
     skills: {
       groups: [
-        { label: "Tech", items: ["SQL"] },
-        { label: "Skills", items: ["Strategy"] },
+        { label: "Skills", items: ["SQL", "Python"] },
         { label: "Languages", items: ["English"] },
         { label: "Interests", items: ["Reading"] },
       ],
@@ -257,6 +257,7 @@ function main() {
   const checks: [string, boolean][] = [
     ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
     ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
+    ["prompt includes skills interests structure", promptIncludesSkillsInterestsStructure(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
     ["invalid draft fails validation after normalization", !invalidPrepared.validation.ok],
     ["invalid draft flags too many roles", invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles")],

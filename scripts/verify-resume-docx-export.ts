@@ -215,8 +215,8 @@ async function main() {
         !documentModel.layout.education[0]?.degreeLines[1]?.dateRange,
     ],
     [
-      "skills tech line present",
-      documentModel.layout.techLine.length > 0 || documentModel.layout.skillsLine.length > 0,
+      "skills line present",
+      documentModel.layout.skillsLine.length > 0,
     ],
     [
       "languages and interests lines",

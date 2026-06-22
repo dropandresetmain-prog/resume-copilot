@@ -6,7 +6,7 @@ import type {
   ResumeDraftExperienceSection,
   ResumeDraftRationale,
 } from "@/types/resume-draft";
-import { extractSkillsTechLanguagesInterests } from "@/lib/resume-draft/skills-section";
+import { extractSkillsLanguagesInterests } from "@/lib/resume-draft/skills-section";
 import { repairKeywordBullet } from "@/lib/resume-draft/keyword-repair";
 import {
   normalizeAdditionalExperienceItems,
@@ -82,7 +82,6 @@ export type FinalResumeLayout = {
   additionalExperienceEntries: AdditionalExperienceLayoutEntry[];
   /** Joined display string for legacy checks and DOCX approximate export. */
   additionalExperienceLine: string;
-  techLine: string;
   skillsLine: string;
   languagesLine: string;
   interestsLine: string;
@@ -240,12 +239,11 @@ export function compactAdditionalExperience(
 }
 
 function extractSkillsLanguagesAndInterests(content: ResumeDraftContent): {
-  techLine: string;
   skillsLine: string;
   languagesLine: string;
   interestsLine: string;
 } {
-  return extractSkillsTechLanguagesInterests(content);
+  return extractSkillsLanguagesInterests(content);
 }
 
 export function buildWorkExperienceLayoutEntry(
@@ -293,7 +291,7 @@ export function buildEducationLayoutEntry(
 
 /** Build canonical one-page-oriented layout from generated draft content. */
 export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResumeLayout {
-  const { techLine, skillsLine, languagesLine, interestsLine } =
+  const { skillsLine, languagesLine, interestsLine } =
     extractSkillsLanguagesAndInterests(content);
 
   const sortedExperience = sortReverseChronological(
@@ -317,7 +315,6 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
     education: sortedEducation.map(buildEducationLayoutEntry),
     additionalExperienceEntries,
     additionalExperienceLine: formatAdditionalExperienceLine(additionalExperienceEntries),
-    techLine,
     skillsLine,
     languagesLine,
     interestsLine,
@@ -385,24 +382,18 @@ export function estimatePageFit(
     lines += sectionSpacing * 0.35;
   }
 
-  if (layout.techLine) {
-    lines += 1.25 * lineSpacing;
-  }
   if (layout.skillsLine) {
     lines += 1.25 * lineSpacing;
-    if (layout.techLine) {
-      lines += Math.max(0, itemLineSpacing - lineSpacing);
-    }
   }
   if (layout.languagesLine) {
     lines += 1.25 * lineSpacing;
-    if (layout.techLine || layout.skillsLine) {
+    if (layout.skillsLine) {
       lines += Math.max(0, itemLineSpacing - lineSpacing);
     }
   }
   if (layout.interestsLine) {
     lines += 1.25 * lineSpacing;
-    if (layout.techLine || layout.skillsLine || layout.languagesLine) {
+    if (layout.skillsLine || layout.languagesLine) {
       lines += Math.max(0, itemLineSpacing - lineSpacing);
     }
   }
@@ -460,7 +451,7 @@ export function calculateFitScore(
   const optimizedFor = [
     ...(keywordUsage.slice(0, 3).map((keyword) => `Highlighted ${keyword} from approved keywords`)),
     "Selected strongest job-relevant bullets for one-page discipline",
-    "Used compact Additional Experience and Skills/Tech/Languages/Interests lines",
+    "Used compact Additional Experience and Skills/Languages/Interests lines",
     "Applied specific keyword-colon bullet formatting",
   ]
     .filter(Boolean)

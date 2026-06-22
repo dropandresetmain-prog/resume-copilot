@@ -46,7 +46,7 @@ Resume structure (exact order):
 2. Work Experience
 3. Education
 4. Additional Experience — each item uses "Title: Detail" format (not a comma-separated dump)
-5. Skills & Interests — labeled groups: Tech, Skills, Languages (if available), Interests
+5. Skills & Interests — labeled groups: Skills (technical only), Languages (if available), Interests
 
 Work experience bullet format:
 - Use "Specific Keyword: Experience statement" — NEVER use generic keywords like "Experience:", "Work Experience:", or "Achievement:" in Work Experience.
@@ -71,8 +71,11 @@ Education:
 - Do NOT duplicate institution names like "University, University, ..."
 
 Skills & Interests groups:
-- Tech: programming, IT, AI/tooling, software, technical tools.
-- Skills: business/non-technical skills; avoid repeating keywords already dominant in work bullets.
+- Skills: technical skills, tools, software, programming languages, systems, and technical capabilities only (e.g. Python, Airtable, Next.js, Git/GitHub, CRM Systems, Workflow Automation, Data Analysis, AI-Assisted Development).
+- Do NOT list business/soft/strategy skills here (e.g. Business Development, Negotiation, Stakeholder Management, Consulting, Relationship Building, Market Entry Strategy, Partnership Management, Revenue Optimization). Those belong in Work Experience bullets as evidence.
+- Do NOT generate a separate non-technical Skills row.
+- Legacy "Tech" group items belong under Skills.
+- Python: render as "Python" only — do not add qualifiers like "(basic automation & data handling)" unless inventory explicitly requires a more specific technical descriptor.
 - Languages: spoken/written languages.
 - Interests: hobbies/interests.`;
 
@@ -99,7 +102,6 @@ Generate a tailored resume draft and return JSON with this exact shape:
   },
   "skills": {
     "groups": [
-      { "label": "Tech", "items": ["string"] },
       { "label": "Skills", "items": ["string"] },
       { "label": "Languages", "items": ["string"] },
       { "label": "Interests", "items": ["string"] }
@@ -191,4 +193,13 @@ export function promptIncludesJdAnalysisGuardrails(prompt: string): boolean {
 
 export function promptIncludesAdditionalExperienceColonFormat(prompt: string): boolean {
   return prompt.includes("Title: Detail") && prompt.includes("Other Past Roles:");
+}
+
+export function promptIncludesSkillsInterestsStructure(prompt: string): boolean {
+  return (
+    prompt.includes("Skills (technical only)") &&
+    prompt.includes("Do NOT list business/soft/strategy skills") &&
+    prompt.includes('"label": "Skills"') &&
+    !prompt.includes('"label": "Tech"')
+  );
 }

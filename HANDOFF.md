@@ -2,9 +2,13 @@
 
 ## Current milestone
 
-**v0.7.4 — Additional Experience Normalization Fix**
+**v0.7.5 — Skills & Interests Cleanup**
 
-Plain/legacy Additional Experience strings (e.g. `BayCurrent Consulting – …`) are normalized to **Title: Detail** before generation validation hard-fails. Multiple plain items combine under **Other Past Roles**. Output/PDF still renders colon format.
+Skills & Interests now renders only **Skills** (technical), **Languages**, and **Interests**. Soft/business skills are dropped from the section; Tech label renamed to Skills.
+
+## v0.7.4 highlights
+
+Plain/legacy Additional Experience strings normalized to Title: Detail before validation hard-fails.
 
 ## v0.7.3 highlights
 
@@ -36,8 +40,8 @@ If layout changes after approval → status `layout_changed` → re-approve (re-
 | Milestone | Status |
 |-----------|--------|
 | v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.4 — Additional experience normalization** | **Current** |
-| v0.7.3 — Generate box UX | Complete |
+| **v0.7.5 — Skills & Interests cleanup** | **Current** |
+| v0.7.4 — Additional experience normalization | Complete |
 | Cover letter generation | Next (same CTA family) |
 | Online company enrichment | Parked |
 

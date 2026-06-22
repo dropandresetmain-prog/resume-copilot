@@ -332,24 +332,12 @@ export async function generateResumeDocxBuffer(model: ResumeDocumentModel): Prom
   }
 
   if (
-    layout.techLine ||
     layout.skillsLine ||
     layout.languagesLine ||
     layout.interestsLine
   ) {
     blocks.push(sectionHeading("Skills & Interests", headerHalfPoints, font, sectionBefore));
 
-    if (layout.techLine) {
-      blocks.push(
-        labeledCompactParagraph(
-          "Tech",
-          layout.techLine,
-          bodyHalfPoints,
-          font,
-          layoutSettings.lineSpacing,
-        ),
-      );
-    }
     if (layout.skillsLine) {
       blocks.push(
         labeledCompactParagraph(

@@ -58,7 +58,7 @@ import { buildDraftListDisplays, formatDraftStatusLabel } from "../src/lib/resum
 import { normalizeEducationForLayout } from "../src/lib/resume-draft/education-layout";
 import { repairKeywordBullet } from "../src/lib/resume-draft/keyword-repair";
 import { optimizeResumePreviewSettings } from "../src/lib/resume-draft/preview-optimizer";
-import { extractSkillsTechLanguagesInterests, isTechSkillItem } from "../src/lib/resume-draft/skills-section";
+import { extractSkillsLanguagesInterests, isTechnicalSkillItem } from "../src/lib/resume-draft/skills-section";
 import { deleteGeneratedResumeDraftFromCloud } from "../src/lib/supabase/generated-resume-drafts";
 import type { ResumeDraftEducationItem } from "../src/types/resume-draft";
 import type { InventoryState } from "../src/types/resume";
@@ -238,7 +238,7 @@ function main() {
     "Experience: Cash Reconciliation & Financial Operations: Managed S$200k–300k monthly cash reconciliation.",
   );
   const optimized = optimizeResumePreviewSettings(mockDraft.content);
-  const skillsExtract = extractSkillsTechLanguagesInterests(mockDraft.content);
+  const skillsExtract = extractSkillsLanguagesInterests(mockDraft.content);
   const duplicateDraftLabels = buildDraftListDisplays(
     [
       {
@@ -300,8 +300,9 @@ function main() {
     ["exclude interest category from additional experience", shouldExcludeFromAdditionalExperience({ category: "Interests", text: "Pickleball" })],
     ["additional experience excludes languages", !layout.additionalExperienceLine.includes("Japanese")],
     ["interests present", layout.interestsLine.length > 0],
-    ["skills present", layout.skillsLine.length > 0],
+    ["technical skills line present", layout.skillsLine.length > 0],
     ["languages line present when inventory has languages", layout.languagesLine.includes("Japanese")],
+    ["soft business skills excluded from skills line", !layout.skillsLine.includes("Business Development")],
     ["a4 page container test id exported", A4_PAGE_PREVIEW_TEST_ID === "a4-page-container"],
     ["edit route page exists", existsSync(editRoutePath)],
     ["fit score in range", assessment.fitScore >= 0 && assessment.fitScore <= 100],
@@ -360,8 +361,8 @@ function main() {
     ["draft status label capitalized", formatDraftStatusLabel("approved") === "Approved"],
     ["duplicate draft labels include timestamp", duplicateDraftLabels.every((item) => item.primaryLabel.includes("Acme"))],
     ["delete draft service exported", typeof deleteGeneratedResumeDraftFromCloud === "function"],
-    ["tech skill classifier", isTechSkillItem("Python")],
-    ["tech line separated from skills", skillsExtract.techLine.includes("Python") || layout.techLine.length >= 0],
+    ["technical skill classifier", isTechnicalSkillItem("Python")],
+    ["technical skills include python from inventory", skillsExtract.skillsLine.includes("Python")],
     ["records edit route exists", existsSync(join(process.cwd(), "src/components/setup/DraftHistoryPanel.tsx"))],
   ];
 

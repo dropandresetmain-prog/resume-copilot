@@ -317,7 +317,7 @@ export function FinalResumeLayoutPreview({
               </section>
             ) : null}
 
-            {layout.techLine || layout.skillsLine || layout.languagesLine || layout.interestsLine ? (
+            {layout.skillsLine || layout.languagesLine || layout.interestsLine ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
@@ -328,7 +328,6 @@ export function FinalResumeLayoutPreview({
                 <div style={compactLinesStyle}>
                   {(
                     [
-                      layout.techLine ? { label: "Tech", value: layout.techLine } : null,
                       layout.skillsLine ? { label: "Skills", value: layout.skillsLine } : null,
                       layout.languagesLine
                         ? { label: "Languages", value: layout.languagesLine }

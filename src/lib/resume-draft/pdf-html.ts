@@ -161,7 +161,6 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
   }
 
   if (
-    layout.techLine ||
     layout.skillsLine ||
     layout.languagesLine ||
     layout.interestsLine
@@ -169,9 +168,6 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
     sections.push('<section class="resume-section">');
     sections.push(renderSectionHeading("Skills & Interests"));
     sections.push('<div class="section-body compact-lines">');
-    if (layout.techLine) {
-      sections.push(renderLabeledLine("Tech", layout.techLine));
-    }
     if (layout.skillsLine) {
       sections.push(renderLabeledLine("Skills", layout.skillsLine));
     }

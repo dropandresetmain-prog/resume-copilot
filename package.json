@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,6 +20,7 @@
     "test:resume-draft": "tsx scripts/verify-resume-draft.ts",
     "test:resume-draft-review": "tsx scripts/verify-resume-draft-review.ts",
     "test:resume-draft-layout": "tsx scripts/verify-resume-draft-layout.ts",
+    "test:skills-section": "tsx scripts/verify-skills-section.ts",
     "test:draft-inventory-safety": "tsx scripts/verify-draft-inventory-safety.ts",
     "test:resume-docx-export": "tsx scripts/verify-resume-docx-export.ts",
     "test:resume-pdf-export": "tsx scripts/verify-resume-pdf-export.ts",
@@ -37,7 +38,7 @@
     "test:resume-approve-validation": "tsx scripts/verify-resume-approve-validation.ts",
     "test:resume-generation-validation": "tsx scripts/verify-resume-generation-validation.ts",
     "test:generate-flow": "tsx scripts/verify-generate-flow.ts",
-    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-generation-validation && npm run test:generate-flow && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:draft-inventory-safety && npm run test:resume-docx-export && npm run test:resume-pdf-export && npm run test:resume-pdf-page-count && npm run test:resume-approve-validation && npm run test:resume-pdf-preview-overflow && npm run test:resume-export-delivery && npm run test:resume-layout-parity && npm run test:resume-export-strategy && npm run test:resume-export-model-parity && npm run test:resume-approval-layout"
+    "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-generation-validation && npm run test:generate-flow && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:skills-section && npm run test:draft-inventory-safety && npm run test:resume-docx-export && npm run test:resume-pdf-export && npm run test:resume-pdf-page-count && npm run test:resume-approve-validation && npm run test:resume-pdf-preview-overflow && npm run test:resume-export-delivery && npm run test:resume-layout-parity && npm run test:resume-export-strategy && npm run test:resume-export-model-parity && npm run test:resume-approval-layout"
   },
   "dependencies": {
     "@sparticuz/chromium": "^133.0.0",

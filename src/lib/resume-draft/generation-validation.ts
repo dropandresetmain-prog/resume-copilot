@@ -11,7 +11,7 @@ export const MAX_BULLETS_PER_ROLE = 4;
 export const TARGET_TOTAL_WORK_BULLETS_MIN = 12;
 export const TARGET_TOTAL_WORK_BULLETS_MAX = 13;
 
-export const REQUIRED_SKILL_GROUP_LABELS = ["Tech", "Skills", "Languages", "Interests"] as const;
+export const REQUIRED_SKILL_GROUP_LABELS = ["Skills", "Languages", "Interests"] as const;
 
 export type GenerationValidationIssue = {
   code: string;

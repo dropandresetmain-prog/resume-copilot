@@ -8,7 +8,7 @@ import {
   formatKeywordBullet,
 } from "@/lib/resume-draft/layout";
 import { repairBulletText } from "@/lib/resume-draft/keyword-repair";
-import { isTechSkillItem } from "@/lib/resume-draft/skills-section";
+import { isTechnicalSkillItem, normalizeTechnicalSkillLabel } from "@/lib/resume-draft/skills-section";
 import type {
   ResumeDraftGenerationInput,
   ResumeDraftContent,
@@ -48,18 +48,16 @@ function buildSkillsGroups(input: ResumeDraftGenerationInput) {
     .filter(Boolean);
 
   const keywordItems = input.approvedKeywords.slice(0, 8).map((item) => item.keyword);
-  const techItems = [
-    ...inventorySkillItems.filter(isTechSkillItem),
-    ...keywordItems.filter(isTechSkillItem),
-  ].slice(0, 10);
-  const businessSkills = [
-    ...keywordItems.filter((item) => !isTechSkillItem(item)),
-    ...inventorySkillItems.filter((item) => !isTechSkillItem(item)),
-  ].slice(0, 10);
+  const technicalItems = dedupeSkillItems([
+    ...inventorySkillItems,
+    ...keywordItems,
+  ]
+    .filter(isTechnicalSkillItem)
+    .map(normalizeTechnicalSkillLabel))
+    .slice(0, 12);
 
   const groups = [];
-  groups.push({ label: "Tech", items: techItems });
-  groups.push({ label: "Skills", items: businessSkills });
+  groups.push({ label: "Skills", items: technicalItems });
   groups.push({ label: "Languages", items: languageItems.slice(0, 8) });
   groups.push({
     label: "Interests",
@@ -70,6 +68,24 @@ function buildSkillsGroups(input: ResumeDraftGenerationInput) {
   });
 
   return groups;
+}
+
+function dedupeSkillItems(items: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of items) {
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
 }
 
 export function generateMockResumeDraft(
