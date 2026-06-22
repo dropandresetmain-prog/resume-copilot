@@ -48,7 +48,15 @@
 - **Base resume** = formatting/reference template only; content from inventory.
 - Last-used base resume stored in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`) — no Supabase migration.
 
-## Inventory editing (v0.7.7)
+## Application workflow (v0.8.0)
+
+- **Generate** creates or reuses `application_records` per `job_description_id` and links new drafts via `application_id`.
+- Application status defaults to `drafting`; set to `resume_generated` after successful generate.
+- **Records → Applications:** status dropdown, notes, open latest linked draft.
+- **Draft History** shows only drafts without `application_id` (legacy/unlinked).
+- **Parked:** lazy backfill of application records for old drafts, cover letters, apply tracking UI, kanban.
+
+## Inventory editing (v0.7.7+)
 
 - **Active inventory overlay** on `InventoryState.edits` — does not mutate uploaded source resumes.
 - **Edit Bullets** tab: exclude redundant bullets (e.g. 60+/80+/100+ variants), edit active wording, restore hidden bullets.

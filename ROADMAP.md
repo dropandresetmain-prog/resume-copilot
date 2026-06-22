@@ -4,12 +4,23 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
+**v0.8.0 — Application Shell**
+
+- `application_records` linked to JD + generated resume drafts
+- Generate flow creates/reuses application per job
+- Records page: Applications panel (status, notes, latest draft) + unlinked Draft History
+
+## Previous
+
+**v0.7.8 — Inventory Edit UX Hardening**
+
+- Draft edits survive tab switches; save feedback; persistence warnings on Inventory
+
 **v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
 
 - Non-destructive `InventoryState.edits` overlay (hide/edit bullets without mutating uploads)
 - Edit Bullets tab + collated view respects active inventory
 - Resume preview: evidence panel, force/exclude bullets, regenerate same draft row
-- Enrichment UI copy for accepted wording → generation
 
 ## Previous
 
@@ -18,27 +29,11 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 - One card: JD paste + base resume + Generate + progress
 - Saved jobs separated by divider below primary action
 
-## Previous
+## Next
 
-**v0.7.2 — Generate Flow UX Simplification**
-
-- Paste JD → base resume → Generate Tailored Resume
-- Auto-save/reuse job on generate
-- Progress panel + last-used base resume preference
-
-## Previous
-
-**v0.7.1 — Layout Defaults & LLM Guardrails**
-
-**v0.7.0 — One-Page Export Validation**
-
-**v0.6.7 — PDF Preview Truth Patch** — overflow measurement, no silent clip.
-
-## Next (optional)
+**Cover letter generation** — after application shell is stable in production use.
 
 **PDF density / underfill warnings** — warn when one-page PDF uses page poorly (no auto-expand yet).
-
-**Cover letter generation** — after one-page foundation stable.
 
 ## Build after one-page
 
@@ -47,11 +42,10 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 | Hybrid content compression | Evidence-backed, user-visible diffs — not AI auto-shrink |
 | Full fit rubric (`fit-rubric-v1`) | Replace `preview-fit-heuristic-v1` |
 | Bundled web font | Reduce preview vs server line-break drift |
-| Reference format extraction | Font/size from DOCX OOXML |
-| Manual inventory editing | Deferred |
+| Evidence Library (narrative store) | Separate from inventory; for cover letters + outreach |
 
 ## Future vision only
 
 - HTML→DOCX unified renderer
 - Email export delivery
-- Visual PDF regression tests in CI
+- Full ATS CRM / kanban

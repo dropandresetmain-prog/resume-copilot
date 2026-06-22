@@ -295,6 +295,7 @@ export type ResumeDraftApiErrorResponse = {
 export type CreateGeneratedResumeDraftInput = {
   jobDescriptionId: string;
   referenceResumeId: string;
+  applicationId?: string;
   content: ResumeDraftContent;
   rationale: ResumeDraftRationale;
   inputSnapshot: ResumeDraftInputSnapshot;

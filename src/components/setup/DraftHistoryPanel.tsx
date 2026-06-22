@@ -72,7 +72,7 @@ export function DraftHistoryPanel({
     () => buildDraftListDisplays(drafts, jobById),
     [drafts, jobById],
   );
-  const visibleDrafts = isSignedIn ? drafts : [];
+  const visibleDrafts = isSignedIn ? drafts.filter((draft) => !draft.applicationId) : [];
 
   async function handleDeleteDraft(draft: GeneratedResumeDraftRecord) {
     const confirmed = window.confirm(
@@ -101,7 +101,7 @@ export function DraftHistoryPanel({
   return (
     <SetupCard
       title="Generated Drafts"
-      description="Saved resume drafts from Generate. Edit to review formatting, or delete drafts you no longer need."
+      description="Legacy and unlinked resume drafts. Drafts linked to an application appear in Applications above."
     >
       {!isSignedIn ? (
         <p className="mt-3 text-sm text-slate-600">
@@ -111,8 +111,8 @@ export function DraftHistoryPanel({
         <p className="mt-3 text-sm text-red-700">{error}</p>
       ) : visibleDrafts.length === 0 ? (
         <EmptyState
-          title="No generated drafts yet"
-          description="Generate a resume on the Generate page to see drafts here."
+          title="No unlinked drafts"
+          description="Generate a resume on the Generate page. Linked drafts appear under Applications."
         />
       ) : (
         <ul className="mt-4 space-y-3">

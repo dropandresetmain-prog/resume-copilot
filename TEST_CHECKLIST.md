@@ -1,34 +1,37 @@
-# Test Checklist — v0.7.7 Inventory Editing & Regeneration
+# Test Checklist — v0.8.0 Application Shell
 
-## Automated (`npm run test`)
+## Generate → Application link
 
-- [ ] `test:inventory-edits` — hidden/edited overlay, payload exclusion, stable bulletKey, forced selection
-- [ ] `test:generation-payload` — accepted wording, advisory keywords, hidden bullet exclusion
-- [ ] `test:draft-inventory-safety` — draft/regeneration paths do not save inventory
-- [ ] Full `npm run test` suite passes
+- [ ] Sign in with inventory uploaded
+- [ ] Paste JD on Generate → **Generate Tailored Resume**
+- [ ] Draft saves and opens in preview
+- [ ] Records → Applications shows new application for that job
+- [ ] Application status is **Resume generated**
+- [ ] **Open latest draft** opens the new draft
+- [ ] Draft History does **not** duplicate the linked draft (shows unlinked only)
 
-## Inventory editing
+## Application management
 
-- [ ] Inventory → **Edit Bullets** tab lists work experience by company/role
-- [ ] Exclude bullet → labeled “Excluded from generation”; collated view hides it
-- [ ] Restore excluded bullet
-- [ ] Edit bullet wording → active text changes; original shown; source resumes unchanged (Source tab)
-- [ ] Save inventory edits → persists after refresh (signed in)
-- [ ] Enrichment review shows: “Accepted wording is used as preferred phrasing during resume generation.”
+- [ ] Change status (e.g. Ready to apply, Applied)
+- [ ] Add notes → **Save notes** → refresh page → notes persist
+- [ ] Job URL link visible when JD has `jobUrl`
+- [ ] Generate again for same JD reuses application; new draft links to same application
+- [ ] Application card shows latest draft by `updated_at`
 
-## Regeneration
+## Backwards compatibility
 
-- [ ] Generate resume → preview shows **Evidence & regeneration** panel
-- [ ] Generated bullets show source references when available
-- [ ] Uncheck generated bullet → excluded from next regeneration payload
-- [ ] Force inventory bullet → included in next regeneration
-- [ ] Regenerate updates same draft (not a new row every toggle)
-- [ ] Layout edits still update same draft row
-- [ ] Too many forced bullets shows warning / graceful failure
+- [ ] Pre-existing drafts without `application_id` still appear in Draft History
+- [ ] Delete unlinked draft still works
+- [ ] Approve / export flow unchanged for linked drafts
 
-## Unchanged
+## Regression
 
-- [ ] Skills & Interests cleanup (v0.7.5)
-- [ ] Additional experience normalization (v0.7.4)
-- [ ] One-page server PDF validation on Approve
-- [ ] No cover letters / opportunity intelligence
+- [ ] Inventory edits (v0.7.8)
+- [ ] Regeneration on resume preview
+- [ ] `npm run test` passes
+
+## Parked (not in v0.8.0)
+
+- [ ] Cover letter generation
+- [ ] Lazy backfill application records for old drafts
+- [ ] Applied timestamp UI beyond status change

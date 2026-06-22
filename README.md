@@ -1,21 +1,21 @@
 # Career Resume Copilot
 
-**v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
+**v0.8.0 — Application Shell**
 
-Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, drafts, and exported files.
+Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
 ## Product flow
 
 ```
 Upload resumes → Build inventory → Paste JD → Select base resume → Generate Tailored Resume
-  → Tune layout → PDF Preview → Approve → Download PDF / DOCX
+  → Application record (status / notes) → Tune layout → PDF Preview → Approve → Download PDF / DOCX
 ```
 
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.
 2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review.
 3. **Generate** (`/generate`) — paste a job description, select base resume, **Generate Tailored Resume** (job saves automatically).
 4. **Resume Preview** (`/resume-preview/[draftId]`) — **PDF Preview** (local approximation), layout controls, **server one-page validation on Approve**, export.
-5. **Records** (`/records`) — saved jobs and generated draft history with export shortcuts.
+5. **Records** (`/records`) — applications (status, notes, linked draft), saved jobs, and unlinked draft history.
 
 ## What is built
 

@@ -52,6 +52,20 @@ export type StoredFileRecord = {
   createdAt: string;
 };
 
+export type ApplicationRecordRow = {
+  id: string;
+  user_id: string;
+  job_description_id: string | null;
+  company_name: string | null;
+  role_title: string | null;
+  job_url: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  applied_at: string | null;
+};
+
 export type GeneratedResumeDraftRow = {
   id: string;
   user_id: string;

@@ -89,7 +89,7 @@ export async function createGeneratedResumeDraftInCloud(
       user_id: user.id,
       job_description_id: input.jobDescriptionId,
       reference_resume_id: input.referenceResumeId,
-      application_id: null,
+      application_id: input.applicationId ?? null,
       content: input.content,
       rationale: input.rationale,
       input_snapshot: input.inputSnapshot,

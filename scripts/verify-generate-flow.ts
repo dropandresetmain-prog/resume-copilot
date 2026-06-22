@@ -159,6 +159,8 @@ async function main() {
     ["disabled download uses default cursor", ui.includes("disabled:cursor-default")],
     ["disabled download blocks pointer events", pdfButton.includes("pointer-events-none")],
     ["duplicate detection still works", Boolean(findDuplicateJobDescription([existingJob], duplicateInput))],
+    ["generate flow ensures application record", generateSection.includes("ensureApplicationRecordForJobDescription")],
+    ["generate flow links draft to application", generateSection.includes("applicationId: applicationRecord.id")],
   ];
 
   for (const [name, ok] of checks) {

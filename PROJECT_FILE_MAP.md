@@ -7,7 +7,7 @@
 | `/` | `src/app/page.tsx` | Landing page (CTA → Manage Uploads) |
 | `/generate` | `src/app/(workspace)/generate/page.tsx` | Job intake + tailor resume (main product) |
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
-| `/records` | `src/app/(workspace)/records/page.tsx` | Manage saved jobs + draft history |
+| `/records` | `src/app/(workspace)/records/page.tsx` | Applications + saved jobs + unlinked draft history |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
 | `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Final A4 layout preview + assessment (v0.5.1+) |
 | `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
@@ -33,7 +33,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 |------|-------|
 | `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + generate tailored resume (v0.7.2) |
 | `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
-| `src/components/pages/RecordsPageClient.tsx` | `/records` |
+| `src/components/pages/RecordsPageClient.tsx` | `/records` — applications + saved jobs + draft history (v0.8.0) |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
 
@@ -50,7 +50,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/generate/base-resume-preference.ts` | Last-used base resume (`localStorage`) + default resolution |
 | `src/lib/generate/save-job-for-generation.ts` | Auto-save/reuse job on generate |
 | `src/lib/generate/generation-progress.ts` | Progress stage labels + percent helper |
-| `src/components/setup/DraftHistoryPanel.tsx` | Basic saved draft list (Records) |
+| `src/components/setup/ApplicationRecordsPanel.tsx` | Application cards: status, notes, linked draft (Records) |
+| `src/components/setup/DraftHistoryPanel.tsx` | Unlinked legacy draft list (Records) |
 | `src/components/landing/LandingCta.tsx` | Auth-aware single landing CTA |
 | `src/components/setup/SavedJobCard.tsx` | Saved job card with summary + full JD expand |
 | `src/components/setup/JDInputPanel.tsx` | Job paste/save form + saved jobs list |
@@ -77,6 +78,9 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `supabase/migrations/20260619_add_resume_draft_metadata.sql` | Adds resume draft metadata columns/indexes |
 | `supabase/migrations/20260620_add_saved_job_summary.sql` | Adds `summary` column to `job_descriptions` |
 | `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
+| `src/lib/supabase/application-records.ts` | Application records CRUD + ensure per JD (v0.8.0) |
+| `src/types/application-record.ts` | Application status types |
+| `src/lib/application/labels.ts` | Application card labels |
 | `src/lib/supabase/client.ts` | Browser Supabase client + env validation |
 | `src/lib/supabase/auth.ts` | Password, magic link, sign out |
 | `src/lib/supabase/types.ts` | Row/record types, bucket constants |
@@ -228,6 +232,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-files.ts` | File hash + metadata |
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
 | `scripts/verify-inventory-edits.ts` | Hidden/edited overlay + regeneration payload (v0.7.7) |
+| `scripts/verify-application-records.ts` | Application shell wiring + types (v0.8.0) |
 | `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.7) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |

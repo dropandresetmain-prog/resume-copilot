@@ -2,6 +2,7 @@
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { ApplicationRecordsPanel } from "@/components/setup/ApplicationRecordsPanel";
 import { DraftHistoryPanel } from "@/components/setup/DraftHistoryPanel";
 import { JDInputPanel } from "@/components/setup/JDInputPanel";
 
@@ -19,9 +20,9 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.5.4 · Records"
+        milestone="v0.8.0 · Records"
         title="Records"
-        description="Review Saved Jobs and Generated Drafts. Paste new jobs on Generate."
+        description="Track applications by job, update status and notes, and review saved jobs and draft history."
       />
 
       <JDInputPanel
@@ -33,6 +34,8 @@ export function RecordsPageClient() {
         disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
         showIntakeForm={false}
       />
+
+      <ApplicationRecordsPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
 
       <DraftHistoryPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
     </>

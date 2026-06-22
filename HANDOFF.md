@@ -2,56 +2,45 @@
 
 ## Current milestone
 
-**v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
+**v0.8.0 — Application Shell**
+
+Minimal application workflow spine: generate creates/reuses an `application_records` row per job, links `generated_resume_drafts.application_id`, Records page shows Applications (status, notes, latest draft) above legacy unlinked Draft History.
+
+## v0.7.8 highlights
+
+Inventory edit UX hardening — draft edits lifted to page level, unsaved banner, save feedback, `SetupAlerts` on `/inventory`, immediate cloud save on inventory edits.
+
+## v0.7.7 highlights
 
 Non-destructive inventory edit overlay (`hiddenBulletKeys`, `editedBulletTextByBulletKey`), Edit Bullets tab on Inventory, evidence/regeneration panel on resume preview, regeneration updates the same draft row.
-
-## v0.7.6 highlights
-
-Generation payload includes accepted enrichment wording, ranked bullet selection, advisory keywords, optional `selectionAudit`.
-
-## v0.7.5 highlights
-
-Skills & Interests renders only **Skills** (technical), **Languages**, and **Interests** — no soft/business skills row.
-
-## v0.7.4 highlights
-
-Plain/legacy Additional Experience strings normalized to Title: Detail before validation hard-fails.
-
-## v0.7.3 highlights
-
-Primary generate flow (paste JD, base resume, Generate Tailored Resume, progress) is consolidated in one card. Job saves only on Generate click.
 
 ## Product flow
 
 ```
-Paste JD → Select base resume → Generate Tailored Resume → Review → PDF Preview → Approve → Download PDF / DOCX
+Paste JD → Select base resume → Generate Tailored Resume → Application record (status / notes)
+  → Review → PDF Preview → Approve → Download PDF / DOCX
 ```
 
 If layout changes after approval → status `layout_changed` → re-approve (re-validates server PDF).
 
-## v0.7.2 highlights
+## Application workflow (v0.8.0)
 
-- **Generate Tailored Resume** primary CTA (resume only for now; copy future-proofs cover letter)
-- Job auto-save/reuse via `ensureJobDescriptionForGeneration` (dedupes matching saved jobs)
-- Base resume dropdown with last-used preference (`localStorage`) + recent draft fallback
-- Staged generation progress panel (honest, non-exact timing)
-- Records page unchanged: explicit Save job when editing saved jobs
-- Disabled download buttons use default cursor (no not-allowed hover icon)
+- **Generate** creates or reuses one application per saved job (`job_description_id`).
+- New drafts link via `generated_resume_drafts.application_id`.
+- Application status set to `resume_generated` after successful generate.
+- **Records** → Applications: update status, edit notes, open latest linked draft.
+- **Draft History** below shows only **unlinked** legacy drafts (no data loss).
 
-## v0.7.1 (still in force)
-
-- Layout defaults, LLM guardrails, server one-page PDF validation
+Statuses: `drafting`, `resume_generated`, `ready_to_apply`, `applied`, `rejected`, `archived`.
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.7 — Inventory editing & regeneration** | **Current** |
-| v0.7.6 — Generation input quality | Complete |
-| v0.7.5 — Skills & Interests cleanup | Complete |
-| Cover letter generation | Next (same CTA family) |
+| **v0.8.0 — Application shell** | **Current** |
+| v0.7.8 — Inventory edit UX hardening | Complete |
+| v0.7.7 — Inventory editing & regeneration | Complete |
+| Cover letter generation | Next (after application shell stable) |
 | Online company enrichment | Parked |
 
 See `ROADMAP.md`.

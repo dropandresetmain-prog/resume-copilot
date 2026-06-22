@@ -27,6 +27,10 @@ import {
   type ResumeDraftClientError,
 } from "@/lib/resume-draft/client";
 import {
+  ensureApplicationRecordForJobDescription,
+  markApplicationResumeGenerated,
+} from "@/lib/supabase/application-records";
+import {
   createGeneratedResumeDraftInCloud,
   listGeneratedResumeDraftsFromCloud,
 } from "@/lib/supabase/generated-resume-drafts";
@@ -150,6 +154,8 @@ export function GenerateTailoredResumeSection({
         editingId: editingJobId,
       });
 
+      const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
+
       await advanceStage(1);
 
       writeLastBaseResumeId(effectiveBaseResumeId);
@@ -174,12 +180,15 @@ export function GenerateTailoredResumeSection({
       const record = await createGeneratedResumeDraftInCloud({
         jobDescriptionId: savedJob.id,
         referenceResumeId: effectiveBaseResumeId,
+        applicationId: applicationRecord.id,
         content: response.content,
         rationale: response.rationale,
         inputSnapshot: response.inputSnapshot,
         provider: response.provider,
         modelName: response.modelName,
       });
+
+      await markApplicationResumeGenerated(applicationRecord.id);
 
       await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
       await delay(200);
