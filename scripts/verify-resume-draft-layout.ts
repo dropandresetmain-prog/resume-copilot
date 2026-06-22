@@ -15,6 +15,8 @@ import { buildCompanyLineSegments } from "../src/lib/resume-draft/docx-layout-he
 import {
   buildEducationLayoutEntry,
   buildFinalResumeLayout,
+  buildAdditionalExperienceEntries,
+  parseAdditionalExperienceItemText,
   buildWorkExperienceLayoutEntry,
   calculateFitScore,
   estimatePageFit,
@@ -37,7 +39,10 @@ import {
   PREVIEW_BODY_FONT_DEFAULT_PX,
   PREVIEW_BODY_FONT_MAX_PX,
   PREVIEW_BODY_FONT_MIN_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+  PREVIEW_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_MIN,
+  PREVIEW_SECTION_SPACING_DEFAULT,
   PREVIEW_MARGIN_MIN_MM,
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
   PREVIEW_SECTION_SPACING_MIN,
@@ -48,6 +53,7 @@ import {
   buildReferenceResumeFormatProfile,
   detectResumeFontFamily,
 } from "../src/lib/resume-draft/reference-format";
+import { RESUME_PRINT_LAYOUT_SPACING } from "../src/lib/resume-draft/resume-layout-styles";
 import { buildDraftListDisplays, formatDraftStatusLabel } from "../src/lib/resume-draft/draft-labels";
 import { normalizeEducationForLayout } from "../src/lib/resume-draft/education-layout";
 import { repairKeywordBullet } from "../src/lib/resume-draft/keyword-repair";
@@ -328,7 +334,7 @@ function main() {
     ["page fit reacts to body font size", computeMaxLinesOnePage({
       marginMm: 12,
       marginTopMm: 9,
-      bodyFontPx: 7,
+      bodyFontPx: 10,
       lineSpacing: 1,
     }) > computeMaxLinesOnePage({
       marginMm: 12,
@@ -336,9 +342,20 @@ function main() {
       bodyFontPx: 12,
       lineSpacing: 1,
     })],
-    ["default body font is 11px", PREVIEW_BODY_FONT_DEFAULT_PX === 11],
+    ["default body font is 12.5px", PREVIEW_BODY_FONT_DEFAULT_PX === 12.5],
+    ["body font min is 10px", PREVIEW_BODY_FONT_MIN_PX === 10],
+    ["wrapped line spacing default is 1.08", PREVIEW_LINE_SPACING_DEFAULT === 1.08],
+    ["item line spacing default is 1.2", PREVIEW_ITEM_LINE_SPACING_DEFAULT === 1.2],
+    ["section spacing default is 0.65", PREVIEW_SECTION_SPACING_DEFAULT === 0.65],
+    ["print bullet padding reduced", RESUME_PRINT_LAYOUT_SPACING.bulletPaddingLeftRem === 0.275],
+    [
+      "additional experience uses title detail entries",
+      buildAdditionalExperienceEntries(mockDraft.content.additionalExperience).every(
+        (entry) => parseAdditionalExperienceItemText(`${entry.title}: ${entry.detail}`) !== null,
+      ),
+    ],
     ["experience keyword repair", repairedKeyword.keyword === "Cash Reconciliation & Financial Operations"],
-    ["optimizer starts at 11px when possible", optimized.bodyFontPx >= 9],
+    ["optimizer starts at 12.5px when possible", optimized.bodyFontPx >= 10],
     ["optimizer returns layout metrics", typeof optimized.estimatedPages === "number"],
     ["draft status label capitalized", formatDraftStatusLabel("approved") === "Approved"],
     ["duplicate draft labels include timestamp", duplicateDraftLabels.every((item) => item.primaryLabel.includes("Acme"))],

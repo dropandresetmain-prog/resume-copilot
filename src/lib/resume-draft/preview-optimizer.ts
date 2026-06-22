@@ -1,10 +1,14 @@
 import { buildFinalResumeLayout, estimatePageFit } from "@/lib/resume-draft/layout";
 import {
+  PREVIEW_BODY_FONT_DEFAULT_PX,
   PREVIEW_BODY_FONT_MIN_PX,
   PREVIEW_BODY_FONT_STEP_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+  PREVIEW_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_MIN,
   PREVIEW_MARGIN_MIN_MM,
   PREVIEW_MARGIN_TOP_MIN_MM,
+  PREVIEW_SECTION_SPACING_DEFAULT,
   PREVIEW_SECTION_SPACING_MIN,
 } from "@/lib/resume-draft/preview-settings";
 import type { ResumeDraftContent } from "@/types/resume-draft";
@@ -14,6 +18,7 @@ export type OptimizedPreviewSettings = {
   marginMm: number;
   marginTopMm: number;
   lineSpacing: number;
+  itemLineSpacing: number;
   sectionSpacing: number;
   estimatedPages: number;
   overflowLines: number;
@@ -23,10 +28,16 @@ export type OptimizedPreviewSettings = {
   warning?: string;
 };
 
-const BODY_FONT_STEPS = [11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7];
+const BODY_FONT_STEPS = [12.5, 12, 11.5, 11, 10.5, 10];
 const MARGIN_STEPS = [12, 10, 9, 8];
-const LINE_SPACING_STEPS = [1.05, 1, 0.98, PREVIEW_LINE_SPACING_MIN];
-const SECTION_SPACING_STEPS = [0.6, 0.5, 0.45, 0.35];
+const LINE_SPACING_STEPS = [PREVIEW_LINE_SPACING_DEFAULT, 1.05, 1, 0.98, PREVIEW_LINE_SPACING_MIN];
+const SECTION_SPACING_STEPS = [
+  PREVIEW_SECTION_SPACING_DEFAULT,
+  0.6,
+  0.5,
+  0.45,
+  0.35,
+];
 
 function snapBodyFontPx(value: number): number {
   const steps = Math.round((value - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX);
@@ -35,7 +46,7 @@ function snapBodyFontPx(value: number): number {
 
 /**
  * Deterministically choose preview settings that best fit one A4 page.
- * Starts at 11px body font, tightens spacing/margins, then reduces font if needed.
+ * Starts at default body font (12.5px), tightens spacing/margins, then reduces font if needed.
  */
 export function optimizeResumePreviewSettings(
   content: ResumeDraftContent,
@@ -54,6 +65,7 @@ export function optimizeResumePreviewSettings(
             marginMm,
             marginTopMm,
             lineSpacing,
+            itemLineSpacing: PREVIEW_ITEM_LINE_SPACING_DEFAULT,
             sectionSpacing,
           });
 
@@ -63,15 +75,16 @@ export function optimizeResumePreviewSettings(
               marginMm,
               marginTopMm,
               lineSpacing,
+              itemLineSpacing: PREVIEW_ITEM_LINE_SPACING_DEFAULT,
               sectionSpacing,
               estimatedPages: fit.estimatedPages,
               overflowLines: 0,
               exceedsOnePage: false,
               autoOptimized: true,
               optimizationNote:
-                bodyFontPx < 11
+                bodyFontPx < PREVIEW_BODY_FONT_DEFAULT_PX
                   ? `Auto-adjusted to ${snapBodyFontPx(bodyFontPx)}px body font to fit one page.`
-                  : "Auto-optimized spacing for one-page fit at 11px body font.",
+                  : `Auto-optimized spacing for one-page fit at ${PREVIEW_BODY_FONT_DEFAULT_PX}px body font.`,
             };
           }
 
@@ -86,6 +99,7 @@ export function optimizeResumePreviewSettings(
               marginMm,
               marginTopMm,
               lineSpacing,
+              itemLineSpacing: PREVIEW_ITEM_LINE_SPACING_DEFAULT,
               sectionSpacing,
               estimatedPages: fit.estimatedPages,
               overflowLines: fit.overflowLines,
@@ -102,10 +116,11 @@ export function optimizeResumePreviewSettings(
 
   return (
     bestOverflow ?? {
-      bodyFontPx: 11,
+      bodyFontPx: PREVIEW_BODY_FONT_DEFAULT_PX,
       marginMm: PREVIEW_MARGIN_MIN_MM,
       marginTopMm: PREVIEW_MARGIN_TOP_MIN_MM,
-      lineSpacing: 1,
+      lineSpacing: PREVIEW_LINE_SPACING_DEFAULT,
+      itemLineSpacing: PREVIEW_ITEM_LINE_SPACING_DEFAULT,
       sectionSpacing: PREVIEW_SECTION_SPACING_MIN,
       estimatedPages: 1,
       overflowLines: 0,

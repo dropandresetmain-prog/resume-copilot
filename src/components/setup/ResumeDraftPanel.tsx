@@ -3,13 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
 import {
-  EmptyState,
   SetupCard,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
 } from "@/components/setup/ui";
+import {
+  readLastBaseResumeId,
+  resolveDefaultBaseResumeId,
+  writeLastBaseResumeId,
+} from "@/lib/generate/base-resume-preference";
+import { delay, GENERATION_PROGRESS_STAGES } from "@/lib/generate/generation-progress";
+import {
+  ensureJobDescriptionForGeneration,
+  type SaveJobForGenerationHandler,
+} from "@/lib/generate/save-job-for-generation";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import {
@@ -17,37 +27,41 @@ import {
   requestResumeDraftGeneration,
   type ResumeDraftClientError,
 } from "@/lib/resume-draft/client";
+import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import { createGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
-import { formatSavedJobLabel } from "@/lib/jd/labels";
+import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
-import type { StoredJobDescription } from "@/types/jd";
 import type { ResumeDraftProviderStatusResponse } from "@/types/resume-draft";
 
 type ResumeDraftPanelProps = {
   inventory: InventoryState;
   jobDescriptions: StoredJobDescription[];
+  jobForm: JobDescriptionInput;
+  editingJobId?: string | null;
   isSignedIn: boolean;
   disabled?: boolean;
   disabledReason?: string;
-  selectedJobDescriptionId?: string;
-  onJobDescriptionChange?: (id: string) => void;
+  onSaveJob: SaveJobForGenerationHandler;
+  onGenerationFinished?: () => void;
 };
 
 export function ResumeDraftPanel({
   inventory,
   jobDescriptions,
+  jobForm,
+  editingJobId = null,
   isSignedIn,
   disabled = false,
   disabledReason,
-  selectedJobDescriptionId,
-  onJobDescriptionChange,
+  onSaveJob,
+  onGenerationFinished,
 }: ResumeDraftPanelProps) {
   const router = useRouter();
-  const [internalJobId, setInternalJobId] = useState("");
-  const [selectedReferenceResumeId, setSelectedReferenceResumeId] = useState("");
+  const [selectedBaseResumeId, setSelectedBaseResumeId] = useState("");
   const [providerStatus, setProviderStatus] =
     useState<ResumeDraftProviderStatusResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progressStageIndex, setProgressStageIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
 
@@ -59,56 +73,108 @@ export function ResumeDraftPanel({
       .catch(() => setProviderStatus(null));
   }, []);
 
-  const effectiveJobDescriptionId =
-    selectedJobDescriptionId ?? (internalJobId || jobDescriptions[0]?.id || "");
+  useEffect(() => {
+    let cancelled = false;
 
-  function handleJobSelectionChange(id: string) {
-    if (onJobDescriptionChange) {
-      onJobDescriptionChange(id);
-      return;
+    async function resolveDefault() {
+      if (inventory.resumes.length === 0) {
+        if (!cancelled) {
+          setSelectedBaseResumeId("");
+        }
+        return;
+      }
+
+      let recentDraftReferenceResumeId: string | null = null;
+      if (isSignedIn) {
+        try {
+          const drafts = await listGeneratedResumeDraftsFromCloud();
+          recentDraftReferenceResumeId = drafts[0]?.referenceResumeId ?? null;
+        } catch {
+          recentDraftReferenceResumeId = null;
+        }
+      }
+
+      const defaultId = resolveDefaultBaseResumeId(inventory.resumes, {
+        recentDraftReferenceResumeId,
+      });
+
+      if (!cancelled) {
+        setSelectedBaseResumeId((current) => {
+          if (current && inventory.resumes.some((resume) => resume.id === current)) {
+            return current;
+          }
+          return defaultId;
+        });
+      }
     }
-    setInternalJobId(id);
-  }
 
-  const effectiveReferenceResumeId =
-    selectedReferenceResumeId || inventory.resumes[0]?.id || "";
+    void resolveDefault();
+    return () => {
+      cancelled = true;
+    };
+  }, [inventory.resumes, isSignedIn]);
+
+  const effectiveBaseResumeId =
+    selectedBaseResumeId || resolveDefaultBaseResumeId(inventory.resumes);
 
   const providerConfigured = providerStatus?.configured ?? false;
+  const hasJobText = Boolean(jobForm.rawText.trim());
   const canGenerate =
     isSignedIn &&
     !disabled &&
     providerConfigured &&
     inventory.resumes.length > 0 &&
-    Boolean(effectiveJobDescriptionId) &&
-    Boolean(effectiveReferenceResumeId);
+    hasJobText &&
+    Boolean(effectiveBaseResumeId);
+
+  async function advanceStage(index: number) {
+    setProgressStageIndex(index);
+    await delay(250);
+  }
 
   async function handleGenerate() {
+    if (isGenerating) {
+      return;
+    }
+
     setError(null);
     setDebugRaw(null);
     setIsGenerating(true);
+    setProgressStageIndex(0);
 
     try {
-      const jobDescription = jobDescriptions.find(
-        (item) => item.id === effectiveJobDescriptionId,
-      );
-      if (!jobDescription) {
-        throw new Error("Select a saved job description.");
-      }
+      await advanceStage(0);
+
+      const savedJob = await ensureJobDescriptionForGeneration(jobForm, {
+        jobDescriptions,
+        saveJob: onSaveJob,
+        editingId: editingJobId,
+      });
+
+      await advanceStage(1);
+
+      writeLastBaseResumeId(effectiveBaseResumeId);
+
+      await advanceStage(2);
 
       const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
         inventory,
-        jobDescription,
-        referenceResumeId: effectiveReferenceResumeId,
+        jobDescription: savedJob,
+        referenceResumeId: effectiveBaseResumeId,
       });
+
+      await advanceStage(3);
 
       const response = await requestResumeDraftGeneration({
         ...generationInput,
         inputSnapshot,
       });
 
+      await advanceStage(4);
+
       const record = await createGeneratedResumeDraftInCloud({
-        jobDescriptionId: jobDescription.id,
-        referenceResumeId: effectiveReferenceResumeId,
+        jobDescriptionId: savedJob.id,
+        referenceResumeId: effectiveBaseResumeId,
         content: response.content,
         rationale: response.rationale,
         inputSnapshot: response.inputSnapshot,
@@ -116,13 +182,17 @@ export function ResumeDraftPanel({
         modelName: response.modelName,
       });
 
+      await advanceStage(GENERATION_PROGRESS_STAGES.length - 1);
+      await delay(200);
+
+      onGenerationFinished?.();
       router.push(`/resume-preview/${record.id}`);
     } catch (generationError) {
       const clientError = generationError as ResumeDraftClientError;
       setError(
         clientError instanceof Error
           ? clientError.message
-          : "Resume draft generation failed.",
+          : "Tailored resume generation failed.",
       );
       setDebugRaw(clientError.rawModelResponse ?? null);
     } finally {
@@ -130,10 +200,12 @@ export function ResumeDraftPanel({
     }
   }
 
+  const storedPreference = readLastBaseResumeId();
+
   return (
     <SetupCard
-      title="Tailor resume from saved job"
-      description="Choose a saved job and reference resume (formatting template) to generate a tailored resume. Content comes from your inventory — not the reference file text."
+      title="Generate tailored resume"
+      description="Paste a job description above, choose a base resume for formatting, then generate. Your job is saved automatically — no separate save step."
     >
       {disabled && disabledReason ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -156,73 +228,71 @@ export function ResumeDraftPanel({
         </p>
       ) : null}
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="resume-draft-jd" className={labelClassName}>
-            Saved job
-          </label>
-          <select
-            id="resume-draft-jd"
-            value={effectiveJobDescriptionId}
-            onChange={(event) => handleJobSelectionChange(event.target.value)}
-            disabled={disabled || jobDescriptions.length === 0}
-            className={formFieldClassName}
-          >
-            {jobDescriptions.length === 0 ? (
-              <option value="">No saved jobs</option>
-            ) : (
-              jobDescriptions.map((jd) => (
-                <option key={jd.id} value={jd.id}>
-                  {formatSavedJobLabel(jd)}
-                </option>
-              ))
-            )}
-          </select>
+      {isGenerating ? (
+        <div className="mt-4">
+          <GenerationProgressPanel stageIndex={progressStageIndex} />
         </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="base-resume-select" className={labelClassName}>
+              Base resume (formatting template)
+            </label>
+            <select
+              id="base-resume-select"
+              value={effectiveBaseResumeId}
+              onChange={(event) => setSelectedBaseResumeId(event.target.value)}
+              disabled={disabled || inventory.resumes.length === 0 || isGenerating}
+              className={formFieldClassName}
+            >
+              {inventory.resumes.length === 0 ? (
+                <option value="">No uploaded resumes</option>
+              ) : (
+                inventory.resumes.map((resume) => (
+                  <option key={resume.id} value={resume.id}>
+                    {resume.filename}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">
+              Uses layout and bullet style only — tailored content comes from your career
+              inventory, not this file&apos;s text.
+              {storedPreference && storedPreference === effectiveBaseResumeId
+                ? " Last used base resume selected."
+                : null}
+            </p>
+          </div>
 
-        <div>
-          <label htmlFor="resume-draft-reference" className={labelClassName}>
-            Reference resume (formatting)
-          </label>
-          <select
-            id="resume-draft-reference"
-            value={effectiveReferenceResumeId}
-            onChange={(event) => setSelectedReferenceResumeId(event.target.value)}
-            disabled={disabled || inventory.resumes.length === 0}
-            className={formFieldClassName}
+          <button
+            type="button"
+            onClick={() => void handleGenerate()}
+            disabled={!canGenerate || isGenerating}
+            className={`${primaryButtonClassName} shrink-0`}
           >
-            {inventory.resumes.length === 0 ? (
-              <option value="">No uploaded resumes</option>
-            ) : (
-              inventory.resumes.map((resume) => (
-                <option key={resume.id} value={resume.id}>
-                  {resume.filename}
-                </option>
-              ))
-            )}
-          </select>
+            Generate Tailored Resume
+          </button>
         </div>
-      </div>
+      )}
 
       <p className="mt-3 text-sm text-slate-600">
         Approved keywords available: {approvedKeywordCount}
       </p>
 
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={!canGenerate || isGenerating}
-          className={primaryButtonClassName}
-        >
-          {isGenerating ? "Generating…" : "Generate resume"}
-        </button>
-      </div>
-
       {error ? (
-        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
+        <div className="mt-3 space-y-2">
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleGenerate()}
+            disabled={!canGenerate || isGenerating}
+            className={primaryButtonClassName}
+          >
+            Retry Generate Tailored Resume
+          </button>
+        </div>
       ) : null}
 
       {debugRaw ? (
@@ -234,13 +304,16 @@ export function ResumeDraftPanel({
         </details>
       ) : null}
 
-      {jobDescriptions.length === 0 || inventory.resumes.length === 0 ? (
-        <div className="mt-4">
-          <EmptyState
-            title="Resume prerequisites"
-            description="Upload at least one resume and save a job on this page before generating."
-          />
-        </div>
+      {!hasJobText ? (
+        <p className="mt-3 text-sm text-amber-800">
+          Paste a job description above to enable generation.
+        </p>
+      ) : null}
+
+      {inventory.resumes.length === 0 ? (
+        <p className="mt-3 text-sm text-amber-800">
+          Upload at least one resume in Manage Uploads before generating.
+        </p>
       ) : null}
     </SetupCard>
   );

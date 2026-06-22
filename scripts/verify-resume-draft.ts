@@ -11,6 +11,8 @@ import {
   buildResumeDraftPrompt,
   promptIncludesJsonSchemaInstructions,
   promptIncludesWorkExperienceBulletRules,
+  promptIncludesJdAnalysisGuardrails,
+  promptIncludesAdditionalExperienceColonFormat,
 } from "../src/lib/resume-draft/prompt";
 import {
   mapResumeDraftPayload,
@@ -174,6 +176,8 @@ const checks: [string, boolean][] = [
   ],
   ["prompt includes JSON schema instructions", promptIncludesJsonSchemaInstructions(prompt)],
   ["prompt includes work experience bullet rules", promptIncludesWorkExperienceBulletRules(prompt)],
+  ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
+  ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
   ["parser accepts valid JSON", parsedValid.ok === true],
   ["parser rejects malformed JSON", parsedInvalid.ok === false],
   ["mapper handles optional fields", mapped.content.education.length === 0],

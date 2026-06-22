@@ -37,6 +37,13 @@ type JDInputPanelProps = {
   /** Primary intake form (Generate). Hidden on Records unless editing. */
   showIntakeForm?: boolean;
   showSavedJobsList?: boolean;
+  /** Hide explicit Save Job CTA — used on Generate (job saves on generate). */
+  showSaveButton?: boolean;
+  /** Controlled intake form (Generate page). */
+  form?: JobDescriptionInput;
+  onFormChange?: (form: JobDescriptionInput) => void;
+  editingId?: string | null;
+  onEditingIdChange?: (id: string | null) => void;
   onJobSaved?: (job: StoredJobDescription) => void;
 };
 
@@ -47,9 +54,9 @@ const EMPTY_FORM: JobDescriptionInput = {
   jobUrl: "",
 };
 
-const DEFAULT_INTAKE_TITLE = "Add a job to tailor your resume";
+const DEFAULT_INTAKE_TITLE = "Job description";
 const DEFAULT_INTAKE_DESCRIPTION =
-  "Paste the job description here. We'll save it, extract the company and role where possible, and use it to generate a tailored resume.";
+  "Paste the job description here. Company and role are extracted when possible and saved automatically when you generate.";
 const DEFAULT_MANAGE_TITLE = "Manage Saved Jobs";
 const DEFAULT_MANAGE_DESCRIPTION =
   "View, edit, or delete jobs you saved while tailoring resumes. Paste new jobs on the Generate page.";
@@ -66,16 +73,41 @@ export function JDInputPanel({
   listTitle,
   showIntakeForm = true,
   showSavedJobsList = true,
+  showSaveButton = true,
+  form: controlledForm,
+  onFormChange,
+  editingId: controlledEditingId,
+  onEditingIdChange,
   onJobSaved,
 }: JDInputPanelProps) {
-  const [form, setForm] = useState<JobDescriptionInput>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [internalForm, setInternalForm] = useState<JobDescriptionInput>(EMPTY_FORM);
+  const [internalEditingId, setInternalEditingId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const companyTouchedRef = useRef(false);
   const roleTouchedRef = useRef(false);
+
+  const isControlled = controlledForm !== undefined && onFormChange !== undefined;
+  const form = isControlled ? controlledForm : internalForm;
+  const editingId = controlledEditingId !== undefined ? controlledEditingId : internalEditingId;
+
+  function setForm(next: JobDescriptionInput) {
+    if (isControlled) {
+      onFormChange(next);
+    } else {
+      setInternalForm(next);
+    }
+  }
+
+  function setEditingId(id: string | null) {
+    if (onEditingIdChange) {
+      onEditingIdChange(id);
+    } else {
+      setInternalEditingId(id);
+    }
+  }
 
   const resolvedTitle =
     title ?? (showIntakeForm ? DEFAULT_INTAKE_TITLE : DEFAULT_MANAGE_TITLE);
@@ -91,7 +123,7 @@ export function JDInputPanel({
   ) {
     if (field === "companyName") companyTouchedRef.current = true;
     if (field === "roleTitle") roleTouchedRef.current = true;
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm({ ...form, [field]: value });
     if (validationError) setValidationError(null);
     if (duplicateWarning) setDuplicateWarning(null);
     if (saveError) setSaveError(null);
@@ -117,7 +149,7 @@ export function JDInputPanel({
   }
 
   function handleRawTextChange(rawText: string) {
-    setForm((current) => applyExtractedMetadata(rawText, current));
+    setForm(applyExtractedMetadata(rawText, form));
     if (validationError) setValidationError(null);
     if (duplicateWarning) setDuplicateWarning(null);
     if (saveError) setSaveError(null);
@@ -301,14 +333,16 @@ export function JDInputPanel({
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={disabled || isSaving}
-              className={primaryButtonClassName}
-            >
-              {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
-            </button>
+            {showSaveButton ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={disabled || isSaving}
+                className={primaryButtonClassName}
+              >
+                {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={clearForm}
@@ -341,7 +375,7 @@ export function JDInputPanel({
                 title="No Saved Jobs Yet"
                 description={
                   showIntakeForm
-                    ? "Paste a job description above and save it to get started."
+                    ? "Saved jobs appear here after you generate a tailored resume."
                     : "Saved jobs from Generate will appear here."
                 }
               />
@@ -365,3 +399,5 @@ export function JDInputPanel({
     </SetupCard>
   );
 }
+
+export { EMPTY_FORM as EMPTY_JOB_DESCRIPTION_FORM };

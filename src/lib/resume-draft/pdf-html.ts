@@ -148,13 +148,16 @@ export function renderResumePdfHtml(model: ResumeDocumentModel): string {
     sections.push("</div></section>");
   }
 
-  if (layout.additionalExperienceLine) {
+  if (layout.additionalExperienceEntries.length > 0) {
     sections.push('<section class="resume-section">');
     sections.push(renderSectionHeading("Additional Experience"));
-    sections.push(
-      `<p class="section-body plain-text">${escapeHtml(layout.additionalExperienceLine)}</p>`,
-    );
-    sections.push("</section>");
+    sections.push('<div class="section-body compact-lines">');
+    for (const entry of layout.additionalExperienceEntries) {
+      sections.push(
+        `<p class="compact-line additional-experience-line"><span class="keyword">${escapeHtml(entry.title)}:</span> ${escapeHtml(entry.detail)}</p>`,
+      );
+    }
+    sections.push("</div></section>");
   }
 
   if (

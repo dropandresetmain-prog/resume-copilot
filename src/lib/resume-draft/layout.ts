@@ -11,6 +11,7 @@ import { repairKeywordBullet } from "@/lib/resume-draft/keyword-repair";
 import {
   computeMaxLinesOnePage,
   PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_DEFAULT,
   PREVIEW_MARGIN_DEFAULT_MM,
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
@@ -62,6 +63,11 @@ export type EducationLayoutEntry = {
   }>;
 };
 
+export type AdditionalExperienceLayoutEntry = {
+  title: string;
+  detail: string;
+};
+
 export type FinalResumeLayout = {
   header: {
     fullName: string;
@@ -69,6 +75,8 @@ export type FinalResumeLayout = {
   };
   workExperience: WorkExperienceLayoutEntry[];
   education: EducationLayoutEntry[];
+  additionalExperienceEntries: AdditionalExperienceLayoutEntry[];
+  /** Joined display string for legacy checks and DOCX approximate export. */
   additionalExperienceLine: string;
   techLine: string;
   skillsLine: string;
@@ -85,6 +93,7 @@ export type PageFitEstimate = {
   marginMm: number;
   marginTopMm: number;
   lineSpacing: number;
+  itemLineSpacing: number;
   sectionSpacing: number;
   bodyFontPx: number;
 };
@@ -250,17 +259,72 @@ function buildContactLine(header: ResumeDraftContent["header"]): string {
   return parts.join(" | ");
 }
 
+export function parseAdditionalExperienceItemText(
+  text: string,
+): AdditionalExperienceLayoutEntry | null {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^([^:]{1,60}):\s*([\s\S]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const title = match[1].trim();
+  const detail = match[2].trim();
+  if (!title || !detail) {
+    return null;
+  }
+
+  return { title, detail };
+}
+
+export function buildAdditionalExperienceEntries(
+  items: ResumeDraftAdditionalExperienceItem[],
+): AdditionalExperienceLayoutEntry[] {
+  const entries: AdditionalExperienceLayoutEntry[] = [];
+
+  for (const item of filterAdditionalExperienceItems(items)) {
+    const parsed = parseAdditionalExperienceItemText(item.text);
+    if (parsed) {
+      entries.push(parsed);
+      continue;
+    }
+
+    const legacyText = item.text.trim();
+    if (!legacyText) {
+      continue;
+    }
+
+    const phrases = legacyText
+      .split(/[;\n]+/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .flatMap((part) => part.split(/,\s*(?=[A-Z])/))
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (phrases.length === 0) {
+      continue;
+    }
+
+    entries.push({
+      title: "Other Past Roles",
+      detail: sortAdditionalExperiencePhrases(phrases).join(", "),
+    });
+  }
+
+  return entries;
+}
+
+export function formatAdditionalExperienceLine(
+  entries: AdditionalExperienceLayoutEntry[],
+): string {
+  return entries.map((entry) => `${entry.title}: ${entry.detail}`).join("; ");
+}
+
 export function compactAdditionalExperience(
   items: ResumeDraftAdditionalExperienceItem[],
 ): string {
-  const phrases = filterAdditionalExperienceItems(items)
-    .map((item) => item.text.trim())
-    .filter(Boolean)
-    .flatMap((text) => text.split(/[;\n]+/))
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  return sortAdditionalExperiencePhrases(phrases).join(", ");
+  return formatAdditionalExperienceLine(buildAdditionalExperienceEntries(items));
 }
 
 function extractSkillsLanguagesAndInterests(content: ResumeDraftContent): {
@@ -328,6 +392,9 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
     content.education,
     (item) => item.dateRange,
   );
+  const additionalExperienceEntries = buildAdditionalExperienceEntries(
+    content.additionalExperience,
+  );
 
   return {
     header: {
@@ -336,7 +403,8 @@ export function buildFinalResumeLayout(content: ResumeDraftContent): FinalResume
     },
     workExperience: sortedExperience.map(buildWorkExperienceLayoutEntry),
     education: sortedEducation.map(buildEducationLayoutEntry),
-    additionalExperienceLine: compactAdditionalExperience(content.additionalExperience),
+    additionalExperienceEntries,
+    additionalExperienceLine: formatAdditionalExperienceLine(additionalExperienceEntries),
     techLine,
     skillsLine,
     languagesLine,
@@ -350,6 +418,7 @@ export function estimatePageFit(
     marginMm?: number;
     marginTopMm?: number;
     lineSpacing?: number;
+    itemLineSpacing?: number;
     sectionSpacing?: number;
     bodyFontPx?: number;
   },
@@ -357,6 +426,7 @@ export function estimatePageFit(
   const marginMm = options?.marginMm ?? PREVIEW_MARGIN_DEFAULT_MM;
   const marginTopMm = options?.marginTopMm ?? PREVIEW_MARGIN_TOP_DEFAULT_MM;
   const lineSpacing = options?.lineSpacing ?? PREVIEW_LINE_SPACING_DEFAULT;
+  const itemLineSpacing = options?.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT;
   const sectionSpacing = options?.sectionSpacing ?? PREVIEW_SECTION_SPACING_DEFAULT;
   const bodyFontPx = options?.bodyFontPx ?? PREVIEW_BODY_FONT_DEFAULT_PX;
 
@@ -376,17 +446,30 @@ export function estimatePageFit(
   for (const experience of layout.workExperience) {
     lines += 2 + sectionSpacing * 0.35;
     lines += experience.bullets.length * lineSpacing;
+    if (experience.bullets.length > 1) {
+      lines += (experience.bullets.length - 1) * Math.max(0, itemLineSpacing - lineSpacing);
+    }
   }
 
   for (const education of layout.education) {
     lines += 1;
     lines += education.degreeLines.length;
     lines += education.achievementBullets.length * lineSpacing;
+    if (education.achievementBullets.length > 1) {
+      lines +=
+        (education.achievementBullets.length - 1) *
+        Math.max(0, itemLineSpacing - lineSpacing);
+    }
     lines += sectionSpacing * 0.35;
   }
 
-  if (layout.additionalExperienceLine) {
+  if (layout.additionalExperienceEntries.length > 0) {
     lines += 1.5 * lineSpacing;
+    if (layout.additionalExperienceEntries.length > 1) {
+      lines +=
+        (layout.additionalExperienceEntries.length - 1) *
+        Math.max(0, itemLineSpacing - lineSpacing);
+    }
     lines += sectionSpacing * 0.35;
   }
 
@@ -395,12 +478,21 @@ export function estimatePageFit(
   }
   if (layout.skillsLine) {
     lines += 1.25 * lineSpacing;
+    if (layout.techLine) {
+      lines += Math.max(0, itemLineSpacing - lineSpacing);
+    }
   }
   if (layout.languagesLine) {
     lines += 1.25 * lineSpacing;
+    if (layout.techLine || layout.skillsLine) {
+      lines += Math.max(0, itemLineSpacing - lineSpacing);
+    }
   }
   if (layout.interestsLine) {
     lines += 1.25 * lineSpacing;
+    if (layout.techLine || layout.skillsLine || layout.languagesLine) {
+      lines += Math.max(0, itemLineSpacing - lineSpacing);
+    }
   }
 
   const estimatedLines = Math.ceil(lines);
@@ -415,6 +507,7 @@ export function estimatePageFit(
     marginMm,
     marginTopMm,
     lineSpacing,
+    itemLineSpacing,
     sectionSpacing,
     bodyFontPx,
   };

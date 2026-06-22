@@ -1,36 +1,28 @@
-# Test Checklist — v0.7.0 One-Page Export Validation
+# Test Checklist — v0.7.2 Generate Flow UX
 
-## Approve — server validation
+## Generate page flow
 
-1. Open **Resume Preview** for a draft tuned near one page
-2. Click **Approve for Export**
-   - [ ] Button shows **Validating server PDF…**
-   - [ ] On success: Server PDF panel shows **1 page** + timestamp
-   - [ ] PDF/DOCX downloads enabled
-3. Increase font/spacing until server PDF exceeds one page
-   - [ ] Approve returns error with **page count** + remediation bullets
-   - [ ] Draft stays unapproved / not export-ready
-   - [ ] PDF download disabled
+- [ ] Paste JD in textarea — no separate **Save job** button on Generate
+- [ ] Base resume dropdown lists uploaded resumes
+- [ ] Default base resume = last used (after first generate) or most recent upload
+- [ ] Click **Generate Tailored Resume**
+  - [ ] Progress panel shows staged messages + bar
+  - [ ] Job appears in Saved Jobs list (new or reused duplicate)
+  - [ ] Navigates to resume preview on success
+- [ ] On failure: clear error + **Retry Generate Tailored Resume**
+- [ ] Cannot double-click generate while loading
 
-## Export hard gate
+## Records regression
 
-- [ ] Approved one-page draft downloads PDF successfully
-- [ ] If server PDF would exceed one page, `/api/export/resume-pdf` returns **422** (no file stored)
+- [ ] Saved jobs list still visible on Generate and Records
+- [ ] Edit saved job on Records → **Update saved job** still works
+- [ ] Draft history on Records unchanged
 
-## UI separation
+## Download buttons
 
-- [ ] Heuristic layout estimate labeled non-authoritative
-- [ ] Server validation panel labeled export truth
-- [ ] PDF Preview copy says local approximation
-
-## Regression
-
-- [ ] v0.6.8 blob download + filename still works
-- [ ] Layout change after approval → re-approve required
-- [ ] PDF Preview overflow badge still works
+- [ ] Disabled PDF/DOCX buttons look disabled without ugly not-allowed cursor on hover
 
 ## Automated
 
-- [ ] `npm run test:resume-pdf-page-count` passes
-- [ ] `npm run test:resume-approve-validation` passes
+- [ ] `npm run test:generate-flow` passes
 - [ ] `npm run test` / `lint` / `build` pass

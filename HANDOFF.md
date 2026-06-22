@@ -2,34 +2,39 @@
 
 ## Current milestone
 
-**v0.7.0 — One-Page Export Validation**
+**v0.7.2 — Generate Flow UX Simplification**
 
-Server-generated PDF page count is export truth. Approve for Export runs Puppeteer + `pdf-lib` page count; export and download are blocked when `pageCount > 1`.
+Generate page flow is now: paste JD → select base resume → **Generate Tailored Resume**. Jobs save automatically during generation; no separate Save Job click on Generate.
 
 ## Product flow
 
 ```
-Paste JD → Generate → Review → PDF Preview (local approximation) → Approve (server validation) → Download PDF / DOCX
+Paste JD → Select base resume → Generate Tailored Resume → Review → PDF Preview → Approve → Download PDF / DOCX
 ```
 
 If layout changes after approval → status `layout_changed` → re-approve (re-validates server PDF).
 
-## v0.7.0 highlights
+## v0.7.2 highlights
 
-- `generateResumePdfResult()` returns `{ buffer, pageCount }` via `pdf-lib`
-- `/api/approve/resume-draft` — validates one page before persisting approval + `serverPdfValidation`
-- `/api/validate/resume-pdf` — validation-only endpoint (same model builder)
-- `/api/export/resume-pdf` — hard 422 gate when `pageCount > 1` (no upload)
-- UI: server page count, heuristic estimate separate, PDF download requires server-validated one page
+- **Generate Tailored Resume** primary CTA (resume only for now; copy future-proofs cover letter)
+- Job auto-save/reuse via `ensureJobDescriptionForGeneration` (dedupes matching saved jobs)
+- Base resume dropdown with last-used preference (`localStorage`) + recent draft fallback
+- Staged generation progress panel (honest, non-exact timing)
+- Records page unchanged: explicit Save job when editing saved jobs
+- Disabled download buttons use default cursor (no not-allowed hover icon)
+
+## v0.7.1 (still in force)
+
+- Layout defaults, LLM guardrails, server one-page PDF validation
 
 ## Roadmap
 
 | Milestone | Status |
 |-----------|--------|
-| v0.6.8 — Export delivery & filename | Complete |
-| **v0.7.0 — One-page export validation** | **Current** |
-| PDF density / underfill warnings | Next (optional) |
-| Cover letter generation | After one-page foundation |
+| v0.7.1 — Layout defaults & LLM guardrails | Complete |
+| **v0.7.2 — Generate flow UX** | **Current** |
+| Cover letter generation | Next (same CTA family) |
+| Online company enrichment | Parked |
 
 See `ROADMAP.md`.
 

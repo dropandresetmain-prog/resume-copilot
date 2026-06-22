@@ -61,8 +61,9 @@ export function DownloadResumePdfButton({
         type="button"
         onClick={() => void handleDownload()}
         disabled={isDisabled}
-        className={buttonClassName}
-        title={disabled ? disabledReason : undefined}
+        aria-disabled={isDisabled}
+        className={`${buttonClassName}${isDisabled ? " pointer-events-none" : ""}`}
+        title={disabled && !isExporting ? disabledReason : undefined}
       >
         {isExporting ? "Generating PDF…" : "Download PDF"}
       </button>

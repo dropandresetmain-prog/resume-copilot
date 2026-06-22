@@ -9,6 +9,7 @@ import {
   A4_WIDTH_MM,
   DEFAULT_RESUME_FONT_FAMILY,
   PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
   resolvePreviewFontSizes,
 } from "@/lib/resume-draft/preview-settings";
 import {
@@ -72,9 +73,19 @@ function AchievementBullet({
   );
 }
 
-function LabeledCompactLine({ label, value }: { label: string; value: string }) {
+function LabeledCompactLine({
+  label,
+  value,
+  lineHeight,
+  marginTop,
+}: {
+  label: string;
+  value: string;
+  lineHeight: number;
+  marginTop?: string;
+}) {
   return (
-    <p>
+    <p style={{ marginTop, lineHeight }}>
       <span className="underline">{label}:</span> {value}
     </p>
   );
@@ -90,7 +101,11 @@ export function FinalResumeLayoutPreview({
 }: FinalResumeLayoutPreviewProps) {
   const sizes = resolvePreviewFontSizes(bodyFontPx);
   const marginTopMm = pageFit.marginTopMm ?? pageFit.marginMm;
-  const lineHeight = pageFit.lineSpacing;
+  const wrappedLineHeight = pageFit.lineSpacing;
+  const itemLineSpacing = pageFit.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT;
+  const itemGapEm = Math.max(0, itemLineSpacing - wrappedLineHeight);
+  const bulletItemGap = `calc(${itemGapEm}em + ${spacing.bulletGapRem}rem)`;
+  const compactItemGap = `calc(${itemGapEm}em + ${spacing.compactLineGapRem}rem)`;
   const headerClassName =
     headerAlignment === "center" ? "text-center" : "text-left";
 
@@ -112,7 +127,7 @@ export function FinalResumeLayoutPreview({
     marginTop: `${spacing.sectionBodyTopRem}rem`,
     display: "flex",
     flexDirection: "column",
-    gap: `${spacing.compactLineGapRem}rem`,
+    gap: 0,
   };
 
   return (
@@ -144,7 +159,7 @@ export function FinalResumeLayoutPreview({
               padding: `${marginTopMm}mm ${pageFit.marginMm}mm ${pageFit.marginMm}mm`,
               fontFamily,
               fontSize: `${sizes.bodyPx}px`,
-              lineHeight,
+              lineHeight: wrappedLineHeight,
             }}
           >
             <header
@@ -157,14 +172,16 @@ export function FinalResumeLayoutPreview({
                   style={{
                     fontSize: `${sizes.sectionPx}px`,
                     marginBottom: `${spacing.headerBottomRem}rem`,
-                    lineHeight,
+                    lineHeight: wrappedLineHeight,
                   }}
                 >
                   {formatCandidateDisplayName(layout.header.fullName)}
                 </h1>
               ) : null}
               {layout.header.contactLine ? (
-                <p style={{ fontSize: `${sizes.bodyPx}px`, lineHeight }}>{layout.header.contactLine}</p>
+                <p style={{ fontSize: `${sizes.bodyPx}px`, lineHeight: wrappedLineHeight }}>
+                  {layout.header.contactLine}
+                </p>
               ) : null}
             </header>
 
@@ -172,7 +189,7 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight: wrappedLineHeight }}
                 >
                   Work Experience
                 </h2>
@@ -211,8 +228,8 @@ export function FinalResumeLayoutPreview({
                             key={bullet.rawText}
                             style={
                               bulletIndex > 0
-                                ? { marginTop: `${spacing.bulletGapRem}rem`, lineHeight }
-                                : { lineHeight }
+                                ? { marginTop: bulletItemGap, lineHeight: wrappedLineHeight }
+                                : { lineHeight: wrappedLineHeight }
                             }
                           >
                             <KeywordBullet keyword={bullet.keyword} statement={bullet.statement} />
@@ -229,7 +246,7 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight: wrappedLineHeight }}
                 >
                   Education
                 </h2>
@@ -257,8 +274,8 @@ export function FinalResumeLayoutPreview({
                               key={bullet.rawText}
                               style={
                                 bulletIndex > 0
-                                  ? { marginTop: `${spacing.bulletGapRem}rem`, lineHeight }
-                                  : { lineHeight }
+                                  ? { marginTop: bulletItemGap, lineHeight: wrappedLineHeight }
+                                  : { lineHeight: wrappedLineHeight }
                               }
                             >
                               <AchievementBullet
@@ -276,22 +293,27 @@ export function FinalResumeLayoutPreview({
               </section>
             ) : null}
 
-            {layout.additionalExperienceLine ? (
+            {layout.additionalExperienceEntries.length > 0 ? (
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight: wrappedLineHeight }}
                 >
                   Additional Experience
                 </h2>
-                <p
-                  style={{
-                    marginTop: `${spacing.sectionBodyTopRem}rem`,
-                    lineHeight,
-                  }}
-                >
-                  {layout.additionalExperienceLine}
-                </p>
+                <div style={compactLinesStyle}>
+                  {layout.additionalExperienceEntries.map((entry, entryIndex) => (
+                    <p
+                      key={`${entry.title}-${entryIndex}`}
+                      style={{
+                        marginTop: entryIndex > 0 ? compactItemGap : undefined,
+                        lineHeight: wrappedLineHeight,
+                      }}
+                    >
+                      <span className="underline">{entry.title}:</span> {entry.detail}
+                    </p>
+                  ))}
+                </div>
               </section>
             ) : null}
 
@@ -299,21 +321,33 @@ export function FinalResumeLayoutPreview({
               <section style={{ marginTop: `${pageFit.sectionSpacing}rem` }}>
                 <h2
                   className="border-b border-slate-400 font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight }}
+                  style={{ fontSize: `${sizes.sectionPx}px`, lineHeight: wrappedLineHeight }}
                 >
                   Skills &amp; Interests
                 </h2>
                 <div style={compactLinesStyle}>
-                  {layout.techLine ? <LabeledCompactLine label="Tech" value={layout.techLine} /> : null}
-                  {layout.skillsLine ? (
-                    <LabeledCompactLine label="Skills" value={layout.skillsLine} />
-                  ) : null}
-                  {layout.languagesLine ? (
-                    <LabeledCompactLine label="Languages" value={layout.languagesLine} />
-                  ) : null}
-                  {layout.interestsLine ? (
-                    <LabeledCompactLine label="Interests" value={layout.interestsLine} />
-                  ) : null}
+                  {(
+                    [
+                      layout.techLine ? { label: "Tech", value: layout.techLine } : null,
+                      layout.skillsLine ? { label: "Skills", value: layout.skillsLine } : null,
+                      layout.languagesLine
+                        ? { label: "Languages", value: layout.languagesLine }
+                        : null,
+                      layout.interestsLine
+                        ? { label: "Interests", value: layout.interestsLine }
+                        : null,
+                    ] as const
+                  )
+                    .filter(Boolean)
+                    .map((line, lineIndex) => (
+                      <LabeledCompactLine
+                        key={line!.label}
+                        label={line!.label}
+                        value={line!.value}
+                        lineHeight={wrappedLineHeight}
+                        marginTop={lineIndex > 0 ? compactItemGap : undefined}
+                      />
+                    ))}
                 </div>
               </section>
             ) : null}

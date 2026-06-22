@@ -1,6 +1,6 @@
 # Known Issues
 
-## Export strategy (v0.7.0)
+## Export strategy (v0.7.0+)
 
 - **Server PDF page count is export truth** — Puppeteer + `pdf-lib` validation on Approve and hard block on PDF export when `pageCount > 1`.
 - **PDF Preview** is the closest **local** approximation (browser fonts, screen layout). It can disagree with server PDF at the one-page boundary.
@@ -23,11 +23,14 @@
 - No bundled web fonts in repo.
 - Puppeteer awaits `document.fonts.ready` before print.
 
-## Layout controls
+## Layout controls (v0.7.1)
 
-- Body font slider max **20px** (~15pt). Optimizer targets compact defaults (~11px).
-- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING`.
+- Body font slider **10–20px** (default **12.5px**). Optimizer starts at 12.5px then tightens if needed.
+- **Wrapped line height** (`lineSpacing`, default 1.08) vs **item spacing** (`itemLineSpacing`, default 1.2) are separate in print CSS.
+- `itemLineSpacing` is optional in stored `exportLayoutSettings`; missing values default safely.
+- Print CSS uses `RESUME_PRINT_LAYOUT_SPACING` (bullet padding reduced ~75% in v0.7.1).
 - PDF via `puppeteer-core` + `@sparticuz/chromium`; Vercel `maxDuration: 60`.
+- Default 12.5px body may require slider tuning to pass server one-page validation on dense drafts.
 
 ## DOCX export
 
@@ -38,9 +41,17 @@
 
 - PDF Preview scales A4; overflow badge when local content exceeds one page.
 
+## Generate flow (v0.7.2)
+
+- **Generate page:** Paste JD → select base resume → **Generate Tailored Resume**. Job saves automatically (reuses duplicate saved jobs when content matches).
+- **Records page:** Explicit Save/Update when editing saved jobs (unchanged).
+- **Base resume** = formatting/reference template only; content from inventory.
+- Last-used base resume stored in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`) — no Supabase migration.
+
 ## Generated drafts
 
 - Delete is permanent. Draft edits never mutate inventory.
+- **Draft row policy (v0.7.1):** `createGeneratedResumeDraftInCloud` on AI generate only; layout slider changes update local state and may set `layout_changed` on the **same row** without inserting; Approve persists `exportLayoutSettings` on the **same row**; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet — old drafts may accumulate.
 
 ## Fit score (preview)
 

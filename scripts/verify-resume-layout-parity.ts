@@ -197,7 +197,8 @@ function main() {
     ],
     [
       "pdf html compact bullet spacing",
-      stylesheet.includes(`margin-top: ${RESUME_PRINT_LAYOUT_SPACING.bulletGapRem}rem`) &&
+      stylesheet.includes("li + li") &&
+        stylesheet.includes("calc(") &&
         stylesheet.includes(`padding-left: ${RESUME_PRINT_LAYOUT_SPACING.bulletPaddingLeftRem}rem`),
     ],
     [

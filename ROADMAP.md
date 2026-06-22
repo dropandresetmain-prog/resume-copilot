@@ -4,16 +4,17 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.7.0 — One-Page Export Validation** (complete)
+**v0.7.2 — Generate Flow UX Simplification** (complete)
 
-- `pdf-lib` page count on generated PDF buffers
-- Approve-time server validation; `serverPdfValidation` on draft content
-- PDF export hard 422 gate when `pageCount > 1`
-- UI: server vs heuristic layout status
+- Paste JD → base resume → Generate Tailored Resume
+- Auto-save/reuse job on generate
+- Progress panel + last-used base resume preference
 
 ## Previous
 
-**v0.6.8 — Export Delivery & Filename Stabilization** — blob download, signed URL filename, single delivery action.
+**v0.7.1 — Layout Defaults & LLM Guardrails**
+
+**v0.7.0 — One-Page Export Validation**
 
 **v0.6.7 — PDF Preview Truth Patch** — overflow measurement, no silent clip.
 

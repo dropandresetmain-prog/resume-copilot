@@ -8,6 +8,7 @@ import { optimizeResumePreviewSettings } from "@/lib/resume-draft/preview-optimi
 import {
   DEFAULT_RESUME_FONT_FAMILY,
   PREVIEW_BODY_FONT_DEFAULT_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_DEFAULT,
   PREVIEW_MARGIN_DEFAULT_MM,
   PREVIEW_MARGIN_TOP_DEFAULT_MM,
@@ -24,7 +25,10 @@ export type ResumeLayoutSettings = {
   bodyFontPx: number;
   marginMm: number;
   marginTopMm: number;
+  /** Wrapped line height inside bullets and compact text. */
   lineSpacing: number;
+  /** Spacing between bullets, skills rows, and additional-experience items. */
+  itemLineSpacing: number;
   sectionSpacing: number;
 };
 
@@ -66,6 +70,8 @@ function resolveLayoutSettings(
     marginMm: override?.marginMm ?? stored?.marginMm ?? optimized.marginMm,
     marginTopMm: override?.marginTopMm ?? stored?.marginTopMm ?? optimized.marginTopMm,
     lineSpacing: override?.lineSpacing ?? stored?.lineSpacing ?? optimized.lineSpacing,
+    itemLineSpacing:
+      override?.itemLineSpacing ?? stored?.itemLineSpacing ?? optimized.itemLineSpacing,
     sectionSpacing: override?.sectionSpacing ?? stored?.sectionSpacing ?? optimized.sectionSpacing,
   };
 }
@@ -110,5 +116,6 @@ export const DEFAULT_RESUME_LAYOUT_SETTINGS: ResumeLayoutSettings = {
   marginMm: PREVIEW_MARGIN_DEFAULT_MM,
   marginTopMm: PREVIEW_MARGIN_TOP_DEFAULT_MM,
   lineSpacing: PREVIEW_LINE_SPACING_DEFAULT,
+  itemLineSpacing: PREVIEW_ITEM_LINE_SPACING_DEFAULT,
   sectionSpacing: PREVIEW_SECTION_SPACING_DEFAULT,
 };

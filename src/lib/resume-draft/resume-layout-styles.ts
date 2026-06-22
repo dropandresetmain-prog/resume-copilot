@@ -8,7 +8,7 @@ export const RESUME_LAYOUT_SPACING = {
   entryGapRem: 0.625,
   bulletListTopRem: 0.125,
   bulletGapRem: 0.125,
-  bulletPaddingLeftRem: 1.25,
+  bulletPaddingLeftRem: 0.3125,
   rowGapRem: 0.75,
   compactLineGapRem: 0.125,
 } as const;
@@ -23,7 +23,7 @@ export const RESUME_PRINT_LAYOUT_SPACING = {
   entryGapRem: 0.42,
   bulletListTopRem: 0.06,
   bulletGapRem: 0.05,
-  bulletPaddingLeftRem: 1.1,
+  bulletPaddingLeftRem: 0.275,
   rowGapRem: 0.45,
   compactLineGapRem: 0.06,
   sectionHeadingPaddingBottomRem: 0.04,
@@ -40,17 +40,25 @@ export type ResumeLayoutCssInput = {
   fontFamily: string;
   bodyPx: number;
   headerPx: number;
+  /** Wrapped line height inside bullets and compact text. */
   lineSpacing: number;
+  /** Effective spacing between bullets, skills rows, and additional-experience items. */
+  itemLineSpacing: number;
   sectionSpacingRem: number;
   marginTopMm: number;
   marginMm: number;
   pageMarkerClass?: string;
 };
 
+function resolveItemGapEm(wrappedLineSpacing: number, itemLineSpacing: number): number {
+  return Math.max(0, itemLineSpacing - wrappedLineSpacing);
+}
+
 /** Stylesheet for canonical print/PDF HTML (`renderResumePdfHtml`). */
 export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string {
   const pageMarkerClass = input.pageMarkerClass ?? RESUME_PDF_HTML_A4_MARKER;
   const spacing = RESUME_PRINT_LAYOUT_SPACING;
+  const itemGapEm = resolveItemGapEm(input.lineSpacing, input.itemLineSpacing);
 
   return `
     @page {
@@ -142,7 +150,7 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
     }
 
     .section-body.compact-lines {
-      gap: ${spacing.compactLineGapRem}rem;
+      gap: 0;
     }
 
     .section-body.plain-text {
@@ -206,7 +214,7 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
     }
 
     li + li {
-      margin-top: ${spacing.bulletGapRem}rem;
+      margin-top: calc(${itemGapEm}em + ${spacing.bulletGapRem}rem);
     }
 
     .keyword {
@@ -215,6 +223,14 @@ export function buildResumeLayoutStylesheet(input: ResumeLayoutCssInput): string
 
     .compact-line {
       line-height: ${input.lineSpacing};
+    }
+
+    .compact-line + .compact-line {
+      margin-top: calc(${itemGapEm}em + ${spacing.compactLineGapRem}rem);
+    }
+
+    .additional-experience-line + .additional-experience-line {
+      margin-top: calc(${itemGapEm}em + ${spacing.compactLineGapRem}rem);
     }
   `.trim();
 }
@@ -226,6 +242,7 @@ export function buildResumeLayoutCssFromModel(model: ResumeDocumentModel): Resum
     bodyPx: model.fontSizes.bodyPx,
     headerPx: model.fontSizes.sectionPx,
     lineSpacing: model.layoutSettings.lineSpacing,
+    itemLineSpacing: model.layoutSettings.itemLineSpacing,
     sectionSpacingRem: model.layoutSettings.sectionSpacing,
     marginTopMm,
     marginMm: model.pageFit.marginMm,

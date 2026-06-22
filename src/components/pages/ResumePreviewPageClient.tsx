@@ -38,6 +38,7 @@ import {
   PREVIEW_BODY_FONT_MAX_PX,
   PREVIEW_BODY_FONT_MIN_PX,
   PREVIEW_BODY_FONT_STEP_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_DEFAULT,
   PREVIEW_LINE_SPACING_MAX,
   PREVIEW_LINE_SPACING_MIN,
@@ -82,6 +83,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     marginMm: number;
     marginTopMm: number;
     lineSpacing: number;
+    itemLineSpacing: number;
     sectionSpacing: number;
   } | null>(null);
 
@@ -107,6 +109,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 marginMm: stored.marginMm,
                 marginTopMm: stored.marginTopMm,
                 lineSpacing: stored.lineSpacing,
+                itemLineSpacing: stored.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT,
                 sectionSpacing: stored.sectionSpacing,
               });
             }
@@ -158,6 +161,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const bodyFontPx = activeSettings?.bodyFontPx ?? PREVIEW_BODY_FONT_DEFAULT_PX;
   const marginMm = activeSettings?.marginMm ?? PREVIEW_MARGIN_DEFAULT_MM;
   const lineSpacing = activeSettings?.lineSpacing ?? PREVIEW_LINE_SPACING_DEFAULT;
+  const itemLineSpacing =
+    activeSettings?.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT;
   const sectionSpacing = activeSettings?.sectionSpacing ?? PREVIEW_SECTION_SPACING_DEFAULT;
   const marginTopMm = activeSettings?.marginTopMm ?? PREVIEW_MARGIN_TOP_DEFAULT_MM;
   const optimizationNote =
@@ -185,6 +190,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         marginMm,
         marginTopMm,
         lineSpacing,
+        itemLineSpacing,
         sectionSpacing,
       },
     });
@@ -194,6 +200,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     marginMm,
     marginTopMm,
     lineSpacing,
+    itemLineSpacing,
     sectionSpacing,
     linkedJob,
     referenceResume,
@@ -213,9 +220,10 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
       marginMm,
       marginTopMm,
       lineSpacing,
+      itemLineSpacing,
       sectionSpacing,
     }),
-    [bodyFontPx, marginMm, marginTopMm, lineSpacing, sectionSpacing],
+    [bodyFontPx, marginMm, marginTopMm, lineSpacing, itemLineSpacing, sectionSpacing],
   );
 
   const exportReady = Boolean(
@@ -252,6 +260,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     marginMm: number;
     marginTopMm: number;
     lineSpacing: number;
+    itemLineSpacing: number;
     sectionSpacing: number;
   }) {
     if (!draft || !isApprovedDraftStatus(draft.status)) {
@@ -285,6 +294,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     marginMm: number;
     marginTopMm: number;
     lineSpacing: number;
+    itemLineSpacing: number;
     sectionSpacing: number;
   }) {
     if (!draftId) return;
@@ -370,7 +380,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.7.0 · One-Page Export Validation"
+        milestone="v0.7.1 · Layout Defaults & LLM Guardrails"
         title="Resume Preview"
         description="PDF Preview is the closest local approximation — tune layout, pass server one-page validation on Approve, then download PDF or editable DOCX."
       />
@@ -423,6 +433,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                       marginMm,
                       marginTopMm,
                       lineSpacing,
+                      itemLineSpacing,
                       sectionSpacing,
                     })
                   }
@@ -442,6 +453,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                       marginMm: Number(event.target.value),
                       marginTopMm,
                       lineSpacing,
+                      itemLineSpacing,
                       sectionSpacing,
                     })
                   }
@@ -461,6 +473,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                       marginMm,
                       marginTopMm: Number(event.target.value),
                       lineSpacing,
+                      itemLineSpacing,
                       sectionSpacing,
                     })
                   }
@@ -480,6 +493,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                       marginMm,
                       marginTopMm,
                       lineSpacing: Number(event.target.value) / 100,
+                      itemLineSpacing,
                       sectionSpacing,
                     })
                   }
@@ -499,6 +513,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                       marginMm,
                       marginTopMm,
                       lineSpacing,
+                      itemLineSpacing,
                       sectionSpacing: Number(event.target.value) / 100,
                     })
                   }

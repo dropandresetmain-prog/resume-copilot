@@ -1,6 +1,9 @@
 import type { ResumeLayoutSettings } from "@/lib/resume-draft/document-model";
 import {
   clampPreviewBodyFontPx,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+  PREVIEW_ITEM_LINE_SPACING_MAX,
+  PREVIEW_ITEM_LINE_SPACING_MIN,
   PREVIEW_LINE_SPACING_MAX,
   PREVIEW_LINE_SPACING_MIN,
   PREVIEW_MARGIN_MAX_MM,
@@ -26,6 +29,8 @@ export function areExportLayoutSettingsEqual(
     stored.marginMm === sanitized.marginMm &&
     stored.marginTopMm === sanitized.marginTopMm &&
     stored.lineSpacing === sanitized.lineSpacing &&
+    (stored.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT) ===
+      (sanitized.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT) &&
     stored.sectionSpacing === sanitized.sectionSpacing
   );
 }
@@ -57,6 +62,12 @@ export function sanitizeExportLayoutSettings(
       Math.max(PREVIEW_LINE_SPACING_MIN, value.lineSpacing),
     );
   }
+  if (typeof value.itemLineSpacing === "number") {
+    next.itemLineSpacing = Math.min(
+      PREVIEW_ITEM_LINE_SPACING_MAX,
+      Math.max(PREVIEW_ITEM_LINE_SPACING_MIN, value.itemLineSpacing),
+    );
+  }
   if (typeof value.sectionSpacing === "number") {
     next.sectionSpacing = Math.min(
       PREVIEW_SECTION_SPACING_MAX,
@@ -79,6 +90,7 @@ export function sanitizeExportLayoutSettings(
     marginMm: next.marginMm,
     marginTopMm: next.marginTopMm,
     lineSpacing: next.lineSpacing,
+    itemLineSpacing: next.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT,
     sectionSpacing: next.sectionSpacing,
   };
 }

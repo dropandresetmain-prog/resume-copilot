@@ -3,9 +3,9 @@ export const DEFAULT_RESUME_FONT_FAMILY =
   '"Gill Sans MT", Calibri, Aptos, Arial, Helvetica, sans-serif';
 
 /** Body font size slider — 0.5px steps. Max ~15pt visual (20px at 96dpi). */
-export const PREVIEW_BODY_FONT_MIN_PX = 7;
+export const PREVIEW_BODY_FONT_MIN_PX = 10;
 export const PREVIEW_BODY_FONT_MAX_PX = 20;
-export const PREVIEW_BODY_FONT_DEFAULT_PX = 11;
+export const PREVIEW_BODY_FONT_DEFAULT_PX = 12.5;
 export const PREVIEW_BODY_FONT_STEP_PX = 0.5;
 
 export const PREVIEW_MARGIN_MIN_MM = 8;
@@ -17,13 +17,19 @@ export const PREVIEW_MARGIN_TOP_MIN_MM = 6;
 export const PREVIEW_MARGIN_TOP_MAX_MM = 20;
 export const PREVIEW_MARGIN_TOP_DEFAULT_MM = 9;
 
+/** Wrapped line height inside bullets, paragraphs, and compact rows. */
 export const PREVIEW_LINE_SPACING_MIN = 0.95;
 export const PREVIEW_LINE_SPACING_MAX = 1.4;
-export const PREVIEW_LINE_SPACING_DEFAULT = 1.05;
+export const PREVIEW_LINE_SPACING_DEFAULT = 1.08;
+
+/** Gap between bullets, skills rows, and additional-experience items. */
+export const PREVIEW_ITEM_LINE_SPACING_MIN = 1.05;
+export const PREVIEW_ITEM_LINE_SPACING_MAX = 1.45;
+export const PREVIEW_ITEM_LINE_SPACING_DEFAULT = 1.2;
 
 export const PREVIEW_SECTION_SPACING_MIN = 0.35;
 export const PREVIEW_SECTION_SPACING_MAX = 1.6;
-export const PREVIEW_SECTION_SPACING_DEFAULT = 0.6;
+export const PREVIEW_SECTION_SPACING_DEFAULT = 0.65;
 
 export const A4_HEIGHT_MM = 297;
 export const A4_WIDTH_MM = 210;

@@ -31,7 +31,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 
 | File | Route |
 |------|-------|
-| `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + resume generation |
+| `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + generate tailored resume (v0.7.2) |
 | `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
 | `src/components/pages/RecordsPageClient.tsx` | `/records` |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
@@ -44,7 +44,11 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/AuthPanel.tsx` | Sign in / sign up / magic link / sign out |
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
-| `src/components/setup/ResumeDraftPanel.tsx` | Generate resume draft (4A) |
+| `src/components/setup/ResumeDraftPanel.tsx` | Generate tailored resume CTA + base resume + progress (v0.7.2) |
+| `src/components/setup/GenerationProgressPanel.tsx` | Staged loading UI during generation |
+| `src/lib/generate/base-resume-preference.ts` | Last-used base resume (`localStorage`) + default resolution |
+| `src/lib/generate/save-job-for-generation.ts` | Auto-save/reuse job on generate |
+| `src/lib/generate/generation-progress.ts` | Progress stage labels + percent helper |
 | `src/components/setup/DraftHistoryPanel.tsx` | Basic saved draft list (Records) |
 | `src/components/landing/LandingCta.tsx` | Auth-aware single landing CTA |
 | `src/components/setup/SavedJobCard.tsx` | Saved job card with summary + full JD expand |

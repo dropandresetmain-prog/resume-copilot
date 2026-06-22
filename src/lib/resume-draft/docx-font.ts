@@ -3,10 +3,13 @@ export const PREFERRED_RESUME_DOCX_FONT = "Gill Sans MT";
 
 export const DEFAULT_RESUME_FONT_STACK = `${PREFERRED_RESUME_DOCX_FONT}, Calibri, Aptos, Arial, Helvetica, sans-serif`;
 
-/** Minimum DOCX body size — preview 11px maps here, not below unless user opts in later. */
+/** Minimum DOCX body size — preview defaults map here, not below unless user opts in later. */
 export const DOCX_BODY_FONT_MIN_PT = 10;
 
 const PREVIEW_BODY_PX_TO_DOCX_PT: Record<number, number> = {
+  12.5: 11,
+  12: 10.5,
+  11.5: 10.5,
   11: 10,
   10.5: 10,
   10: 9.5,

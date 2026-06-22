@@ -2,6 +2,8 @@ import type { ResumeLayoutSettings } from "@/lib/resume-draft/document-model";
 export { isApprovedDraftStatus } from "@/lib/resume-draft/draft-status";
 import {
   clampPreviewBodyFontPx,
+  PREVIEW_ITEM_LINE_SPACING_MAX,
+  PREVIEW_ITEM_LINE_SPACING_MIN,
   PREVIEW_LINE_SPACING_MAX,
   PREVIEW_LINE_SPACING_MIN,
   PREVIEW_MARGIN_MAX_MM,
@@ -66,6 +68,12 @@ function sanitizeLayoutSettings(
     next.lineSpacing = Math.min(
       PREVIEW_LINE_SPACING_MAX,
       Math.max(PREVIEW_LINE_SPACING_MIN, value.lineSpacing),
+    );
+  }
+  if (typeof value.itemLineSpacing === "number") {
+    next.itemLineSpacing = Math.min(
+      PREVIEW_ITEM_LINE_SPACING_MAX,
+      Math.max(PREVIEW_ITEM_LINE_SPACING_MIN, value.itemLineSpacing),
     );
   }
   if (typeof value.sectionSpacing === "number") {

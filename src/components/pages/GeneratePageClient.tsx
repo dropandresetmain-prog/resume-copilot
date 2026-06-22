@@ -6,9 +6,12 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
-import { JDInputPanel } from "@/components/setup/JDInputPanel";
+import {
+  EMPTY_JOB_DESCRIPTION_FORM,
+  JDInputPanel,
+} from "@/components/setup/JDInputPanel";
 import { ResumeDraftPanel } from "@/components/setup/ResumeDraftPanel";
-import { SetupCard } from "@/components/setup/ui";
+import type { JobDescriptionInput } from "@/types/jd";
 
 export function GeneratePageClient() {
   const {
@@ -23,19 +26,20 @@ export function GeneratePageClient() {
     handleClearSavedJobDescriptions,
   } = useWorkspace();
 
-  const [preferredJobId, setPreferredJobId] = useState("");
+  const [jobForm, setJobForm] = useState<JobDescriptionInput>(EMPTY_JOB_DESCRIPTION_FORM);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
-  const selectedJobId =
-    preferredJobId && jobDescriptions.some((job) => job.id === preferredJobId)
-      ? preferredJobId
-      : jobDescriptions[0]?.id ?? "";
+  function handleGenerationFinished() {
+    setJobForm(EMPTY_JOB_DESCRIPTION_FORM);
+    setEditingJobId(null);
+  }
 
   return (
     <>
       <PageHeader
-        milestone="v0.5.0 · Generate"
+        milestone="v0.7.2 · Generate Flow"
         title="Generate tailored resume"
-        description="Paste a job description, save it, then tailor a resume from your career inventory and approved keywords."
+        description="Paste a job description, choose a base resume for formatting, and generate a one-page tailored resume from your career inventory."
       />
 
       {!isSignedIn || !hasInventory ? (
@@ -54,7 +58,8 @@ export function GeneratePageClient() {
         </p>
       ) : (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Paste a job below, save it, then tailor your resume from the saved job list.
+          Paste a job below, select a base resume, and click Generate Tailored Resume. The job
+          saves automatically — no separate save step.
         </p>
       )}
 
@@ -65,28 +70,24 @@ export function GeneratePageClient() {
         onClearAll={handleClearSavedJobDescriptions}
         disabled={cloudEnabled && !isSignedIn}
         disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        onJobSaved={(job) => setPreferredJobId(job.id)}
+        showSaveButton={false}
+        form={jobForm}
+        onFormChange={setJobForm}
+        editingId={editingJobId}
+        onEditingIdChange={setEditingJobId}
       />
 
       <ResumeDraftPanel
         inventory={inventory}
         jobDescriptions={jobDescriptions}
+        jobForm={jobForm}
+        editingJobId={editingJobId}
         isSignedIn={isSignedIn}
         disabled={cloudEnabled && !isSignedIn}
         disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        selectedJobDescriptionId={selectedJobId}
-        onJobDescriptionChange={setPreferredJobId}
+        onSaveJob={handleSaveJobDescription}
+        onGenerationFinished={handleGenerationFinished}
       />
-
-      <SetupCard
-        title="Coming later"
-        description="These features are planned but not implemented yet."
-      >
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-          <li>Cover letter generation</li>
-          <li>PDF / DOCX export</li>
-        </ul>
-      </SetupCard>
     </>
   );
 }

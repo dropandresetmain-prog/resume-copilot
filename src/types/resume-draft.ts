@@ -77,6 +77,8 @@ export type ResumeDraftExportLayoutSettings = {
   marginMm: number;
   marginTopMm: number;
   lineSpacing: number;
+  /** Optional — defaults to PREVIEW_ITEM_LINE_SPACING_DEFAULT when absent. */
+  itemLineSpacing?: number;
   sectionSpacing: number;
 };
 

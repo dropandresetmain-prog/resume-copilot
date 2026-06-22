@@ -233,14 +233,15 @@ async function main() {
     ["export request parses layout settings", parsedRequest.draftId === "draft-1"],
     ["docx buffer generated", docxBuffer.byteLength > 500],
     ["export route file exists", existsSync(exportRoutePath)],
-    ["default docx body font >= 10pt", mapPreviewBodyPxToDocxPt(11) >= DOCX_BODY_FONT_MIN_PT],
+    ["default docx body font >= 10pt", mapPreviewBodyPxToDocxPt(PREVIEW_BODY_FONT_DEFAULT_PX) >= DOCX_BODY_FONT_MIN_PT],
     [
-      "preview 11px maps to 10pt body",
-      mapPreviewBodyPxToDocxPt(PREVIEW_BODY_FONT_DEFAULT_PX) === 10,
+      "preview 12.5px maps to 11pt body",
+      mapPreviewBodyPxToDocxPt(PREVIEW_BODY_FONT_DEFAULT_PX) === 11,
     ],
     [
       "header one step above body in docx",
-      mapPreviewHeaderPxToDocxHalfPoints(11) === mapPreviewBodyPxToDocxHalfPoints(11) + 2,
+      mapPreviewHeaderPxToDocxHalfPoints(PREVIEW_BODY_FONT_DEFAULT_PX) ===
+        mapPreviewBodyPxToDocxHalfPoints(PREVIEW_BODY_FONT_DEFAULT_PX) + 2,
     ],
     [
       "preferred docx font is Gill Sans MT",

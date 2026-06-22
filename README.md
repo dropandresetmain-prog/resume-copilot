@@ -1,19 +1,19 @@
 # Career Resume Copilot
 
-**v0.7.0 — One-Page Export Validation**
+**v0.7.2 — Generate Flow UX Simplification**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, drafts, and exported files.
 
 ## Product flow
 
 ```
-Upload resumes → Build inventory → Paste JD → Generate draft
+Upload resumes → Build inventory → Paste JD → Select base resume → Generate Tailored Resume
   → Tune layout → PDF Preview → Approve → Download PDF / DOCX
 ```
 
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.
 2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review.
-3. **Generate** (`/generate`) — paste a job description and generate a tailored resume draft.
+3. **Generate** (`/generate`) — paste a job description, select base resume, **Generate Tailored Resume** (job saves automatically).
 4. **Resume Preview** (`/resume-preview/[draftId]`) — **PDF Preview** (local approximation), layout controls, **server one-page validation on Approve**, export.
 5. **Records** (`/records`) — saved jobs and generated draft history with export shortcuts.
 
@@ -27,7 +27,7 @@ Upload resumes → Build inventory → Paste JD → Generate draft
 | AI enrichment review (mock / Gemini) | ✅ |
 | Resume draft generation (mock / API) | ✅ |
 | One-page layout preview + optimizer | ✅ |
-| **PDF export** (canonical print HTML → Puppeteer) | ✅ **Primary deliverable** — **one-page server validation (v0.7.0)** |
+| **PDF export** (canonical print HTML → Puppeteer) | ✅ **Primary deliverable** — **one-page server validation (v0.7.0+)** |
 | **PDF Preview** | ✅ Local approximation; server page count is export truth |
 | **DOCX export** (from shared document model) | ✅ **Secondary / editable** |
 | Cover letter generation | ❌ Planned (v0.7.0) |
