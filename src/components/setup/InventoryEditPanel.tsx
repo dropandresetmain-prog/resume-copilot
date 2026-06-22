@@ -15,6 +15,7 @@ import {
   countEditedInventoryBullets,
   countHiddenInventoryBullets,
   hideInventoryBullet,
+  inventoryEditsEqual,
   listCollatedBulletsWithEditState,
   restoreInventoryBullet,
   setInventoryBulletEdit,
@@ -25,7 +26,12 @@ import type { InventoryState } from "@/types/resume";
 
 type InventoryEditPanelProps = {
   inventory: InventoryState;
-  onSaveEdits: (edits: InventoryEdits) => void;
+  draftEdits: InventoryEdits;
+  onDraftEditsChange: (edits: InventoryEdits) => void;
+  onSave: () => void;
+  onDiscard: () => void;
+  isSaving: boolean;
+  saveFeedback: { type: "success" | "error"; message: string } | null;
 };
 
 function groupListingsByExperience(
@@ -48,11 +54,16 @@ function groupListingsByExperience(
   return [...grouped.values()];
 }
 
-export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPanelProps) {
+export function InventoryEditPanel({
+  inventory,
+  draftEdits,
+  onDraftEditsChange,
+  onSave,
+  onDiscard,
+  isSaving,
+  saveFeedback,
+}: InventoryEditPanelProps) {
   const rawCollated = useMemo(() => buildCollatedInventory(inventory), [inventory]);
-  const [draftEdits, setDraftEdits] = useState<InventoryEdits>(
-    () => inventory.edits ?? createEmptyInventoryEdits(),
-  );
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editDraftText, setEditDraftText] = useState("");
 
@@ -62,19 +73,10 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
   );
   const grouped = useMemo(() => groupListingsByExperience(listings), [listings]);
 
+  const savedEdits = inventory.edits ?? createEmptyInventoryEdits();
   const hiddenCount = countHiddenInventoryBullets(draftEdits);
   const editedCount = countEditedInventoryBullets(draftEdits);
-  const hasChanges =
-    JSON.stringify(draftEdits) !== JSON.stringify(inventory.edits ?? createEmptyInventoryEdits());
-
-  function handleSave() {
-    onSaveEdits(draftEdits);
-  }
-
-  function handleReset() {
-    setDraftEdits(inventory.edits ?? createEmptyInventoryEdits());
-    setEditingKey(null);
-  }
+  const hasChanges = !inventoryEditsEqual(draftEdits, savedEdits);
 
   if (rawCollated.experiences.length === 0) {
     return (
@@ -97,6 +99,36 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
       title="Edit inventory bullets"
       description="Hide redundant bullets or adjust active wording. Uploaded source resumes are preserved — changes apply to the active inventory layer only."
     >
+      <p className="mt-3 text-sm text-slate-600">
+        Changes are not saved until you click Save changes to inventory.
+      </p>
+
+      {hasChanges ? (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <p className="font-medium">Unsaved changes</p>
+          <p className="mt-1">
+            Your edits are kept while you switch tabs. Save changes to inventory when you are
+            ready.
+          </p>
+        </div>
+      ) : null}
+
+      {saveFeedback ? (
+        <div
+          role={saveFeedback.type === "error" ? "alert" : "status"}
+          className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+            saveFeedback.type === "error"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
+        >
+          {saveFeedback.message}
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
         <span>Excluded from generation: {hiddenCount}</span>
         <span>Edited wording: {editedCount}</span>
@@ -173,9 +205,9 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
                               type="button"
                               className={secondaryButtonClassName}
                               onClick={() => {
-                                setDraftEdits((current) =>
+                                onDraftEditsChange(
                                   setInventoryBulletEdit(
-                                    current,
+                                    draftEdits,
                                     listing.bulletKey,
                                     editDraftText,
                                   ),
@@ -183,7 +215,7 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
                                 setEditingKey(null);
                               }}
                             >
-                              Save wording
+                              Apply wording
                             </button>
                             <button
                               type="button"
@@ -219,8 +251,8 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
                                 type="button"
                                 className={secondaryButtonClassName}
                                 onClick={() =>
-                                  setDraftEdits((current) =>
-                                    restoreInventoryBullet(current, listing.bulletKey),
+                                  onDraftEditsChange(
+                                    restoreInventoryBullet(draftEdits, listing.bulletKey),
                                   )
                                 }
                               >
@@ -231,8 +263,8 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
                                 type="button"
                                 className={secondaryButtonClassName}
                                 onClick={() =>
-                                  setDraftEdits((current) =>
-                                    hideInventoryBullet(current, listing.bulletKey),
+                                  onDraftEditsChange(
+                                    hideInventoryBullet(draftEdits, listing.bulletKey),
                                   )
                                 }
                               >
@@ -244,8 +276,8 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
                                 type="button"
                                 className={secondaryButtonClassName}
                                 onClick={() =>
-                                  setDraftEdits((current) =>
-                                    setInventoryBulletEdit(current, listing.bulletKey, null),
+                                  onDraftEditsChange(
+                                    setInventoryBulletEdit(draftEdits, listing.bulletKey, null),
                                   )
                                 }
                               >
@@ -267,16 +299,19 @@ export function InventoryEditPanel({ inventory, onSaveEdits }: InventoryEditPane
       <div className="mt-6 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={handleSave}
-          disabled={!hasChanges}
+          onClick={onSave}
+          disabled={!hasChanges || isSaving}
           className={primaryButtonClassName}
         >
-          Save inventory edits
+          {isSaving ? "Saving…" : "Save changes to inventory"}
         </button>
         <button
           type="button"
-          onClick={handleReset}
-          disabled={!hasChanges}
+          onClick={() => {
+            onDiscard();
+            setEditingKey(null);
+          }}
+          disabled={!hasChanges || isSaving}
           className={secondaryButtonClassName}
         >
           Discard changes

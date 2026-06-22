@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -39,6 +39,7 @@
     "test:resume-generation-validation": "tsx scripts/verify-resume-generation-validation.ts",
     "test:generation-payload": "tsx scripts/verify-generation-payload.ts",
     "test:inventory-edits": "tsx scripts/verify-inventory-edits.ts",
+    "test:inventory-edit-ux": "tsx scripts/verify-inventory-edit-ux.ts",
     "test:generate-flow": "tsx scripts/verify-generate-flow.ts",
     "test": "npm run test:parser && npm run test:inventory && npm run test:duration && npm run test:collation && npm run test:education && npm run test:sections && npm run test:profile-contact && npm run test:profile-backfill && npm run test:enrichment && npm run test:jd && npm run test:files && npm run test:supabase && npm run test:resume-draft && npm run test:resume-generation-validation && npm run test:generation-payload && npm run test:inventory-edits && npm run test:generate-flow && npm run test:resume-draft-review && npm run test:resume-draft-layout && npm run test:skills-section && npm run test:draft-inventory-safety && npm run test:resume-docx-export && npm run test:resume-pdf-export && npm run test:resume-pdf-page-count && npm run test:resume-approve-validation && npm run test:resume-pdf-preview-overflow && npm run test:resume-export-delivery && npm run test:resume-layout-parity && npm run test:resume-export-strategy && npm run test:resume-export-model-parity && npm run test:resume-approval-layout"
   },

@@ -165,3 +165,24 @@ export function countHiddenInventoryBullets(edits: InventoryEdits | undefined): 
 export function countEditedInventoryBullets(edits: InventoryEdits | undefined): number {
   return Object.keys(normalizeInventoryEdits(edits).editedBulletTextByBulletKey).length;
 }
+
+function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
+  return JSON.stringify({
+    hiddenBulletKeys: [...edits.hiddenBulletKeys].sort(),
+    editedBulletTextByBulletKey: Object.fromEntries(
+      Object.entries(edits.editedBulletTextByBulletKey).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ),
+  });
+}
+
+export function inventoryEditsEqual(
+  left: InventoryEdits | undefined,
+  right: InventoryEdits | undefined,
+): boolean {
+  return (
+    serializeInventoryEditsForCompare(normalizeInventoryEdits(left)) ===
+    serializeInventoryEditsForCompare(normalizeInventoryEdits(right))
+  );
+}

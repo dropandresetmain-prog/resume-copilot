@@ -125,7 +125,7 @@ export type WorkspaceContextValue = {
   handleDeleteResume: (resumeId: string) => void;
   handleClearResumeInventory: () => Promise<void>;
   handleProfileContactBackfill: (nextInventory: InventoryState) => Promise<void>;
-  handleSaveInventoryEdits: (edits: InventoryEdits) => void;
+  handleSaveInventoryEdits: (edits: InventoryEdits) => Promise<void>;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -635,8 +635,29 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     skipCloudSaveRef.current = false;
   }
 
-  function handleSaveInventoryEdits(edits: InventoryEdits) {
-    updateInventory(updateInventoryEdits(inventory, edits));
+  async function handleSaveInventoryEdits(edits: InventoryEdits) {
+    const nextInventory = enrichInventory(updateInventoryEdits(inventory, edits));
+
+    if (!user || !cloudEnabled) {
+      updateInventory(nextInventory);
+      return;
+    }
+
+    setCloudSaveError(null);
+    try {
+      skipCloudSaveRef.current = true;
+      await saveResumeInventoryToCloud(nextInventory);
+      updateInventory(nextInventory);
+    } catch (error) {
+      setCloudSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save inventory edits to Supabase.",
+      );
+      throw error;
+    } finally {
+      skipCloudSaveRef.current = false;
+    }
   }
 
   async function handleProfileContactBackfill(nextInventory: InventoryState) {
