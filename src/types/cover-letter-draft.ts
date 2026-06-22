@@ -7,6 +7,9 @@ export type CoverLetterRationale = {
   selectedThemes: string[];
   whyTheseThemes: string;
   companyContextUsed: string[];
+  selectedCompanyFacts?: string[];
+  selectedRoleRequirements?: string[];
+  companyRoleStoryBridges?: string[];
   riskFlags: string[];
   wordCount: number;
   emailCoverLetter: string;

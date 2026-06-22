@@ -1,8 +1,9 @@
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
 import { resolveCompanyContextForGeneration } from "@/lib/company-context/resolve-for-generation";
-import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
+import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
 import { requestCoverLetterGeneration } from "@/lib/cover-letter/client";
 import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
+import { resolveCompanyWebsiteForResearch } from "@/lib/firecrawl/url";
 import { getApplicationCommunicationProfileFromCloud } from "@/lib/supabase/application-communication-profiles";
 import { createGeneratedCoverLetterDraftInCloud } from "@/lib/supabase/generated-cover-letter-drafts";
 import type { CompanyContext } from "@/types/company-context";
@@ -21,7 +22,10 @@ export type CoverLetterGenerationOptions = {
   savedCompanyContext?: CompanyContext | null;
 };
 
-export function resolveCoverLetterCompanyNames(options: CoverLetterGenerationOptions): {
+export function resolveCoverLetterCompanyNames(
+  options: CoverLetterGenerationOptions,
+  savedCompanyContext?: CompanyContext | null,
+): {
   companyNameRaw: string;
   companyDisplayName: string;
 } {
@@ -30,23 +34,35 @@ export function resolveCoverLetterCompanyNames(options: CoverLetterGenerationOpt
     jobCompanyName: options.job.companyName,
     jobDescriptionText: options.job.rawText,
   });
-  return {
-    companyNameRaw,
-    companyDisplayName: normalizeCompanyDisplayName(companyNameRaw),
-  };
+  const website =
+    resolveCompanyWebsiteForResearch(options.companyWebsite) ??
+    resolveCompanyWebsiteForResearch(savedCompanyContext?.website) ??
+    undefined;
+
+  return resolveCompanyDisplayNameForProse({
+    rawName: companyNameRaw,
+    website: website ?? undefined,
+    savedDisplayName: savedCompanyContext?.displayName,
+  });
 }
 
 export async function generateAndSaveCoverLetterDraft(
   options: CoverLetterGenerationOptions,
 ): Promise<GeneratedCoverLetterDraftRecord> {
   const profile = await getApplicationCommunicationProfileFromCloud();
-  const { companyNameRaw, companyDisplayName } = resolveCoverLetterCompanyNames(options);
+  const companyWebsite =
+    resolveCompanyWebsiteForResearch(options.companyWebsite) ??
+    resolveCompanyWebsiteForResearch(options.savedCompanyContext?.website) ??
+    undefined;
+  const { companyNameRaw, companyDisplayName } = resolveCoverLetterCompanyNames(
+    options,
+    options.savedCompanyContext,
+  );
   const country = options.country?.trim() || "Singapore";
-  const companyWebsite = options.companyWebsite?.trim() || options.job.jobUrl?.trim();
   const companyContext = resolveCompanyContextForGeneration({
     savedContext: options.savedCompanyContext,
     input: {
-      companyName: companyNameRaw,
+      companyName: companyDisplayName,
       country,
       website: companyWebsite,
       jobDescriptionText: options.job.rawText,
@@ -54,17 +70,33 @@ export async function generateAndSaveCoverLetterDraft(
       additionalInstructions: options.additionalInstructions,
     },
   });
+  const reconciledContext: CompanyContext = {
+    ...companyContext,
+    companyName: companyDisplayName,
+    displayName: companyContext.displayName?.trim()
+      ? resolveCompanyDisplayNameForProse({
+          rawName: companyContext.displayName,
+          website: companyWebsite,
+          savedDisplayName: companyContext.displayName,
+        }).companyDisplayName
+      : companyDisplayName,
+    website: companyWebsite ?? companyContext.website,
+  };
 
   const response = await requestCoverLetterGeneration({
     jobDescription: {
       id: options.job.id,
       rawText: options.job.rawText,
-      companyName: options.job.companyName,
+      companyName: companyDisplayName,
       roleTitle: options.job.roleTitle,
       jobUrl: options.job.jobUrl,
     },
     resumeDraftId: options.resumeDraft.id,
-    resumeEvidenceSpine: buildResumeEvidenceSpine(options.resumeDraft),
+    resumeEvidenceSpine: buildResumeEvidenceSpine(options.resumeDraft, {
+      jobDescriptionText: options.job.rawText,
+      roleTitle: options.job.roleTitle ?? options.resumeDraft.content.targetRoleTitle,
+      hiringPriorities: reconciledContext.likelyHiringPriorities,
+    }),
     targetRoleTitle: options.resumeDraft.content.targetRoleTitle,
     communicationProfile: profile?.content ?? "",
     companyName: companyDisplayName,
@@ -73,18 +105,18 @@ export async function generateAndSaveCoverLetterDraft(
     country,
     companyWebsite,
     additionalInstructions: options.additionalInstructions,
-    companyContext,
+    companyContext: reconciledContext,
   });
 
   return createGeneratedCoverLetterDraftInCloud({
     applicationId: options.applicationId,
     jobDescriptionId: options.job.id,
     resumeDraftId: options.resumeDraft.id,
-    companyName: companyNameRaw,
+    companyName: companyDisplayName,
     country,
     companyWebsite,
     additionalInstructions: options.additionalInstructions,
-    companyContext,
+    companyContext: reconciledContext,
     body: response.formalContent,
     rationale: response.rationale,
     provider: response.provider,

@@ -23,6 +23,9 @@ Return ONLY valid JSON matching this schema:
   "rationale": {
     "selectedThemes": string[],
     "whyTheseThemes": string,
+    "selectedCompanyFacts": string[],
+    "selectedRoleRequirements": string[],
+    "companyRoleStoryBridges": string[],
     "companyContextUsed": string[],
     "riskFlags": string[]
   }
@@ -33,8 +36,6 @@ Write like Min Htet — conversational professional, warm, human, grounded, and 
 - Sound natural, not stiff, corporate, salesy, or AI-polished.
 - Prefer plain sentences over stacked abstractions.
 - Use specific operational language from real work, not positioning jargon.
-- Good example: "I've spent the past few years building and running small businesses, so I'm used to dealing with messy operational problems, customers, payments, and execution — not just planning from a distance."
-- Bad example: "My founder-operator background gives me a unique ability to bridge strategic execution, AI-enabled systems thinking, and commercial transformation."
 
 ## Length (critical)
 Formal cover letter HARD MAXIMUM: ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS} words. One page only. If unsure, write shorter.
@@ -42,53 +43,74 @@ Formal cover letter HARD MAXIMUM: ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target
 ## Banned phrases (never use in final copy)
 ${COVER_LETTER_BANNED_PHRASES.map((phrase) => `- "${phrase}"`).join("\n")}
 
-Use natural alternatives instead, such as:
-- "I've built and run small businesses where operations, customers, payments, and execution mattered."
-- "I've also been using AI-assisted tools to build practical systems around real workflow problems."
-- "My background sits across strategy, operations, product thinking, and hands-on execution."
+## Company name in prose (critical)
+Use ONLY this human-readable display name in the letter body: "${displayCompany}"
+- NEVER paste URLs (http/https/www) into prose.
+- NEVER use the website URL as the company name.
+- Website is metadata only — not a substitute for the company name.
 
-## Company name in prose
-Use this normalized display name in the letter body: "${displayCompany}"
-Do NOT paste all-caps legal entity names or parenthetical country labels into prose.
+## Structured generation workflow (follow in order)
+Before writing final copy, internally complete these steps and reflect them in rationale JSON:
+
+### Step 1 — Select company facts (required: at least 2)
+From company context, pick specific facts about products, customers, industry, mission, hiring priorities, or narrative angles.
+Record each in rationale.selectedCompanyFacts.
+
+### Step 2 — Select role requirements (required: at least 2)
+From the job description, pick explicit responsibilities, skills, or outcomes the role needs.
+Record each in rationale.selectedRoleRequirements.
+
+### Step 3 — Select strongest stories (use ranked evidence)
+Use the ranked resume evidence (Story 1 = most relevant). Prefer 1–2 primary stories, optionally 1 supporting story.
+Do NOT include every story. Avoid founder soup.
+
+### Step 4 — Build company → role → story bridges (required: at least 2)
+For each major story paragraph, create an explicit bridge in rationale.companyRoleStoryBridges using this pattern:
+"Company fact: … | Role requirement: … | Evidence: … | Why relevant: …"
+The bridge must be explicit — do not rely on implication.
+
+### Step 5 — Draft the cover letter
+Each major story paragraph MUST follow:
+Company fact → Role requirement → Candidate evidence → Why relevant (explicit connection sentence).
 
 ## Rules
-1. Use the generated resume evidence spine as the primary factual source.
+1. Use ranked resume evidence as the primary factual source.
 2. Use the Application Communication Profile for tone and supplementary stories only — do not copy internal positioning phrases into final wording.
-3. Use company context for "why this company" only when accurate and relevant.
+3. Company context is REQUIRED — do not write a generic letter that could go to any company.
 4. Do not invent facts, metrics, employers, or titles.
-5. Select only 1–3 strongest evidence themes (prefer 1 core + 1 supporting). Avoid founder soup.
-6. Do not include every story from the profile.
-7. Avoid generic excitement and empty enthusiasm.
-8. Use real industry terms (e.g. Strategy & Operations, Product Management, Workflow Automation, Stakeholder Management, Market Expansion, Payment Operations, Reconciliation, Go-to-Market). Do NOT invent positioning titles like "AI-enabled operator" as formal job functions.
-9. Do NOT describe Min Htet as a software engineer.
-10. Do NOT overclaim fintech, AI/ML, or senior product authority beyond evidence.
-11. Respect story execution status in the profile: explored/pilot/prototype stories must be framed accurately.
-12. Explain why Min Htet is applying for this specific role at this company.
-13. Secondary formats must be shorter and copyable.
-14. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at company. Avoid "To whom it may concern."
-15. Closing: default "Regards,\\nMin Htet" unless JD tone suggests formal (Yours sincerely) or casual startup (Best/Cheers).
+5. Avoid generic excitement and empty enthusiasm.
+6. Use real industry terms. Do NOT invent positioning titles like "AI-enabled operator".
+7. Do NOT describe Min Htet as a software engineer.
+8. Do NOT overclaim fintech, AI/ML, or senior product authority beyond evidence.
+9. Explain why Min Htet is applying for this specific role at ${displayCompany}.
+10. Secondary formats must be shorter and copyable.
+11. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at ${displayCompany}.
+12. Closing: default "Regards,\\nMin Htet" unless JD tone suggests formal or casual startup.
 
 ## Company context usage (critical)
-- Use saved company context to strengthen why this company / why this role and to choose 1–3 narrative angles.
+- REQUIRED: weave at least 2 company-specific facts into the formal letter.
+- REQUIRED: reference at least 2 role-specific requirements from the JD.
+- REQUIRED: at least 2 explicit company-role-story bridges in rationale AND reflected in prose.
 - Prefer suggestedNarrativeAngles when supported by resume evidence.
-- Mission, vision, and values may be referenced ONLY when connected to specific role fit or Min Htet's actual evidence.
-- NEVER write generic admiration such as "I deeply resonate with your mission", "I strongly align with your values", or "I admire your commitment to excellence".
-- Better: connect practical work (operations, customers, payments, execution) to what the company appears to need.
+- NEVER write generic admiration such as "I deeply resonate with your mission".
+- Better: connect practical work to what ${displayCompany} appears to need.
 
 ## Formal cover letter structure
-Opening → Why this role → Selected evidence themes → Why this company → Close
+Opening (specific to ${displayCompany} + role)
+→ Story block 1 (company fact → role need → evidence → explicit relevance)
+→ Story block 2 (same pattern, optional third if tight on word count)
+→ Close
 
 ## Job description
 ${input.jobDescription.rawText}
 
 ## Role / company fields
-Company (display): ${displayCompany}
-${input.companyNameRaw && input.companyNameRaw !== displayCompany ? `Company (raw input): ${input.companyNameRaw}` : ""}
+Company (display name for prose): ${displayCompany}
 Country: ${input.country}
-${input.companyWebsite ? `Website: ${input.companyWebsite}` : ""}
 ${input.jobDescription.roleTitle ? `Role title: ${input.jobDescription.roleTitle}` : ""}
+${input.companyWebsite ? `Website (metadata only — do NOT paste into prose): ${input.companyWebsite}` : ""}
 
-## Generated resume evidence spine
+## Ranked resume evidence spine
 ${input.resumeEvidenceSpine}
 
 ## Application Communication Profile
@@ -108,7 +130,7 @@ export function buildCoverLetterCompressionPrompt(
   return `${buildCoverLetterPrompt(input)}
 
 ## Revision required
-The previous draft was ${draft.wordCount} words. Rewrite the formal cover letter to be at most ${FORMAL_COVER_LETTER_MAX_WORDS} words (target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}) while preserving facts, addressee, and closing.
+The previous draft was ${draft.wordCount} words. Rewrite the formal cover letter to be at most ${FORMAL_COVER_LETTER_MAX_WORDS} words (target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}) while preserving facts, addressee, closing, company facts, role requirements, and explicit bridges.
 Remove banned phrases and reduce abstraction. Keep the same JSON schema.
 
 Previous draft:
@@ -121,7 +143,7 @@ export function promptIncludesCoverLetterRules(prompt: string): boolean {
     prompt.includes("Min Htet") &&
     prompt.includes("formalCoverLetter") &&
     prompt.includes("Application Communication Profile") &&
-    prompt.includes("resume evidence spine") &&
+    prompt.includes("Ranked resume evidence") &&
     prompt.includes("conversational professional") &&
     prompt.includes(String(FORMAL_COVER_LETTER_MAX_WORDS))
   );
@@ -138,6 +160,11 @@ export function promptIncludesToneRules(prompt: string): boolean {
 export function promptIncludesCoverLetterCompanyContextRules(prompt: string): boolean {
   return (
     prompt.includes("Company context usage (critical)") &&
-    prompt.includes("NEVER write generic admiration")
+    prompt.includes("selectedCompanyFacts") &&
+    prompt.includes("companyRoleStoryBridges")
   );
+}
+
+export function promptRequiresExplicitBridges(prompt: string): boolean {
+  return prompt.includes("Company fact → Role requirement → Candidate evidence");
 }

@@ -5,16 +5,22 @@ export function generateMockCoverLetter(
 ): CoverLetterGenerationResult {
   const role = input.jobDescription.roleTitle ?? "this role";
   const company = input.companyDisplayName ?? input.companyName;
+  const companyFact =
+    input.companyContext.companySummary?.split(".")[0]?.trim() ||
+    `${company} appears to need structured commercial execution`;
+  const roleRequirement =
+    input.companyContext.likelyHiringPriorities[0] ||
+    "building and growing B2B customer relationships";
+  const secondRoleRequirement =
+    input.companyContext.likelyHiringPriorities[1] || "hands-on sales and stakeholder management";
 
   const formalContent = `Dear Hiring Manager,
 
-I am writing about the ${role} role at ${company}. The role lines up with work I have actually done across strategy, operations, and hands-on execution in small businesses and consulting-style projects.
+I am writing about the ${role} role at ${company}. What stood out to me was ${companyFact.toLowerCase()}. The role's emphasis on ${roleRequirement.toLowerCase()} lines up with work I have actually done across strategy, operations, and hands-on commercial execution.
 
-In recent years I have spent a lot of time close to operational problems: customer issues, payments, workflow bottlenecks, partner coordination, and the unglamorous work of making things run. The resume I submitted for this application highlights supported examples in product operations, partnerships, market expansion, and payment-related operations where those claims are backed by evidence.
+At the Singapore Business Federation, I worked closely with stakeholders and business development partners — experience that helps when building relationships with FMCG and commercial teams. That matters here because ${company}'s focus on ${secondRoleRequirement.toLowerCase()} needs someone comfortable with real customer conversations, not just planning from a distance.
 
-What interests me about ${company} is the mix of the role itself and the context in ${input.country}. ${input.companyContext.summary ? input.companyContext.summary.split("\n")[0] : `I think my background would be useful where structured execution and commercial judgement matter day to day.`} I would welcome a conversation about where I could be helpful.
-
-Thank you for your consideration.
+I would welcome a conversation about where I could be helpful at ${company}.
 
 Regards,
 Min Htet`;
@@ -22,15 +28,24 @@ Min Htet`;
   return {
     formalContent,
     rationale: {
-      selectedThemes: ["Strategy & Operations", "Product Operations"],
+      selectedThemes: ["Stakeholder Management", "Business Development"],
       whyTheseThemes:
-        "Selected themes match the JD emphasis and supported resume evidence without overclaiming technical seniority.",
-      companyContextUsed: input.companyContext.summary ? ["summary"] : [],
+        "Ranked evidence prioritizes commercial and stakeholder work over founder stories for this B2B sales role.",
+      selectedCompanyFacts: [
+        companyFact,
+        input.companyContext.productsAndServices[0] || `${company} serves FMCG brands`,
+      ],
+      selectedRoleRequirements: [roleRequirement, secondRoleRequirement],
+      companyRoleStoryBridges: [
+        `Company fact: ${companyFact} | Role requirement: ${roleRequirement} | Evidence: SBF stakeholder management | Why relevant: supports FMCG commercial relationship building`,
+        `Company fact: ${secondRoleRequirement} | Role requirement: B2B customer growth | Evidence: business development work | Why relevant: matches outbound commercial execution`,
+      ],
+      companyContextUsed: [companyFact, roleRequirement],
       riskFlags: input.communicationProfile ? [] : ["No communication profile provided"],
       wordCount: formalContent.trim().split(/\s+/).filter(Boolean).length,
-      emailCoverLetter: `Dear Hiring Manager,\n\nI am applying for the ${role} role at ${company}. My background spans strategy, operations, and hands-on delivery across product and commercial work. I would welcome a brief conversation.\n\nRegards,\nMin Htet`,
-      linkedinMessage: `Hi — I am interested in the ${role} opening at ${company}. My background spans strategy & operations and hands-on product/commercial work. Happy to connect if useful.`,
-      recruiterDm: `Hi, I saw the ${role} role at ${company} and would love to learn more. My experience spans strategy & operations and hands-on execution.`,
+      emailCoverLetter: `Dear Hiring Manager,\n\nI am applying for the ${role} role at ${company}. My background spans strategy, operations, and hands-on commercial work. I would welcome a brief conversation.\n\nRegards,\nMin Htet`,
+      linkedinMessage: `Hi — I am interested in the ${role} opening at ${company}. My background spans strategy & operations and hands-on commercial work. Happy to connect if useful.`,
+      recruiterDm: `Hi, I saw the ${role} role at ${company} and would love to learn more. My experience spans commercial execution and stakeholder management.`,
       whatsappIntro: `Hi, this is Min Htet. I am interested in the ${role} role at ${company} and can share a tailored resume if helpful.`,
     },
   };

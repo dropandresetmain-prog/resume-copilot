@@ -146,7 +146,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       <div className="flex flex-wrap gap-3">
         {draft.resumeDraftId ? (
           <Link href={`/resume-preview/${draft.resumeDraftId}`} className={secondaryButtonClassName}>
-            Open linked resume
+            Back to application package
           </Link>
         ) : null}
         <Link href="/records" className={secondaryButtonClassName}>

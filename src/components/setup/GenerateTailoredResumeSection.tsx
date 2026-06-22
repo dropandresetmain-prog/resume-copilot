@@ -360,11 +360,12 @@ export function GenerateTailoredResumeSection({
         setCoverLetterStatus("generating");
         try {
           const coverRecord = await runCoverLetterGeneration(context);
+          void coverRecord;
           setCoverLetterStatus("success");
           await advanceStage(getGenerationStageIndices(true).savingDrafts);
           await delay(200);
           onGenerationFinished?.();
-          router.push(`/cover-letter-preview/${coverRecord.id}`);
+          router.push(`/resume-preview/${context.resumeDraft.id}`);
           return;
         } catch (coverLetterError) {
           const clientError = coverLetterError as ResumeDraftClientError;
@@ -429,10 +430,11 @@ export function GenerateTailoredResumeSection({
           savedCompanyContext: application?.companyContext,
         }),
       );
+      void coverRecord;
       setCoverLetterStatus("success");
       setPartialCoverLetterFailure(null);
       onGenerationFinished?.();
-      router.push(`/cover-letter-preview/${coverRecord.id}`);
+      router.push(`/resume-preview/${partialCoverLetterFailure.resumeDraft.id}`);
     } catch (coverLetterError) {
       const clientError = coverLetterError as ResumeDraftClientError;
       setCoverLetterStatus("failed");

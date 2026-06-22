@@ -1,32 +1,32 @@
-# Test Checklist — v0.9.6 Auto Research Flow & Progress Bar
+# Test Checklist — v0.9.7 Cover Letter & Application Package
 
-## Automatic research (primary flow)
+## Company name in prose
 
-- [ ] Combined generate with website + no website-backed research → progress shows **Researching company website** → resume + cover letter succeed
-- [ ] Compact status in Advanced shows **Company research: will run automatically** before generate
-- [ ] No need to click manual research before Generate
-- [ ] Second generate reuses saved website-backed research → progress **Using saved company research**, no Firecrawl
-- [ ] No website → progress **Using JD-based context**, no Firecrawl
-- [ ] Firecrawl failure → warning + progress **Company research failed; continuing with JD context**, resume still generates
+- [ ] Cover letter uses `ShelfPerfect` (or resolved brand), not `https://shelfperfect.com/`
+- [ ] JD line `Company: https://...` does not become company name in generation
+- [ ] Validation rejects URLs in cover letter body
 
-## Progress bar
+## Company research visibility
 
-- [ ] Combined mode shows 7 stages including dynamic research stage
-- [ ] Resume-only mode shows 5 stages (no research stage)
-- [ ] Stage labels match actual behavior (no fake “researching” when skipping)
+- [ ] After combined generate, land on `/resume-preview/{id}` (application package)
+- [ ] Company research panel visible and expanded on resume preview
+- [ ] Cover letter panel links to full editor
+- [ ] Cover letter preview has "Back to application package" link
 
-## JD-only + website edge case
+## Cover letter quality
 
-- [ ] Application has JD-only saved context; user adds company website → next generate runs Firecrawl (does not reuse JD-only as final)
+- [ ] Letter references ≥2 company-specific facts from saved research
+- [ ] Letter references ≥2 role requirements from JD
+- [ ] Rationale includes ≥2 explicit company→role→story bridges
+- [ ] B2B sales role ranks SBF/commercial evidence above founder stories
 
-## Advanced / manual panel (secondary)
+## Export naming
 
-- [ ] Manual panel collapsed by default under Advanced
-- [ ] View / edit research, Refresh research, Clear research work
-- [ ] Compact status updates after generation (saved / failed / will run automatically)
+- [ ] Cover letter PDF: `Hset Min Htet - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf`
+- [ ] Cover letter DOCX: same stem with `.docx`
+- [ ] Resume PDF: `Hset Min Htet - Resume_ShelfPerfect_B2B Sales Manager.pdf`
 
 ## Regression
 
-- [ ] Retry Cover Letter does not re-scrape or regenerate resume
-- [ ] Job posting URL not used as company website
+- [ ] Auto company research (v0.9.6) still works
 - [ ] `npm run test`, `npm run lint`, `npm run build` pass

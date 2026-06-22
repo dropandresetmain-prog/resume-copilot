@@ -88,6 +88,12 @@
 - Delete is permanent. Draft edits never mutate inventory.
 - **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
+## Cover letter (v0.9.7)
+
+- **URL-as-company-name** — can still enter URL in company website field; display name resolution and validation prevent URLs in prose.
+- **Rationale validation** — Gemini may occasionally fail bridge/fact requirements; generation returns 422 and user retries.
+- **Story ranking** — heuristic keyword overlap, not ML; edge cases may mis-rank niche roles.
+
 ## Company research (v0.9.6)
 
 - **Automatic in combined flow** — website research runs on Generate when website provided and no website-backed research saved.

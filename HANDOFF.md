@@ -2,52 +2,42 @@
 
 ## Current milestone
 
-**v0.9.6 — Auto Research Flow & Progress Bar Integration**
+**v0.9.7 — Cover Letter Relevance, Company Research Visibility & Application Flow**
 
-Combined Resume + Cover Letter generation automatically researches the company website when a website is provided and no website-backed research is saved. Progress stages reflect the actual research path. Manual research is demoted to an optional Advanced panel.
+Cover letters must use company display names (never URLs), explicit company→role→story bridges, relevance-ranked evidence, and structured rationale validation. Combined generation lands on the **Application package** (resume preview) with cover letter + company research visible.
 
-## v0.9.5 highlights
+## v0.9.6 highlights
 
-Firecrawl server-side website scrape; website-backed vs JD-based research; source metadata on `application_records.company_context`.
+Automatic website research during combined generation; dynamic progress stages; manual research demoted to Advanced.
 
 ## Product flow
 
 ```
-Generate Resume & Cover Letter (one click)
-  → Save job + application
-  → [if website + no website-backed research] Firecrawl + Gemini company research → Save
-  → Build resume evidence → Generate resume → Generate cover letter → Save drafts
+Generate Resume & Cover Letter
+  → Application package (/resume-preview/{resumeDraftId})
+      ├ Resume (primary)
+      ├ Cover letter (panel link)
+      └ Company research (expanded panel)
 ```
 
-Without company website: **JD-based context only** (no Firecrawl).
+## Cover letter architecture (v0.9.7)
 
-If website-backed research already exists: **reuse saved research** (no Firecrawl).
+1. Select company facts (≥2) → rationale `selectedCompanyFacts`
+2. Select role requirements (≥2) → `selectedRoleRequirements`
+3. Rank resume stories by JD relevance (not chronology)
+4. Build explicit bridges (≥2) → `companyRoleStoryBridges`
+5. Draft letter: each story block = company fact → role need → evidence → why relevant
 
-## Company research (automatic)
+## Company name rules
 
-| Condition | Behavior | Progress label |
-|-----------|----------|----------------|
-| Website-backed research saved | Reuse | Using saved company research |
-| Website provided, no website-backed research | Firecrawl + Gemini | Researching company website |
-| No website | JD-based context | Using JD-based context |
-| Firecrawl/Gemini fails | JD fallback + warning | Company research failed; continuing with JD context |
+- Prose uses `displayName` / resolved brand name only
+- URLs never appear in cover letter body (validated)
+- `resolveCompanyDisplayNameForProse()` prefers saved research display name, then clean name, then website hostname brand
 
-**Note:** JD-only saved context does **not** block auto Firecrawl when user later provides a company website.
+## Export naming
 
-## UI (Generate page)
-
-- **Advanced:** Company name, country, company website, additional instructions
-- **Compact status:** `Company research: will run automatically` / `website-backed research saved` / etc.
-- **Optional panel (collapsed):** View / edit research, Refresh research, Clear research
-- No prominent “Research Company Website” CTA in the main generation card
-
-## Environment
-
-```bash
-FIRECRAWL_API_KEY=   # server-side only
-GEMINI_API_KEY=
-AI_PROVIDER=gemini
-```
+- Resume: `{Full Name} - Resume_{Company}_{Role}.pdf`
+- Cover letter: `{Full Name} - Cover Letter_{Company}_{Role}.pdf`
 
 ## Run
 

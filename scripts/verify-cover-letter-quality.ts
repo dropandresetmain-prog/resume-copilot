@@ -78,7 +78,10 @@ function main() {
 
   const overLimitBody = `${mock.formalContent}\n\n${Array.from({ length: 300 }, () => "additional").join(" ")}`;
   const overLimitValidation = validateFormalCoverLetterBody(overLimitBody);
-  const mockValidation = validateFormalCoverLetterBody(mock.formalContent);
+  const mockValidation = validateFormalCoverLetterBody(mock.formalContent, {
+    rationale: mock.rationale,
+    companyDisplayName: "Far East Facade",
+  });
   const shortened = reviseMockCoverLetter({
     currentBody: overLimitBody,
     action: "shorten",

@@ -234,7 +234,13 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/company-context/client.ts` | Browser client for generate-company-context API |
 | `src/lib/company-context/gemini-call-map.ts` | Static end-to-end Gemini call audit |
 | `src/lib/ai/company-context-gemini.ts` | Gemini company context provider |
-| `src/components/company-context/CompanyResearchCompactStatus.tsx` | Compact research status in Generate Advanced (v0.9.6) |
+| `src/lib/cover-letter/company-name.ts` | Display name + URL detection + brand from hostname (v0.9.7) |
+| `src/lib/cover-letter/story-ranking.ts` | Relevance-based experience ranking (v0.9.7) |
+| `src/lib/cover-letter/export-filename.ts` | Cover letter export naming (v0.9.7) |
+| `src/lib/cover-letter/prompt.ts` | Structured bridge architecture prompt (v0.9.7) |
+| `src/lib/cover-letter/generation-validation.ts` | URL + rationale quality validation (v0.9.7) |
+| `src/components/pages/ResumePreviewPageClient.tsx` | Application package view (v0.9.7) |
+| `src/components/company-context/CompanyContextPreviewPanel.tsx` | Full research display (v0.9.7) |
 | `src/components/company-context/CompanyContextEditorPanel.tsx` | Optional collapsed research editor (v0.9.6) |
 | `src/components/company-context/CompanyContextPreviewPanel.tsx` | Cover letter preview collapsible context (v0.9.3) |
 | `src/lib/cover-letter/prompt.ts` | Cover letter generation prompt + tone/length rules |

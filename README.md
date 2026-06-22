@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.9.6 — Auto Research Flow & Progress Bar Integration**
+**v0.9.7 — Cover Letter Relevance & Application Package**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
@@ -14,7 +14,8 @@ Upload resumes → Build inventory → Paste profile → Paste JD → Generate R
 1. **Manage Uploads** (`/setup`) — upload `.docx` resumes; parsing runs in the browser.
 2. **Career Inventory** (`/inventory`) — collated experience, education, skills; optional AI enrichment review.
 3. **Generate** (`/generate`) — paste JD; in **Advanced**, optionally add **company website** (not job URL). Combined flow **automatically** researches the website via Firecrawl when provided and no website-backed research exists — no manual research step required.
-4. **Resume Preview** (`/resume-preview/[draftId]`) — **PDF Preview** (local approximation), layout controls, **server one-page validation on Approve**, export.
+4. **Application package** (`/resume-preview/[draftId]`) — resume is the primary review surface; cover letter and company research appear alongside. Cover letter editing remains at `/cover-letter-preview/[draftId]`.
+5. **Resume Preview** — PDF Preview, layout controls, approve-for-export, PDF/DOCX download.
 5. **Records** (`/records`) — applications (status, notes, linked draft), saved jobs, and unlinked draft history.
 
 ## What is built

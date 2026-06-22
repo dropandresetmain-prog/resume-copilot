@@ -46,6 +46,26 @@ export function buildResumePdfFileName(input: ResumeExportFileNameInput): string
   return `${buildResumeExportFileStem(input)}.pdf`;
 }
 
+export function buildCoverLetterExportFileStem(input: ResumeExportFileNameInput): string {
+  const fullName = sanitizeFileNamePart(input.fullName) || "Cover Letter";
+  const company = sanitizeFileNamePart(input.companyName);
+  const role = sanitizeFileNamePart(input.roleTitle);
+
+  if (company && role) {
+    return `${fullName} - Cover Letter_${company}_${role}`;
+  }
+
+  return `${fullName} - Cover Letter`;
+}
+
+export function buildCoverLetterDocxFileName(input: ResumeExportFileNameInput): string {
+  return `${buildCoverLetterExportFileStem(input)}.docx`;
+}
+
+export function buildCoverLetterPdfFileName(input: ResumeExportFileNameInput): string {
+  return `${buildCoverLetterExportFileStem(input)}.pdf`;
+}
+
 export function buildResumeDocxStoragePath(
   userId: string,
   draftId: string,

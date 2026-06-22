@@ -1,4 +1,8 @@
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import {
+  detectCompanyUrlInCoverLetterProse,
+  proseContainsUrlLikeCompanyReference,
+} from "@/lib/cover-letter/company-name";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
@@ -7,6 +11,7 @@ import {
   FORMAL_COVER_LETTER_TARGET_MIN_WORDS,
 } from "@/lib/cover-letter/word-limits";
 import type { CoverLetterGenerationResult } from "@/types/cover-letter-draft";
+import type { CoverLetterRationale } from "@/types/cover-letter-draft";
 
 export type CoverLetterValidationWarning = {
   code: string;
@@ -20,9 +25,48 @@ export type CoverLetterValidationResult = {
   errors: CoverLetterValidationWarning[];
 };
 
+export function validateCoverLetterRationaleQuality(
+  rationale: CoverLetterRationale,
+): CoverLetterValidationWarning[] {
+  const errors: CoverLetterValidationWarning[] = [];
+  const companyFacts =
+    rationale.selectedCompanyFacts?.length ?? rationale.companyContextUsed.length;
+  const roleRequirements = rationale.selectedRoleRequirements?.length ?? 0;
+  const bridges = rationale.companyRoleStoryBridges?.length ?? 0;
+
+  if (companyFacts < 2) {
+    errors.push({
+      code: "insufficient_company_facts",
+      message: "Cover letter rationale must include at least 2 company-specific facts.",
+    });
+  }
+
+  if (roleRequirements < 2) {
+    errors.push({
+      code: "insufficient_role_requirements",
+      message: "Cover letter rationale must include at least 2 role-specific requirements.",
+    });
+  }
+
+  if (bridges < 2) {
+    errors.push({
+      code: "insufficient_company_role_story_bridges",
+      message:
+        "Cover letter rationale must include at least 2 explicit company → role → story bridges.",
+    });
+  }
+
+  return errors;
+}
+
 export function validateFormalCoverLetterBody(
   body: string,
-  options: { strictMax?: boolean; checkBannedPhrases?: boolean } = {},
+  options: {
+    strictMax?: boolean;
+    checkBannedPhrases?: boolean;
+    companyDisplayName?: string;
+    rationale?: CoverLetterRationale;
+  } = {},
 ): CoverLetterValidationResult {
   const strictMax = options.strictMax ?? true;
   const checkBannedPhrases = options.checkBannedPhrases ?? true;
@@ -35,6 +79,28 @@ export function validateFormalCoverLetterBody(
       code: "missing_formal_content",
       message: "Formal cover letter content is required.",
     });
+  }
+
+  const urlsInProse = detectCompanyUrlInCoverLetterProse(body);
+  if (urlsInProse.length > 0) {
+    errors.push({
+      code: "company_url_in_prose",
+      message: `Cover letter must not include URLs in prose: ${urlsInProse.join(", ")}`,
+    });
+  }
+
+  if (
+    options.companyDisplayName &&
+    proseContainsUrlLikeCompanyReference(body, options.companyDisplayName)
+  ) {
+    errors.push({
+      code: "url_like_company_name",
+      message: "Cover letter must use the company display name, not a website URL.",
+    });
+  }
+
+  if (options.rationale) {
+    errors.push(...validateCoverLetterRationaleQuality(options.rationale));
   }
 
   if (strictMax && wordCount > FORMAL_COVER_LETTER_MAX_WORDS) {
@@ -98,10 +164,13 @@ export function validateFormalCoverLetterBody(
 
 export function validateCoverLetterGenerationResult(
   result: CoverLetterGenerationResult,
+  options: { companyDisplayName?: string } = {},
 ): CoverLetterValidationResult {
   return validateFormalCoverLetterBody(result.formalContent, {
     strictMax: true,
     checkBannedPhrases: true,
+    companyDisplayName: options.companyDisplayName,
+    rationale: result.rationale,
   });
 }
 
@@ -117,8 +186,9 @@ export class CoverLetterValidationError extends Error {
 
 export function prepareGeneratedCoverLetterResult(
   result: CoverLetterGenerationResult,
+  options: { companyDisplayName?: string } = {},
 ): CoverLetterGenerationResult & { validation: CoverLetterValidationResult } {
-  const validation = validateCoverLetterGenerationResult(result);
+  const validation = validateCoverLetterGenerationResult(result, options);
   if (!validation.ok) {
     throw new CoverLetterValidationError(
       validation.errors.map((entry) => entry.message).join(" "),

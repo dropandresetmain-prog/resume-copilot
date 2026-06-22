@@ -2,6 +2,7 @@ import { GEMINI_MODEL } from "@/lib/ai/config";
 import { generateMockCoverLetter } from "@/lib/ai/cover-letter-mock";
 import { generateCoverLetterWithGemini } from "@/lib/ai/cover-letter-gemini";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
+import { prepareGeneratedCoverLetterResult } from "@/lib/cover-letter/generation-validation";
 import type { AIProviderId } from "@/lib/ai/types";
 import type {
   CoverLetterGenerationInput,
@@ -56,7 +57,9 @@ export async function generateCoverLetterWithAI(
     throw new Error("OpenAI cover letter generation is not implemented yet.");
   }
 
-  const result = generateMockCoverLetter(input);
+  const result = prepareGeneratedCoverLetterResult(generateMockCoverLetter(input), {
+    companyDisplayName: input.companyDisplayName ?? input.companyName,
+  });
   return { ...result, providerId: "mock" };
 }
 

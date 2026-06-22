@@ -51,6 +51,9 @@ export function parseCoverLetterJson(rawText: string): {
     companyContextUsed: Array.isArray(rationaleRaw.companyContextUsed)
       ? rationaleRaw.companyContextUsed.filter((item): item is string => typeof item === "string")
       : [],
+    selectedCompanyFacts: readStringArray(rationaleRaw.selectedCompanyFacts),
+    selectedRoleRequirements: readStringArray(rationaleRaw.selectedRoleRequirements),
+    companyRoleStoryBridges: readStringArray(rationaleRaw.companyRoleStoryBridges),
     riskFlags: Array.isArray(rationaleRaw.riskFlags)
       ? rationaleRaw.riskFlags.filter((item): item is string => typeof item === "string")
       : [],
@@ -75,6 +78,13 @@ function readSecondaryContent(value: unknown): string {
     return "";
   }
   return value.content.trim();
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
 export function parseCoverLetterJsonOrThrow(rawText: string): CoverLetterGenerationResult {

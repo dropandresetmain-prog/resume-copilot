@@ -48,7 +48,9 @@ export async function generateCoverLetterWithGemini(
   }
 
   try {
-    const prepared = prepareGeneratedCoverLetterResult(parsed);
+    const prepared = prepareGeneratedCoverLetterResult(parsed, {
+      companyDisplayName: input.companyDisplayName ?? input.companyName,
+    });
     return {
       formalContent: prepared.formalContent,
       rationale: prepared.rationale,
@@ -61,7 +63,9 @@ export async function generateCoverLetterWithGemini(
       });
       const retryText = await callGeminiJson(apiKey, compressionPrompt);
       const retryParsed = parseCoverLetterJsonOrThrow(retryText);
-      const prepared = prepareGeneratedCoverLetterResult(retryParsed);
+      const prepared = prepareGeneratedCoverLetterResult(retryParsed, {
+        companyDisplayName: input.companyDisplayName ?? input.companyName,
+      });
       return {
         formalContent: prepared.formalContent,
         rationale: prepared.rationale,

@@ -2,14 +2,17 @@
 
 ## Current milestone
 
-**v0.9.6 — Auto Research Flow & Progress Bar Integration**
+**v0.9.7 — Cover Letter Relevance & Application Package**
 
-- Automatic website research during combined generation (no manual pre-step)
-- Dynamic progress stages with accurate research messaging
-- Compact company research status in Advanced; manual panel collapsed by default
-- JD-only saved context no longer blocks Firecrawl when website is provided
+- Display name normalization (URLs → brand names in prose)
+- Structured cover letter prompt with required company facts, role requirements, and bridges
+- Relevance-based story ranking in evidence spine
+- Application package UX (resume primary + cover letter + company research)
+- Structured export filenames for cover letters
 
 ## Previous
+
+**v0.9.6 — Auto Research Flow & Progress Bar Integration**
 
 **v0.9.5 — Firecrawl Company Research**
 

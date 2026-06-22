@@ -79,8 +79,8 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
 
   return (
     <SetupCard
-      title="Formal cover letter"
-      description="Generate or open the formal cover letter linked to this resume draft."
+      title="Cover letter"
+      description="Open the formal cover letter for this application. Resume is the primary artifact above."
     >
       {isLoading ? (
         <p className="mt-3 text-sm text-slate-600">Checking cover letter…</p>

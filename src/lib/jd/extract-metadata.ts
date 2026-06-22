@@ -10,6 +10,17 @@ export type ExtractedJobMetadata = {
   roleTitle?: string;
 };
 
+function cleanCompanyValue(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (/^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed)) {
+    return undefined;
+  }
+  return trimmed;
+}
+
 function cleanValue(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -47,7 +58,7 @@ export function extractJobMetadataFromText(rawText: string): ExtractedJobMetadat
 
     const companyLabel = line.match(COMPANY_LABEL_PATTERN);
     if (companyLabel) {
-      companyName = companyName ?? cleanValue(companyLabel[1]);
+      companyName = companyName ?? cleanCompanyValue(companyLabel[1]);
       continue;
     }
 
@@ -74,9 +85,10 @@ export function extractJobMetadataFromText(rawText: string): ExtractedJobMetadat
     if (
       secondLine.length <= 80 &&
       /[A-Za-z]/.test(secondLine) &&
-      secondLine.toLowerCase() !== roleTitle.toLowerCase()
+      secondLine.toLowerCase() !== roleTitle.toLowerCase() &&
+      !/^https?:\/\//i.test(secondLine)
     ) {
-      companyName = cleanValue(secondLine);
+      companyName = cleanCompanyValue(secondLine);
     }
   }
 

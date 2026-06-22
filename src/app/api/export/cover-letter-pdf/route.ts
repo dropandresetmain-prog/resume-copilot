@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { generateCoverLetterPdfBuffer } from "@/lib/cover-letter/pdf-export";
+import { resolveCoverLetterPdfFileName } from "@/lib/cover-letter/export-filename";
 import { assertExportableCoverLetterBody } from "@/lib/cover-letter/generation-validation";
 import { getGeneratedCoverLetterDraftForUser } from "@/lib/supabase/generated-cover-letter-drafts";
+import { getGeneratedResumeDraftForUser } from "@/lib/supabase/generated-resume-drafts";
+import { getJobDescriptionForUser } from "@/lib/supabase/job-descriptions";
 import {
   createSupabaseClientWithAccessToken,
   getAccessTokenFromRequest,
@@ -46,7 +49,17 @@ export async function POST(request: Request) {
     }
 
     const buffer = await generateCoverLetterPdfBuffer(draft.body);
-    const fileName = `cover-letter-${draft.id.slice(0, 8)}.pdf`;
+    const resumeDraft = draft.resumeDraftId
+      ? await getGeneratedResumeDraftForUser(supabase, draft.resumeDraftId, userId)
+      : null;
+    const job = draft.jobDescriptionId
+      ? await getJobDescriptionForUser(supabase, draft.jobDescriptionId, userId)
+      : null;
+    const fileName = resolveCoverLetterPdfFileName({
+      draft,
+      resumeDraft,
+      job,
+    });
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

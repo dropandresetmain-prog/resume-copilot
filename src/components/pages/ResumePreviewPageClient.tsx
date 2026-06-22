@@ -14,6 +14,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { ResumeCoverLetterPanel } from "@/components/cover-letters/ResumeCoverLetterPanel";
+import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
@@ -60,6 +61,8 @@ import {
   getGeneratedResumeDraftFromCloud,
   updateGeneratedResumeDraftInCloud,
 } from "@/lib/supabase/generated-resume-drafts";
+import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
+import type { CompanyContext } from "@/types/company-context";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 type ResumePreviewPageClientProps = {
@@ -69,6 +72,7 @@ type ResumePreviewPageClientProps = {
 export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProps) {
   const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
+  const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,6 +118,14 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 itemLineSpacing: stored.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT,
                 sectionSpacing: stored.sectionSpacing,
               });
+            }
+            if (record.applicationId) {
+              const application = await getApplicationRecordFromCloud(record.applicationId);
+              if (!cancelled) {
+                setCompanyContext(application?.companyContext ?? null);
+              }
+            } else if (!cancelled) {
+              setCompanyContext(null);
             }
           }
         }
@@ -382,9 +394,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.7.7 · Inventory Editing & Regeneration"
-        title="Resume Preview"
-        description="PDF Preview is the closest local approximation — tune layout, pass server one-page validation on Approve, then download PDF or editable DOCX."
+        milestone="v0.9.7 · Application Package"
+        title="Application package"
+        description="Review your tailored resume first, then the cover letter and company research used for this application."
       />
 
       <p className="text-xs text-slate-500">
@@ -539,6 +551,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           draft={draft}
           job={jobDescriptions.find((job) => job.id === draft.jobDescriptionId)}
         />
+
+        {companyContext ? (
+          <CompanyContextPreviewPanel
+            context={companyContext}
+            applicationId={draft.applicationId}
+            defaultOpen
+            onSaved={setCompanyContext}
+          />
+        ) : null}
 
         <ResumeEvidenceRegenerationPanel
           draft={draft}

@@ -3,7 +3,7 @@ import {
   getCoverLetterProviderStatus,
   toCoverLetterApiResponse,
 } from "@/lib/ai/cover-letter-provider";
-import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
+import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
 import { CoverLetterParseError } from "@/lib/cover-letter/parse";
 import { CoverLetterValidationError } from "@/lib/cover-letter/generation-validation";
 import type { CoverLetterGenerationInput } from "@/types/cover-letter-draft";
@@ -34,16 +34,20 @@ export async function POST(request: Request) {
     }
 
     const companyNameRaw = body.companyNameRaw?.trim() || body.companyName.trim();
-    const companyDisplayName =
-      body.companyDisplayName?.trim() || normalizeCompanyDisplayName(companyNameRaw);
+    const reconciledDisplayName = resolveCompanyDisplayNameForProse({
+      rawName: companyNameRaw,
+      website: body.companyWebsite,
+      savedDisplayName: body.companyContext?.displayName,
+    }).companyDisplayName;
     const normalizedBody: CoverLetterGenerationInput = {
       ...body,
-      companyName: companyDisplayName,
-      companyDisplayName,
+      companyName: reconciledDisplayName,
+      companyDisplayName: reconciledDisplayName,
       companyNameRaw,
       companyContext: {
         ...body.companyContext,
-        companyName: companyDisplayName,
+        companyName: reconciledDisplayName,
+        displayName: reconciledDisplayName,
       },
     };
 
