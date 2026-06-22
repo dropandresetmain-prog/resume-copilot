@@ -13,6 +13,7 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import {
@@ -380,7 +381,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.7.1 · Layout Defaults & LLM Guardrails"
+        milestone="v0.7.7 · Inventory Editing & Regeneration"
         title="Resume Preview"
         description="PDF Preview is the closest local approximation — tune layout, pass server one-page validation on Approve, then download PDF or editable DOCX."
       />
@@ -531,6 +532,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           serverPdfValidation={serverPdfValidation}
           validationFailure={validationFailure}
           isValidating={isApproving}
+        />
+
+        <ResumeEvidenceRegenerationPanel
+          draft={draft}
+          inventory={inventory}
+          jobDescription={
+            jobDescriptions.find((job) => job.id === draft.jobDescriptionId) ?? null
+          }
+          onDraftUpdated={setDraft}
         />
       </div>
 

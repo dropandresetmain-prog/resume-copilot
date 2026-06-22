@@ -100,12 +100,15 @@ export type ParseFailure = {
 };
 
 import type { EnrichmentState } from "@/types/enrichment";
+import type { InventoryEdits } from "@/types/inventory-edits";
 import type { StoredJobDescription } from "@/types/jd";
 
 export type InventoryState = {
   resumes: ParsedResume[];
   failures: ParseFailure[];
   enrichment: EnrichmentState;
+  /** Active inventory overlay — does not modify uploaded source resumes. */
+  edits?: InventoryEdits;
 };
 
 export const INVENTORY_SCHEMA_VERSION = 3 as const;

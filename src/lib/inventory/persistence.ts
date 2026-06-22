@@ -10,6 +10,7 @@
  */
 import { calculateExperienceDuration } from "@/lib/date/duration";
 import { createEmptyEnrichmentState, migrateEnrichmentSuggestions } from "@/lib/enrichment/state";
+import { normalizeInventoryEdits } from "@/lib/inventory/edits";
 import { validateStoredJobDescription } from "@/lib/jd/persistence";
 import type {
   DuplicateGroupSuggestion,
@@ -128,6 +129,7 @@ export function enrichInventory(inventory: InventoryState): InventoryState {
     ...inventory,
     resumes: inventory.resumes.map(enrichResume),
     enrichment: inventory.enrichment ?? createEmptyEnrichmentState(),
+    edits: normalizeInventoryEdits(inventory.edits),
   };
 }
 
@@ -424,6 +426,9 @@ export function validateInventoryState(value: unknown): InventoryState | null {
       .filter((resume): resume is ParsedResume => resume !== null),
     failures: value.failures as InventoryState["failures"],
     enrichment: migrateEnrichmentState(value.enrichment),
+    edits: isObject(value.edits)
+      ? normalizeInventoryEdits(value.edits as InventoryState["edits"])
+      : undefined,
   };
 }
 

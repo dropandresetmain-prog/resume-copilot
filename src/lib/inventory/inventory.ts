@@ -1,4 +1,6 @@
 import type { InventoryState, ParsedResume } from "@/types/resume";
+import type { InventoryEdits } from "@/types/inventory-edits";
+import { createEmptyInventoryEdits } from "@/types/inventory-edits";
 import { createEmptyEnrichmentState } from "@/lib/enrichment/state";
 import { countSkillCategories } from "@/lib/parser/sections";
 
@@ -94,5 +96,16 @@ export function clearAllResumes(): InventoryState {
     resumes: [],
     failures: [],
     enrichment: createEmptyEnrichmentState(),
+    edits: createEmptyInventoryEdits(),
+  };
+}
+
+export function updateInventoryEdits(
+  inventory: InventoryState,
+  edits: InventoryEdits,
+): InventoryState {
+  return {
+    ...inventory,
+    edits,
   };
 }

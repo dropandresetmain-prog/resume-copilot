@@ -32,8 +32,9 @@ import {
   countInventory,
   deleteResume,
   upsertResume,
+  updateInventoryEdits,
 } from "@/lib/inventory/inventory";
-import { buildCollatedInventory } from "@/lib/inventory/collation";
+import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { enrichInventory } from "@/lib/inventory/persistence";
 import { detectLegacyLocalData } from "@/lib/legacy/local-data";
 import {
@@ -56,6 +57,8 @@ import {
   saveResumeInventoryToCloud,
 } from "@/lib/supabase/resume-inventories";
 import type { CollatedInventory } from "@/types/collated";
+import type { InventoryEdits } from "@/types/inventory-edits";
+import { createEmptyInventoryEdits } from "@/types/inventory-edits";
 import type { InventoryState } from "@/types/resume";
 import type {
   DuplicateGroupSuggestion,
@@ -69,6 +72,7 @@ const EMPTY_INVENTORY: InventoryState = {
   resumes: [],
   failures: [],
   enrichment: createEmptyEnrichmentState(),
+  edits: createEmptyInventoryEdits(),
 };
 
 export type WorkspaceContextValue = {
@@ -89,8 +93,8 @@ export type WorkspaceContextValue = {
   enrichDebugRaw: string | null;
   providerStatus: ProviderStatusResponse | null;
   fileStorageRefreshToken: number;
-  activeTab: "collated" | "source";
-  setActiveTab: (tab: "collated" | "source") => void;
+  activeTab: "collated" | "edit" | "source";
+  setActiveTab: (tab: "collated" | "edit" | "source") => void;
   hasInventory: boolean;
   handleFilesSelected: (files: File[]) => Promise<void>;
   handleEnrichMissing: () => Promise<void>;
@@ -121,6 +125,7 @@ export type WorkspaceContextValue = {
   handleDeleteResume: (resumeId: string) => void;
   handleClearResumeInventory: () => Promise<void>;
   handleProfileContactBackfill: (nextInventory: InventoryState) => Promise<void>;
+  handleSaveInventoryEdits: (edits: InventoryEdits) => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -158,13 +163,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [fileStorageRefreshToken, setFileStorageRefreshToken] = useState(0);
-  const [activeTab, setActiveTab] = useState<"collated" | "source">("collated");
+  const [activeTab, setActiveTab] = useState<"collated" | "edit" | "source">("collated");
 
   const skipCloudSaveRef = useRef(true);
 
   const totals = useMemo(() => countInventory(inventory), [inventory]);
   const collated = useMemo(
-    () => buildCollatedInventory(inventory),
+    () => buildActiveCollatedInventory(inventory),
     [inventory],
   );
 
@@ -630,6 +635,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     skipCloudSaveRef.current = false;
   }
 
+  function handleSaveInventoryEdits(edits: InventoryEdits) {
+    updateInventory(updateInventoryEdits(inventory, edits));
+  }
+
   async function handleProfileContactBackfill(nextInventory: InventoryState) {
     if (!user || !cloudEnabled) {
       updateInventory(nextInventory);
@@ -689,6 +698,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     handleDeleteResume,
     handleClearResumeInventory,
     handleProfileContactBackfill,
+    handleSaveInventoryEdits,
   };
 
   return (

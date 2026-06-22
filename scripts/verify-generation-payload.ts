@@ -1,6 +1,7 @@
 import { buildBulletEnrichmentKey } from "../src/lib/enrichment/keys";
 import { createEmptyEnrichmentState } from "../src/lib/enrichment/state";
 import { buildCollatedInventory } from "../src/lib/inventory/collation";
+import { applyInventoryEditsToCollated } from "../src/lib/inventory/edits";
 import { selectGenerationBullets } from "../src/lib/resume-draft/bullet-payload";
 import {
   buildResumeDraftGenerationInput,
@@ -260,6 +261,31 @@ function main() {
     ["mock uses accepted wording in output when present", mockDraft.content.experience.some((role) => role.bullets.some((bullet) => bullet.text.includes("modernization")))],
     ["default bullet cap remains 40", MAX_RESUME_DRAFT_BULLETS === 40],
   ];
+
+  const hiddenInventory = buildLegacyHeavyInventory();
+  const hideKey = buildBulletEnrichmentKey(
+    "Acme",
+    "Product Manager",
+    "Led product operations improvements",
+  );
+  hiddenInventory.edits = {
+    hiddenBulletKeys: [hideKey],
+    editedBulletTextByBulletKey: {},
+  };
+  const hiddenCollated = buildCollatedInventory(hiddenInventory);
+  const hiddenActive = applyInventoryEditsToCollated(hiddenCollated, hiddenInventory.edits);
+  const hiddenInput = buildResumeDraftGenerationInput({
+    collated: hiddenActive,
+    enrichment: hiddenInventory.enrichment,
+    jobDescription: sampleJd,
+    referenceResume: hiddenInventory.resumes[0]!,
+    maxBullets: 5,
+  });
+  const hiddenPayloadBullets = hiddenInput.experiences.flatMap((experience) => experience.bullets);
+
+  checks.push(
+    ["hidden inventory bullet excluded from payload", !hiddenPayloadBullets.some((bullet) => bullet.bulletKey === hideKey)],
+  );
 
   for (const [name, ok] of checks) {
     console.log(`${ok ? "PASS" : "FAIL"}: ${name}`);

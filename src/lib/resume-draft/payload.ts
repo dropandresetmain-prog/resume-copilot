@@ -1,6 +1,6 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
-import { buildCollatedInventory } from "@/lib/inventory/collation";
+import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import {
   groupGenerationBulletsByExperience,
   selectGenerationBullets,
@@ -16,6 +16,7 @@ import {
   type ResumeDraftGenerationInput,
   type ResumeDraftInputSnapshot,
   type ResumeDraftKeywordInput,
+  type ResumeDraftRegenerationControls,
 } from "@/types/resume-draft";
 
 export const MAX_RESUME_DRAFT_BULLETS = 40;
@@ -53,6 +54,7 @@ export function buildResumeDraftGenerationInput(options: {
   jobDescription: StoredJobDescription;
   referenceResume: ParsedResume;
   maxBullets?: number;
+  regenerationControls?: ResumeDraftRegenerationControls;
 }): ResumeDraftGenerationInput {
   const maxBullets = options.maxBullets ?? MAX_RESUME_DRAFT_BULLETS;
   const jdText = options.jobDescription.rawText;
@@ -60,11 +62,14 @@ export function buildResumeDraftGenerationInput(options: {
     toKeywordInput(item, jdText),
   );
   const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(options.enrichment);
-  const { selected, totalBullets, jdTerms } = selectGenerationBullets({
+  const regenerationControls = normalizeRegenerationControls(options.regenerationControls);
+  const { selected, totalBullets, jdTerms, unavailableForcedKeys } = selectGenerationBullets({
     experiences: options.collated.experiences,
     maxBullets,
     jdText,
     acceptedWordingByBulletKey,
+    forcedBulletKeys: regenerationControls.forcedBulletKeys,
+    excludedBulletKeys: regenerationControls.excludedBulletKeys,
   });
 
   const experiences: ResumeDraftGenerationInput["experiences"] =
@@ -132,7 +137,26 @@ export function buildResumeDraftGenerationInput(options: {
       bulletsOmitted: Math.max(0, totalBullets - selected.length),
       bulletsWithAcceptedWording,
       jdTermSample: jdTerms.slice(0, 12),
+      unavailableForcedBulletKeys: unavailableForcedKeys,
     },
+    regenerationControls,
+  };
+}
+
+function normalizeRegenerationControls(
+  controls: ResumeDraftRegenerationControls | undefined,
+): ResumeDraftRegenerationControls {
+  if (!controls) {
+    return { forcedBulletKeys: [], excludedBulletKeys: [] };
+  }
+
+  return {
+    forcedBulletKeys: [
+      ...new Set(controls.forcedBulletKeys.filter((key) => key.trim())),
+    ],
+    excludedBulletKeys: [
+      ...new Set(controls.excludedBulletKeys.filter((key) => key.trim())),
+    ],
   };
 }
 
@@ -141,6 +165,7 @@ export function buildResumeDraftInputSnapshot(options: {
   referenceResume: ParsedResume;
   enrichment: EnrichmentState;
   collated: CollatedInventory;
+  regenerationControls?: ResumeDraftRegenerationControls;
   generatedAtRequest?: string;
 }): ResumeDraftInputSnapshot {
   const approved = filterApprovedKeywords(options.enrichment);
@@ -162,6 +187,7 @@ export function buildResumeDraftInputSnapshot(options: {
       educationCount: options.collated.educationItems.length,
       skillCount: options.collated.skillItems.length,
     },
+    regenerationControls: normalizeRegenerationControls(options.regenerationControls),
     generatedAtRequest: options.generatedAtRequest ?? new Date().toISOString(),
   };
 }
@@ -171,6 +197,7 @@ export function buildResumeDraftPayloadFromInventory(options: {
   jobDescription: StoredJobDescription;
   referenceResumeId: string;
   maxBullets?: number;
+  regenerationControls?: ResumeDraftRegenerationControls;
 }): {
   generationInput: ResumeDraftGenerationInput;
   inputSnapshot: ResumeDraftInputSnapshot;
@@ -183,19 +210,21 @@ export function buildResumeDraftPayloadFromInventory(options: {
     throw new Error("Reference resume not found in inventory.");
   }
 
-  const collated = buildCollatedInventory(options.inventory);
+  const collated = buildActiveCollatedInventory(options.inventory);
   const generationInput = buildResumeDraftGenerationInput({
     collated,
     enrichment: options.inventory.enrichment,
     jobDescription: options.jobDescription,
     referenceResume,
     maxBullets: options.maxBullets,
+    regenerationControls: options.regenerationControls,
   });
   const inputSnapshot = buildResumeDraftInputSnapshot({
     jobDescription: options.jobDescription,
     referenceResume,
     enrichment: options.inventory.enrichment,
     collated,
+    regenerationControls: options.regenerationControls,
   });
 
   return {

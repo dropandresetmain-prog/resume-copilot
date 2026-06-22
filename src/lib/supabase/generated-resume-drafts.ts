@@ -172,6 +172,8 @@ export async function getGeneratedResumeDraftForUser(
 
 export type UpdateGeneratedResumeDraftInput = {
   content: ResumeDraftContent;
+  rationale?: ResumeDraftRationale;
+  inputSnapshot?: ResumeDraftInputSnapshot;
   status?: string;
 };
 
@@ -187,13 +189,23 @@ export async function updateGeneratedResumeDraftInCloud(
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();
 
+  const updatePayload: Record<string, unknown> = {
+    content: input.content,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.status !== undefined) {
+    updatePayload.status = input.status;
+  }
+  if (input.rationale !== undefined) {
+    updatePayload.rationale = input.rationale;
+  }
+  if (input.inputSnapshot !== undefined) {
+    updatePayload.input_snapshot = input.inputSnapshot;
+  }
+
   const { data, error } = await supabase
     .from("generated_resume_drafts")
-    .update({
-      content: input.content,
-      status: input.status,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", id)
     .eq("user_id", user.id)
     .select("*")

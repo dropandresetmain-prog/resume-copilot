@@ -357,6 +357,9 @@ function SuggestionCard({
         {suggestion.acceptedWording ? (
           <ReviewSection title="Accepted derived wording">
             <p className="leading-6">{suggestion.acceptedWording}</p>
+            <p className="mt-2 text-xs text-zinc-500">
+              Accepted wording is used as preferred phrasing during resume generation.
+            </p>
           </ReviewSection>
         ) : null}
 

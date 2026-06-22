@@ -111,7 +111,7 @@ export function CollatedInventoryView({ collated }: CollatedInventoryViewProps) 
   return (
     <SetupCard
       title="Collated inventory"
-      description="Merged across all uploaded resumes. Repeated items show multiple source files."
+      description="Merged across uploaded resumes. Excluded bullets are hidden here; use Edit Bullets to restore."
     >
       <div className="mt-4 space-y-4">
         <CollapsibleSection

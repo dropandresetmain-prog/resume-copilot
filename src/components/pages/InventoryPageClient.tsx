@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView";
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
+import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
 import { ViewTabs } from "@/components/setup/ui";
 
@@ -22,12 +23,13 @@ export function InventoryPageClient() {
     handleSuggestionStatus,
     handleResolveSuggestion,
     handleDuplicateGroupStatus,
+    handleSaveInventoryEdits,
   } = useWorkspace();
 
   return (
     <>
       <PageHeader
-        milestone="v0.4.4 · Inventory"
+        milestone="v0.7.7 · Inventory"
         title="Career inventory"
         description="Review your collated experience, run AI enrichment on new or changed items, and manage approved keywords."
       />
@@ -50,6 +52,12 @@ export function InventoryPageClient() {
 
       {activeTab === "collated" ? (
         <CollatedInventoryView collated={collated} />
+      ) : activeTab === "edit" ? (
+        <InventoryEditPanel
+          key={JSON.stringify(inventory.edits ?? {})}
+          inventory={inventory}
+          onSaveEdits={handleSaveInventoryEdits}
+        />
       ) : (
         <SourceResumesView resumes={inventory.resumes} />
       )}

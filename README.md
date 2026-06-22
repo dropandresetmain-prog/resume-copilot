@@ -1,6 +1,6 @@
 # Career Resume Copilot
 
-**v0.7.6 — Generation Input Quality Foundation**
+**v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
 
 Tailor one-page resumes from your career inventory and job descriptions, preview layout, **pass server one-page PDF validation on Approve**, and download **PDF** (primary final deliverable) or **DOCX** (editable secondary output). Supabase is the source of truth for inventory, drafts, and exported files.
 

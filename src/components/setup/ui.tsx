@@ -133,11 +133,12 @@ export function ViewTabs({
   activeTab,
   onChange,
 }: {
-  activeTab: "collated" | "source";
-  onChange: (tab: "collated" | "source") => void;
+  activeTab: "collated" | "edit" | "source";
+  onChange: (tab: "collated" | "edit" | "source") => void;
 }) {
   const tabs = [
     { id: "collated" as const, label: "Collated Inventory" },
+    { id: "edit" as const, label: "Edit Bullets" },
     { id: "source" as const, label: "Source Resumes / Debug" },
   ];
 

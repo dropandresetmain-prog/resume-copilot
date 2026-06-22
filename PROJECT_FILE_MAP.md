@@ -143,8 +143,14 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/ai/resume-draft-provider.ts` | Resume draft provider selection |
 | `src/lib/ai/resume-draft-mock.ts` | Mock resume draft provider |
 | `src/lib/ai/resume-draft-gemini.ts` | Gemini resume draft provider |
-| `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot (v0.7.6 ranked bullets) |
-| `src/lib/resume-draft/bullet-payload.ts` | Bullet ranking/cap selection for generation input (v0.7.6) |
+| `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot (v0.7.7 edits + regen controls) |
+| `src/components/setup/InventoryEditPanel.tsx` | Edit/hide inventory bullets overlay (v0.7.7) |
+| `src/components/resume-drafts/ResumeEvidenceRegenerationPanel.tsx` | Evidence inspect + regenerate controls (v0.7.7) |
+| `src/lib/inventory/edits.ts` | Inventory edit overlay helpers (v0.7.7) |
+| `src/lib/inventory/active-collated.ts` | Active collated view for generation (v0.7.7) |
+| `src/lib/resume-draft/regeneration.ts` | Regeneration feasibility + source key helpers (v0.7.7) |
+| `src/types/inventory-edits.ts` | `InventoryEdits` overlay type (v0.7.7) |
+| `src/lib/resume-draft/bullet-payload.ts` | Bullet ranking/cap/force/exclude selection (v0.7.7) |
 | `src/lib/resume-draft/enrichment-wording.ts` | Accepted enrichment wording lookup by bulletKey (v0.7.6) |
 | `src/lib/resume-draft/prompt.ts` | Resume draft generation prompt |
 | `src/lib/resume-draft/parse.ts` | Parse and map model JSON |
@@ -221,7 +227,8 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `scripts/verify-jd.ts` | JD pure helpers + JSON round-trip (test helpers) |
 | `scripts/verify-files.ts` | File hash + metadata |
 | `scripts/verify-resume-draft.ts` | Resume draft payload, prompt, parser (no live AI/Supabase) |
-| `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.6) |
+| `scripts/verify-inventory-edits.ts` | Hidden/edited overlay + regeneration payload (v0.7.7) |
+| `scripts/verify-generation-payload.ts` | Accepted wording, bullet ranking/cap, keyword rules (v0.7.7) |
 | `scripts/verify-resume-draft-review.ts` | Draft review state + preview apply (4B) |
 | `scripts/verify-resume-draft-layout.ts` | Layout order, fit score, keyword bullets (v0.5.1+) |
 | `scripts/verify-resume-docx-export.ts` | Document model + filename + DOCX buffer tests (v0.6.0) |

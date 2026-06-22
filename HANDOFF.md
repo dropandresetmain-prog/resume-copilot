@@ -2,9 +2,13 @@
 
 ## Current milestone
 
-**v0.7.6 — Generation Input Quality Foundation**
+**v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
 
-Generation payload now includes accepted enrichment wording per bullet, ranked bullet selection (recent/source-backed/JD-overlap before cap), advisory keyword bank distinction, and optional `selectionAudit` in rationale.
+Non-destructive inventory edit overlay (`hiddenBulletKeys`, `editedBulletTextByBulletKey`), Edit Bullets tab on Inventory, evidence/regeneration panel on resume preview, regeneration updates the same draft row.
+
+## v0.7.6 highlights
+
+Generation payload includes accepted enrichment wording, ranked bullet selection, advisory keywords, optional `selectionAudit`.
 
 ## v0.7.5 highlights
 
@@ -44,7 +48,8 @@ If layout changes after approval → status `layout_changed` → re-approve (re-
 | Milestone | Status |
 |-----------|--------|
 | v0.7.1 — Layout defaults & LLM guardrails | Complete |
-| **v0.7.6 — Generation input quality** | **Current** |
+| **v0.7.7 — Inventory editing & regeneration** | **Current** |
+| v0.7.6 — Generation input quality | Complete |
 | v0.7.5 — Skills & Interests cleanup | Complete |
 | Cover letter generation | Next (same CTA family) |
 | Online company enrichment | Parked |

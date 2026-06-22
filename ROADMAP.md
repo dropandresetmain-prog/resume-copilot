@@ -4,16 +4,16 @@ Lightweight product roadmap — avoid backlog bloat. See `HANDOFF.md` for curren
 
 ## Current milestone
 
-**v0.7.6 — Generation Input Quality Foundation**
+**v0.7.7 — Inventory Editing MVP & Resume Regeneration Controls**
 
-- Accepted enrichment wording included per bullet in generation payload
-- Bullet cap uses recency + source-backed + JD-overlap ordering (not raw collation order)
-- Prompt distinguishes bullet keywords vs advisory keyword bank vs JD terms
-- Optional `rationale.selectionAudit` for generation traceability
+- Non-destructive `InventoryState.edits` overlay (hide/edit bullets without mutating uploads)
+- Edit Bullets tab + collated view respects active inventory
+- Resume preview: evidence panel, force/exclude bullets, regenerate same draft row
+- Enrichment UI copy for accepted wording → generation
 
 ## Previous
 
-**v0.7.5 — Skills & Interests Cleanup**
+**v0.7.6 — Generation Input Quality Foundation**
 
 - One card: JD paste + base resume + Generate + progress
 - Saved jobs separated by divider below primary action

@@ -11,6 +11,11 @@ export type CollatedBullet = {
   description: string;
   rawTexts: string[];
   sourceCitations: SourceCitation[];
+  /**
+   * Stable key from original collated description before inventory edits.
+   * Set when applying inventory edits at runtime.
+   */
+  inventoryBulletKey?: string;
 };
 
 export type CollatedExperience = {

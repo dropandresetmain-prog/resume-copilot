@@ -29,6 +29,7 @@ const FORBIDDEN_INVENTORY_SAVE_PATTERNS = [
 const DRAFT_EDIT_SOURCE_FILES = [
   "src/components/resume-drafts/ResumeDraftReviewWorkspace.tsx",
   "src/components/pages/ResumePreviewPageClient.tsx",
+  "src/components/resume-drafts/ResumeEvidenceRegenerationPanel.tsx",
   "src/components/pages/ResumeDraftEditPageClient.tsx",
   "src/lib/supabase/generated-resume-drafts.ts",
   "src/lib/resume-draft/review-state.ts",

@@ -43,6 +43,23 @@ export type GenerationBulletSelection = {
   bulletKey: string;
 };
 
+function resolveInventoryBulletKey(
+  experience: CollatedExperience,
+  bullet: CollatedBullet,
+): string {
+  return (
+    bullet.inventoryBulletKey ??
+    buildBulletEnrichmentKey(experience.company, experience.role, bullet.description)
+  );
+}
+
+function isBulletExcluded(
+  bulletKey: string,
+  excludedBulletKeys: ReadonlySet<string> | undefined,
+): boolean {
+  return excludedBulletKeys?.has(bulletKey) ?? false;
+}
+
 export function sortExperiencesForGeneration(
   experiences: readonly CollatedExperience[],
   referenceDate: Date = new Date(),
@@ -77,11 +94,7 @@ function scoreBulletForGeneration(
     acceptedWordingByBulletKey: ReadonlyMap<string, string>;
   },
 ): number {
-  const bulletKey = buildBulletEnrichmentKey(
-    experience.company,
-    experience.role,
-    bullet.description,
-  );
+  const bulletKey = resolveInventoryBulletKey(experience, bullet);
   let score = 0;
 
   if (options.acceptedWordingByBulletKey.has(bulletKey)) {
@@ -125,18 +138,51 @@ export function selectGenerationBullets(options: {
   maxBullets: number;
   jdText: string;
   acceptedWordingByBulletKey: ReadonlyMap<string, string>;
+  forcedBulletKeys?: readonly string[];
+  excludedBulletKeys?: readonly string[];
 }): {
   selected: GenerationBulletSelection[];
   totalBullets: number;
   jdTerms: string[];
+  forcedCount: number;
+  unavailableForcedKeys: string[];
 } {
   const jdTerms = extractJdMatchTerms(options.jdText);
   const sortedExperiences = sortExperiencesForGeneration(options.experiences);
+  const forcedSet = new Set(options.forcedBulletKeys ?? []);
+  const excludedSet = new Set(options.excludedBulletKeys ?? []);
   const selected: GenerationBulletSelection[] = [];
+  const selectedKeys = new Set<string>();
   const totalBullets = options.experiences.reduce(
     (total, experience) => total + experience.bullets.length,
     0,
   );
+
+  const allCandidates: GenerationBulletSelection[] = [];
+  for (const experience of sortedExperiences) {
+    for (const bullet of experience.bullets) {
+      const bulletKey = resolveInventoryBulletKey(experience, bullet);
+      if (isBulletExcluded(bulletKey, excludedSet)) {
+        continue;
+      }
+      allCandidates.push({ experience, bullet, bulletKey });
+    }
+  }
+
+  const candidateByKey = new Map(allCandidates.map((item) => [item.bulletKey, item]));
+  const unavailableForcedKeys = [...forcedSet].filter((key) => !candidateByKey.has(key));
+
+  for (const forcedKey of forcedSet) {
+    if (selected.length >= options.maxBullets) {
+      break;
+    }
+    const candidate = candidateByKey.get(forcedKey);
+    if (!candidate || selectedKeys.has(forcedKey)) {
+      continue;
+    }
+    selected.push(candidate);
+    selectedKeys.add(forcedKey);
+  }
 
   outer: for (const experience of sortedExperiences) {
     const sortedBullets = sortBulletsForGeneration(experience.bullets, experience, {
@@ -149,19 +195,23 @@ export function selectGenerationBullets(options: {
         break outer;
       }
 
-      selected.push({
-        experience,
-        bullet,
-        bulletKey: buildBulletEnrichmentKey(
-          experience.company,
-          experience.role,
-          bullet.description,
-        ),
-      });
+      const bulletKey = resolveInventoryBulletKey(experience, bullet);
+      if (isBulletExcluded(bulletKey, excludedSet) || selectedKeys.has(bulletKey)) {
+        continue;
+      }
+
+      selected.push({ experience, bullet, bulletKey });
+      selectedKeys.add(bulletKey);
     }
   }
 
-  return { selected, totalBullets, jdTerms };
+  return {
+    selected,
+    totalBullets,
+    jdTerms,
+    forcedCount: selected.filter((item) => forcedSet.has(item.bulletKey)).length,
+    unavailableForcedKeys,
+  };
 }
 
 export function groupGenerationBulletsByExperience(

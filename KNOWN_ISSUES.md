@@ -48,6 +48,15 @@
 - **Base resume** = formatting/reference template only; content from inventory.
 - Last-used base resume stored in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`) — no Supabase migration.
 
+## Inventory editing (v0.7.7)
+
+- **Active inventory overlay** on `InventoryState.edits` — does not mutate uploaded source resumes.
+- **Edit Bullets** tab: exclude redundant bullets (e.g. 60+/80+/100+ variants), edit active wording, restore hidden bullets.
+- **Collated view** reflects active inventory (hidden bullets omitted).
+- **Regeneration** on resume preview: inspect `sourceRefs`, exclude generated bullets, force inventory bullets; updates same `generated_resume_drafts` row.
+- **Enrichment accepted wording** copy clarifies it is preferred phrasing during generation.
+- **Parked:** bulk duplicate cleanup automation, canonical metric governance UI, full manual resume editor.
+
 ## Generation input quality (v0.7.6)
 
 - **Accepted wording** from enrichment review is sent per bullet (`acceptedWording`) — inventory source text is preserved separately.
@@ -59,7 +68,7 @@
 ## Generated drafts
 
 - Delete is permanent. Draft edits never mutate inventory.
-- **Draft row policy (v0.7.1):** `createGeneratedResumeDraftInCloud` on AI generate only; layout slider changes update local state and may set `layout_changed` on the **same row** without inserting; Approve persists `exportLayoutSettings` on the **same row**; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet — old drafts may accumulate.
+- **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
 ## Fit score (preview)
 

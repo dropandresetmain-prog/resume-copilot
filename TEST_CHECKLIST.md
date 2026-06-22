@@ -1,20 +1,34 @@
-# Test Checklist — v0.7.6 Generation Input Quality
+# Test Checklist — v0.7.7 Inventory Editing & Regeneration
 
-## Generation payload
+## Automated (`npm run test`)
 
-- [ ] Bullets in Gemini input include `keyword`, `description`, `acceptedWording` (when reviewed), `sourceCitations`, `bulletKey`, `dateRange`
-- [ ] Accepted enrichment wording appears in payload but does not mutate inventory
-- [ ] Recent/current role bullets survive low caps better than legacy collation-order cap
-- [ ] `auditHints` shows cap, included/omitted counts, JD term sample
+- [ ] `test:inventory-edits` — hidden/edited overlay, payload exclusion, stable bulletKey, forced selection
+- [ ] `test:generation-payload` — accepted wording, advisory keywords, hidden bullet exclusion
+- [ ] `test:draft-inventory-safety` — draft/regeneration paths do not save inventory
+- [ ] Full `npm run test` suite passes
 
-## Prompt
+## Inventory editing
 
-- [ ] Distinguishes bullet-level keywords vs advisory `approvedKeywords` vs JD terms
-- [ ] Instructs Gemini to prefer `acceptedWording` when truthful
-- [ ] `rationale.selectionAudit` schema documented in prompt
+- [ ] Inventory → **Edit Bullets** tab lists work experience by company/role
+- [ ] Exclude bullet → labeled “Excluded from generation”; collated view hides it
+- [ ] Restore excluded bullet
+- [ ] Edit bullet wording → active text changes; original shown; source resumes unchanged (Source tab)
+- [ ] Save inventory edits → persists after refresh (signed in)
+- [ ] Enrichment review shows: “Accepted wording is used as preferred phrasing during resume generation.”
 
-## Regression
+## Regeneration
 
-- [ ] Generation validation still passes
-- [ ] Skills & Interests cleanup (v0.7.5) unchanged
-- [ ] Additional experience normalization (v0.7.4) unchanged
+- [ ] Generate resume → preview shows **Evidence & regeneration** panel
+- [ ] Generated bullets show source references when available
+- [ ] Uncheck generated bullet → excluded from next regeneration payload
+- [ ] Force inventory bullet → included in next regeneration
+- [ ] Regenerate updates same draft (not a new row every toggle)
+- [ ] Layout edits still update same draft row
+- [ ] Too many forced bullets shows warning / graceful failure
+
+## Unchanged
+
+- [ ] Skills & Interests cleanup (v0.7.5)
+- [ ] Additional experience normalization (v0.7.4)
+- [ ] One-page server PDF validation on Approve
+- [ ] No cover letters / opportunity intelligence

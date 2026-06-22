@@ -112,6 +112,12 @@ export type ResumeDraftSelectionAudit = {
   approvedKeywordsSkipped?: string[];
 };
 
+/** User-directed evidence selection for resume regeneration. */
+export type ResumeDraftRegenerationControls = {
+  forcedBulletKeys: string[];
+  excludedBulletKeys: string[];
+};
+
 export type ResumeDraftRationale = {
   overall: string;
   toneNotes?: string;
@@ -133,6 +139,7 @@ export type ResumeDraftInputSnapshot = {
     educationCount: number;
     skillCount: number;
   };
+  regenerationControls?: ResumeDraftRegenerationControls;
   generatedAtRequest: string;
 };
 
@@ -182,6 +189,7 @@ export type ResumeDraftGenerationAuditHints = {
   bulletsOmitted: number;
   bulletsWithAcceptedWording: number;
   jdTermSample: string[];
+  unavailableForcedBulletKeys?: string[];
 };
 
 export type ResumeDraftExperienceInput = {
@@ -243,6 +251,7 @@ export type ResumeDraftGenerationInput = {
   }[];
   referenceResume: ResumeDraftReferenceResumeExcerpt;
   auditHints?: ResumeDraftGenerationAuditHints;
+  regenerationControls?: ResumeDraftRegenerationControls;
 };
 
 export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {
