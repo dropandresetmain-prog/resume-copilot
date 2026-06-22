@@ -2,25 +2,21 @@
 
 ## Current milestone
 
-**v0.9.3 — Company Context Generator**
+**v0.9.4 — Auto Company Context + Gemini Resilience**
 
-- Gemini company context from JD + company fields (no web search)
-- Per-application save on `application_records`
-- Generate page: generate / preview / edit / save
-- Resume + cover letter reuse saved context
-- Gemini end-to-end call map (`gemini-call-map.ts`)
+- One-click combined flow auto-generates company context when missing
+- Compact company context UI in Advanced section
+- Shared Gemini retry/backoff + model fallback
+- Company context failure non-blocking
 
 ## Previous
 
+**v0.9.3 — Company Context Generator**
+
 **v0.9.2 — Cover Letter Quality & Quick Revision**
-
-**v0.9.1 — Partial failure recovery**
-
-**v0.9.0 — Application Communication / Cover Letter MVP**
 
 ## Next
 
-- Live company web research API (Investigate Now) — Tavily/Serper/Perplexity deferred
-- Reuse/refresh company context across roles at same company (Park)
-- Structured Evidence Library (parked)
-- Cover letter approve/export parity with resume (optional)
+- Live company web research API (Park)
+- Per-task model tuning based on production metrics (Investigate Now)
+- Reuse context across roles at same company (Park)

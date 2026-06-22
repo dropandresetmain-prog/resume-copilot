@@ -5,14 +5,18 @@ import { useEffect, useState } from "react";
 import {
   formFieldClassName,
   labelClassName,
-  primaryButtonClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
 import {
   buildCompanyContextGenerationRequest,
   requestCompanyContextGeneration,
 } from "@/lib/company-context/client";
+import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
 import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
+import {
+  formatCompanyContextStatusLabel,
+  resolveCompanyContextDisplayStatus,
+} from "@/lib/company-context/status-labels";
 import { validateCompanyContextForSave } from "@/lib/company-context/parse";
 import { ensureJobDescriptionForGeneration, type SaveJobForGenerationHandler } from "@/lib/generate/save-job-for-generation";
 import {
@@ -32,6 +36,9 @@ type CompanyContextEditorPanelProps = {
   companyWebsite: string;
   additionalInstructions: string;
   onSaveJob: SaveJobForGenerationHandler;
+  combinedMode: boolean;
+  lastEnsureStatus?: CompanyContextEnsureStatus;
+  generationWarning?: string | null;
   onSaved?: () => void;
 };
 
@@ -44,10 +51,14 @@ export function CompanyContextEditorPanel({
   companyWebsite,
   additionalInstructions,
   onSaveJob,
+  combinedMode,
+  lastEnsureStatus,
+  generationWarning,
   onSaved,
 }: CompanyContextEditorPanelProps) {
   const [draft, setDraft] = useState<CompanyContext | null>(null);
   const [hasSavedContext, setHasSavedContext] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +91,14 @@ export function CompanyContextEditorPanel({
     return () => {
       cancelled = true;
     };
-  }, [editingJobId]);
+  }, [editingJobId, lastEnsureStatus]);
+
+  const displayStatus = resolveCompanyContextDisplayStatus({
+    savedContext: hasSavedContext ? draft : null,
+    lastEnsureStatus,
+    combinedMode,
+  });
+  const statusLabel = formatCompanyContextStatusLabel(displayStatus);
 
   async function ensureJobAndApplication(): Promise<{
     job: StoredJobDescription;
@@ -95,9 +113,9 @@ export function CompanyContextEditorPanel({
     return { job, applicationId: application.id };
   }
 
-  async function handleGenerate() {
+  async function handleRegenerate() {
     if (!jobForm.rawText.trim()) {
-      setError("Paste a job description before generating company context.");
+      setError("Paste a job description before regenerating company context.");
       return;
     }
     if (!companyNameOverride.trim() && !jobForm.companyName?.trim()) {
@@ -110,7 +128,7 @@ export function CompanyContextEditorPanel({
     setMessage(null);
 
     try {
-      const { job } = await ensureJobAndApplication();
+      const { job, applicationId } = await ensureJobAndApplication();
       const response = await requestCompanyContextGeneration(
         buildCompanyContextGenerationRequest({
           jobDescriptionId: job.id,
@@ -122,9 +140,12 @@ export function CompanyContextEditorPanel({
           additionalInstructions,
         }),
       );
-      setDraft(response);
-      setHasSavedContext(false);
-      setMessage("Company context generated. Review and save before generating resume/cover letter.");
+      const saved = await saveApplicationCompanyContextInCloud(applicationId, response);
+      setDraft(saved.companyContext ?? response);
+      setHasSavedContext(true);
+      setShowEditor(true);
+      setMessage("Company context regenerated and saved.");
+      onSaved?.();
     } catch (generationError) {
       setError(
         generationError instanceof Error
@@ -167,83 +188,88 @@ export function CompanyContextEditorPanel({
   }
 
   return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-medium text-slate-900">Company context</p>
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 lg:col-span-2">
+      <p className="text-sm font-medium text-slate-900">{statusLabel}</p>
       <p className="mt-1 text-xs text-slate-600">
-        Gemini-generated context based on JD and company fields. Review before using. No web
-        search or website scraping.
+        {combinedMode
+          ? "Combined generation auto-creates company context when missing. Gemini uses JD and company fields only — no web search."
+          : "Company context is used for cover letter generation in combined mode."}
       </p>
+
+      {generationWarning ? (
+        <p className="mt-2 text-sm text-amber-900">{generationWarning}</p>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={() => void handleGenerate()}
-          disabled={isGenerating || isSaving}
-          className={primaryButtonClassName}
+          onClick={() => setShowEditor((current) => !current)}
+          className={secondaryButtonClassName}
         >
-          {isGenerating ? "Generating company context…" : "Generate Company Context"}
+          {showEditor ? "Hide preview / edit" : "Preview / Edit Company Context"}
         </button>
         <button
           type="button"
-          onClick={() => void handleSave()}
-          disabled={!draft || isSaving || isGenerating}
+          onClick={() => void handleRegenerate()}
+          disabled={isGenerating || isSaving}
           className={secondaryButtonClassName}
         >
-          {isSaving ? "Saving…" : "Save Company Context"}
+          {isGenerating ? "Regenerating…" : "Regenerate Company Context"}
         </button>
       </div>
 
-      {!hasSavedContext ? (
-        <p className="mt-3 text-sm text-amber-900">
-          No saved company context. Generation will use JD and company fields only.
-        </p>
-      ) : (
-        <p className="mt-3 text-sm text-emerald-900">Company context ready for this application.</p>
-      )}
-
-      {draft ? (
+      {showEditor ? (
         <div className="mt-4 space-y-4">
-          <div>
-            <label htmlFor="company-context-summary" className={labelClassName}>
-              Company summary
-            </label>
-            <textarea
-              id="company-context-summary"
-              value={draft.companySummary}
-              onChange={(event) =>
-                setDraft((current) =>
-                  current ? { ...current, companySummary: event.target.value } : current,
-                )
-              }
-              rows={5}
-              className={formFieldClassName}
-            />
-          </div>
+          {draft ? (
+            <>
+              <div>
+                <label htmlFor="company-context-summary" className={labelClassName}>
+                  Company summary
+                </label>
+                <textarea
+                  id="company-context-summary"
+                  value={draft.companySummary}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current ? { ...current, companySummary: event.target.value } : current,
+                    )
+                  }
+                  rows={5}
+                  className={formFieldClassName}
+                />
+              </div>
 
-          {draft.suggestedNarrativeAngles.length > 0 ? (
-            <div>
-              <p className={labelClassName}>Suggested narrative angles</p>
-              <ul className="mt-2 space-y-2 text-sm text-slate-700">
-                {draft.suggestedNarrativeAngles.map((angle) => (
-                  <li key={angle.angle} className="rounded-md border border-slate-200 bg-white p-3">
-                    <p className="font-medium">{angle.angle}</p>
-                    <p className="mt-1">{angle.relevance}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+              {draft.suggestedNarrativeAngles.length > 0 ? (
+                <div>
+                  <p className={labelClassName}>Suggested narrative angles</p>
+                  <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                    {draft.suggestedNarrativeAngles.map((angle) => (
+                      <li
+                        key={angle.angle}
+                        className="rounded-md border border-slate-200 bg-white p-3"
+                      >
+                        <p className="font-medium">{angle.angle}</p>
+                        <p className="mt-1">{angle.relevance}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
-          {draft.limitations.length > 0 ? (
-            <div>
-              <p className={labelClassName}>Limitations</p>
-              <ul className="mt-1 list-disc pl-5 text-sm text-slate-600">
-                {draft.limitations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={!draft || isSaving || isGenerating}
+                className={secondaryButtonClassName}
+              >
+                {isSaving ? "Saving…" : "Save edits"}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-slate-600">
+              No company context saved yet for this application.
+            </p>
+          )}
         </div>
       ) : null}
 

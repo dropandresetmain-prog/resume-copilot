@@ -1,38 +1,30 @@
-# Test Checklist — v0.9.3 Company Context
+# Test Checklist — v0.9.4 Auto Company Context + Gemini Resilience
 
-## Company context (Generate)
+## One-click combined flow
 
-- [ ] Advanced section shows company context panel with disclaimer (no web search)
-- [ ] **Generate Company Context** requires JD + company name
-- [ ] Generated context is editable (summary, narrative angles visible)
-- [ ] **Save Company Context** persists to application record
-- [ ] Without saved context: message "Generation will use JD and company fields only"
-- [ ] With saved context: message "Company context ready for this application"
-- [ ] Generate resume/cover letter uses saved context (check stronger why-company in letter)
-- [ ] Generate works when company context skipped entirely
+- [ ] Generate Resume & Cover Letter with no saved context → company context auto-generated and saved
+- [ ] Second generate for same application → reuses saved context (no duplicate context call)
+- [ ] Resume only mode → does not auto-generate company context
 
-## Records
+## Failure handling
 
-- [ ] Application card shows Company context ✓ or — none
-- [ ] **Edit company context on Generate page** link opens `/generate?jobId=...`
+- [ ] Simulate company context 503 → resume still generates; warning shown
+- [ ] Cover letter uses JD fallback when context failed
+- [ ] Retry Cover Letter after partial failure → does not regenerate resume or company context
 
-## Cover letter preview
+## Advanced UI
 
-- [ ] Collapsible company context panel when context exists
-- [ ] Edit summary + save updates application record
+- [ ] Company context not in primary card — only in Advanced
+- [ ] Status: Saved / Will auto-generate / Not available
+- [ ] Preview/Edit and Regenerate work manually
 
-## Regression (v0.9.2)
+## Gemini retry
 
-- [ ] 420-word cap, banned phrases, quick revision, export guards
-- [ ] Partial failure recovery (v0.9.1)
-- [ ] Resume generate / approve / export unchanged
+- [ ] Transient 503 on resume/cover letter retries before failing (check logs)
+- [ ] Validation errors fail without endless retry
+
+## Regression
+
+- [ ] v0.9.1 partial failure recovery
+- [ ] v0.9.2 cover letter quality controls
 - [ ] `npm run test` passes
-
-## Schema
-
-- [ ] `supabase db push` applies `20260623_application_company_context_v093.sql`
-
-## Parked
-
-- [ ] Live web company research (Tavily/Serper/Perplexity)
-- [ ] Reuse context across different roles at same company

@@ -34,6 +34,10 @@ import {
 } from "@/lib/generate/save-job-for-generation";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
+import {
+  ensureCompanyContextForGeneration,
+  type CompanyContextEnsureStatus,
+} from "@/lib/company-context/ensure-for-generation";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import {
   fetchResumeDraftProviderStatus,
@@ -111,6 +115,9 @@ export function GenerateTailoredResumeSection({
   const [partialCoverLetterFailure, setPartialCoverLetterFailure] =
     useState<PartialCoverLetterFailure | null>(null);
   const [companyContextEditorKey, setCompanyContextEditorKey] = useState(0);
+  const [companyContextEnsureStatus, setCompanyContextEnsureStatus] =
+    useState<CompanyContextEnsureStatus | undefined>();
+  const [companyContextWarning, setCompanyContextWarning] = useState<string | null>(null);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -179,7 +186,9 @@ export function GenerateTailoredResumeSection({
     await delay(250);
   }
 
-  async function runResumeGeneration(): Promise<ResumeGenerationContext> {
+  async function runResumeGeneration(): Promise<
+    ResumeGenerationContext & { companyContextWarning?: string }
+  > {
     await advanceStage(0);
 
     const savedJob = await ensureJobDescriptionForGeneration(jobForm, {
@@ -189,13 +198,41 @@ export function GenerateTailoredResumeSection({
     });
 
     const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
-    const companyContextForGeneration = applicationRecord.companyContext ?? undefined;
+    let companyContextForGeneration = applicationRecord.companyContext ?? undefined;
+    let contextWarning: string | undefined;
 
     await advanceStage(1);
 
+    if (generateMode === "resume_and_cover_letter") {
+      await advanceStage(2);
+      const ensured = await ensureCompanyContextForGeneration({
+        applicationId: applicationRecord.id,
+        savedContext: applicationRecord.companyContext,
+        job: savedJob,
+        companyNameOverride,
+        country,
+        companyWebsite,
+        additionalInstructions,
+        autoGenerate: true,
+      });
+      setCompanyContextEnsureStatus(ensured.status);
+      if (ensured.companyContext) {
+        companyContextForGeneration = ensured.companyContext;
+      }
+      if (ensured.warning) {
+        contextWarning = ensured.warning;
+        setCompanyContextWarning(ensured.warning);
+      } else {
+        setCompanyContextWarning(null);
+      }
+    } else {
+      setCompanyContextEnsureStatus(undefined);
+      setCompanyContextWarning(null);
+    }
+
     writeLastBaseResumeId(effectiveBaseResumeId);
 
-    await advanceStage(2);
+    await advanceStage(3);
 
     const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
       inventory,
@@ -204,14 +241,14 @@ export function GenerateTailoredResumeSection({
       companyContext: companyContextForGeneration,
     });
 
-    await advanceStage(3);
+    await advanceStage(4);
 
     const response = await requestResumeDraftGeneration({
       ...generationInput,
       inputSnapshot,
     });
 
-    await advanceStage(4);
+    await advanceStage(5);
 
     const resumeDraft = await createGeneratedResumeDraftInCloud({
       jobDescriptionId: savedJob.id,
@@ -231,6 +268,7 @@ export function GenerateTailoredResumeSection({
       applicationId: applicationRecord.id,
       resumeDraft,
       companyContext: companyContextForGeneration,
+      companyContextWarning: contextWarning,
     };
   }
 
@@ -244,7 +282,7 @@ export function GenerateTailoredResumeSection({
   }
 
   async function runCoverLetterGeneration(context: ResumeGenerationContext) {
-    await advanceStage(5);
+    await advanceStage(6);
     return generateAndSaveCoverLetterDraft(
       buildCoverLetterGenerationOptions({
         job: context.savedJob,
@@ -264,6 +302,8 @@ export function GenerateTailoredResumeSection({
     setError(null);
     setDebugRaw(null);
     setPartialCoverLetterFailure(null);
+    setCompanyContextWarning(null);
+    setCompanyContextEnsureStatus(undefined);
     setResumeStatus("generating");
     setCoverLetterStatus(generateMode === "resume_and_cover_letter" ? "pending" : "pending");
     setIsGenerating(true);
@@ -272,6 +312,10 @@ export function GenerateTailoredResumeSection({
     try {
       const context = await runResumeGeneration();
       setResumeStatus("success");
+
+      if (context.companyContextWarning) {
+        setCompanyContextWarning(context.companyContextWarning);
+      }
 
       if (generateMode === "resume_and_cover_letter") {
         setCoverLetterStatus("generating");
@@ -330,7 +374,7 @@ export function GenerateTailoredResumeSection({
     setDebugRaw(null);
     setCoverLetterStatus("generating");
     setIsGenerating(true);
-    setProgressStageIndex(5);
+    setProgressStageIndex(6);
 
     try {
       const application = await getApplicationRecordFromCloud(
@@ -534,6 +578,9 @@ export function GenerateTailoredResumeSection({
                   companyWebsite={companyWebsite}
                   additionalInstructions={additionalInstructions}
                   onSaveJob={onSaveJob}
+                  combinedMode={generateMode === "resume_and_cover_letter"}
+                  lastEnsureStatus={companyContextEnsureStatus}
+                  generationWarning={companyContextWarning}
                   onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
                 />
               </div>
@@ -541,6 +588,12 @@ export function GenerateTailoredResumeSection({
           ) : null}
         </>
       )}
+
+      {companyContextWarning ? (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {companyContextWarning}
+        </p>
+      ) : null}
 
       <p className="mt-3 text-sm text-slate-600">
         Approved keywords available: {approvedKeywordCount}

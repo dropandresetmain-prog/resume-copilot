@@ -159,6 +159,7 @@ function main() {
     ["migration adds company_context", migration.includes("company_context")],
     ["application records save company context", applicationRecords.includes("saveApplicationCompanyContextInCloud")],
     ["generate section wires company context editor", generateSection.includes("CompanyContextEditorPanel")],
+    ["generate auto-ensures company context", generateSection.includes("ensureCompanyContextForGeneration")],
     ["generate passes company context to resume payload", generateSection.includes("companyContext: companyContextForGeneration")],
     ["generate passes saved context to cover letter", generateSection.includes("savedCompanyContext: context.companyContext")],
   ];

@@ -219,7 +219,10 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 
 | File | Purpose |
 |------|---------|
-| `src/lib/company-context/build-company-context.ts` | JD fallback context + company name resolution |
+| `src/lib/ai/call-gemini.ts` | Shared Gemini HTTP + retry/backoff + model fallback (v0.9.4) |
+| `src/lib/ai/config.ts` | `GEMINI_MODEL_PRIMARY` / `GEMINI_MODEL_FALLBACK` env overrides |
+| `src/lib/company-context/ensure-for-generation.ts` | Auto-generate + save when missing (v0.9.4) |
+| `src/lib/company-context/status-labels.ts` | Compact UI status labels (v0.9.4) |
 | `src/lib/company-context/prompt.ts` | Gemini company context prompt (no web search) |
 | `src/lib/company-context/parse.ts` | JSON parse + save validation |
 | `src/lib/company-context/normalize.ts` | Legacy → v0.9.3 shape + prompt formatting |

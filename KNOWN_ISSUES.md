@@ -88,6 +88,12 @@
 - Delete is permanent. Draft edits never mutate inventory.
 - **Draft row policy (v0.7.1+):** `createGeneratedResumeDraftInCloud` on first AI generate; **regenerate** updates same row (`content`, `rationale`, `input_snapshot`, status `generated`); layout slider changes may set `layout_changed`; Approve persists `exportLayoutSettings`; manual content edits use `updateGeneratedResumeDraftInCloud`. No retention cleanup yet.
 
+## Company context (v0.9.4)
+
+- **Auto-generation** in combined mode when application has no saved context.
+- **Failure is non-blocking** — resume/cover letter use JD fallback with warning.
+- **503 / high demand** — retried via `callGeminiWithRetry`; not the same as quota exceeded.
+
 ## Company context (v0.9.3)
 
 - **Gemini only** — no live web search, scraping, or website fetch. Website URL is a naming/industry clue only.

@@ -1,3 +1,5 @@
+import { GEMINI_MODEL_FALLBACK, GEMINI_MODEL_PRIMARY } from "@/lib/ai/config";
+
 export type GeminiCallStep = {
   step: string;
   geminiCall: boolean;
@@ -16,57 +18,59 @@ export const GEMINI_END_TO_END_CALL_MAP: GeminiCallStep[] = [
     geminiCall: true,
     route: "/api/ai/enrich",
     providerFile: "src/lib/ai/gemini.ts",
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL_PRIMARY,
     optional: true,
     persistedTo: "resume_inventories.data.enrichment",
     retryCanDuplicate: true,
-    notes: "User-triggered; batch size affects input tokens.",
+    notes: "Transient HTTP retry via callGeminiWithRetry (503/429/5xx).",
   },
   {
     step: "Company context generation",
     geminiCall: true,
     route: "/api/ai/generate-company-context",
     providerFile: "src/lib/ai/company-context-gemini.ts",
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL_PRIMARY,
     optional: true,
     persistedTo: "application_records.company_context",
     retryCanDuplicate: true,
-    notes: "v0.9.3; JD + company fields only; no web search.",
+    notes: "v0.9.4 auto-runs when missing in combined flow; failure falls back to JD fields.",
   },
   {
     step: "Resume generation",
     geminiCall: true,
     route: "/api/ai/generate-resume",
     providerFile: "src/lib/ai/resume-draft-gemini.ts",
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL_PRIMARY,
     optional: false,
     persistedTo: "generated_resume_drafts",
     retryCanDuplicate: true,
-    notes: "Large payload (inventory bullets); uses saved company context when present.",
+    notes: "Large payload; transient HTTP retry via callGeminiWithRetry.",
   },
   {
     step: "Cover letter generation",
     geminiCall: true,
     route: "/api/ai/generate-cover-letter",
     providerFile: "src/lib/ai/cover-letter-gemini.ts",
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL_PRIMARY,
     optional: false,
     persistedTo: "generated_cover_letter_drafts",
     retryCanDuplicate: true,
-    notes: "May retry once on word-count/banned-phrase validation failure.",
+    notes: "HTTP retry + optional validation compression retry.",
   },
   {
     step: "Cover letter revision",
     geminiCall: true,
     route: "/api/ai/revise-cover-letter",
     providerFile: "src/lib/ai/revise-cover-letter-gemini.ts",
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL_PRIMARY,
     optional: true,
     persistedTo: "generated_cover_letter_drafts.body",
     retryCanDuplicate: true,
-    notes: "Quick adjustment buttons; may retry compression once.",
+    notes: "Quick revision; HTTP retry + optional compression retry.",
   },
 ];
+
+export const GEMINI_MODEL_FALLBACK_NOTE = `Fallback model after transient failures: ${GEMINI_MODEL_FALLBACK}`;
 
 export function countGeminiCallsForFlow(flow: {
   enrichment?: boolean;
