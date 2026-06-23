@@ -2,7 +2,13 @@
 
 ## Current version
 
-**v0.9.11D** (code)
+**v0.9.11E** (code)
+
+## v0.9.11E implementation note
+
+Live Package/Cover Letter UX Fixes closes four user-visible defects found in audit: (1) mojibake `Saving…` text in the Cover Letter editor, (2) the Application Review Center now always provides a cover letter fix path — "Edit cover letter" when one exists, "Go to cover letter" anchor when missing, (3) the package sticky rail no longer renders the "Research" anchor when no company context exists, (4) the Cover Letter editor save model is clarified — Save changes is primary only when Raw Text is active or unsaved changes exist, export actions are visually secondary, and the helper copy now accurately states that quick revisions are saved automatically.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no route changes.
 
 ## v0.9.11D implementation note
 
@@ -18,9 +24,9 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## Latest milestone (code)
 
-**v0.9.11D - Action Placement and Workflow Surface Redesign**
+**v0.9.11E - Live Package/Cover Letter UX Fixes**
 
-Focused workflow-surface pass across the existing route set. Route URLs and runtime source-of-truth behavior remain unchanged while action placement now clarifies one primary action per major page, separates export/edit/revision/notes lanes, and improves mobile button stacking.
+Targeted defect-fix pass on the Package and Cover Letter surfaces. Closes four audit-identified issues: mojibake text, missing cover letter action path in Review Center, dead Research rail anchor, and misleading save/edit model copy. No route, schema, or generation behavior changes.
 
 Remaining workflow features are parked: recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD.
 
@@ -28,6 +34,7 @@ Remaining workflow features are parked: recruiter/confidential-client mode, forc
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11E | Live Package/Cover Letter UX fixes — mojibake, review cover-letter path, rail anchors, save model |
 | v0.9.11D | Action placement and workflow surfaces - Generate, Package, Cover Letter, Applications |
 | v0.9.11C | UI/UX redesign foundation - shell, page structure, package rail, A4 preview polish |
 | v0.9.11B | IA cleanup — nav order, label renames, Generate advanced demotion, package action/developer hierarchy, merged Uploads list |

@@ -59,8 +59,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11D"')],
-    ["package json version", packageJson.includes('"version": "0.9.11D"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11E"')],
+    ["package json version", packageJson.includes('"version": "0.9.11E"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -111,10 +111,14 @@ function main() {
     ["draft delete keeps list on error", draftHistory.includes("actionError") && draftHistory.includes("role=\"alert\"")],
     ["records open package when cover letter missing", recordsPanel.includes("Open package")],
     ["cover letter unsaved hint", coverLetterPreview.includes("hasUnsavedBodyChanges")],
+    ["cover letter no mojibake in save button", !coverLetterPreview.includes("Savingâ€¦") && coverLetterPreview.includes("Saving\u2026")],
+    ["cover letter save disabled when no unsaved changes", coverLetterPreview.includes("!hasUnsavedBodyChanges")],
+    ["cover letter save primary only in raw or with unsaved changes", coverLetterPreview.includes("bodyView === \"raw\" || hasUnsavedBodyChanges")],
+    ["cover letter pdf hint clarifies revisions are auto-saved", coverLetterPreview.includes("Quick revisions (below) are saved")],
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
     [
-      "v0.9.11D parked follow-ups documented",
+      "v0.9.11E parked follow-ups documented",
       handoff.includes("Recruiter/confidential-client mode") &&
         handoff.includes("Inventory CRUD") &&
         roadmap.includes("recruiter/confidential-client mode") &&

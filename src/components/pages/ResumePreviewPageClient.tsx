@@ -449,13 +449,13 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
       <div className="space-y-6">
         <div className="sticky top-[6.75rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur">
-          {[
+          {([
             ["Resume", "#package-resume"],
             ["Cover letter", "#package-cover-letter"],
-            ["Research", "#package-research"],
+            ...(companyContext ? [["Research", "#package-research"]] : []),
             ["Edit", "#package-edit"],
             ["Details", "#package-details"],
-          ].map(([label, href]) => (
+          ] as [string, string][]).map(([label, href]) => (
             <a
               key={href}
               href={href}

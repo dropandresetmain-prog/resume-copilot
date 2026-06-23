@@ -207,7 +207,11 @@ export function ApplicationReviewCenter({
           >
             Edit cover letter
           </Link>
-        ) : null}
+        ) : (
+          <a href="#package-cover-letter" className={secondaryButtonClassName}>
+            Go to cover letter
+          </a>
+        )}
       </div>
 
       <div className="mt-4 space-y-3">

@@ -222,10 +222,10 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             <button
               type="button"
               onClick={() => void handleSave()}
-              disabled={isSaving}
-              className={`${primaryButtonClassName} w-full sm:w-auto`}
+              disabled={isSaving || !hasUnsavedBodyChanges}
+              className={`${bodyView === "raw" || hasUnsavedBodyChanges ? primaryButtonClassName : secondaryButtonClassName} w-full sm:w-auto`}
             >
-              {isSaving ? "Savingâ€¦" : "Save changes"}
+              {isSaving ? "Saving…" : "Save changes"}
             </button>
               </div>
             </div>
@@ -253,8 +253,8 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
 
         {bodyView === "pdf" ? (
           <p className="mt-3 text-sm text-slate-600">
-            Switch to Raw Text to edit manually. PDF Preview reflects the current letter text,
-            including quick revisions before save.
+            Switch to Raw Text to edit manually and save. Quick revisions (below) are saved
+            automatically — manual edits require the Save changes button.
           </p>
         ) : null}
         {saveMessage ? <p className="mt-3 text-sm text-emerald-800">{saveMessage}</p> : null}

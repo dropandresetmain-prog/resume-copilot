@@ -45,7 +45,8 @@
 - **Generate** creates or reuses `application_records` per `job_description_id`; links drafts via `application_id`.
 - Post-generate navigation lands on **application package** (`/resume-preview/{id}`).
 - **Draft History** shows only drafts without `application_id` (legacy/unlinked).
-- **Post-generation editing flow remains structurally heavy** (v0.9.11D): action placement is clearer, but resume edit, cover letter edit, revision, approval, and export still need a deeper workflow redesign.
+- **Package Review Center** (v0.9.11E) always surfaces a cover letter action path: "Edit cover letter" when a cover letter exists, "Go to cover letter" anchor to the package section when missing.
+- **Post-generation editing flow remains structurally heavy** (v0.9.11D/E): action placement and surface clarity improved, but resume edit, cover letter edit, revision, approval, and export still need a deeper workflow redesign.
 - **Parked:** lazy backfill for old drafts, kanban, apply tracking UI.
 
 ## Resume structure auto-repair (v0.9.8B)

@@ -68,6 +68,10 @@ function main() {
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
     ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],
     ["edit toggle before developer details", editToggleIndex < developerIndex],
+    ["review center shows go to cover letter when no coverLetterId", reviewCenter.includes("Go to cover letter") && reviewCenter.includes("#package-cover-letter")],
+    ["review center always has cover letter action", reviewCenter.includes("Edit cover letter") && reviewCenter.includes("Go to cover letter")],
+    ["package rail research is conditional on companyContext", resumePreview.includes("companyContext ? [[\"Research\"") || resumePreview.includes("companyContext ? [") && resumePreview.includes('"Research"') && resumePreview.includes('"#package-research"')],
+    ["package rail research not hardcoded", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
   ];
 
   for (const [name, ok] of checks) {

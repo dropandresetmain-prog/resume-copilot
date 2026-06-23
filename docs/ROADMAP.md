@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11D**
+**v0.9.11E**
 
 ## Completed capabilities
 
@@ -27,8 +27,17 @@
 | IA cleanup | v0.9.11B |
 | UI/UX redesign foundation | v0.9.11C |
 | Action placement and workflow surfaces | v0.9.11D |
+| Live Package/Cover Letter UX fixes | v0.9.11E |
 
 ## Milestone log (recent)
+
+### v0.9.11E - Live Package/Cover Letter UX Fixes
+
+- Fixed mojibake `Saving…` text in Cover Letter editor save button.
+- Application Review Center now always provides a cover letter action: "Edit cover letter" when one exists, "Go to cover letter" anchor to the package section when missing.
+- Package sticky rail now conditionally renders the "Research" item — only shown when company context exists, eliminating dead anchors.
+- Cover Letter editor save model clarified: Save changes is primary only when Raw Text is selected or unsaved manual edits exist; disabled otherwise. Helper copy accurately states quick revisions are auto-saved.
+- No route, Supabase schema, generation, export/approval, or model ID changes.
 
 ### v0.9.11D - Action Placement and Workflow Surface Redesign
 
