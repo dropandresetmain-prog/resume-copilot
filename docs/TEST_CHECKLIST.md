@@ -16,6 +16,16 @@ Run `npm run test`, `npm run lint`, `npm run build` before manual QA.
 
 ---
 
+## v0.9.11D Action Placement QA
+
+- [ ] Generate has one obvious primary Generate action; advanced and saved-job controls read as secondary
+- [ ] Application Package separates approve/export from edit/research actions
+- [ ] Cover Letter editor separates edit view, save, export, and revision shortcuts
+- [ ] Applications cards show Open package as the primary card action, with status and notes visually secondary
+- [ ] Mobile action bars stack cleanly without clipped or awkwardly wrapped button text
+
+---
+
 ## Company research
 
 - [ ] Generate with company website in Advanced — Firecrawl research runs (or mock/JD fallback without key)

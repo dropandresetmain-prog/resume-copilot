@@ -5,9 +5,11 @@ import { useState } from "react";
 import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import {
+  actionBarClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
+  secondaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -136,20 +138,25 @@ export function CoverLetterQuickRevisionPanel({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className={`mt-4 ${actionBarClassName}`}>
+        <p className="text-xs font-semibold uppercase text-slate-500">
+          Revision shortcuts
+        </p>
+        <div className={`${secondaryActionGroupClassName} mt-3`}>
         {QUICK_REVISION_ACTIONS.map((action) => (
           <button
             key={action}
             type="button"
             disabled={disabled || isRevising}
             onClick={() => void runRevision(action)}
-            className={secondaryButtonClassName}
+            className={`${secondaryButtonClassName} sm:w-auto`}
           >
             {isRevising && activeAction === action
               ? "Revising…"
               : COVER_LETTER_REVISION_ACTION_LABELS[action]}
           </button>
         ))}
+        </div>
       </div>
 
       <div className="mt-4">
@@ -168,7 +175,7 @@ export function CoverLetterQuickRevisionPanel({
           type="button"
           disabled={disabled || isRevising || !customInstruction.trim()}
           onClick={() => void runRevision("custom", customInstruction)}
-          className={`mt-2 ${primaryButtonClassName}`}
+          className={`mt-2 w-full sm:w-auto ${primaryButtonClassName}`}
         >
           {isRevising && activeAction === "custom" ? "Revising…" : "Apply custom revision"}
         </button>

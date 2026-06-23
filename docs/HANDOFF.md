@@ -2,7 +2,13 @@
 
 ## Current version
 
-**v0.9.11C** (code)
+**v0.9.11D** (code)
+
+## v0.9.11D implementation note
+
+Action Placement and Workflow Surface Redesign is the latest code milestone. It keeps the v0.9.11C shell and route structure, but separates primary, secondary, export, edit, revision, notes, and destructive action lanes across Generate, Application Package, Cover Letter, Applications, and saved-job surfaces.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no source-of-truth changes. Recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD remain parked/follow-up.
 
 ## v0.9.11C implementation note
 
@@ -12,9 +18,9 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## Latest milestone (code)
 
-**v0.9.11C - UI/UX Redesign Foundation**
+**v0.9.11D - Action Placement and Workflow Surface Redesign**
 
-Broad UI/UX foundation pass across the existing route set. Route URLs and runtime source-of-truth behavior remain unchanged while the shell, page hierarchy, action bars, secondary drawers, package rail, and preview containers now support the v0.9.11C workflow direction.
+Focused workflow-surface pass across the existing route set. Route URLs and runtime source-of-truth behavior remain unchanged while action placement now clarifies one primary action per major page, separates export/edit/revision/notes lanes, and improves mobile button stacking.
 
 Remaining workflow features are parked: recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD.
 
@@ -22,6 +28,7 @@ Remaining workflow features are parked: recruiter/confidential-client mode, forc
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11D | Action placement and workflow surfaces - Generate, Package, Cover Letter, Applications |
 | v0.9.11C | UI/UX redesign foundation - shell, page structure, package rail, A4 preview polish |
 | v0.9.11B | IA cleanup — nav order, label renames, Generate advanced demotion, package action/developer hierarchy, merged Uploads list |
 | v0.9.11A | UX quick wins — alerts, labels, approve dedup, version sync |
@@ -109,6 +116,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.11C — IA restructure candidates** are parked for approval: package tabs, Applications spine restructure, Inventory IA redesign, and Cover Letter hierarchy demotion.
+**v0.9.11D — deeper workflow redesign candidates** are parked for approval: post-generation review/edit/export flow consolidation, stronger package tabs or stepper, dedicated resume edit command model, cover letter revision hierarchy, Applications spine restructure, Inventory IA redesign, and Cover Letter hierarchy demotion.
 
 Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

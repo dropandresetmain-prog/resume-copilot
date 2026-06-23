@@ -27,9 +27,11 @@ import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 import {
   EmptyState,
+  actionBarClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
+  primaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -294,6 +296,30 @@ export function ApplicationRecordsPanel({
                   </p>
                 ) : null}
 
+                {latestDraft ? (
+                  <div className={`mt-4 ${actionBarClassName}`}>
+                    <p className="text-xs font-semibold uppercase text-cyan-800">
+                      Primary action
+                    </p>
+                    <div className={`${primaryActionGroupClassName} mt-2`}>
+                      <Link
+                        href={`/resume-preview/${latestDraft.id}`}
+                        className={`${primaryButtonClassName} w-full sm:w-auto`}
+                      >
+                        Open package
+                      </Link>
+                      {latestCoverLetter ? (
+                        <Link
+                          href={`/cover-letter-preview/${latestCoverLetter.id}`}
+                          className={secondaryButtonClassName}
+                        >
+                          Edit cover letter
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div>
                     <label
@@ -327,7 +353,7 @@ export function ApplicationRecordsPanel({
                   </div>
 
                   <div>
-                    <p className={labelClassName}>Linked resume draft</p>
+                    <p className={labelClassName}>Artifacts</p>
                     {latestDraft ? (
                       <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                         <p className="text-sm text-slate-800">
@@ -339,9 +365,9 @@ export function ApplicationRecordsPanel({
                         </p>
                         <Link
                           href={`/resume-preview/${latestDraft.id}`}
-                          className={`mt-2 inline-flex ${secondaryButtonClassName}`}
+                          className={`mt-2 ${secondaryButtonClassName}`}
                         >
-                          Open latest draft
+                          Open draft details
                         </Link>
                       </div>
                     ) : (
@@ -350,22 +376,15 @@ export function ApplicationRecordsPanel({
                     {latestCoverLetter ? (
                       <Link
                         href={`/cover-letter-preview/${latestCoverLetter.id}`}
-                        className={`mt-2 inline-flex ${secondaryButtonClassName}`}
+                        className={`mt-2 ${secondaryButtonClassName}`}
                       >
                         Open formal cover letter
-                      </Link>
-                    ) : latestDraft ? (
-                      <Link
-                        href={`/resume-preview/${latestDraft.id}`}
-                        className={`mt-2 inline-flex ${secondaryButtonClassName}`}
-                      >
-                        Open package
                       </Link>
                     ) : null}
                   </div>
                 </div>
 
-                <div className="mt-4">
+                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
                   <label htmlFor={`application-notes-${application.id}`} className={labelClassName}>
                     Notes
                   </label>
@@ -383,7 +402,7 @@ export function ApplicationRecordsPanel({
                     type="button"
                     onClick={() => void handleSaveNotes(application)}
                     disabled={state.isSavingNotes}
-                    className={`mt-2 ${primaryButtonClassName}`}
+                    className={`mt-2 w-full sm:w-auto ${secondaryButtonClassName}`}
                   >
                     {state.isSavingNotes ? "Saving notes…" : "Save notes"}
                   </button>

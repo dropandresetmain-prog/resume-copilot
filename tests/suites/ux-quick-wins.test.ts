@@ -59,8 +59,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11C"')],
-    ["package json version", packageJson.includes('"version": "0.9.11C"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11D"')],
+    ["package json version", packageJson.includes('"version": "0.9.11D"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -99,6 +99,7 @@ function main() {
       "setup card variants",
       ui.includes('variant?: "primary" | "secondary" | "muted"') &&
         ui.includes("variantClassName") &&
+        ui.includes("actionBarClassName") &&
         uploadCard.includes('variant="primary"') &&
         summaryCards.includes('variant="muted"'),
     ],
@@ -113,7 +114,7 @@ function main() {
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
     [
-      "v0.9.11C parked follow-ups documented",
+      "v0.9.11D parked follow-ups documented",
       handoff.includes("Recruiter/confidential-client mode") &&
         handoff.includes("Inventory CRUD") &&
         roadmap.includes("recruiter/confidential-client mode") &&

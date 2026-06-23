@@ -45,6 +45,7 @@
 - **Generate** creates or reuses `application_records` per `job_description_id`; links drafts via `application_id`.
 - Post-generate navigation lands on **application package** (`/resume-preview/{id}`).
 - **Draft History** shows only drafts without `application_id` (legacy/unlinked).
+- **Post-generation editing flow remains structurally heavy** (v0.9.11D): action placement is clearer, but resume edit, cover letter edit, revision, approval, and export still need a deeper workflow redesign.
 - **Parked:** lazy backfill for old drafts, kanban, apply tracking UI.
 
 ## Resume structure auto-repair (v0.9.8B)

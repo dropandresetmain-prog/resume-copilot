@@ -5,10 +5,12 @@ import { useRef, useState } from "react";
 import {
   EmptyState,
   SetupCard,
+  actionBarClassName,
   destructiveButtonClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
+  secondaryActionGroupClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
 import {
@@ -385,13 +387,13 @@ export function JDInputPanel({
             <p className="text-sm text-amber-800">{duplicateWarning}</p>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {showSaveButton ? (
               <button
                 type="button"
                 onClick={handleSave}
                 disabled={disabled || isSaving}
-                className={primaryButtonClassName}
+                className={`${primaryButtonClassName} sm:w-auto`}
               >
                 {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
               </button>
@@ -400,7 +402,7 @@ export function JDInputPanel({
               type="button"
               onClick={clearForm}
               disabled={disabled}
-              className={secondaryButtonClassName}
+              className={`${secondaryButtonClassName} sm:w-auto`}
             >
               {editingId && !showIntakeForm ? "Cancel edit" : "Clear form"}
             </button>
@@ -432,11 +434,16 @@ export function JDInputPanel({
           }
         >
           {generateFlow ? (
-            <details className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
-              <summary className="cursor-pointer text-sm font-medium text-slate-800">
-                Saved jobs and legacy management
+            <details className={actionBarClassName}>
+              <summary className="cursor-pointer list-none text-sm font-medium text-slate-800 marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Saved jobs and legacy management</span>
+                  <span className="text-xs font-normal text-slate-500">
+                    Secondary workspace
+                  </span>
+                </span>
               </summary>
-              <div className="mt-4">{savedJobsContent}</div>
+              <div className={`mt-4 ${secondaryActionGroupClassName}`}>{savedJobsContent}</div>
             </details>
           ) : (
             savedJobsContent

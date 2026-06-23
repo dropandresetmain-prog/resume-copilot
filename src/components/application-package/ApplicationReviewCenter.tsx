@@ -3,7 +3,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { primaryButtonClassName, secondaryButtonClassName } from "@/components/setup/ui";
+import {
+  actionBarClassName,
+  primaryActionGroupClassName,
+  primaryButtonClassName,
+  secondaryActionGroupClassName,
+  secondaryButtonClassName,
+} from "@/components/setup/ui";
 import type {
   ApplicationReviewOverallStatus,
   ApplicationReviewStatus,
@@ -158,33 +164,46 @@ export function ApplicationReviewCenter({
         </p>
       </div>
 
-      <div
-        className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:flex-row sm:flex-wrap sm:items-end"
-        data-section="resume-approve-export"
-      >
-        <button
-          type="button"
-          onClick={onApproveForExport}
-          disabled={isApproving || !canApprove}
-          className={primaryButtonClassName}
-          data-action="review-approve-export"
-        >
-          {approveButtonLabel}
-        </button>
-        {exportControls}
+      <div className={`mt-4 ${actionBarClassName}`} data-section="resume-approve-export">
+        <div className="grid gap-4 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase text-cyan-800">
+              Primary action
+            </p>
+            <button
+              type="button"
+              onClick={onApproveForExport}
+              disabled={isApproving || !canApprove}
+              className={`${primaryButtonClassName} mt-2 w-full`}
+              data-action="review-approve-export"
+            >
+              {approveButtonLabel}
+            </button>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase text-slate-500">
+              Export after approval
+            </p>
+            <div className={`${primaryActionGroupClassName} mt-2`}>{exportControls}</div>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className={`mt-4 ${secondaryActionGroupClassName}`}>
+        <p className="text-xs font-semibold uppercase text-slate-500 sm:w-full">
+          Edit and research
+        </p>
         <Link
           href={`/resume-preview/${resumeDraftId}/edit`}
-          className={`inline-flex ${secondaryButtonClassName}`}
+          className={secondaryButtonClassName}
         >
           Edit resume
         </Link>
         {coverLetterId ? (
           <Link
             href={`/cover-letter-preview/${coverLetterId}`}
-            className={`inline-flex ${secondaryButtonClassName}`}
+            className={secondaryButtonClassName}
           >
             Edit cover letter
           </Link>

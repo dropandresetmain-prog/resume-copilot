@@ -10,6 +10,8 @@ import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResume
 import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
+  actionBarClassName,
+  secondaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -675,17 +677,26 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
         <div id="package-edit" className="scroll-mt-32">
           {showEditResumeContent ? (
-            <div className="space-y-3">
+            <div className={`${actionBarClassName} space-y-3`}>
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  Resume editing
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Targeted rewrites and text edits live here. Return to review/export above
+                  before downloading.
+                </p>
+              </div>
               <ResumeEvidenceRegenerationPanel
                 draft={draft}
                 inventory={inventory}
                 jobDescription={linkedJob}
                 onDraftUpdated={setDraft}
               />
-              <div className="flex flex-wrap gap-3">
+              <div className={secondaryActionGroupClassName}>
                 <Link
                   href={`/resume-preview/${draftId}/edit`}
-                  className={`inline-flex ${secondaryButtonClassName}`}
+                  className={secondaryButtonClassName}
                 >
                   Open resume text editor
                 </Link>
@@ -699,14 +710,22 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowEditResumeContent(true)}
-              className={secondaryButtonClassName}
-              data-action="edit-resume-content-toggle"
-            >
-              Edit resume content
-            </button>
+            <div className={actionBarClassName}>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Secondary editing
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Open only when the generated content needs targeted changes.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowEditResumeContent(true)}
+                className={`${secondaryButtonClassName} mt-3 w-full sm:w-auto`}
+                data-action="edit-resume-content-toggle"
+              >
+                Edit resume content
+              </button>
+            </div>
           )}
         </div>
 

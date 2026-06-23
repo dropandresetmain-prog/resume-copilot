@@ -17,8 +17,11 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { pageMilestone } from "@/lib/app-version";
 import {
+  actionBarClassName,
   formFieldClassName,
   primaryButtonClassName,
+  primaryActionGroupClassName,
+  secondaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -203,17 +206,34 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} disabled={isSaving} />
-          <div className="flex flex-wrap gap-2">
+        <div className={`mt-4 ${actionBarClassName}`}>
+          <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                Edit view
+              </p>
+              <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} disabled={isSaving} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-cyan-800">
+                Save changes
+              </p>
+              <div className={`${primaryActionGroupClassName} mt-2`}>
             <button
               type="button"
               onClick={() => void handleSave()}
               disabled={isSaving}
-              className={primaryButtonClassName}
+              className={`${primaryButtonClassName} w-full sm:w-auto`}
             >
               {isSaving ? "Savingâ€¦" : "Save changes"}
             </button>
+              </div>
+            </div>
+          </div>
+          <div className={`mt-3 ${secondaryActionGroupClassName}`}>
+            <p className="text-xs font-semibold uppercase text-slate-500 sm:w-full">
+              Export letter
+            </p>
             <DownloadCoverLetterPdfButton draftId={draft.id} disabled={exportBlocked} />
             <DownloadCoverLetterDocxButton draftId={draft.id} disabled={exportBlocked} />
           </div>

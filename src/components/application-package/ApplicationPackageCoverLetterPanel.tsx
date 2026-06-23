@@ -11,7 +11,10 @@ import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdf
 import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
 import {
+  actionBarClassName,
   primaryButtonClassName,
+  primaryActionGroupClassName,
+  secondaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -123,15 +126,22 @@ export function ApplicationPackageCoverLetterPanel({
         <p className="mt-3 text-sm text-slate-600">Loading cover letter…</p>
       ) : coverLetter ? (
         <div className="mt-4 space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
-            <div className="flex flex-wrap gap-2">
+          <div className={actionBarClassName}>
+            <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+              <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
+              <div className={primaryActionGroupClassName}>
               <Link
                 href={`/cover-letter-preview/${coverLetter.id}`}
-                className={primaryButtonClassName}
+                className={`${primaryButtonClassName} w-full sm:w-auto`}
               >
                 Edit cover letter
               </Link>
+              </div>
+            </div>
+            <div className={`mt-3 ${secondaryActionGroupClassName}`}>
+              <p className="text-xs font-semibold uppercase text-slate-500 sm:w-full">
+                Export cover letter
+              </p>
               <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={exportBlocked} />
               <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={exportBlocked} />
             </div>

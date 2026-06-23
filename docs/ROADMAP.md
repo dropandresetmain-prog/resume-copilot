@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11C**
+**v0.9.11D**
 
 ## Completed capabilities
 
@@ -26,8 +26,19 @@
 | UX quick wins | v0.9.11A |
 | IA cleanup | v0.9.11B |
 | UI/UX redesign foundation | v0.9.11C |
+| Action placement and workflow surfaces | v0.9.11D |
 
 ## Milestone log (recent)
+
+### v0.9.11D - Action Placement and Workflow Surface Redesign
+
+- Added shared action surface classes for primary, secondary, export, revision, notes, and destructive lanes.
+- Clarified Generate primary CTA placement and kept advanced/saved-job controls secondary.
+- Reworked Application Package review/export/edit hierarchy without changing approval or export behavior.
+- Separated Cover Letter edit/save/export/revision responsibilities.
+- Added Applications card primary package action and demoted notes/status/details actions.
+- Kept existing route URLs and preserved generation, Supabase persistence, schema, export/approval gates, model IDs, and source-of-truth rules.
+- Parked deeper post-generation workflow redesign and all previously parked product features for later milestones.
 
 ### v0.9.11C - UI/UX Redesign Foundation
 

@@ -43,6 +43,7 @@ function main() {
     ["approve export before company research", approveIndex < companyResearchIndex],
     ["approve export before developer details", approveIndex < developerIndex],
     ["review center owns approve export action row", reviewCenter.includes('data-section="resume-approve-export"')],
+    ["review center separates export lane", reviewCenter.includes("Export after approval") && reviewCenter.includes("Primary action")],
     [
       "approve and export controls co-located",
       reviewCenter.includes("exportControls") &&
@@ -53,6 +54,7 @@ function main() {
     ["evidence panel renamed edit resume content", evidencePanel.includes("Edit resume content")],
     ["edit resume content hidden by default", resumePreview.includes("showEditResumeContent")],
     ["edit resume content toggle button", resumePreview.includes("edit-resume-content-toggle")],
+    ["edit resume content secondary surface", resumePreview.includes("Secondary editing")],
     ["company research collapsed by default", resumePreview.includes("defaultOpen={false}")],
     ["developer details wrapper", resumePreview.includes("Developer details")],
     ["debug json under developer details", developerIndex < indexOrInfinity(resumePreview, "Debug JSON")],

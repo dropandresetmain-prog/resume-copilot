@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import {
+  destructiveButtonClassName,
+  secondaryButtonClassName,
+} from "@/components/setup/ui";
 import { formatSavedJobLabel } from "@/lib/jd/labels";
 import { getSavedJobPreviewText } from "@/lib/jd/summary";
 import type { StoredJobDescription } from "@/types/jd";
@@ -30,7 +34,7 @@ export function SavedJobCard({
         isEditing ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white"
       }`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-slate-900">{formatSavedJobLabel(job)}</p>
           <p className="mt-1 text-xs text-slate-500">
@@ -63,13 +67,13 @@ export function SavedJobCard({
           </button>
         </div>
         {onEdit || onDelete ? (
-          <div className="flex shrink-0 gap-2">
+          <div className="flex flex-col gap-2 sm:shrink-0 sm:flex-row">
             {onEdit ? (
               <button
                 type="button"
                 onClick={onEdit}
                 disabled={disabled}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className={secondaryButtonClassName}
               >
                 Edit
               </button>
@@ -79,7 +83,7 @@ export function SavedJobCard({
                 type="button"
                 onClick={onDelete}
                 disabled={disabled}
-                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                className={destructiveButtonClassName}
               >
                 Delete
               </button>

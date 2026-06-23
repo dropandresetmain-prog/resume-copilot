@@ -9,13 +9,25 @@ export const formFieldClassName =
   "mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-default disabled:opacity-50";
 
 export const primaryButtonClassName =
-  "rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-default disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-center text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-default disabled:opacity-50";
 
 export const secondaryButtonClassName =
-  "rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-default disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-default disabled:opacity-50";
 
 export const destructiveButtonClassName =
-  "rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50 disabled:cursor-default disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center rounded-md border border-red-200 bg-white px-3 py-2 text-center text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50 disabled:cursor-default disabled:opacity-50";
+
+export const actionBarClassName =
+  "rounded-lg border border-slate-200 bg-slate-50/85 p-3 shadow-sm";
+
+export const primaryActionGroupClassName =
+  "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center";
+
+export const secondaryActionGroupClassName =
+  "flex flex-col gap-2 border-t border-slate-200 pt-3 sm:flex-row sm:flex-wrap sm:items-center";
+
+export const destructiveActionGroupClassName =
+  "flex flex-col gap-2 border-t border-red-100 pt-3 sm:flex-row sm:flex-wrap sm:items-center";
 
 export function WorkspaceBand({
   children,

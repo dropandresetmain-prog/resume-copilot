@@ -1,4 +1,4 @@
-**v0.9.11C** - See [`HANDOFF.md`](HANDOFF.md) for current milestone.
+**v0.9.11D** - See [`HANDOFF.md`](HANDOFF.md) for current milestone.
 
 ## App routes
 
@@ -46,7 +46,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/pages/InventoryPageClient.tsx` | `/inventory` - enrichment plus Overview/Edit/Source sections |
 | `src/components/pages/RecordsPageClient.tsx` | `/records` - Applications workspace; saved jobs/draft history secondary |
 | `src/components/pages/ProfilePageClient.tsx` | `/profile` - focused Application Communication Profile settings editor |
-| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` - cover letter editor + preview/export action bar |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` - cover letter editor with separate edit/save/export/revision surfaces |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` - Uploads readiness/onboarding workspace |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
 
@@ -58,12 +58,12 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/CloudFileStoragePanel.tsx` | Supabase original-file storage status |
 | `src/components/setup/UploadCard.tsx` | DOCX upload dropzone |
 | `src/components/setup/JDInputPanel.tsx` | JD intake + inline generate flow on `/generate` (v0.7.3) |
-| `src/components/setup/GenerateTailoredResumeSection.tsx` | Base resume, CTA, progress, cover letter mode + advanced company fields (v0.9.0) |
+| `src/components/setup/GenerateTailoredResumeSection.tsx` | Base resume, primary Generate command, progress, cover letter mode + advanced company fields (v0.9.11D) |
 | `src/components/setup/GenerationProgressPanel.tsx` | Staged loading UI during generation |
 | `src/lib/generate/base-resume-preference.ts` | Last-used base resume (`localStorage`) + default resolution |
 | `src/lib/generate/save-job-for-generation.ts` | Auto-save/reuse job on generate |
 | `src/lib/generate/generation-progress.ts` | Progress stage labels + percent helper |
-| `src/components/setup/ApplicationRecordsPanel.tsx` | Application cards: status, notes, linked draft + cover letter links (Records) |
+| `src/components/setup/ApplicationRecordsPanel.tsx` | Application cards: primary package action, status, notes, linked draft + cover letter links (Records) |
 | `src/components/setup/DraftHistoryPanel.tsx` | Unlinked legacy draft list (Records) |
 | `src/components/landing/LandingCta.tsx` | Auth-aware single landing CTA |
 | `src/components/setup/SavedJobCard.tsx` | Saved job card with summary + full JD expand |
