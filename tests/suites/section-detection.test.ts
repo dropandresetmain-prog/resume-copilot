@@ -54,6 +54,34 @@ const checks: [string, boolean][] = [
     "person name is not section header",
     matchSectionHeader("ALEX TAN") === null,
   ],
+  [
+    "title-case summary unparsed",
+    matchSectionHeader("Summary")?.key === "unparsed",
+  ],
+  [
+    "title-case professional summary unparsed",
+    matchSectionHeader("Professional Summary")?.key === "unparsed",
+  ],
+  [
+    "title-case profile unparsed",
+    matchSectionHeader("Profile")?.key === "unparsed",
+  ],
+  [
+    "title-case objective unparsed",
+    matchSectionHeader("Objective")?.key === "unparsed",
+  ],
+  [
+    "title-case references unparsed",
+    matchSectionHeader("References")?.key === "unparsed",
+  ],
+  [
+    "awards maps to additional experience",
+    matchSectionHeader("Awards")?.key === "additional_experience",
+  ],
+  [
+    "volunteer experience maps to additional experience",
+    matchSectionHeader("Volunteer Experience")?.key === "additional_experience",
+  ],
 ];
 
 const layeredResume = `
@@ -81,10 +109,21 @@ Acme Corp                                                                       
 Product Manager                                                                        Jan 2020 – Dec 2022
 `;
 
+const titleCaseSummaryResume = `
+Summary
+Experienced operator across product and venture building.
+
+WORK EXPERIENCE
+Acme Corp                                                                              Singapore
+Product Manager                                                                        Jan 2020 – Dec 2022
+`;
+
 const detected = detectResumeSections(layeredResume);
 const detectedSummary = detectResumeSections(summaryHeaderResume);
+const detectedTitleCaseSummary = detectResumeSections(titleCaseSummaryResume);
 const parsed = parseResumeTextForTest(layeredResume);
 const parsedSummary = parseResumeTextForTest(summaryHeaderResume);
+const parsedTitleCaseSummary = parseResumeTextForTest(titleCaseSummaryResume);
 const experience = parseExperienceSection(
   layeredResume.split("EDUCATION")[0].split("WORK EXPERIENCE")[1]?.split("\n") ?? [],
 );
@@ -123,6 +162,16 @@ checks.push(
   [
     "summary section in parsed output",
     parsedSummary.unparsedSections.some((section) => section.title === "SUMMARY"),
+  ],
+  [
+    "title-case summary becomes unparsed section",
+    detectedTitleCaseSummary.sections.some(
+      (section) => section.key === "unparsed" && section.title === "Summary",
+    ),
+  ],
+  [
+    "title-case summary in parsed output",
+    parsedTitleCaseSummary.unparsedSections.some((section) => section.title === "Summary"),
   ],
 );
 

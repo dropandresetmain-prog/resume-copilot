@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12B**
+**v0.9.12C**
 
 ## Completed capabilities
 
@@ -34,8 +34,16 @@
 | Package first viewport + mobile CTA/nav polish | v0.9.11I |
 | Remove founder identity from AI/export pipeline | v0.9.12A |
 | General DOCX resume import baseline | v0.9.12B |
+| Company-first comma + title-case section preservation | v0.9.12C |
 
 ## Milestone log (recent)
+
+### v0.9.12C - Company-First + Unknown Section Preservation
+
+- Inline comma disambiguation: company-like suffixes vs role-like terms resolve `Company, Role, Date` and `Role, Company, Date`; ambiguous pairs get low confidence + warning.
+- Date-first descriptor skip: Full-time, Part-time, Contract, Internship, Remote, Hybrid, On-site lines skipped before role/company.
+- Title-case unparsed sections: Summary, Professional Summary, Profile, Objective, References preserved as unparsed (in addition to ALL_CAPS).
+- Tests in `parser.test.ts` and `section-detection.test.ts`.
 
 ### v0.9.12B - General DOCX Resume Import Baseline
 

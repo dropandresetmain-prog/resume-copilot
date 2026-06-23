@@ -134,18 +134,18 @@
 - **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider).
 - **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside collapsed Job details — does not affect generation.
 
-## DOCX import (v0.9.12B)
+## DOCX import (v0.9.12C)
 
-- **Inline experience profile now supported** — "Role at Company — Date", "Role | Company | Date", comma-separated "Role, Company, Date", and date-first blocks parse into structured work experience. Best-scoring profile wins.
-- **Two-line-column profile preserved** — original reference format still parses correctly and scores highly on its native format.
-- **Comma-separated role/company is ambiguous** — parser assumes first token is role, second is company; no disambiguation heuristic available without ML. Medium confidence.
-- **Date-first format** requires role/company on the immediately following non-empty line; multi-line role descriptions spread across further lines may not associate correctly.
-- **Plain comma skills split into `other` bucket** — no automatic classification into languages/technical/interests without labels. Warning issued.
-- **Unlabeled section headers** (title-case, not ALL_CAPS) are NOT automatically caught as unparsed if not in the known alias list. Known common headers are now covered; niche headers remain silently absorbed as section content.
-- **Education format** unchanged from v0.9.12A — still requires institution + date structure for structured parse; gracefully falls back to raw text.
-- **Profile/contact parsing** is fully generic (no hardcoded name patterns).
+- **Company-first comma formats** — `Acme Corp, Product Manager, Date` and `Role, Company, Date` disambiguated via company/role term heuristics; ambiguous pairs warn and downgrade confidence.
+- **Date-first descriptor skip** — Full-time, Remote, etc. skipped before role/company line in date-first blocks.
+- **Title-case section headers** — Summary, Professional Summary, Profile, Objective, References preserved as unparsed sections.
+- **Inline experience profile** (v0.9.12B) — "Role at Company — Date", pipe/comma formats, date-first blocks.
+- **Two-line-column profile preserved** — original reference format still parses correctly.
+- **Plain comma skills** split into `other` bucket with warning when unlabeled.
+- **Education format** unchanged — still requires institution + date structure for structured parse.
+- **Profile/contact parsing** is fully generic.
 - **PDF import**, **free-text input**, and **AI-assisted parsing** remain out of scope.
-- **Remaining risk**: unusual format combinations (e.g. "Company, Role — Date" vs "Role, Company — Date") may misclassify role/company. Low risk for common formats; Investigate Now for production usage across diverse resume inputs.
+- **Remaining risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no company/role signals stay ambiguous with role-first fallback (Accept Risk).
 
 ## AI / export pipeline identity (v0.9.12A)
 

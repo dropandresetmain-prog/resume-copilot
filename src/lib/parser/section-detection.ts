@@ -105,6 +105,20 @@ function normalizeHeaderLine(line: string): string {
   return line.trim().replace(/:$/, "").trim();
 }
 
+/** Common title-case / mixed-case headers preserved as unparsed sections. */
+const UNPARSED_SECTION_ALIASES: RegExp[] = [
+  /^summary$/i,
+  /^professional\s+summary$/i,
+  /^profile$/i,
+  /^objective$/i,
+  /^references?$/i,
+];
+
+function matchesUnparsedSectionAlias(line: string): boolean {
+  const normalized = normalizeHeaderLine(line);
+  return UNPARSED_SECTION_ALIASES.some((pattern) => pattern.test(normalized));
+}
+
 export function matchSectionHeader(line: string): {
   key: SectionKey;
   canonicalTitle: string;
@@ -124,6 +138,14 @@ export function matchSectionHeader(line: string): {
         };
       }
     }
+  }
+
+  if (matchesUnparsedSectionAlias(normalized)) {
+    return {
+      key: "unparsed",
+      canonicalTitle: normalized,
+      originalHeader,
+    };
   }
 
   if (looksLikeUnknownSectionHeader(normalized)) {

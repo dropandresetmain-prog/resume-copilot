@@ -1,6 +1,6 @@
 {
   "name": "resume-copilot",
-  "version": "0.9.12B",
+  "version": "0.9.12C",
   "private": true,
   "scripts": {
     "dev": "next dev",

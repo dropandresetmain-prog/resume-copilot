@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12B** (code)
+**v0.9.12C** (code)
 
 ## v0.9.11G implementation note
 
@@ -48,6 +48,12 @@ Application Package Guided Review + Generate Composer Density: addresses post-ge
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
 
+## v0.9.12C implementation note
+
+Company-First + Unknown Section Preservation: narrow parser follow-up to v0.9.12B demo blockers. Key changes: (1) inline experience comma disambiguation — company-like suffixes (Corp, Inc, Labs, etc.) vs role-like terms (Manager, Engineer, etc.) assign company/role correctly for both `Acme Corp, Product Manager, Date` and `Product Manager, Acme Corp, Date`; ambiguous pairs downgrade confidence and emit warnings; (2) date-first descriptor skip — lines like Full-time, Part-time, Contract, Remote skipped before role/company line; (3) title-case unknown section preservation — Summary, Professional Summary, Profile, Objective, References map to unparsed sections (in addition to ALL_CAPS heuristic).
+
+Runtime constraints held: no Supabase schema changes, no generation/export behavior changes, two-line-column profile unchanged.
+
 ## v0.9.12B implementation note
 
 General DOCX Resume Import Baseline: broadens DOCX parsing to handle common non-founder resume layouts. Key changes: (1) section detection — added "Employment History", "Professional History" aliases for work experience; "Certifications", "Achievements", "Awards", "Honors", "Publications", "Activities" mapped to additional_experience; "Key Skills", "Core Competencies", "Competencies", "Skill Set", "Areas of Expertise", "Technologies", "Tools & Technologies" mapped to skills; "Qualifications", "Academic History", "Education & Training" mapped to education; (2) new inline experience parser profile — handles "Role at Company — Date", "Role | Company | Date", and comma-separated "Role, Company, Date" single-line formats; also handles date-first blocks ("Date\nRole, Company"); registered alongside two-line-column profile, score-wins selection picks best result; (3) skills section — plain comma/semicolon-separated lines now split into individual `other` items; bullet-list skills stripped of prefix and split; custom labeled lines (e.g. "Programming: Python, SQL") parsed into technicalSkills; (4) profile/contact parser confirmed generic — no hardcoded name patterns; (5) all new behavior tested in existing suites (parser.test.ts and section-detection.test.ts); original two-line-column reference tests unchanged.
@@ -62,9 +68,9 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12B - General DOCX Resume Import Baseline**
+**v0.9.12C - Company-First + Unknown Section Preservation**
 
-Inline experience profile (at/pipe/comma single-line and date-first formats), broader section aliases (Employment History, Certifications, Key Skills, etc.), plain comma/bullet skills parsing.
+Company-first comma disambiguation, date-first descriptor skip, title-case Summary/References/etc. preserved as unparsed sections.
 
 ## Latest milestone summary (v0.9.12A)
 
@@ -74,6 +80,7 @@ Dynamic candidateName in all prompts/mocks/validation, generic filename fallback
 
 | Version | Theme |
 |---------|--------|
+| v0.9.12C | Company-first comma disambiguation + title-case unknown section preservation |
 | v0.9.12B | General DOCX resume import baseline — inline experience profile, broader section aliases, plain skills parsing |
 | v0.9.12A | Remove founder identity from AI/export pipeline — dynamic candidate name, generic fallbacks |
 | v0.9.11I | Package first viewport + mobile CTA/nav polish |

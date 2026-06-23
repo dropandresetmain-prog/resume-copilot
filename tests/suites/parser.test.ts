@@ -129,7 +129,46 @@ const commaBlock0 = commaFormatResult.blocks[0];
 checks.push(
   ["inline comma-format block count", commaFormatResult.blocks.length >= 1],
   ["inline comma-format date", commaBlock0?.dateRange === "Jan 2020 – Dec 2022"],
-  ["inline comma-format has company or role", Boolean(commaBlock0?.company || commaBlock0?.role)],
+  ["inline comma-format role", commaBlock0?.role === "Product Manager"],
+  ["inline comma-format company", commaBlock0?.company === "Acme Corp"],
+);
+
+// Company-first comma: "Company, Role, Date"
+const companyFirstLines = [
+  "Acme Corp, Product Manager, Jan 2020 – Dec 2022",
+  "• Delivered key product features.",
+];
+const companyFirstResult = parseExperienceSection(companyFirstLines);
+const companyFirstBlock = companyFirstResult.blocks[0];
+
+checks.push(
+  ["company-first comma role", companyFirstBlock?.role === "Product Manager"],
+  ["company-first comma company", companyFirstBlock?.company === "Acme Corp"],
+  ["company-first comma date", companyFirstBlock?.dateRange === "Jan 2020 – Dec 2022"],
+);
+
+// Ambiguous comma pair — no company/role signals; should warn, not high confidence
+const ambiguousCommaLines = ["Alpha, Beta, Jan 2020 – Dec 2022"];
+const ambiguousCommaResult = parseExperienceSection(ambiguousCommaLines);
+
+checks.push(
+  ["ambiguous comma warns or low confidence", ambiguousCommaResult.confidence !== "high" || ambiguousCommaResult.warnings.length > 0],
+  ["ambiguous comma role-first fallback", ambiguousCommaResult.blocks[0]?.role === "Alpha"],
+);
+
+// Date-first with descriptor line between date and role/company
+const dateDescriptorLines = [
+  "Jan 2020 – Dec 2022",
+  "Full-time",
+  "Product Manager, Acme Corp",
+  "• Led roadmap planning.",
+];
+const dateDescriptorResult = parseExperienceSection(dateDescriptorLines);
+
+checks.push(
+  ["date-first descriptor skipped", dateDescriptorResult.blocks.length >= 1],
+  ["date-first descriptor role", dateDescriptorResult.blocks[0]?.role === "Product Manager"],
+  ["date-first descriptor company", dateDescriptorResult.blocks[0]?.company === "Acme Corp"],
 );
 
 // Date-first format

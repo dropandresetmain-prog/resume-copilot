@@ -22,9 +22,57 @@ import type { ProfileParseResult } from "@/lib/parser/profiles/types";
 
 export const INLINE_EXPERIENCE_PROFILE_ID = "inline-experience";
 
+const COMPANY_LIKE_PATTERN =
+  /\b(?:Corp\.?|Corporation|Inc\.?|LLC|Ltd\.?|Limited|Pte\.?|GmbH|Partners|Labs|Group|Bank|University|Foundation|Federation|Agency|Studio|Technologies)\b/i;
+
+const ROLE_LIKE_PATTERN =
+  /\b(?:Manager|Director|Analyst|Engineer|Designer|Consultant|Lead|Founder|Intern|Associate|Specialist|Coordinator|Officer|Executive|Developer|Product|Sales|Marketing|Operations|Strategy)\b/i;
+
+const DATE_FIRST_DESCRIPTOR_PATTERN =
+  /^(?:full[- ]?time|part[- ]?time|contract|internship|remote|hybrid|on[- ]?site)\.?$/i;
+
 /** Strip trailing separator chars that may be left after date extraction. */
 function stripTrailingSeparators(text: string): string {
   return text.replace(/[\s\-–—|,]+$/, "").trim();
+}
+
+function looksCompanyLike(text: string): boolean {
+  return COMPANY_LIKE_PATTERN.test(text.trim());
+}
+
+function looksRoleLike(text: string): boolean {
+  return ROLE_LIKE_PATTERN.test(text.trim());
+}
+
+/**
+ * Disambiguate a two-part comma segment into role and company using
+ * conservative suffix/term heuristics. Falls back to role-first when ambiguous.
+ */
+function disambiguateCommaPair(
+  first: string,
+  second: string,
+): { role: string; company: string; confidence: "high" | "medium" | "low"; ambiguous: boolean } {
+  const a = first.trim();
+  const b = stripTrailingSeparators(second);
+  const aCompany = looksCompanyLike(a);
+  const bCompany = looksCompanyLike(b);
+  const aRole = looksRoleLike(a);
+  const bRole = looksRoleLike(b);
+
+  if (aCompany && bRole && !bCompany) {
+    return { role: b, company: a, confidence: "high", ambiguous: false };
+  }
+  if (bCompany && aRole && !aCompany) {
+    return { role: a, company: b, confidence: "high", ambiguous: false };
+  }
+
+  const ambiguous = (aCompany && bCompany) || (aRole && bRole) || (!aCompany && !bCompany && !aRole && !bRole);
+  return {
+    role: a,
+    company: b,
+    confidence: ambiguous ? "low" : "medium",
+    ambiguous,
+  };
 }
 
 /**
@@ -33,7 +81,13 @@ function stripTrailingSeparators(text: string): string {
  */
 function splitRoleCompany(
   rest: string,
-): { role: string; company: string; location: string; confidence: "high" | "medium" | "low" } | null {
+): {
+  role: string;
+  company: string;
+  location: string;
+  confidence: "high" | "medium" | "low";
+  ambiguous: boolean;
+} | null {
   const trimmed = stripTrailingSeparators(rest.trim());
   if (!trimmed) return null;
 
@@ -45,6 +99,7 @@ function splitRoleCompany(
       company: stripTrailingSeparators(atMatch[2]),
       location: "",
       confidence: "high",
+      ambiguous: false,
     };
   }
 
@@ -56,30 +111,20 @@ function splitRoleCompany(
       company: stripTrailingSeparators(pipeParts[1]),
       location: "",
       confidence: "high",
+      ambiguous: false,
     };
   }
 
-  // Comma-separated: "Role, Company" or "Role, Company, Location"
-  // Also: "Company, Role, Location" (ambiguous — use medium confidence)
-  const parts = trimmed.split(/\s*,\s*/);
+  // Comma-separated: "Role, Company" or "Company, Role" or with location
+  const parts = trimmed.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
   if (parts.length === 2) {
-    // Two parts: ambiguous, but the first tends to be the role in most formats
-    return {
-      role: parts[0].trim(),
-      company: stripTrailingSeparators(parts[1]),
-      location: "",
-      confidence: "medium",
-    };
+    const pair = disambiguateCommaPair(parts[0], parts[1]);
+    return { ...pair, location: "" };
   }
   if (parts.length >= 3) {
-    // Three or more parts: treat last as location, first as role, second as company
     const location = parts[parts.length - 1].trim();
-    return {
-      role: parts[0].trim(),
-      company: stripTrailingSeparators(parts[1]),
-      location,
-      confidence: "medium",
-    };
+    const pair = disambiguateCommaPair(parts[0], parts[1]);
+    return { ...pair, location };
   }
 
   // Single token with no separator: preserve as company, leave role empty
@@ -88,7 +133,12 @@ function splitRoleCompany(
     company: trimmed,
     location: "",
     confidence: "low",
+    ambiguous: true,
   };
+}
+
+function isDateFirstDescriptorLine(line: string): boolean {
+  return DATE_FIRST_DESCRIPTOR_PATTERN.test(line.trim());
 }
 
 /**
@@ -104,6 +154,7 @@ function parseCombinedHeaderLine(
   dateRange: string;
   rawRoleLine: string;
   headerConfidence: "high" | "medium" | "low";
+  ambiguous: boolean;
 } | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
@@ -121,6 +172,7 @@ function parseCombinedHeaderLine(
     dateRange: extracted.dateRange,
     rawRoleLine: trimmed,
     headerConfidence: split.confidence,
+    ambiguous: split.ambiguous,
   };
 }
 
@@ -256,6 +308,12 @@ export function parseInlineExperience(
     if (combined) {
       const { bullets, nextIndex } = collectBullets(lines, i + 1, consumed);
 
+      if (combined.ambiguous) {
+        warnings.push(
+          `Comma-separated role/company order was ambiguous on line: "${line}". Review structured experience.`,
+        );
+      }
+
       if (combined.headerConfidence === "low" && !combined.role) {
         warnings.push(
           `Inline experience line could not separate role from company: "${line}". Preserved as-is.`,
@@ -281,11 +339,21 @@ export function parseInlineExperience(
     // Case 2: date-first format — date on its own line, role/company on next
     if (isDateOnlyLine(line)) {
       const extracted = extractDateRangeFromLine(line)!;
-      const nextIdx = i + 1;
-      // Look for the next non-empty line to use as the role/company descriptor
-      let roleLineIdx = nextIdx;
-      while (roleLineIdx < lines.length && !lines[roleLineIdx].trim()) {
-        roleLineIdx += 1;
+      let roleLineIdx = i + 1;
+
+      // Skip blank lines and short employment descriptors (Full-time, Remote, etc.)
+      while (roleLineIdx < lines.length) {
+        const candidate = lines[roleLineIdx].trim();
+        if (!candidate) {
+          roleLineIdx += 1;
+          continue;
+        }
+        if (isDateFirstDescriptorLine(candidate)) {
+          consumed.add(roleLineIdx);
+          roleLineIdx += 1;
+          continue;
+        }
+        break;
       }
 
       if (roleLineIdx < lines.length) {
@@ -294,6 +362,12 @@ export function parseInlineExperience(
         if (!isDateOnlyLine(roleLine) && !parseBulletLine(roleLine)) {
           const split = splitRoleCompany(roleLine);
           const { bullets, nextIndex } = collectBullets(lines, roleLineIdx + 1, consumed);
+
+          if (split?.ambiguous) {
+            warnings.push(
+              `Comma-separated role/company order was ambiguous after date line: "${roleLine}". Review structured experience.`,
+            );
+          }
 
           const role = split?.role ?? "";
           const company = split?.company ?? roleLine;
