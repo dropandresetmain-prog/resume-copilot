@@ -4,6 +4,18 @@ Run `npm run test`, `npm run lint`, `npm run build` before manual QA.
 
 ---
 
+## v0.9.11C UI QA
+
+- [ ] Desktop screenshot QA: Uploads, Inventory, Generate, Applications, Application Package, Resume Edit, Cover Letter Preview/Edit, Profile
+- [ ] Mobile screenshot QA: Uploads, Inventory, Generate, Applications, Application Package, Resume Edit, Cover Letter Preview/Edit, Profile
+- [ ] Main nav is reachable and readable on mobile
+- [ ] Primary action is obvious on each screen
+- [ ] A4 resume and cover letter previews scale without horizontal overflow or clipped controls
+- [ ] Application Package section rail does not hide review/export controls
+- [ ] Saved jobs and legacy drafts remain reachable as secondary Applications/Generate details
+
+---
+
 ## Company research
 
 - [ ] Generate with company website in Advanced — Firecrawl research runs (or mock/JD fallback without key)

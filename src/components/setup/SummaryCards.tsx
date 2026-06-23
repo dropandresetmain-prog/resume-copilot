@@ -28,12 +28,12 @@ export function SummaryCards({ totals }: SummaryCardsProps) {
         {STAT_ITEMS.map((item) => (
           <div
             key={item.key}
-            className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-3"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm"
           >
-            <p className="text-2xl font-semibold tabular-nums text-zinc-900">
+            <p className="text-2xl font-semibold tabular-nums text-slate-950">
               {totals[item.key]}
             </p>
-            <p className="mt-1 text-xs font-medium text-zinc-500">{item.label}</p>
+            <p className="mt-1 text-xs font-medium text-slate-500">{item.label}</p>
           </div>
         ))}
       </div>

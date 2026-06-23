@@ -9,7 +9,7 @@ import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel"
 import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
-import { ViewTabs } from "@/components/setup/ui";
+import { SectionHeader, ViewTabs } from "@/components/setup/ui";
 import { pageMilestone } from "@/lib/app-version";
 import { createEmptyInventoryEdits, type InventoryEdits } from "@/types/inventory-edits";
 import { inventoryEditsEqual } from "@/lib/inventory/edits";
@@ -78,9 +78,10 @@ export function InventoryPageClient() {
   return (
     <>
       <PageHeader
+        eyebrow="Evidence"
         milestone={pageMilestone("Inventory")}
-        title="Career inventory"
-        description="Review collated experience, enrich items, edit bullets on the Edit Bullets tab, and manage approved keywords."
+        title="Inventory"
+        description="Review the career evidence used by generation, tune bullet wording, and keep parser/source details available without crowding the main view."
       />
 
       <SetupAlerts
@@ -90,19 +91,26 @@ export function InventoryPageClient() {
         warnings={warnings}
       />
 
-      <EnrichmentReviewPanel
-        collated={collated}
-        enrichment={inventory.enrichment}
-        providerStatus={providerStatus}
-        isEnriching={isEnriching}
-        enrichError={enrichError}
-        enrichDebugRaw={enrichDebugRaw}
-        onEnrichMissing={handleEnrichMissing}
-        onFullRerunEnrich={handleFullRerunEnrich}
-        onSuggestionStatus={handleSuggestionStatus}
-        onResolveSuggestion={handleResolveSuggestion}
-        onDuplicateGroupStatus={handleDuplicateGroupStatus}
-      />
+      <div className="space-y-4">
+        <SectionHeader
+          eyebrow="Review layer"
+          title="Enrichment and evidence quality"
+          description="AI suggestions, duplicate checks, and approved keywords sit above the inventory sections they inform."
+        />
+        <EnrichmentReviewPanel
+          collated={collated}
+          enrichment={inventory.enrichment}
+          providerStatus={providerStatus}
+          isEnriching={isEnriching}
+          enrichError={enrichError}
+          enrichDebugRaw={enrichDebugRaw}
+          onEnrichMissing={handleEnrichMissing}
+          onFullRerunEnrich={handleFullRerunEnrich}
+          onSuggestionStatus={handleSuggestionStatus}
+          onResolveSuggestion={handleResolveSuggestion}
+          onDuplicateGroupStatus={handleDuplicateGroupStatus}
+        />
+      </div>
 
       {hasUnsavedChanges ? (
         <div
@@ -117,23 +125,35 @@ export function InventoryPageClient() {
         </div>
       ) : null}
 
-      <ViewTabs activeTab={activeTab} onChange={setActiveTab} />
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase text-cyan-800">Inventory sections</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              Overview, edits, and source audit
+            </h2>
+          </div>
+          <ViewTabs activeTab={activeTab} onChange={setActiveTab} />
+        </div>
 
-      {activeTab === "collated" ? (
-        <CollatedInventoryView collated={collated} />
-      ) : activeTab === "edit" ? (
-        <InventoryEditPanel
-          inventory={inventory}
-          draftEdits={draftEdits}
-          onDraftEditsChange={setDraftEdits}
-          onSave={handleSaveDraftEdits}
-          onDiscard={handleDiscardDraftEdits}
-          isSaving={isSavingEdits}
-          saveFeedback={saveFeedback}
-        />
-      ) : (
-        <SourceResumesView resumes={inventory.resumes} />
-      )}
+        <div>
+          {activeTab === "collated" ? (
+            <CollatedInventoryView collated={collated} />
+          ) : activeTab === "edit" ? (
+            <InventoryEditPanel
+              inventory={inventory}
+              draftEdits={draftEdits}
+              onDraftEditsChange={setDraftEdits}
+              onSave={handleSaveDraftEdits}
+              onDiscard={handleDiscardDraftEdits}
+              isSaving={isSavingEdits}
+              saveFeedback={saveFeedback}
+            />
+          ) : (
+            <SourceResumesView resumes={inventory.resumes} />
+          )}
+        </div>
+      </div>
     </>
   );
 }

@@ -57,9 +57,10 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
   return (
     <>
       <PageHeader
+        eyebrow="Composer"
         milestone={pageMilestone("Generate")}
-        title="Generate tailored resume"
-        description="Paste a job description and company website for Firecrawl-backed research, then generate a tailored resume and cover letter."
+        title="Generate"
+        description="Paste the job description, choose the base resume, and generate the application package from one focused workspace."
       />
 
       <SetupAlerts
@@ -92,6 +93,9 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
         onClearAll={handleClearSavedJobDescriptions}
         disabled={cloudEnabled && !isSignedIn}
         disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
+        title="Job description composer"
+        description="Generation saves or reuses the job automatically. Research, model tiers, and saved-job management stay secondary."
+        listTitle={`Secondary saved jobs (${jobDescriptions.length})`}
         showSaveButton={false}
         form={jobForm}
         onFormChange={setJobForm}

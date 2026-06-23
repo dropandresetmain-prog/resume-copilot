@@ -256,6 +256,48 @@ export function JDInputPanel({
     clearForm();
   }
 
+  const savedJobsContent = (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-slate-900">{resolvedListTitle}</h3>
+        <button
+          type="button"
+          onClick={handleClearAll}
+          disabled={jobDescriptions.length === 0 || disabled}
+          className={destructiveButtonClassName}
+        >
+          Clear Saved Jobs
+        </button>
+      </div>
+
+      {jobDescriptions.length === 0 ? (
+        <div className="mt-3">
+          <EmptyState
+            title="No Saved Jobs Yet"
+            description={
+              showIntakeForm
+                ? "Saved jobs appear here after you generate a tailored resume."
+                : "Saved jobs from Generate will appear here."
+            }
+          />
+        </div>
+      ) : (
+        <ul className="mt-3 space-y-3">
+          {jobDescriptions.map((jd) => (
+            <SavedJobCard
+              key={jd.id}
+              job={jd}
+              isEditing={editingId === jd.id}
+              disabled={disabled}
+              onEdit={() => handleEdit(jd)}
+              onDelete={() => handleDelete(jd.id)}
+            />
+          ))}
+        </ul>
+      )}
+    </>
+  );
+
   return (
     <SetupCard title={resolvedTitle} description={resolvedDescription}>
       {disabled && disabledReason ? (
@@ -389,42 +431,15 @@ export function JDInputPanel({
               : "mt-4"
           }
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-900">{resolvedListTitle}</h3>
-            <button
-              type="button"
-              onClick={handleClearAll}
-              disabled={jobDescriptions.length === 0 || disabled}
-              className={destructiveButtonClassName}
-            >
-              Clear Saved Jobs
-            </button>
-          </div>
-
-          {jobDescriptions.length === 0 ? (
-            <div className="mt-3">
-              <EmptyState
-                title="No Saved Jobs Yet"
-                description={
-                  showIntakeForm
-                    ? "Saved jobs appear here after you generate a tailored resume."
-                    : "Saved jobs from Generate will appear here."
-                }
-              />
-            </div>
+          {generateFlow ? (
+            <details className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+              <summary className="cursor-pointer text-sm font-medium text-slate-800">
+                Saved jobs and legacy management
+              </summary>
+              <div className="mt-4">{savedJobsContent}</div>
+            </details>
           ) : (
-            <ul className="mt-3 space-y-3">
-              {jobDescriptions.map((jd) => (
-                <SavedJobCard
-                  key={jd.id}
-                  job={jd}
-                  isEditing={editingId === jd.id}
-                  disabled={disabled}
-                  onEdit={() => handleEdit(jd)}
-                  onDelete={() => handleDelete(jd.id)}
-                />
-              ))}
-            </ul>
+            savedJobsContent
           )}
         </div>
       ) : null}

@@ -9,6 +9,7 @@ import { CloudFileStoragePanel } from "@/components/setup/CloudFileStoragePanel"
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SummaryCards } from "@/components/setup/SummaryCards";
 import { UploadCard } from "@/components/setup/UploadCard";
+import { WorkspaceBand } from "@/components/setup/ui";
 import { pageMilestone } from "@/lib/app-version";
 
 export function ManageUploadsPageClient() {
@@ -33,28 +34,29 @@ export function ManageUploadsPageClient() {
   return (
     <>
       <PageHeader
+        eyebrow="Readiness"
         milestone={pageMilestone("Uploads")}
         title="Uploads"
-        description="Sign in, upload DOCX resumes, and review parsing results. This is the starting point for new users."
+        description="Start with a trusted resume inventory: sign in, upload DOCX resumes, and confirm the parser has enough evidence for generation."
       />
 
       {hasInventory && isSignedIn ? (
-        <p className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          Your inventory is ready. Continue to{" "}
-          <Link href="/generate" className="font-medium underline">
-            Generate
-          </Link>{" "}
-          to create a tailored resume draft, or visit{" "}
-          <Link href="/inventory" className="font-medium underline">
-            Inventory
-          </Link>{" "}
-          to enrich your experience.
-        </p>
+        <WorkspaceBand className="border-emerald-200 bg-emerald-50/80">
+          <p className="text-sm text-emerald-950">
+            Your inventory is ready. Continue to{" "}
+            <Link href="/generate" className="font-medium underline underline-offset-4">
+              Generate
+            </Link>{" "}
+            to create a tailored resume draft, or visit{" "}
+            <Link href="/inventory" className="font-medium underline underline-offset-4">
+              Inventory
+            </Link>{" "}
+            to enrich your experience.
+          </p>
+        </WorkspaceBand>
       ) : null}
 
-      <AuthPanel user={user} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
         <UploadCard
           onFilesSelected={handleFilesSelected}
           isProcessing={isProcessing || isCloudLoading}
@@ -63,7 +65,10 @@ export function ManageUploadsPageClient() {
           disabled={cloudEnabled && !isSignedIn}
           disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
         />
-        <SummaryCards totals={totals} />
+        <div className="space-y-5">
+          <AuthPanel user={user} />
+          <SummaryCards totals={totals} />
+        </div>
       </div>
 
       <CloudFileStoragePanel

@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11B**
+**v0.9.11C**
 
 ## Completed capabilities
 
@@ -25,8 +25,16 @@
 | Application Review Center | v0.9.9 |
 | UX quick wins | v0.9.11A |
 | IA cleanup | v0.9.11B |
+| UI/UX redesign foundation | v0.9.11C |
 
 ## Milestone log (recent)
+
+### v0.9.11C - UI/UX Redesign Foundation
+
+- Upgraded the shared workspace shell, nav, page headers, cards, tabs, buttons, and A4 preview frames.
+- Reworked Uploads, Inventory, Generate, Applications, Application Package, Resume Edit, Cover Letter Edit, and Profile around clearer primary actions and secondary detail areas.
+- Kept existing route URLs and preserved generation, Supabase persistence, schema, export/approval gates, model IDs, and source-of-truth rules.
+- Parked recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD for follow-up milestones.
 
 ### v0.9.11B — IA Cleanup
 

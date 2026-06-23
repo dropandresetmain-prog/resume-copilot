@@ -1,4 +1,4 @@
-**v0.9.8G** — See [`HANDOFF.md`](HANDOFF.md) for current milestone.
+**v0.9.11C** - See [`HANDOFF.md`](HANDOFF.md) for current milestone.
 
 ## App routes
 
@@ -33,21 +33,21 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | File | Purpose |
 |------|---------|
 | `src/components/app/WorkspaceProvider.tsx` | Auth session, Supabase sync, shared state/handlers |
-| `src/components/app/AppShell.tsx` | Page content wrapper with nav |
-| `src/components/app/AppNav.tsx` | Main navigation (Generate → … → Dev Tools) |
+| `src/components/app/AppShell.tsx` | Premium workspace frame with nav and constrained page content |
+| `src/components/app/AppNav.tsx` | Sticky mobile-safe main navigation (Uploads -> Inventory -> Generate -> Applications -> Profile) |
 | `src/components/app/nav.ts` | Nav items and active-route helper |
-| `src/components/app/PageHeader.tsx` | Per-page title and description |
+| `src/components/app/PageHeader.tsx` | Per-page hero/header with milestone and optional eyebrow |
 
 ## Page clients (v0.4.4)
 
 | File | Route |
 |------|-------|
-| `src/components/pages/GeneratePageClient.tsx` | `/generate` — JD intake + generate tailored resume (v0.7.2) |
-| `src/components/pages/InventoryPageClient.tsx` | `/inventory` |
-| `src/components/pages/RecordsPageClient.tsx` | `/records` — applications + saved jobs + communications + draft history (v0.8.0+) |
-| `src/components/pages/ProfilePageClient.tsx` | `/profile` — Application Communication Profile editor (v0.9.0) |
-| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` — cover letter preview/edit/export (v0.9.0) |
-| `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` |
+| `src/components/pages/GeneratePageClient.tsx` | `/generate` - composer-first JD intake + generate tailored resume |
+| `src/components/pages/InventoryPageClient.tsx` | `/inventory` - enrichment plus Overview/Edit/Source sections |
+| `src/components/pages/RecordsPageClient.tsx` | `/records` - Applications workspace; saved jobs/draft history secondary |
+| `src/components/pages/ProfilePageClient.tsx` | `/profile` - focused Application Communication Profile settings editor |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` - cover letter editor + preview/export action bar |
+| `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` - Uploads readiness/onboarding workspace |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
 
 ## Setup / shared components
@@ -79,7 +79,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/setup/UnparsedSectionCard.tsx` | Unparsed / needs review UI |
 | `src/components/setup/ExperienceCard.tsx` | Work experience card (debug) |
 | `src/components/setup/SetupAlerts.tsx` | Errors and warnings |
-| `src/components/setup/ui.tsx` | Shared cards, form/button classes, tabs, citation chips |
+| `src/components/setup/ui.tsx` | Shared cards, workspace bands, section headers, form/button classes, tabs, citation chips |
 
 ## Supabase (active persistence)
 

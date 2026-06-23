@@ -10,6 +10,8 @@
   --app-input-bg: #ffffff;
   --app-input-text: #0f172a;
   --app-placeholder: #94a3b8;
+  --font-geist-sans: Arial, Helvetica, sans-serif;
+  --font-geist-mono: "Courier New", Consolas, monospace;
   color-scheme: light only;
 }
 

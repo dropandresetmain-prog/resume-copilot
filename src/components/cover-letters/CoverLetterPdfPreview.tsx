@@ -135,11 +135,11 @@ export function CoverLetterPdfPreview({
           page — shorten the letter before exporting.
         </div>
       ) : null}
-      <div className="flex justify-center rounded-xl bg-slate-200/80 p-4 sm:p-6">
+      <div className="flex min-w-0 justify-center rounded-lg bg-slate-100 p-3 ring-1 ring-slate-200 sm:p-5">
         <div
           ref={frameRef}
           data-testid={COVER_LETTER_PDF_PREVIEW_FRAME_TEST_ID}
-          className="w-full max-w-full overflow-x-auto"
+          className="min-w-0 w-full max-w-full overflow-hidden"
           style={{ maxWidth: `${A4_WIDTH_MM}mm` }}
         >
           <div

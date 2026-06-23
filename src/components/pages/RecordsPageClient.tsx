@@ -23,9 +23,10 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
+        eyebrow="Workspace"
         milestone={pageMilestone("Applications")}
         title="Applications"
-        description="Track applications by job, update status and notes, and review saved jobs and draft history."
+        description="Track each application package by job, status, notes, latest resume draft, cover letter, and research state."
       />
 
       <SetupAlerts
@@ -35,19 +36,26 @@ export function RecordsPageClient() {
         warnings={[]}
       />
 
-      <JDInputPanel
-        jobDescriptions={jobDescriptions}
-        onSave={handleSaveJobDescription}
-        onDelete={handleDeleteJobDescription}
-        onClearAll={handleClearSavedJobDescriptions}
-        disabled={cloudEnabled && !isSignedIn}
-        disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
-        showIntakeForm={false}
-      />
-
       <ApplicationRecordsPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
 
-      <DraftHistoryPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
+      <details className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+          Saved jobs and legacy draft history
+        </summary>
+        <div className="mt-4 space-y-5">
+          <JDInputPanel
+            jobDescriptions={jobDescriptions}
+            onSave={handleSaveJobDescription}
+            onDelete={handleDeleteJobDescription}
+            onClearAll={handleClearSavedJobDescriptions}
+            disabled={cloudEnabled && !isSignedIn}
+            disabledReason={cloudEnabled && !isSignedIn ? signInRequiredReason : undefined}
+            showIntakeForm={false}
+          />
+
+          <DraftHistoryPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
+        </div>
+      </details>
     </>
   );
 }

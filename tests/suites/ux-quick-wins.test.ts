@@ -59,8 +59,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11B"')],
-    ["package json version", packageJson.includes('"version": "0.9.11B"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11C"')],
+    ["package json version", packageJson.includes('"version": "0.9.11C"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -113,9 +113,11 @@ function main() {
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
     [
-      "b6 investigation remains documented",
-      handoff.includes("B6 remains Investigate Now") &&
-        roadmap.includes("B6 remains Investigate Now"),
+      "v0.9.11C parked follow-ups documented",
+      handoff.includes("Recruiter/confidential-client mode") &&
+        handoff.includes("Inventory CRUD") &&
+        roadmap.includes("recruiter/confidential-client mode") &&
+        roadmap.includes("Inventory CRUD"),
     ],
   ];
 

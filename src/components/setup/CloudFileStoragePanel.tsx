@@ -76,9 +76,9 @@ export function CloudFileStoragePanel({
       title="Uploaded resumes"
       description="One list for parsed inventory and stored original files. Delete behavior is unchanged."
     >
-      <div className="mt-4 space-y-3 text-sm text-zinc-700">
+      <div className="mt-4 space-y-4 text-sm text-slate-700">
         {!isSignedIn ? (
-          <p className="text-zinc-500">
+          <p className="text-slate-500">
             Sign in to view stored original resume file sizes. Parsed resume inventory remains
             visible in this browser.
           </p>
@@ -91,18 +91,18 @@ export function CloudFileStoragePanel({
         {isSignedIn ? (
           <dl className="grid gap-3 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-semibold uppercase text-slate-500">
                 Original resume files
               </dt>
-              <dd className="mt-1 text-base font-medium text-zinc-900">
+              <dd className="mt-1 text-base font-medium text-slate-950">
                 {visibleFiles.length}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-semibold uppercase text-slate-500">
                 Approximate storage
               </dt>
-              <dd className="mt-1 text-base font-medium text-zinc-900">
+              <dd className="mt-1 text-base font-medium text-slate-950">
                 {formatStorageBytes(totalBytes)}
               </dd>
             </div>
@@ -115,7 +115,7 @@ export function CloudFileStoragePanel({
             description="Upload one or more DOCX files to start building your inventory."
           />
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid gap-3 lg:grid-cols-2">
             {resumes.map((resume) => {
               const counts = countResume(resume);
               const storedFile = fileByName.get(resume.filename);
@@ -123,13 +123,13 @@ export function CloudFileStoragePanel({
               return (
                 <li
                   key={resume.id}
-                  className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3"
+                  className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-900">
+                    <p className="truncate text-sm font-semibold text-slate-950">
                       {resume.filename}
                     </p>
-                    <p className="mt-0.5 text-sm text-zinc-500">
+                    <p className="mt-0.5 text-sm text-slate-500">
                       Uploaded {new Date(resume.uploadedAt).toLocaleString()}
                       {storedFile
                         ? ` · Original ${formatStorageBytes(storedFile.fileSize ?? 0)} stored ${new Date(
@@ -139,7 +139,7 @@ export function CloudFileStoragePanel({
                           ? " · Original file storage not found"
                           : ""}
                     </p>
-                    <p className="mt-2 text-sm text-zinc-600">
+                    <p className="mt-2 text-sm text-slate-600">
                       {counts.workExperiences} experiences · {counts.workBullets} bullets ·{" "}
                       {counts.educationItems} education · {counts.skillCategories} skill categories
                     </p>

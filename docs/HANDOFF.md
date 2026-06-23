@@ -2,20 +2,27 @@
 
 ## Current version
 
-**v0.9.11B** (code)
+**v0.9.11C** (code)
+
+## v0.9.11C implementation note
+
+UI/UX Redesign Foundation is the latest code milestone. It delivers a broader visual and structural pass across the existing routes while preserving runtime behavior: premium framed workspace shell and sticky nav, stronger page headers/cards/buttons/tabs, cleaner A4 preview frames, Uploads readiness layout, CRUD-ready Inventory sections, composer-first Generate, Applications-first Records page, Application Package section rail/review-export focus, and clearer Resume Edit/Cover Letter/Profile editor surfaces.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no source-of-truth changes. Recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD remain parked/follow-up.
 
 ## Latest milestone (code)
 
-**v0.9.11B — IA Cleanup**
+**v0.9.11C - UI/UX Redesign Foundation**
 
-Information architecture cleanup from the v0.9.11B audit: main nav reordered to Uploads → Inventory → Generate → Applications → Profile with route hrefs unchanged, Records/Manage Uploads labels renamed to Applications/Uploads, Generate secondary controls moved under Advanced, Application Review co-locates Approve for Export with resume PDF/DOCX downloads, package debug/assessment content collapsed under Developer details, Uploads uses one merged resume list, and SetupCard supports primary/secondary/muted variants.
+Broad UI/UX foundation pass across the existing route set. Route URLs and runtime source-of-truth behavior remain unchanged while the shell, page hierarchy, action bars, secondary drawers, package rail, and preview containers now support the v0.9.11C workflow direction.
 
-B6 remains Investigate Now unless approved: Generate still shows saved-job management; `ensureJobDescriptionForGeneration()` covers save-on-generate by reusing duplicate jobs or saving new/edited jobs during generation, so removing Generate management controls appears safe but was not implemented in v0.9.11B.
+Remaining workflow features are parked: recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11C | UI/UX redesign foundation - shell, page structure, package rail, A4 preview polish |
 | v0.9.11B | IA cleanup — nav order, label renames, Generate advanced demotion, package action/developer hierarchy, merged Uploads list |
 | v0.9.11A | UX quick wins — alerts, labels, approve dedup, version sync |
 | v0.9.9 | Application Review Center — export/readiness aggregation on resume preview |

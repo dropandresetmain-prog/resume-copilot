@@ -439,12 +439,31 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
+        eyebrow="Package"
         milestone={pageMilestone("Application Package")}
         title="Application package"
-        description="Review your resume, cover letter, and company research in one place."
+        description="Approve the resume for export, inspect the PDF preview, and keep cover letter, research, edits, and developer details close without crowding the main path."
       />
 
       <div className="space-y-6">
+        <div className="sticky top-[6.75rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur">
+          {[
+            ["Resume", "#package-resume"],
+            ["Cover letter", "#package-cover-letter"],
+            ["Research", "#package-research"],
+            ["Edit", "#package-edit"],
+            ["Details", "#package-details"],
+          ].map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              className="shrink-0 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+
         {reviewStatus ? (
           <ApplicationReviewCenter
             companyName={displayCompany}
@@ -500,13 +519,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         ) : null}
 
         <SetupCard
+          className="scroll-mt-32"
           title="Resume"
           description="Primary artifact — preview the final PDF and tune layout if needed. Approve and export from Application Review above."
+          variant="primary"
         >
-          <div className="mt-4 space-y-4">
+          <div id="package-resume" className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
-            <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
                 Layout controls
               </summary>
@@ -623,7 +644,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           </div>
         </SetupCard>
 
-        <div data-section="application-package-cover-letter">
+        <div
+          id="package-cover-letter"
+          className="scroll-mt-32"
+          data-section="application-package-cover-letter"
+        >
           <ApplicationPackageCoverLetterPanel
             draft={draft}
             job={linkedJob ?? undefined}
@@ -634,52 +659,61 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         </div>
 
         {companyContext ? (
-          <div data-section="application-package-company-research">
+          <div
+            id="package-research"
+            className="scroll-mt-32"
+            data-section="application-package-company-research"
+          >
             <CompanyContextPreviewPanel
-            context={companyContext}
-            applicationId={draft.applicationId}
-            defaultOpen={false}
-            onSaved={setCompanyContext}
-          />
+              context={companyContext}
+              applicationId={draft.applicationId}
+              defaultOpen={false}
+              onSaved={setCompanyContext}
+            />
           </div>
         ) : null}
 
-        {showEditResumeContent ? (
-          <div className="space-y-3">
-            <ResumeEvidenceRegenerationPanel
-              draft={draft}
-              inventory={inventory}
-              jobDescription={linkedJob}
-              onDraftUpdated={setDraft}
-            />
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={`/resume-preview/${draftId}/edit`}
-                className={`inline-flex ${secondaryButtonClassName}`}
-              >
-                Open resume text editor
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowEditResumeContent(false)}
-                className={secondaryButtonClassName}
-              >
-                Hide edit resume content
-              </button>
+        <div id="package-edit" className="scroll-mt-32">
+          {showEditResumeContent ? (
+            <div className="space-y-3">
+              <ResumeEvidenceRegenerationPanel
+                draft={draft}
+                inventory={inventory}
+                jobDescription={linkedJob}
+                onDraftUpdated={setDraft}
+              />
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/resume-preview/${draftId}/edit`}
+                  className={`inline-flex ${secondaryButtonClassName}`}
+                >
+                  Open resume text editor
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowEditResumeContent(false)}
+                  className={secondaryButtonClassName}
+                >
+                  Hide edit resume content
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowEditResumeContent(true)}
-            className={secondaryButtonClassName}
-            data-action="edit-resume-content-toggle"
-          >
-            Edit resume content
-          </button>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowEditResumeContent(true)}
+              className={secondaryButtonClassName}
+              data-action="edit-resume-content-toggle"
+            >
+              Edit resume content
+            </button>
+          )}
+        </div>
 
-        <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <details
+          id="package-details"
+          className="scroll-mt-32 rounded-lg border border-slate-200 bg-slate-50 p-4"
+        >
           <summary className="cursor-pointer text-sm font-medium text-slate-900">
             Developer details
           </summary>

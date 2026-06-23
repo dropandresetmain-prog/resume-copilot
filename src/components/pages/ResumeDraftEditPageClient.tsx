@@ -79,12 +79,13 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
   return (
     <>
       <PageHeader
+        eyebrow="Advanced editor"
         milestone={pageMilestone("Resume Editor")}
-        title="Edit resume details"
-        description="Review and edit generated content. Changes save back to this draft. Return to the application package when ready."
+        title="Resume editor"
+        description="Use the full draft editor for deeper content changes. The application package remains the main review and export path."
       />
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <Link
           href={`/resume-preview/${draftId}`}
           className={`inline-flex ${secondaryButtonClassName}`}

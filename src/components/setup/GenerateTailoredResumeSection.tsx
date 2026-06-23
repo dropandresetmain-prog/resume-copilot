@@ -509,7 +509,8 @@ export function GenerateTailoredResumeSection({
         </div>
       ) : (
         <>
-          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1">
               <label htmlFor="base-resume-select" className={labelClassName}>
                 Base resume (formatting template)
@@ -544,26 +545,28 @@ export function GenerateTailoredResumeSection({
               type="button"
               onClick={() => void handleGenerate()}
               disabled={!canGenerate || isGenerating}
-              className={`${primaryButtonClassName} shrink-0`}
+              className={`${primaryButtonClassName} w-full shrink-0 sm:w-auto`}
             >
               {generateMode === "resume_and_cover_letter"
                 ? "Generate Resume & Cover Letter"
                 : "Generate Tailored Resume"}
             </button>
+            </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              className="text-sm font-medium text-slate-700 underline"
+              className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
               onClick={() => setShowAdvanced((current) => !current)}
             >
               {showAdvanced ? "Hide advanced options" : "Show advanced options"}
             </button>
+            <p className="text-sm text-slate-500">Approved keywords available: {approvedKeywordCount}</p>
           </div>
 
           {showAdvanced ? (
-            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+            <div className="mt-3 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-2">
               {providerStatus ? (
                 <p className="text-sm text-slate-600 lg:col-span-2">
                   Provider: {providerStatus.providerLabel}
@@ -682,9 +685,6 @@ export function GenerateTailoredResumeSection({
                 onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
               />
 
-              <p className="text-sm text-slate-600 lg:col-span-2">
-                Approved keywords available: {approvedKeywordCount}
-              </p>
             </div>
           ) : null}
         </>

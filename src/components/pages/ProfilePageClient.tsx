@@ -79,9 +79,10 @@ export function ProfilePageClient() {
   return (
     <>
       <PageHeader
+        eyebrow="Settings"
         milestone={pageMilestone("Profile")}
-        title="Application Communication Profile"
-        description="Paste your positioning, tone preferences, story bank, and writing rules. Used for cover letters and outreach generation."
+        title="Profile"
+        description="Maintain the communication profile used for cover letter tone, story selection, and application defaults."
       />
 
       {!isSignedIn && cloudEnabled ? (
@@ -91,7 +92,8 @@ export function ProfilePageClient() {
       ) : null}
 
       <SetupCard
-        title="Profile content"
+        variant="primary"
+        title="Communication profile"
         description="One editable blob for now — career positioning, narrative themes, story execution status, and risk boundaries."
       >
         {!isSignedIn ? (
@@ -107,7 +109,7 @@ export function ProfilePageClient() {
               placeholder="Paste your Application Communication Profile here…"
               className={`${formFieldClassName} mt-4 font-mono text-sm leading-6`}
             />
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <button
                 type="button"
                 onClick={() => void handleSave()}
@@ -116,7 +118,7 @@ export function ProfilePageClient() {
               >
                 {isSaving ? "Saving…" : "Save profile"}
               </button>
-              <Link href="/generate" className="text-sm font-medium text-blue-700 underline">
+              <Link href="/generate" className="text-sm font-medium text-blue-700 underline underline-offset-4">
                 Go to Generate
               </Link>
             </div>

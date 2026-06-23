@@ -154,9 +154,10 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   return (
     <>
       <PageHeader
+        eyebrow="Editor"
         milestone={pageMilestone("Cover Letter")}
-        title="Formal cover letter"
-        description="Preview and edit the formal cover letter. Company context is shown below when available."
+        title="Cover letter editor"
+        description="Edit the formal letter, preview the exported PDF, run quick revisions, and export from one mobile-safe workspace."
       />
 
       <div className="flex flex-wrap gap-3">
@@ -171,6 +172,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       </div>
 
       <SetupCard
+        variant="primary"
         title={
           job?.roleTitle && displayCompany
             ? `${job.roleTitle} @ ${displayCompany}`
@@ -201,8 +203,20 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           </p>
         ) : null}
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
           <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} disabled={isSaving} />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={isSaving}
+              className={primaryButtonClassName}
+            >
+              {isSaving ? "Savingâ€¦" : "Save changes"}
+            </button>
+            <DownloadCoverLetterPdfButton draftId={draft.id} disabled={exportBlocked} />
+            <DownloadCoverLetterDocxButton draftId={draft.id} disabled={exportBlocked} />
+          </div>
         </div>
 
         {bodyView === "pdf" ? (
@@ -223,18 +237,6 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             including quick revisions before save.
           </p>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={isSaving}
-            className={primaryButtonClassName}
-          >
-            {isSaving ? "Saving…" : "Save changes"}
-          </button>
-          <DownloadCoverLetterPdfButton draftId={draft.id} disabled={exportBlocked} />
-          <DownloadCoverLetterDocxButton draftId={draft.id} disabled={exportBlocked} />
-        </div>
         {saveMessage ? <p className="mt-3 text-sm text-emerald-800">{saveMessage}</p> : null}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       </SetupCard>

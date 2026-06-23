@@ -129,15 +129,15 @@ export function ApplicationReviewCenter({
 
   return (
     <div
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="rounded-lg border border-slate-900/10 bg-white p-4 shadow-md sm:p-5"
       data-testid="application-review-center"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase text-cyan-800">
             Application Review
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-900">{displayTitle}</h2>
+          <h2 className="mt-1 text-xl font-semibold text-slate-950">{displayTitle}</h2>
         </div>
       </div>
 
@@ -158,7 +158,10 @@ export function ApplicationReviewCenter({
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3" data-section="resume-approve-export">
+      <div
+        className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 sm:flex-row sm:flex-wrap sm:items-end"
+        data-section="resume-approve-export"
+      >
         <button
           type="button"
           onClick={onApproveForExport}

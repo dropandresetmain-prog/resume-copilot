@@ -117,12 +117,25 @@ export function ApplicationPackageCoverLetterPanel({
     <SetupCard
       title="Cover letter"
       description="Formal cover letter for this application. Use Edit Cover Letter for revisions and quick actions."
+      variant="secondary"
     >
       {isLoading ? (
         <p className="mt-3 text-sm text-slate-600">Loading cover letter…</p>
       ) : coverLetter ? (
         <div className="mt-4 space-y-4">
-          <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
+          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/cover-letter-preview/${coverLetter.id}`}
+                className={primaryButtonClassName}
+              >
+                Edit cover letter
+              </Link>
+              <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={exportBlocked} />
+              <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={exportBlocked} />
+            </div>
+          </div>
 
           {bodyView === "pdf" ? (
             <CoverLetterPdfPreview
@@ -149,16 +162,6 @@ export function ApplicationPackageCoverLetterPanel({
               {exportBlockedReason}
             </p>
           ) : null}
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/cover-letter-preview/${coverLetter.id}`}
-              className={primaryButtonClassName}
-            >
-              Edit cover letter
-            </Link>
-            <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={exportBlocked} />
-            <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={exportBlocked} />
-          </div>
         </div>
       ) : (
         <div className="mt-3 space-y-3">

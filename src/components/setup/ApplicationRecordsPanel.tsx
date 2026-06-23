@@ -213,8 +213,9 @@ export function ApplicationRecordsPanel({
 
   return (
     <SetupCard
-      title="Applications"
-      description="Each job attempt groups a saved job, resume draft, status, and notes. New generates create or reuse an application for that job."
+      title="Application workspace"
+      description="Each row groups the job, status, notes, latest resume draft, cover letter, and company research."
+      variant="primary"
     >
       {!isSignedIn ? (
         <p className="mt-3 text-sm text-slate-600">
@@ -228,7 +229,7 @@ export function ApplicationRecordsPanel({
           description="Generate a tailored resume on the Generate page to create your first application record."
         />
       ) : (
-        <ul className="mt-4 space-y-4">
+        <ul className="mt-4 grid gap-4">
           {applications.map((application) => {
             const job = application.jobDescriptionId
               ? jobById.get(application.jobDescriptionId)
@@ -251,10 +252,21 @@ export function ApplicationRecordsPanel({
             return (
               <li
                 key={application.id}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm shadow-sm"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium text-slate-900">{label}</p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-slate-950">{label}</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Resume {artifactSummary.resumeLabel} · Cover letter{" "}
+                      {artifactSummary.coverLetterLabel} · Company context{" "}
+                      {hasUsableCompanyContext(application.companyContext)
+                        ? application.companyContext?.sourceType === "website_research"
+                          ? "website research"
+                          : "JD-based"
+                        : "none"}
+                    </p>
+                  </div>
                   <p className="text-xs text-slate-500">Updated {updatedLabel}</p>
                 </div>
 
@@ -270,16 +282,6 @@ export function ApplicationRecordsPanel({
                     </a>
                   </p>
                 ) : null}
-
-                <p className="mt-2 text-xs text-slate-600">
-                  Resume {artifactSummary.resumeLabel} · Cover letter{" "}
-                  {artifactSummary.coverLetterLabel} · Company context{" "}
-                  {hasUsableCompanyContext(application.companyContext)
-                    ? application.companyContext?.sourceType === "website_research"
-                      ? "✓ website research"
-                      : "✓ JD-based"
-                    : "— none"}
-                </p>
 
                 {application.jobDescriptionId ? (
                   <p className="mt-2">

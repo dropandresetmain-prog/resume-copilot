@@ -42,9 +42,9 @@ export function UploadCard({
       ) : null}
 
       <div
-        className={`mt-4 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors ${
+        className={`mt-4 flex min-h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${
           dragActive
-            ? "border-slate-900 bg-slate-100"
+            ? "border-cyan-800 bg-cyan-50"
             : "border-slate-300 bg-slate-50"
         } ${disabled ? "opacity-50" : ""}`}
         onDragEnter={(event) => {
@@ -65,7 +65,7 @@ export function UploadCard({
           handleFiles(event.dataTransfer.files);
         }}
       >
-        <p className="text-sm font-medium text-slate-800">
+        <p className="text-base font-semibold text-slate-950">
           Drag and drop resume files here
         </p>
         <p className="mt-1 text-sm text-slate-500">Supported format: .docx</p>
@@ -90,7 +90,7 @@ export function UploadCard({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={onClearAll}
