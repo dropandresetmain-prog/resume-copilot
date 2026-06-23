@@ -24,6 +24,7 @@ function main() {
     "utf8",
   );
 
+  const reviewCenterIndex = indexOrInfinity(resumePreview, "ApplicationReviewCenter");
   const approveIndex = indexOrInfinity(resumePreview, 'data-section="resume-approve-export"');
   const coverLetterIndex = indexOrInfinity(resumePreview, 'data-section="application-package-cover-letter"');
   const companyResearchIndex = indexOrInfinity(resumePreview, 'data-section="application-package-company-research"');
@@ -45,7 +46,8 @@ function main() {
     ["debug json under advanced options", advancedIndex < indexOrInfinity(resumePreview, "Debug JSON")],
     ["pdf html under advanced options", advancedIndex < indexOrInfinity(resumePreview, "PDF layout HTML source")],
     ["browser layout under advanced options", advancedIndex < indexOrInfinity(resumePreview, "Advanced browser layout estimate")],
-    ["application package summary component", resumePreview.includes("ApplicationPackageSummary")],
+    ["application review center component", resumePreview.includes("ApplicationReviewCenter")],
+    ["review center before approve export section", reviewCenterIndex < approveIndex],
     ["no open formal cover letter only cta", !resumePreview.includes("ResumeCoverLetterPanel")],
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
     ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],

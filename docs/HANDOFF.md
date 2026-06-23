@@ -2,18 +2,19 @@
 
 ## Current version
 
-**v0.9.8H** (code)
+**v0.9.9** (code)
 
 ## Latest milestone (code)
 
-**v0.9.8H — Gemini Model Tier Selection**
+**v0.9.9 — Application Review Center**
 
-User-selectable resume and cover letter model tiers (Standard / Enhanced / Premium) with per-call Gemini model lists, fallback to `gemini-2.5-flash-lite`, and persistence of requested tier + actual model used. Enrichment and company context remain on the fixed Standard env path.
+Single application-package dashboard aggregating existing resume, cover letter, company research, export, evidence, and generation signals. No new AI calls or scoring systems.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.9 | Application Review Center — export/readiness aggregation on resume preview |
 | v0.9.8H | Gemini model tier selection for resume/cover letter generation |
 | v0.9.8G | Test runner consolidation, docs under `/docs`, scripts cleanup |
 | v0.9.8F | Targeted forced bullet role rewrite |
@@ -97,6 +98,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.9 — Application Quality Checker** (post-generation review before export). Not started.
+**v0.9.9 — Application Review Center** shipped on resume preview. See `ApplicationReviewCenter` + `build-application-review-status.ts`.
 
 Parked after that: v0.10.0 Edit Learning Log, v0.10.1 Cover Letter Version History.

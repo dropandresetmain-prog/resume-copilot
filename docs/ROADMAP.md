@@ -66,9 +66,9 @@
 
 ## Next (planned)
 
-### v0.9.9 — Application Quality Checker
+### v0.9.9 — Application Review Center
 
-Post-generation review of resume + cover letter relevance before export. **Not started.**
+Aggregated export/readiness dashboard on `/resume-preview/[draftId]` using existing signals (fit heuristic, validation, forced bullets, research, export gates). **Shipped.**
 
 ### v0.10.0 — Edit Learning Log
 

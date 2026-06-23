@@ -16,6 +16,7 @@ type CoverLetterPdfPreviewProps = {
   body: string;
   draftId?: string;
   className?: string;
+  onOverflowChange?: (exceedsOnePage: boolean) => void;
 };
 
 function a4WidthPx(): number {
@@ -30,6 +31,7 @@ export function CoverLetterPdfPreview({
   body,
   draftId = "preview",
   className = "",
+  onOverflowChange,
 }: CoverLetterPdfPreviewProps) {
   const html = useMemo(() => renderCoverLetterPdfHtml(body), [body]);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -96,6 +98,12 @@ export function CoverLetterPdfPreview({
   useEffect(() => {
     remeasurePreview();
   }, [html, scale, remeasurePreview]);
+
+  useEffect(() => {
+    if (measurementState.key === previewKey) {
+      onOverflowChange?.(measurementState.exceedsOnePage);
+    }
+  }, [measurementState, previewKey, onOverflowChange]);
 
   const pageHeightPx = a4PageHeightPx();
   const displayHeightPx = contentHeightPx * scale;

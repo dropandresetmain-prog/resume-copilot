@@ -40,10 +40,8 @@ const SUITES: { name: string; file: string }[] = [
   { name: "application-records", file: "suites/application-records.test.ts" },
   { name: "cover-letter", file: "suites/cover-letter.test.ts" },
   { name: "cover-letter-quality", file: "suites/cover-letter-quality.test.ts" },
-  {
-    name: "cover-letter-application-package",
-    file: "suites/cover-letter-application-package.test.ts",
-  },
+  { name: "cover-letter-application-package", file: "suites/cover-letter-application-package.test.ts" },
+  { name: "application-review", file: "suites/application-review.test.ts" },
   {
     name: "cover-letter-pdf-preview",
     file: "suites/cover-letter-pdf-preview.test.ts",

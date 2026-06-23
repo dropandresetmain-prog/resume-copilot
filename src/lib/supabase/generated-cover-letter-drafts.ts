@@ -52,6 +52,15 @@ function parseCoverLetterRationale(value: unknown): CoverLetterRationale | undef
             fallbackApplied: value.modelSelection.fallbackApplied === true,
           }
         : undefined,
+    selectedCompanyFacts: Array.isArray(value.selectedCompanyFacts)
+      ? value.selectedCompanyFacts.filter((item): item is string => typeof item === "string")
+      : undefined,
+    selectedRoleRequirements: Array.isArray(value.selectedRoleRequirements)
+      ? value.selectedRoleRequirements.filter((item): item is string => typeof item === "string")
+      : undefined,
+    companyRoleStoryBridges: Array.isArray(value.companyRoleStoryBridges)
+      ? value.companyRoleStoryBridges.filter((item): item is string => typeof item === "string")
+      : undefined,
   };
 }
 

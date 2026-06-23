@@ -14,9 +14,10 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { ApplicationPackageCoverLetterPanel } from "@/components/application-package/ApplicationPackageCoverLetterPanel";
-import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
-import { ApplicationPackageSummary } from "@/components/application-package/ApplicationPackageSummary";
+import { ApplicationReviewCenter } from "@/components/application-package/ApplicationReviewCenter";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
+import { buildApplicationReviewStatus } from "@/lib/application-review/build-application-review-status";
+import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
@@ -78,6 +79,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [coverLetterLoading, setCoverLetterLoading] = useState(true);
+  const [coverLetterPdfOverflow, setCoverLetterPdfOverflow] = useState(false);
   const [showEditResumeContent, setShowEditResumeContent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
@@ -269,6 +271,41 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     draft && isLayoutChangedAfterApprovalStatus(draft.status),
   );
 
+  const reviewStatus = useMemo(() => {
+    if (!draft) {
+      return null;
+    }
+    return buildApplicationReviewStatus({
+      resumeDraft: draft,
+      coverLetter,
+      coverLetterLoading,
+      companyContext,
+      exportReady,
+      layoutChangedAfterApproval,
+      currentLayoutSettings,
+      validationFailure,
+      pageFit,
+      coverLetterPdfOverflow,
+    });
+  }, [
+    draft,
+    coverLetter,
+    coverLetterLoading,
+    companyContext,
+    exportReady,
+    layoutChangedAfterApproval,
+    currentLayoutSettings,
+    validationFailure,
+    pageFit,
+    coverLetterPdfOverflow,
+  ]);
+
+  const displayCompany = formatCompanyNameForDisplay({
+    rawName: linkedJob?.companyName,
+    website: companyContext?.website,
+    savedDisplayName: companyContext?.displayName,
+  });
+
   useEffect(() => {
     return () => {
       if (layoutChangeTimerRef.current) {
@@ -408,39 +445,24 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
       />
 
       <div className="space-y-6">
-        <ApplicationPackageSummary
-          companyName={linkedJob?.companyName}
-          roleTitle={linkedJob?.roleTitle}
-          resumeDraft={draft}
-          coverLetter={coverLetter}
-          coverLetterLoading={coverLetterLoading}
-          companyContext={companyContext}
-        />
-
-        {draft.rationale?.structureRepair?.messages?.length ? (
-          <div
-            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-            data-testid="resume-structure-repair-banner"
-          >
-            <p className="font-medium">Resume generated with automatic structure repair</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {draft.rationale.structureRepair.messages.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          </div>
+        {reviewStatus ? (
+          <ApplicationReviewCenter
+            companyName={displayCompany}
+            roleTitle={linkedJob?.roleTitle ?? draft.content.targetRoleTitle}
+            reviewStatus={reviewStatus}
+            resumeDraftId={draftId}
+            coverLetterId={coverLetter?.id}
+            onApproveForExport={() => void handleApproveForExport()}
+            isApproving={isApproving}
+            canApprove={canApprove}
+            approveButtonLabel={approveButtonLabel}
+          />
         ) : null}
 
         <SetupCard
           title="Resume"
           description="Primary artifact — tune layout, approve for export, then download PDF or DOCX."
         >
-          {layoutChangedAfterApproval ? (
-            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Layout changed after approval. Re-approve for Export to run server validation again.
-            </p>
-          ) : null}
-
           <div className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
@@ -565,10 +587,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 </p>
                 <p className="mt-1">{validationFailure.message}</p>
               </div>
-            ) : serverPdfValidation ? (
-              <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
-                Server PDF validated — 1 page. Approved for export.
-              </p>
             ) : isApproving ? (
               <p className="text-sm text-slate-600">Validating server PDF layout…</p>
             ) : null}
@@ -617,6 +635,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             job={linkedJob ?? undefined}
             onCoverLetterChange={setCoverLetter}
             onLoadingChange={setCoverLetterLoading}
+            onPdfOverflowChange={setCoverLetterPdfOverflow}
           />
         </div>
 
@@ -671,11 +690,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             Advanced options
           </summary>
           <div className="mt-4 space-y-4">
-            <ModelSelectionDebug
-              requestedTier={draft.inputSnapshot?.resumeModelTier}
-              actualModel={draft.modelName}
-              fallbackApplied={draft.inputSnapshot?.modelFallbackApplied}
-            />
             <p className="text-xs text-slate-500">
               Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font:{" "}
               {fontFamily.split(",")[0]}

@@ -16,6 +16,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
+import { evaluateCoverLetterClientExportReadiness } from "@/lib/application-review/cover-letter-export-readiness";
 import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
 import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-cover-letter-drafts";
@@ -28,6 +29,7 @@ type ApplicationPackageCoverLetterPanelProps = {
   job?: StoredJobDescription;
   onCoverLetterChange?: (coverLetter: GeneratedCoverLetterDraftRecord | null) => void;
   onLoadingChange?: (loading: boolean) => void;
+  onPdfOverflowChange?: (exceedsOnePage: boolean) => void;
 };
 
 export function ApplicationPackageCoverLetterPanel({
@@ -35,6 +37,7 @@ export function ApplicationPackageCoverLetterPanel({
   job,
   onCoverLetterChange,
   onLoadingChange,
+  onPdfOverflowChange,
 }: ApplicationPackageCoverLetterPanelProps) {
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,6 +107,12 @@ export function ApplicationPackageCoverLetterPanel({
     }
   }
 
+  const coverLetterExport = coverLetter
+    ? evaluateCoverLetterClientExportReadiness(coverLetter.body)
+    : null;
+  const exportBlocked = coverLetterExport ? !coverLetterExport.exportReady : false;
+  const exportBlockedReason = coverLetterExport?.blockingReasons.join(" ") ?? undefined;
+
   return (
     <SetupCard
       title="Cover letter"
@@ -116,7 +125,11 @@ export function ApplicationPackageCoverLetterPanel({
           <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
 
           {bodyView === "pdf" ? (
-            <CoverLetterPdfPreview body={coverLetter.body} draftId={coverLetter.id} />
+            <CoverLetterPdfPreview
+              body={coverLetter.body}
+              draftId={coverLetter.id}
+              onOverflowChange={onPdfOverflowChange}
+            />
           ) : (
             <div
               className="max-h-[32rem] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/70 p-5 md:p-6 shadow-inner"
@@ -131,6 +144,11 @@ export function ApplicationPackageCoverLetterPanel({
               </div>
             </div>
           )}
+          {exportBlocked && exportBlockedReason ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {exportBlockedReason}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/cover-letter-preview/${coverLetter.id}`}
@@ -138,8 +156,8 @@ export function ApplicationPackageCoverLetterPanel({
             >
               Edit cover letter
             </Link>
-            <DownloadCoverLetterPdfButton draftId={coverLetter.id} />
-            <DownloadCoverLetterDocxButton draftId={coverLetter.id} />
+            <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={exportBlocked} />
+            <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={exportBlocked} />
           </div>
         </div>
       ) : (
