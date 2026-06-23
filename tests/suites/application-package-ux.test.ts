@@ -43,7 +43,9 @@ function main() {
     ["approve export before company research", approveIndex < companyResearchIndex],
     ["approve export before developer details", approveIndex < developerIndex],
     ["review center owns approve export action row", reviewCenter.includes('data-section="resume-approve-export"')],
-    ["review center separates export lane", reviewCenter.includes("Export after approval") && reviewCenter.includes("Primary action")],
+    ["review center two-step sequence labels", reviewCenter.includes("Step 1") && reviewCenter.includes("Step 2")],
+    ["review center sequential approve export", reviewCenter.includes("Step 1 — Approve") && reviewCenter.includes("Step 2 — Export (after approval)")],
+    ["review center export ready collapses approve", reviewCenter.includes("exportReady")],
     [
       "approve and export controls co-located",
       reviewCenter.includes("exportControls") &&
@@ -70,6 +72,10 @@ function main() {
     ["edit toggle before developer details", editToggleIndex < developerIndex],
     ["review center shows go to cover letter when no coverLetterId", reviewCenter.includes("Go to cover letter") && reviewCenter.includes("#package-cover-letter")],
     ["review center always has cover letter action", reviewCenter.includes("Edit cover letter") && reviewCenter.includes("Go to cover letter")],
+    ["review center checklists behind disclosure", reviewCenter.includes("review-details-disclosure") && reviewCenter.includes("Review details")],
+    ["draft ready status type defined", reviewCenter.includes("DRAFT_READY") || resumePreview.includes("DRAFT_READY") || reviewCenter.includes("exportReady")],
+    ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Review and approve")],
+    ["package page passes exportReady to review center", resumePreview.includes("exportReady={exportReady}")],
     ["package rail research is conditional on companyContext", resumePreview.includes("companyContext ? [[\"Research\"") || resumePreview.includes("companyContext ? [") && resumePreview.includes('"Research"') && resumePreview.includes('"#package-research"')],
     ["package rail research not hardcoded", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
   ];

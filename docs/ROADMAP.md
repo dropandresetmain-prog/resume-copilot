@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11G**
+**v0.9.11H**
 
 ## Completed capabilities
 
@@ -30,8 +30,20 @@
 | Live Package/Cover Letter UX fixes | v0.9.11E |
 | Visual + flow correction (landing, nav, Generate, Applications) | v0.9.11F |
 | Mobile nav + alert fatigue fix | v0.9.11G |
+| Application Package guided review + Generate density | v0.9.11H |
 
 ## Milestone log (recent)
+
+### v0.9.11H - Application Package Guided Review + Generate Composer Density
+
+- `DRAFT_READY` status: fresh drafts open with a neutral cyan banner ("Draft ready — approve to export") instead of the red "Not Ready to Export" alarm.
+- Explicit two-step Approve → Export sequence in ApplicationReviewCenter: Step 1 Approve is the primary action (pre-approval); after approval, export controls become primary and Approve collapses to a secondary re-approve link.
+- Review checklists moved behind a "Review details (N)" disclosure — the review card is now compact rather than a wall blocking the resume.
+- Compact Application Package page header (no longer describes the layout in prose).
+- Generate composer density: base resume selector + Generate CTA appear directly after the JD textarea; optional company/role/URL/recruitment-firm fields are collapsed under "Job details (optional)."
+- Single compact readiness strip on Generate (sign in · upload resume · paste JD · provider configured) replaces 4–5 scattered amber/red notices.
+- Mobile nav right-edge fade affordance (sm:hidden gradient overlay) signals scroll when Profile is off-screen.
+- No schema, generation, export/approval logic, or model ID changes.
 
 ### v0.9.11G - Mobile Nav + Alert Fatigue Fix
 

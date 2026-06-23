@@ -333,16 +333,17 @@ export function JDInputPanel({
 
   return (
     <SetupCard title={resolvedTitle} description={resolvedDescription}>
-      {disabled && disabledReason ? (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {disabledReason}
-        </p>
-      ) : null}
-
       {showForm ? (
         <div className="mt-4 space-y-4">
           {!showIntakeForm && editingId ? (
             <p className="text-sm text-slate-600">Editing a saved job.</p>
+          ) : null}
+
+          {/* Sign-in disabled notice — shown outside generate flow only; readiness strip handles it there */}
+          {disabled && disabledReason && !generateFlow ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {disabledReason}
+            </p>
           ) : null}
 
           <div>
@@ -360,63 +361,182 @@ export function JDInputPanel({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="jd-company" className={labelClassName}>
-                Company name (optional)
-              </label>
-              <input
-                id="jd-company"
-                type="text"
-                value={form.companyName ?? ""}
-                onChange={(event) => updateField("companyName", event.target.value)}
+          {/* Generate flow: CTA directly after JD textarea, optional details collapsed */}
+          {generateFlow && showIntakeForm ? (
+            <>
+              <GenerateTailoredResumeSection
+                inventory={generateFlow.inventory}
+                jobDescriptions={jobDescriptions}
+                jobForm={form}
+                editingJobId={editingId}
+                isSignedIn={generateFlow.isSignedIn}
                 disabled={disabled}
-                className={formFieldClassName}
+                onSaveJob={generateFlow.onSaveJob}
+                onGenerationFinished={generateFlow.onGenerationFinished}
               />
-              <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  disabled
-                  aria-describedby="recruitment-firm-hint"
-                  className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
-                />
-                <span className="text-sm text-slate-600">
-                  Recruitment firm / confidential client posting
-                  <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
-                    Coming soon — does not affect generation in this release.
-                  </span>
-                </span>
-              </label>
-            </div>
-            <div>
-              <label htmlFor="jd-role" className={labelClassName}>
-                Role title (optional)
-              </label>
-              <input
-                id="jd-role"
-                type="text"
-                value={form.roleTitle ?? ""}
-                onChange={(event) => updateField("roleTitle", event.target.value)}
-                disabled={disabled}
-                className={formFieldClassName}
-              />
-            </div>
-          </div>
 
-          <div>
-            <label htmlFor="jd-url" className={labelClassName}>
-              Job URL (optional)
-            </label>
-            <input
-              id="jd-url"
-              type="url"
-              value={form.jobUrl ?? ""}
-              onChange={(event) => updateField("jobUrl", event.target.value)}
-              disabled={disabled}
-              placeholder="https://…"
-              className={formFieldClassName}
-            />
-          </div>
+              <details className="rounded-lg border border-slate-200">
+                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center justify-between gap-2">
+                    <span>Job details (optional)</span>
+                    <span className="text-xs font-normal text-slate-400">
+                      Company · Role · URL
+                    </span>
+                  </span>
+                </summary>
+                <div className="space-y-4 border-t border-slate-100 px-4 pb-4 pt-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="jd-company" className={labelClassName}>
+                        Company name (optional)
+                      </label>
+                      <input
+                        id="jd-company"
+                        type="text"
+                        value={form.companyName ?? ""}
+                        onChange={(event) => updateField("companyName", event.target.value)}
+                        disabled={disabled}
+                        className={formFieldClassName}
+                      />
+                      <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          disabled
+                          aria-describedby="recruitment-firm-hint"
+                          className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+                        />
+                        <span className="text-sm text-slate-600">
+                          Recruitment firm / confidential client posting
+                          <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
+                            Coming soon — does not affect generation in this release.
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                    <div>
+                      <label htmlFor="jd-role" className={labelClassName}>
+                        Role title (optional)
+                      </label>
+                      <input
+                        id="jd-role"
+                        type="text"
+                        value={form.roleTitle ?? ""}
+                        onChange={(event) => updateField("roleTitle", event.target.value)}
+                        disabled={disabled}
+                        className={formFieldClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="jd-url" className={labelClassName}>
+                      Job URL (optional)
+                    </label>
+                    <input
+                      id="jd-url"
+                      type="url"
+                      value={form.jobUrl ?? ""}
+                      onChange={(event) => updateField("jobUrl", event.target.value)}
+                      disabled={disabled}
+                      placeholder="https://…"
+                      className={formFieldClassName}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={clearForm}
+                    disabled={disabled}
+                    className={`${secondaryButtonClassName} sm:w-auto`}
+                  >
+                    Clear form
+                  </button>
+                </div>
+              </details>
+            </>
+          ) : (
+            /* Non-generate flow: standard layout */
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="jd-company" className={labelClassName}>
+                    Company name (optional)
+                  </label>
+                  <input
+                    id="jd-company"
+                    type="text"
+                    value={form.companyName ?? ""}
+                    onChange={(event) => updateField("companyName", event.target.value)}
+                    disabled={disabled}
+                    className={formFieldClassName}
+                  />
+                  <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      disabled
+                      aria-describedby="recruitment-firm-hint"
+                      className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+                    />
+                    <span className="text-sm text-slate-600">
+                      Recruitment firm / confidential client posting
+                      <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
+                        Coming soon — does not affect generation in this release.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <label htmlFor="jd-role" className={labelClassName}>
+                    Role title (optional)
+                  </label>
+                  <input
+                    id="jd-role"
+                    type="text"
+                    value={form.roleTitle ?? ""}
+                    onChange={(event) => updateField("roleTitle", event.target.value)}
+                    disabled={disabled}
+                    className={formFieldClassName}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="jd-url" className={labelClassName}>
+                  Job URL (optional)
+                </label>
+                <input
+                  id="jd-url"
+                  type="url"
+                  value={form.jobUrl ?? ""}
+                  onChange={(event) => updateField("jobUrl", event.target.value)}
+                  disabled={disabled}
+                  placeholder="https://…"
+                  className={formFieldClassName}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {showSaveButton ? (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={disabled || isSaving}
+                    className={`${primaryButtonClassName} sm:w-auto`}
+                  >
+                    {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={clearForm}
+                  disabled={disabled}
+                  className={`${secondaryButtonClassName} sm:w-auto`}
+                >
+                  {editingId && !showIntakeForm ? "Cancel edit" : "Clear form"}
+                </button>
+              </div>
+            </>
+          )}
 
           {validationError ? (
             <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -430,40 +550,6 @@ export function JDInputPanel({
           ) : null}
           {duplicateWarning ? (
             <p className="text-sm text-amber-800">{duplicateWarning}</p>
-          ) : null}
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {showSaveButton ? (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={disabled || isSaving}
-                className={`${primaryButtonClassName} sm:w-auto`}
-              >
-                {isSaving ? "Saving…" : editingId ? "Update saved job" : "Save job"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={clearForm}
-              disabled={disabled}
-              className={`${secondaryButtonClassName} sm:w-auto`}
-            >
-              {editingId && !showIntakeForm ? "Cancel edit" : "Clear form"}
-            </button>
-          </div>
-
-          {generateFlow && showIntakeForm ? (
-            <GenerateTailoredResumeSection
-              inventory={generateFlow.inventory}
-              jobDescriptions={jobDescriptions}
-              jobForm={form}
-              editingJobId={editingId}
-              isSignedIn={generateFlow.isSignedIn}
-              disabled={disabled}
-              onSaveJob={generateFlow.onSaveJob}
-              onGenerationFinished={generateFlow.onGenerationFinished}
-            />
           ) : null}
         </div>
       ) : null}

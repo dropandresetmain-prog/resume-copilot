@@ -110,14 +110,32 @@
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional, not export gate.
 - **Layout Fit (One Page)** browser estimate is separate from server validation.
 
-## Mobile shell (v0.9.11G)
+## Mobile shell (v0.9.11H)
 
-- Nav uses a **two-row mobile layout** (brand, then scrollable links). Very narrow Browser Tab panes may still clip; verify in real Chrome at 390px when possible.
+- Nav uses a **two-row mobile layout** (brand, then scrollable links). A right-edge fade gradient signals scroll when Profile is partially offscreen. Very narrow Browser Tab panes may still clip; verify in real Chrome at 390px.
 - Persistent storage warnings are **collapsible** on workspace pages — expand "Local data needs sync" for full text.
+
+## Application Package (v0.9.11H)
+
+- **DRAFT_READY** is a new overall status shown on first page load after generation — neutral cyan tone, "Draft ready — approve to export." Red `NOT_READY_TO_EXPORT` is reserved for real post-approval failures (server PDF > 1 page, layout changed).
+- **Review details disclosure** collapses section checklists by default. Users who need to inspect individual items can expand "Review details."
+- **Approve → Export sequence** is now explicit (Step 1 / Step 2 labels). Export buttons are already disabled before approval; the step labels reinforce the sequence.
+- **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring. Accept Risk until live data available.
+- **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
+
+## Generate page (v0.9.11H)
+
+- **Job details disclosure** starts closed. Auto-extracted company/role from JD text populates the hidden fields silently; users can open "Job details (optional)" to review or edit.
+- **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider). Strip hides once all are satisfied (`canGenerate` = true) or while provider status is still loading.
+- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside the collapsed Job details section — does not affect generation.
+
+## Uploads page (Investigate Now — v0.9.11H)
+
+- Duplicate sign-in messaging and admin-workbench layout remain. Parked for a focused Uploads flow pass; merge sign-in warnings and make the dropzone the clear first action.
 
 ## Inventory workflow (Investigate Now — v0.9.11F)
 
-- **Duplicate cleanup, bullet variant management, force-exclude, and internship ranking** remain messy/confusing in the Inventory UI — intentionally **not** addressed in v0.9.11F.
+- **Duplicate cleanup, bullet variant management, force-exclude, and internship ranking** remain messy/confusing in the Inventory UI — intentionally **not** addressed in v0.9.11F or H.
 - Enrichment/duplicate-review wording and actions need a dedicated source-of-truth milestone before further visual polish.
 - **Recruitment firm / confidential client posting** checkbox exists on Generate (disabled) but does **not** affect generation yet — wire-up requires schema/generation policy decisions.
 

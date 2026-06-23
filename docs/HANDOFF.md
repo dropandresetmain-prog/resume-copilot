@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11G** (code)
+**v0.9.11H** (code)
 
 ## v0.9.11G implementation note
 
@@ -36,16 +36,23 @@ UI/UX Redesign Foundation is the latest code milestone. It delivers a broader vi
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no source-of-truth changes. Recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD remain parked/follow-up.
 
+## v0.9.11H implementation note
+
+Application Package Guided Review + Generate Composer Density: addresses post-generation UX failures identified in screenshot audit. Key changes: (1) new `DRAFT_READY` status for fresh drafts — neutral cyan banner instead of red "Not Ready to Export"; (2) explicit two-step Approve → Export sequence with step labels and sequential emphasis; (3) review checklists collapsed behind "Review details (N)" disclosure so the review card is no longer a blocking wall above the resume; (4) compact package page header; (5) Generate composer density — base resume + CTA appear directly after the JD textarea, optional company/role/URL/recruitment fields collapsed behind "Job details (optional)"; (6) single compact readiness strip replacing 4–5 scattered amber/red notices on Generate; (7) mobile nav right-edge fade affordance.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
+
 ## Latest milestone (code)
 
-**v0.9.11G - Mobile Nav + Alert Fatigue Fix**
+**v0.9.11H - Application Package Guided Review + Generate Composer Density**
 
-Narrow follow-up to v0.9.11F browser QA: stacked mobile nav, collapsible storage warnings, compact headers, quieter Generate readiness notices.
+Post-generation UX: DRAFT_READY neutral status, Approve→Export sequencing, review details behind disclosure, compact package header, Generate CTA density, readiness strip, mobile nav fade.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11H | Application Package guided review + Generate composer density |
 | v0.9.11G | Mobile nav + alert fatigue — stacked nav, collapsible storage warnings, compact headers |
 | v0.9.11F | Visual + flow correction — landing, nav, Generate, progress, Uploads, Applications |
 | v0.9.11E | Live Package/Cover Letter UX fixes — mojibake, review cover-letter path, rail anchors, save model |

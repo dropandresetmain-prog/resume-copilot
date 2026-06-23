@@ -441,10 +441,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
+        compact
         eyebrow="Package"
         milestone={pageMilestone("Application Package")}
         title="Application package"
-        description="Approve the resume for export, inspect the PDF preview, and keep cover letter, research, edits, and developer details close without crowding the main path."
+        description="Review and approve your tailored resume and cover letter, then export."
       />
 
       <div className="space-y-6">
@@ -477,6 +478,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             isApproving={isApproving}
             canApprove={canApprove}
             approveButtonLabel={approveButtonLabel}
+            exportReady={exportReady}
             exportControls={
               <>
                 <DownloadResumePdfButton

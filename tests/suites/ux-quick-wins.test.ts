@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11G"')],
-    ["package json version", packageJson.includes('"version": "0.9.11G"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11H"')],
+    ["package json version", packageJson.includes('"version": "0.9.11H"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -188,6 +188,30 @@ function main() {
     [
       "v0.9.11G documented",
       handoff.includes("v0.9.11G") && roadmap.includes("v0.9.11G"),
+    ],
+    [
+      "v0.9.11H documented",
+      handoff.includes("v0.9.11H") && roadmap.includes("v0.9.11H"),
+    ],
+    [
+      "mobile nav fade affordance",
+      appNav.includes("bg-gradient-to-l") && appNav.includes("from-white") && appNav.includes("sm:hidden"),
+    ],
+    [
+      "generate readiness strip",
+      generateSection.includes("generate-readiness-strip") && generateSection.includes("Readiness"),
+    ],
+    [
+      "generate job details collapsible",
+      jdPanel.includes("Job details (optional)") && jdPanel.includes("Company · Role · URL"),
+    ],
+    [
+      "generate cta before job details in generate flow",
+      jdPanel.indexOf("GenerateTailoredResumeSection") < jdPanel.indexOf("Job details (optional)"),
+    ],
+    [
+      "application package draft ready status",
+      resumePreview.includes("exportReady={exportReady}"),
     ],
   ];
 

@@ -207,7 +207,7 @@ function main() {
   });
 
   const checks: [string, boolean][] = [
-    ["unapproved overall is NOT_READY", unapproved.overallStatus === "NOT_READY_TO_EXPORT"],
+    ["unapproved overall is DRAFT_READY (pre-approval neutral state)", unapproved.overallStatus === "DRAFT_READY"],
     [
       "unapproved has resume blocking",
       unapproved.sections

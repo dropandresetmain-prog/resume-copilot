@@ -49,22 +49,30 @@ export function AppNav() {
           </p>
         </div>
 
-        <div
-          className="flex w-full min-w-0 items-center gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-1 sm:justify-end sm:pb-0 [&::-webkit-scrollbar]:hidden"
-          aria-label="Workspace pages"
-        >
-          {APP_NAV_ITEMS.map((item) => {
-            const active = isAppNavActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={navLinkClassName(active, item.primary === true)}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        {/* Relative wrapper so the fade overlay can be positioned against the scroll container */}
+        <div className="relative min-w-0 flex-1 sm:flex-none sm:flex-1">
+          <div
+            className="flex w-full min-w-0 items-center gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-1 sm:justify-end sm:pb-0 [&::-webkit-scrollbar]:hidden"
+            aria-label="Workspace pages"
+          >
+            {APP_NAV_ITEMS.map((item) => {
+              const active = isAppNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={navLinkClassName(active, item.primary === true)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+          {/* Right-edge fade affordance — signals that nav scrolls on narrow viewports */}
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white/95 to-transparent sm:hidden"
+            aria-hidden="true"
+          />
         </div>
 
         <p className="hidden shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500 lg:block">

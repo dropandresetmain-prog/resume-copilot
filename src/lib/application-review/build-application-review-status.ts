@@ -29,7 +29,9 @@ import type {
 export type ApplicationReviewOverallStatus =
   | "READY_TO_EXPORT"
   | "REVIEW_RECOMMENDED"
-  | "NOT_READY_TO_EXPORT";
+  | "NOT_READY_TO_EXPORT"
+  /** Fresh draft, never approved, no validation failures — neutral pre-approval state. */
+  | "DRAFT_READY";
 
 export type ReviewItemSeverity = "blocking" | "warning" | "info";
 
@@ -585,12 +587,29 @@ function deriveOverallStatus(
   resumeExportReady: boolean,
   coverLetterExists: boolean,
   coverLetterExportReady: boolean,
+  input: BuildApplicationReviewStatusInput,
 ): ApplicationReviewOverallStatus {
   const blockingItems = allItems.filter((item) => item.severity === "blocking");
 
   const resumeExportBlocking = !resumeExportReady;
-  const coverLetterExportBlocking =
-    coverLetterExists && !coverLetterExportReady;
+  const coverLetterExportBlocking = coverLetterExists && !coverLetterExportReady;
+
+  // DRAFT_READY: fresh draft never approved, no failed validation attempt, no layout change.
+  // Only the normal "not yet approved" blocker is present — show neutral/positive tone.
+  if (
+    resumeExportBlocking &&
+    !coverLetterExportBlocking &&
+    !input.validationFailure &&
+    !input.layoutChangedAfterApproval &&
+    !isApprovedDraftStatus(input.resumeDraft.status)
+  ) {
+    const nonApprovalBlocking = blockingItems.filter(
+      (item) => item.id !== "resume-not-approved" && !item.id.startsWith("export-"),
+    );
+    if (nonApprovalBlocking.length === 0) {
+      return "DRAFT_READY";
+    }
+  }
 
   if (resumeExportBlocking || coverLetterExportBlocking) {
     return "NOT_READY_TO_EXPORT";
@@ -676,6 +695,7 @@ export function buildApplicationReviewStatus(
     input.exportReady,
     Boolean(input.coverLetter?.body?.trim()),
     coverLetterReadiness.clientExportReady,
+    input,
   );
 
   const evidenceUsage: ApplicationReviewEvidenceUsage = {

@@ -487,13 +487,62 @@ export function GenerateTailoredResumeSection({
 
   const storedPreference = readLastBaseResumeId();
 
+  // Readiness strip: consolidates all pre-generation conditions into one compact strip.
+  const readinessItems: { id: string; ready: boolean; label: string; href?: string }[] = [
+    { id: "sign-in", ready: isSignedIn, label: "Sign in to generate" },
+    {
+      id: "upload",
+      ready: inventory.resumes.length > 0,
+      label: "Upload a resume in Uploads",
+      href: "/setup",
+    },
+    { id: "paste-jd", ready: hasJobText, label: "Paste a job description" },
+    {
+      id: "provider",
+      ready: providerConfigured,
+      label: providerStatus?.configurationError ?? "Configure resume provider",
+    },
+  ];
+  const pendingItems = readinessItems.filter((item) => !item.ready);
+  const showReadinessStrip = !isGenerating && !canGenerate && providerStatus !== null;
+
   return (
     <div className="border-t border-slate-200 pt-5">
-      {!providerConfigured ? (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {providerStatus?.configurationError ??
-            "Resume draft provider is not configured."}
-        </p>
+      {showReadinessStrip ? (
+        <div
+          className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
+          data-testid="generate-readiness-strip"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Readiness
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {readinessItems.map((item) => (
+              <li key={item.id} className="flex items-baseline gap-2 text-sm">
+                <span
+                  className={
+                    item.ready ? "font-medium text-emerald-600" : "text-slate-400"
+                  }
+                >
+                  {item.ready ? "✓" : "·"}
+                </span>
+                {item.ready ? (
+                  <span className="text-slate-500 line-through">{item.label}</span>
+                ) : item.href ? (
+                  <Link
+                    href={item.href}
+                    className="text-amber-800 underline underline-offset-2 hover:text-amber-950"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className="text-slate-700">{item.label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {pendingItems.length === 0 ? null : null}
+        </div>
       ) : null}
 
       {isGenerating ? (
@@ -767,17 +816,6 @@ export function GenerateTailoredResumeSection({
         </details>
       ) : null}
 
-      {!hasJobText ? (
-        <p className="mt-3 text-sm text-amber-800">
-          Paste a job description to enable generation.
-        </p>
-      ) : null}
-
-      {inventory.resumes.length === 0 ? (
-        <p className="mt-3 text-sm text-amber-800">
-          Upload at least one resume in Uploads before generating.
-        </p>
-      ) : null}
     </div>
   );
 }
