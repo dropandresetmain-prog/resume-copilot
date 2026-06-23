@@ -13,7 +13,7 @@ export function buildCoverLetterExportFileNameInput(options: {
   resumeDraft?: Pick<GeneratedResumeDraftRecord, "content"> | null;
   job?: Pick<StoredJobDescription, "companyName" | "roleTitle"> | null;
 }): ResumeExportFileNameInput {
-  const fullName = options.resumeDraft?.content.header.fullName?.trim() || "Min Htet";
+  const fullName = options.resumeDraft?.content.header.fullName?.trim() || "Candidate";
   const display = formatCompanyNameForDisplay({
     rawName: options.draft.companyName ?? options.job?.companyName,
     website: options.draft.companyWebsite ?? options.draft.companyContext?.website,

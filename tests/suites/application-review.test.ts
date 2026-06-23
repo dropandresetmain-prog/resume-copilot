@@ -97,7 +97,7 @@ function buildCoverLetter(
   overrides: Partial<GeneratedCoverLetterDraftRecord> = {},
 ): GeneratedCoverLetterDraftRecord {
   const body =
-    "Dear Hiring Manager,\n\nI am excited to apply for this role with relevant operations experience.\n\nMin Htet";
+    "Dear Hiring Manager,\n\nI am excited to apply for this role with relevant operations experience.\n\nAlex Tan";
   return {
     id: "cl-1",
     userId: "user-1",
@@ -174,7 +174,7 @@ function main() {
     coverLetterPdfOverflow: true,
   });
 
-  const overLimitBody = `${"word ".repeat(430)}Min Htet`;
+  const overLimitBody = `${"word ".repeat(430)}Alex Tan`;
   const overLimit = buildApplicationReviewStatus({
     resumeDraft: buildResumeDraft({
       status: "approved",
@@ -190,7 +190,7 @@ function main() {
     currentLayoutSettings: layoutSettings,
   });
 
-  const bannedBody = "I am a founder-operator systems thinker. Min Htet";
+  const bannedBody = "I am a founder-operator systems thinker. Alex Tan";
   const clientBanned = evaluateCoverLetterClientExportReadiness(bannedBody);
 
   const specificity = resolveCompanySpecificityCounts(buildCoverLetter().rationale);

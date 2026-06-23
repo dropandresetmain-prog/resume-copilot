@@ -22,7 +22,7 @@ function buildSampleResumeDraft(): GeneratedResumeDraftRecord {
     content: {
       schemaVersion: RESUME_DRAFT_SCHEMA_VERSION,
       targetRoleTitle: "Product Manager",
-      header: { includeHeader: true, fullName: "Min Htet" },
+      header: { includeHeader: true, fullName: "Alex Tan" },
       professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
       experience: [
         {
@@ -69,7 +69,7 @@ function main() {
     },
     resumeDraftId: resumeDraft.id,
     resumeEvidenceSpine: buildResumeEvidenceSpine(resumeDraft),
-    communicationProfile: "Refer to Min Htet. Strategy & Operations background.",
+    communicationProfile: "Strategy & Operations background.",
     companyName: "Pave Bank",
     country: "Singapore",
     companyWebsite: "https://pavebank.com",
@@ -114,8 +114,8 @@ function main() {
     ["resolve company name prefers override", resolveCompanyNameForGeneration({ override: "Beta Co", jobDescriptionText: "at Alpha" }) === "Beta Co"],
     ["resume evidence spine includes bullet", input.resumeEvidenceSpine.includes("workflow automation")],
     ["prompt includes cover letter rules", promptIncludesCoverLetterRules(prompt)],
-    ["prompt references Min Htet naming rule", prompt.includes('never "Min"')],
-    ["mock formal content present", mock.formalContent.includes("Min Htet")],
+    ["prompt does not hardcode founder name", !prompt.includes("Min Htet")],
+    ["mock formal content present", mock.formalContent.length > 0],
     ["mock secondary email present", mock.rationale.emailCoverLetter.length > 0],
     ["validation accepts mock formal letter", validation.ok],
     ["parser accepts formal cover letter json", parsed.ok === true],

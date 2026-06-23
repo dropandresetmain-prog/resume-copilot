@@ -10,8 +10,11 @@ import {
 export function buildCoverLetterPrompt(input: CoverLetterGenerationInput): string {
   const displayCompany =
     input.companyDisplayName?.trim() || input.companyName.trim() || "the company";
+  const candidateName = input.candidateName?.trim() || null;
+  const candidateRef = candidateName ? `${candidateName}` : "the candidate";
+  const closingSignature = candidateName ? candidateName : "[Candidate Name]";
 
-  return `You are writing application communications for Min Htet (always refer to him as "Min Htet", never "Min").
+  return `You are writing application communications for ${candidateRef}.
 
 Return ONLY valid JSON matching this schema:
 {
@@ -32,7 +35,7 @@ Return ONLY valid JSON matching this schema:
 }
 
 ## Tone (critical)
-Write like Min Htet — conversational professional, warm, human, grounded, and specific.
+Write in a conversational professional style — warm, human, grounded, and specific.
 - Sound natural, not stiff, corporate, salesy, or AI-polished.
 - Prefer plain sentences over stacked abstractions.
 - Use specific operational language from real work, not positioning jargon.
@@ -79,13 +82,13 @@ Company fact → Role requirement → Candidate evidence → Why relevant (expli
 3. Company context is REQUIRED — do not write a generic letter that could go to any company.
 4. Do not invent facts, metrics, employers, or titles.
 5. Avoid generic excitement and empty enthusiasm.
-6. Use real industry terms. Do NOT invent positioning titles like "AI-enabled operator".
-7. Do NOT describe Min Htet as a software engineer.
-8. Do NOT overclaim fintech, AI/ML, or senior product authority beyond evidence.
-9. Explain why Min Htet is applying for this specific role at ${displayCompany}.
+6. Use real industry terms. Do NOT invent unsupported positioning titles.
+7. Do NOT describe the candidate as a software engineer unless the resume/JD evidence clearly supports it.
+8. Do NOT overclaim technical, AI/ML, or senior authority beyond what the evidence supports.
+9. Explain why the candidate is applying for this specific role at ${displayCompany}.
 10. Secondary formats must be shorter and copyable.
 11. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at ${displayCompany}.
-12. Closing: default "Regards,\\nMin Htet" unless JD tone suggests formal or casual startup.
+12. Closing: default "Regards,\\n${closingSignature}" unless JD tone suggests formal or casual startup.
 
 ## Company context usage (critical)
 - REQUIRED: weave at least 2 company-specific facts into the formal letter.
@@ -140,7 +143,6 @@ ${draft.formalContent}
 
 export function promptIncludesCoverLetterRules(prompt: string): boolean {
   return (
-    prompt.includes("Min Htet") &&
     prompt.includes("formalCoverLetter") &&
     prompt.includes("Application Communication Profile") &&
     prompt.includes("Ranked resume evidence") &&

@@ -98,7 +98,7 @@ function main() {
     content: {
       schemaVersion: RESUME_DRAFT_SCHEMA_VERSION,
       targetRoleTitle: "Operations Manager",
-      header: { includeHeader: true, fullName: "Min Htet" },
+      header: { includeHeader: true, fullName: "Alex Tan" },
       professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
       experience: [],
       education: [],

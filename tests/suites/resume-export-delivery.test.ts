@@ -30,7 +30,7 @@ function main() {
 
   resetExportDeliveryMetrics();
   const expectedName = buildResumePdfFileName({
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: "Pave Bank",
     roleTitle: "Product Manager",
   });

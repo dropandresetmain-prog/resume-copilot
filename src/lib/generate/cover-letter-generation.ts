@@ -91,6 +91,8 @@ export async function generateAndSaveCoverLetterDraft(
     website: companyWebsite ?? companyContext.website,
   };
 
+  const candidateName = options.resumeDraft.content.header.fullName?.trim() || undefined;
+
   const response = await requestCoverLetterGeneration({
     jobDescription: {
       id: options.job.id,
@@ -106,6 +108,7 @@ export async function generateAndSaveCoverLetterDraft(
       hiringPriorities: reconciledContext.likelyHiringPriorities,
     }),
     targetRoleTitle: options.resumeDraft.content.targetRoleTitle,
+    candidateName,
     communicationProfile: profile?.content ?? "",
     companyName: companyDisplayName,
     companyDisplayName,

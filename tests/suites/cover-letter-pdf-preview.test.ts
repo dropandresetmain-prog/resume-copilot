@@ -12,7 +12,7 @@ const SAMPLE_BODY = `Dear Hiring Manager,
 I am applying for the B2B Sales Manager role at ShelfPerfect. My background spans stakeholder management and commercial partnerships.
 
 Regards,
-Min Htet`;
+Alex Tan`;
 
 function main() {
   const html = renderCoverLetterPdfHtml(SAMPLE_BODY);

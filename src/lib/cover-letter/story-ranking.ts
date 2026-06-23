@@ -120,10 +120,6 @@ export function rankExperiencesForRole(
         score += roleOverlap * 3;
       }
 
-      if (/singapore business federation|\bsbf\b/i.test(text) && /\bb2b\b|\bcommercial\b|\bstakeholder\b/i.test(jdText)) {
-        score += 8;
-        matchedSignals.push("sbf-commercial-fit");
-      }
 
       return { experience, score, matchedSignals };
     })

@@ -15,6 +15,8 @@ export type CoverLetterRevisionPromptInput = {
   resumeEvidenceSpine?: string;
   communicationProfile?: string;
   additionalInstructions?: string;
+  /** Candidate's full name for closing/signature preservation. */
+  candidateName?: string;
 };
 
 export const COVER_LETTER_REVISION_ACTION_LABELS: Record<
@@ -40,7 +42,7 @@ function getActionInstruction(action: CoverLetterRevisionAction, customInstructi
     case "warmer":
       return "Make the tone warmer and more human while staying professional.";
     case "more_conversational":
-      return "Make the tone more conversational and natural, like Min Htet speaking plainly.";
+      return "Make the tone more conversational and natural, as if the candidate is speaking plainly.";
     case "more_direct":
       return "Make the letter more direct and concise. Lead with relevance faster.";
     case "more_formal":
@@ -50,7 +52,7 @@ function getActionInstruction(action: CoverLetterRevisionAction, customInstructi
     case "emphasize_company_fit":
       return "Strengthen the why-this-company section using only supported context.";
     case "emphasize_role_fit":
-      return "Strengthen why this specific role fits Min Htet's supported experience.";
+      return "Strengthen why this specific role fits the candidate's supported experience.";
     case "emphasize_technical_ai":
       return "Emphasize practical AI-assisted building and workflow automation carefully without overclaiming engineering seniority.";
     case "emphasize_founder_business":
@@ -64,8 +66,9 @@ function getActionInstruction(action: CoverLetterRevisionAction, customInstructi
 
 export function buildCoverLetterRevisionPrompt(input: CoverLetterRevisionPromptInput): string {
   const instruction = getActionInstruction(input.action, input.customInstruction);
+  const closingSignature = input.candidateName?.trim() || "[Candidate Name]";
 
-  return `You are revising a formal cover letter for Min Htet (always "Min Htet", never "Min").
+  return `You are revising a formal cover letter for the candidate.
 
 Return ONLY valid JSON:
 {
@@ -79,7 +82,7 @@ ${instruction}
 
 ## Hard rules
 - Preserve factual claims supported by the resume evidence spine. Do not invent employers, titles, metrics, or achievements.
-- Preserve addressee and closing signature ("Min Htet").
+- Preserve addressee and closing signature ("${closingSignature}").
 - HARD MAX ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}.
 - Conversational professional tone: warm, human, grounded, specific — not corporate or AI-polished.
 - Never use banned phrases: ${COVER_LETTER_BANNED_PHRASES.join(", ")}.

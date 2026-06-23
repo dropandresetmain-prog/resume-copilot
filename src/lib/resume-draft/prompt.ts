@@ -56,7 +56,7 @@ Work Experience selection and bullet counts (critical):
 - More JD-relevant / recent roles: up to 4 bullets each.
 - Less relevant or older roles: 2 bullets each.
 - Do not pad with weak bullets to hit counts — drop a role before adding filler bullets.
-- Do not include BayCurrent under Work Experience by default if it already appears under Additional Experience, unless the job description makes BayCurrent highly relevant to the target role.
+- Early-career, short-tenure, or less-relevant roles should generally go to Additional Experience unless the job description makes them highly relevant.
 
 Resume structure (exact order):
 1. Header — Name, then "Phone | Email" on the next line. No professional summary.
@@ -73,10 +73,10 @@ Work experience bullet format:
 - Include companyDescriptor when inventory provides a company descriptor.
 
 Additional experience:
-- Each item must use "Title: Detail" — e.g. "Other Past Roles: BayCurrent Consulting – Enterprise Blockchain (Japan), Entrepreneur First – Founders Experience Weekend".
+- Each item must use "Title: Detail" — e.g. "Other Past Roles: Company A – Role Description, Company B – Role Description".
 - Projects, certifications, past relevant roles, notable professional items only — not random fragments.
 - Do NOT put languages, technical skills, or interests here.
-- BayCurrent should generally stay in Additional Experience unless highly relevant to the JD.
+- Short-tenure or less-relevant roles should generally stay in Additional Experience unless highly relevant to the JD.
 
 Education:
 - Put the institution (and any special programme such as REP) on the institution field / first programme slot only.
@@ -175,7 +175,7 @@ Generate a tailored resume draft and return JSON with this exact shape:
   "additionalExperience": [
     {
       "category": "Additional Experience",
-      "text": "Other Past Roles: BayCurrent Consulting – Enterprise Blockchain (Japan), Entrepreneur First – Founders Experience Weekend",
+      "text": "Other Past Roles: Company A – Role or Project Description, Company B – Role or Project Description",
       "riskFlags": ["string"]
     }
   ],
@@ -212,7 +212,7 @@ export function promptIncludesWorkExperienceBulletRules(prompt: string): boolean
     prompt.includes("at most 4 roles") &&
     prompt.includes("2–4 bullets") &&
     prompt.includes("12–13 total Work Experience bullets") &&
-    prompt.includes("BayCurrent")
+    prompt.includes("Additional Experience")
   );
 }
 
@@ -226,7 +226,7 @@ export function promptIncludesJdAnalysisGuardrails(prompt: string): boolean {
 }
 
 export function promptIncludesAdditionalExperienceColonFormat(prompt: string): boolean {
-  return prompt.includes("Title: Detail") && prompt.includes("Other Past Roles:");
+  return prompt.includes("Title: Detail") && prompt.includes("Additional Experience");
 }
 
 export function promptIncludesSkillsInterestsStructure(prompt: string): boolean {

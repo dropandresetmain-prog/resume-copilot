@@ -39,6 +39,8 @@ export type CoverLetterGenerationInput = {
   resumeDraftId: string;
   resumeEvidenceSpine: string;
   targetRoleTitle?: string;
+  /** Candidate's full name from parsed/generated resume data. Used for salutation and closing. */
+  candidateName?: string;
   communicationProfile: string;
   companyName: string;
   companyDisplayName?: string;

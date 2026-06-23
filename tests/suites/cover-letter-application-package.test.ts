@@ -68,7 +68,7 @@ function buildRankedResumeDraft(): GeneratedResumeDraftRecord {
     content: {
       schemaVersion: RESUME_DRAFT_SCHEMA_VERSION,
       targetRoleTitle: "B2B Sales Manager",
-      header: { includeHeader: true, fullName: "Hset Min Htet" },
+      header: { includeHeader: true, fullName: "Jordan Lee" },
       professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
       experience: [
         {
@@ -205,7 +205,7 @@ function main() {
         },
         resumeDraft,
         job: { companyName: "ShelfPerfect", roleTitle: "B2B Sales Manager" },
-      }) === "Hset Min Htet - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf",
+      }) === "Jordan Lee - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf",
     ],
     [
       "export filename input sanitizes url company",
@@ -222,6 +222,25 @@ function main() {
         resumeDraft,
         job: { roleTitle: "B2B Sales Manager" },
       }).companyName === "Shelfperfect",
+    ],
+    [
+      "export filename fallback is Candidate not founder name",
+      resolveCoverLetterPdfFileName({
+        draft: {
+          id: "cl-2",
+          userId: "u1",
+          companyName: "ShelfPerfect",
+          body: "",
+          createdAt: "",
+          updatedAt: "",
+        },
+        resumeDraft: null,
+        job: { companyName: "ShelfPerfect", roleTitle: "B2B Sales Manager" },
+      }) === "Candidate - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf",
+    ],
+    [
+      "cover letter prompt does not hardcode founder name",
+      !buildCoverLetterPrompt(input).includes("Min Htet"),
     ],
   ];
 

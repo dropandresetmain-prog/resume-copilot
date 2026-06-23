@@ -134,6 +134,14 @@
 - **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider).
 - **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside collapsed Job details — does not affect generation.
 
+## AI / export pipeline identity (v0.9.12A)
+
+- **Founder identity removed from production pipeline** — prompts, validation, mocks, filenames, and test fixtures no longer assume "Min Htet" as the candidate.
+- **Parser generalization remains pending** — the DOCX parser, profile-contact extractor, and inventory pipeline are not yet candidate-agnostic at a structural level. No schema changes made in this milestone.
+- **Reference format generalization pending** — bullet format conventions (style, date patterns, two-column layout) were developed with the founder's resume as reference. A separate milestone should validate these against diverse resume inputs.
+- **candidateName** is derived from `header.fullName` on the resume draft — if AI omits or misparses the name, prompts fall back to "the candidate" / "[Candidate Name]" closing.
+- **Cover letter validation signature check** is now opt-in (only fires when `candidateName` is provided to the validator). Validation callers that do not pass `candidateName` will not warn on missing signatures.
+
 ## Uploads page (Investigate Now — v0.9.11H)
 
 - Duplicate sign-in messaging and admin-workbench layout remain. Parked for a focused Uploads flow pass; merge sign-in warnings and make the dropzone the clear first action.

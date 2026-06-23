@@ -123,7 +123,7 @@ function main() {
     jobDescription: job,
     resumeDraftId: "draft-1",
     resumeEvidenceSpine: "- Led payment operations.",
-    communicationProfile: "Refer to Min Htet.",
+    communicationProfile: "Strategy and operations background.",
     companyName: "Pave Bank",
     companyDisplayName: "Pave Bank",
     country: "Singapore",

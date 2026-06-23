@@ -58,10 +58,10 @@ function buildInventory(): InventoryState {
         filename: "resume.docx",
         uploadedAt: "2025-01-01T00:00:00.000Z",
         profile: {
-          fullName: "Hset Min Htet",
+          fullName: "Alex Tan",
           email: "name@example.com",
           phone: "+65 0000 0000",
-          rawText: "Hset Min Htet\nname@example.com",
+          rawText: "Alex Tan\nname@example.com",
           parseWarnings: [],
         },
         workExperiences: [
@@ -135,7 +135,7 @@ async function main() {
     draftId: "draft-pdf-1",
     draftStatus: "approved",
     content: draft.content,
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: sampleJd.companyName,
     roleTitle: sampleJd.roleTitle,
   });
@@ -165,12 +165,12 @@ async function main() {
   });
 
   const docxStem = buildResumeExportFileStem({
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: "Pave Bank",
     roleTitle: "Product Manager",
   });
   const pdfStem = buildResumeExportFileStem({
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: "Pave Bank",
     roleTitle: "Product Manager",
   });
@@ -179,33 +179,37 @@ async function main() {
     [
       "pdf filename convention with company and role",
       buildResumePdfFileName({
-        fullName: "Hset Min Htet",
+        fullName: "Alex Tan",
         companyName: "Pave Bank",
         roleTitle: "Product Manager",
-      }) === "Hset Min Htet - Resume_Pave Bank_Product Manager.pdf",
+      }) === "Alex Tan - Resume_Pave Bank_Product Manager.pdf",
     ],
     [
       "pdf filename fallback without company role",
-      buildResumePdfFileName({ fullName: "Hset Min Htet" }) === "Hset Min Htet - Resume.pdf",
+      buildResumePdfFileName({ fullName: "Alex Tan" }) === "Alex Tan - Resume.pdf",
+    ],
+    [
+      "pdf filename fallback without name uses Resume prefix",
+      buildResumePdfFileName({}) === "Resume - Resume.pdf",
     ],
     [
       "docx and pdf share filename stem",
       docxStem === pdfStem &&
         buildResumeDocxFileName({
-          fullName: "Hset Min Htet",
+          fullName: "Alex Tan",
           companyName: "Pave Bank",
           roleTitle: "Product Manager",
         }).replace(/\.docx$/, "") ===
           buildResumePdfFileName({
-            fullName: "Hset Min Htet",
+            fullName: "Alex Tan",
             companyName: "Pave Bank",
             roleTitle: "Product Manager",
           }).replace(/\.pdf$/, ""),
     ],
     [
       "pdf storage path convention",
-      buildResumePdfStoragePath("user-1", "draft-1", "Hset Min Htet - Resume.pdf") ===
-        "user-1/resumes/draft-1/Hset Min Htet - Resume.pdf",
+      buildResumePdfStoragePath("user-1", "draft-1", "Alex Tan - Resume.pdf") ===
+        "user-1/resumes/draft-1/Alex Tan - Resume.pdf",
     ],
     ["pdf export request requires draftId", requestValidationThrows],
     ["pdf export request parses layout settings", parsedRequest.draftId === "draft-1"],
@@ -222,7 +226,7 @@ async function main() {
     ],
     [
       "pdf html renders uppercase name",
-      pdfHtml.includes(formatCandidateDisplayName("Hset Min Htet")),
+      pdfHtml.includes(formatCandidateDisplayName("Alex Tan")),
     ],
     [
       "preview header is body + 1px",

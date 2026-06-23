@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11I"')],
-    ["package json version", packageJson.includes('"version": "0.9.11I"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.12A"')],
+    ["package json version", packageJson.includes('"version": "0.9.12A"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -169,7 +169,7 @@ function main() {
       generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
     ],
     [
-      "v0.9.11I mobile nav grid layout",
+      "v0.9.12A mobile nav grid layout",
       appNav.includes("grid-cols-5") &&
         appNav.includes("sm:hidden") &&
         appNav.includes("Workspace pages") &&
@@ -195,8 +195,8 @@ function main() {
       handoff.includes("v0.9.11H") && roadmap.includes("v0.9.11H"),
     ],
     [
-      "v0.9.11I documented",
-      handoff.includes("v0.9.11I") && roadmap.includes("v0.9.11I"),
+      "v0.9.12A documented",
+      handoff.includes("v0.9.12A") && roadmap.includes("v0.9.12A"),
     ],
     [
       "mobile nav no horizontal scroll",

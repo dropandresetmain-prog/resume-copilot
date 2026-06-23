@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11I**
+**v0.9.12A**
 
 ## Completed capabilities
 
@@ -32,8 +32,23 @@
 | Mobile nav + alert fatigue fix | v0.9.11G |
 | Application Package guided review + Generate density | v0.9.11H |
 | Package first viewport + mobile CTA/nav polish | v0.9.11I |
+| Remove founder identity from AI/export pipeline | v0.9.12A |
 
 ## Milestone log (recent)
+
+### v0.9.12A - Remove Founder Identity From AI/Export Pipeline
+
+- Cover letter prompt: removed "Min Htet" hardcoding; now uses `candidateName` from `CoverLetterGenerationInput` (derived from `header.fullName`), falls back to "the candidate" / "[Candidate Name]" closing.
+- Cover letter validation: signature check now validates against `candidateName` when provided; silent when no name available. Removed founder-specific warning.
+- Cover letter revision prompt: uses dynamic `candidateName` for closing/signature preservation instruction.
+- Company context prompt: "helping Min Htet prepare" → "helping a candidate prepare"; "Min Htet story themes" → "candidate story themes".
+- Cover letter export filename: fallback changed from "Min Htet" → "Candidate".
+- Resume prompt: removed BayCurrent/Entrepreneur First hardcoded examples; replaced with generic "Company A – Role Description"; replaced BayCurrent-specific Work Experience rule with generic early-career/less-relevant-role guidance.
+- Story ranking: removed SBF-specific +8 boost; generic domain/signal matching only. (SBF role still ranks first for B2B sales JDs via generic commercial signals — validated by test.)
+- Mock cover letter: uses `candidateName` dynamically; removed SBF story paragraph; removed "Singapore Business Federation" company reference.
+- Revision mock: `truncateToMaxWords` now accepts `closingName` parameter.
+- All test fixtures updated to generic names (Alex Tan, Jordan Lee). Regression checks added for: no-hardcoded-name prompt, filename fallback = Candidate, story ranking without SBF boost.
+- No schema changes, no parser changes, no export/approval mechanic changes.
 
 ### v0.9.11I - Package First Viewport + Mobile CTA/Nav Polish
 

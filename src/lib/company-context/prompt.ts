@@ -24,7 +24,7 @@ Do NOT pretend website content was available.`
 No company website content was scraped. Use JD and company fields only.
 Set sourceType to "jd_based_context". Do NOT claim you visited the website.`;
 
-  return `You are helping Min Htet prepare application materials for a specific job.
+  return `You are helping a candidate prepare application materials for a specific job.
 
 IMPORTANT:
 - Prioritize scraped website content (when provided) over guesses.
@@ -81,7 +81,7 @@ Operations & Process Improvement, Stakeholder Management, Payment Operations, Wo
 
 For each angle:
 - explain why it may matter for this company/JD
-- suggest which Min Htet story themes may support it (without inventing achievements)
+- suggest which candidate story themes may support it (without inventing achievements)
 - note what to avoid overemphasizing to prevent founder soup / AI soup
 
 ## Mission / vision / values

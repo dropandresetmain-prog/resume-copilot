@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11I** (code)
+**v0.9.12A** (code)
 
 ## v0.9.11G implementation note
 
@@ -48,16 +48,23 @@ Application Package Guided Review + Generate Composer Density: addresses post-ge
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
 
+## v0.9.12A implementation note
+
+Remove Founder Identity From AI/Export Pipeline: critical generalization milestone removing founder-specific hardcoding from production AI behavior. Key changes: (1) cover letter prompt now uses dynamic `candidateName` from resume draft header (falls back to "the candidate" / "[Candidate Name]" closing — never "Min Htet"); (2) rule 7 generalized — "Do NOT describe the candidate as a software engineer unless evidence clearly supports it"; (3) cover letter validation no longer requires "Min Htet" signature — validates against `candidateName` when provided, silent otherwise; (4) revision prompt uses dynamic `candidateName` for signature preservation; (5) company context prompt updated to "a candidate" (was "Min Htet"); (6) cover letter export filename fallback changed from "Min Htet" to "Candidate"; (7) resume prompt BayCurrent/Entrepreneur First hardcoded examples replaced with generic `Company A – Role Description`; (8) SBF-specific +8 story ranking boost removed — generic signal matching only; (9) cover letter mock and revision mock updated to use `candidateName` dynamically; (10) all test fixtures updated to use "Alex Tan" / "Jordan Lee" (parser tests, PDF/DOCX export tests, story ranking tests, collation tests); (11) regression checks added for no-hardcoded-name prompt, generic filename fallback, and story ranking without founder boost.
+
+Runtime constraints held: no Supabase schema changes, no parser architecture changes, no export/approval mechanics changes, no route changes, no new schema fields added (candidateName derived from existing header.fullName).
+
 ## Latest milestone (code)
 
-**v0.9.11I - Package First Viewport + Mobile CTA/Nav Polish**
+**v0.9.12A - Remove Founder Identity From AI/Export Pipeline**
 
-Two-col package layout (action rail left, resume right), mobile nav grid (no scroll, Apps label), mobile sticky Generate CTA, shorter mobile JD textarea.
+Dynamic candidateName in all prompts/mocks/validation, generic filename fallback (Candidate), removed SBF boost, replaced founder employer examples, updated all test fixtures to generic names.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.12A | Remove founder identity from AI/export pipeline — dynamic candidate name, generic fallbacks |
 | v0.9.11I | Package first viewport + mobile CTA/nav polish |
 | v0.9.11H | Application Package guided review + Generate composer density |
 | v0.9.11G | Mobile nav + alert fatigue — stacked nav, collapsible storage warnings, compact headers |

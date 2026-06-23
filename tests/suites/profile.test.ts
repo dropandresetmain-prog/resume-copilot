@@ -8,8 +8,8 @@ import { backfillProfileContactForInventory } from "../../src/lib/inventory/back
 import type { InventoryState, ParsedResume } from "../../src/types/resume";
 
 const profileResume = `
-HSET MIN HTET
-hset.min.htet@example.com
+ALEX TAN
+alex.tan@example.com
 +65 9123 4567
 Singapore
 
@@ -21,8 +21,8 @@ Product Manager                                                                 
 
 const parsed = parseResumeTextForTest(profileResume, "profile-resume");
 const profileOnly = parseProfileContact([
-  "HSET MIN HTET",
-  "hset.min.htet@example.com",
+  "ALEX TAN",
+  "alex.tan@example.com",
   "+65 9123 4567",
   "Singapore",
 ]);
@@ -81,14 +81,14 @@ function buildLegacyResumeWithNameSection(): ParsedResume {
       {
         id: "unparsed-name",
         sourceResumeId: "resume-legacy-1",
-        title: "HSET MIN HTET",
-        originalHeader: "HSET MIN HTET",
-        lines: ["hset.min.htet@example.com", "+65 9123 4567", "Singapore"],
-        rawText: "hset.min.htet@example.com\n+65 9123 4567\nSingapore",
+        title: "ALEX TAN",
+        originalHeader: "ALEX TAN",
+        lines: ["alex.tan@example.com", "+65 9123 4567", "Singapore"],
+        rawText: "alex.tan@example.com\n+65 9123 4567\nSingapore",
         parseWarnings: ["Unknown section type — preserved for manual review."],
       },
     ],
-    parseWarnings: ['Unknown section "HSET MIN HTET" preserved as unparsed.'],
+    parseWarnings: ['Unknown section "ALEX TAN" preserved as unparsed.'],
   };
 }
 
@@ -160,19 +160,19 @@ const alreadyHasProfile = backfillProfileContactForInventory({
 });
 
 const checks: [string, boolean][] = [
-  ["person name header detected", looksLikePersonNameHeader("HSET MIN HTET")],
+  ["person name header detected", looksLikePersonNameHeader("ALEX TAN")],
   ["person name not section header", !looksLikePersonNameHeader("WORK EXPERIENCE")],
   [
     "profile parser extracts fullName",
-    profileOnly?.fullName === "Hset Min Htet",
+    profileOnly?.fullName === "Alex Tan",
   ],
-  ["profile parser extracts email", profileOnly?.email === "hset.min.htet@example.com"],
+  ["profile parser extracts email", profileOnly?.email === "alex.tan@example.com"],
   ["profile parser extracts phone", Boolean(profileOnly?.phone?.includes("9123"))],
   ["profile parser extracts location", profileOnly?.location === "Singapore"],
   ["parsed resume has profile", Boolean(parsed.profile?.fullName)],
   [
     "profile name not unparsed section",
-    !parsed.unparsedSections.some((section) => section.title === "HSET MIN HTET"),
+    !parsed.unparsedSections.some((section) => section.title === "ALEX TAN"),
   ],
   [
     "confident profile skips preamble warning",
@@ -186,11 +186,11 @@ const checks: [string, boolean][] = [
   ],
   [
     "adds profile fullName from name unparsed section",
-    resumeAfter?.profile?.fullName === "Hset Min Htet",
+    resumeAfter?.profile?.fullName === "Alex Tan",
   ],
   [
     "adds profile email",
-    resumeAfter?.profile?.email === "hset.min.htet@example.com",
+    resumeAfter?.profile?.email === "alex.tan@example.com",
   ],
   [
     "experiences unchanged",

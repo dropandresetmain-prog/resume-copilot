@@ -39,11 +39,11 @@ const sampleJd: StoredJobDescription = {
 };
 
 const PLAIN_ADDITIONAL_EXPERIENCE_EXAMPLES = [
-  "BayCurrent Consulting – Enterprise Blockchain (Japan)",
-  "Entrepreneur First – Founders Experience Weekend",
-  "Active Global – Strategy & Operations, elderly primary care",
-  "SE3D – 3D Bioprinting (Silicon Valley)",
-  "Deloitte Consulting – Strategy & Operations (Myanmar)",
+  "Acme Consulting – Enterprise Systems Integration",
+  "Growth Labs – Founder Sprint Weekend",
+  "CareOps – Strategy & Operations, primary care",
+  "BuildCo – Product & Engineering (Remote)",
+  "Delta Consulting – Strategy & Operations",
 ];
 
 function buildInventory(): InventoryState {
@@ -230,8 +230,8 @@ function main() {
   const normalizedPlainText = normalizedPlain[0]?.text ?? "";
   const normalizedMixed = normalizeAdditionalExperienceItems([
     { text: "Board Advisor: Acme Corp", riskFlags: [] },
-    { text: "BayCurrent Consulting – Enterprise Blockchain (Japan)", riskFlags: [] },
-    { text: "Entrepreneur First – Founders Experience Weekend", riskFlags: [] },
+    { text: "Acme Consulting – Enterprise Systems Integration", riskFlags: [] },
+    { text: "Growth Labs – Founder Sprint Weekend", riskFlags: [] },
   ]);
   const normalizedVolunteer = normalizeAdditionalExperienceItems([
     { text: "Volunteer tutor", riskFlags: [] },
@@ -256,7 +256,7 @@ function main() {
   );
 
   const parsedAdditional = parseAdditionalExperienceItemText(
-    "Other Past Roles: BayCurrent Consulting – Enterprise Blockchain (Japan)",
+    "Other Past Roles: Acme Consulting – Enterprise Systems Integration",
   );
 
   const checks: [string, boolean][] = [

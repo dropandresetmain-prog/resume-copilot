@@ -66,7 +66,7 @@ function buildValidSkeleton(overrides: Partial<ResumeDraftContent> = {}): Resume
     experience: [
       buildRole("ShelfPerfect Target", 3, 5),
       buildRole("Socius Living", 3, 4),
-      buildRole("Singapore Business Federation", 3, 3),
+      buildRole("Meridian Partners", 3, 3),
       buildRole("Roland Berger", 3, 2),
     ],
     education: [],
@@ -127,7 +127,7 @@ function main() {
     experience: [
       buildRole("Drop & Reset", 6, 6),
       buildRole("Socius Living", 3, 5),
-      buildRole("Singapore Business Federation", 3, 4),
+      buildRole("Meridian Partners", 3, 4),
       buildRole("Roland Berger", 3, 3),
       buildRole("Baycurrent Consulting", 3, 2),
     ],
@@ -141,7 +141,7 @@ function main() {
     experience: [
       buildRole("Drop & Reset", 4, 6),
       buildRole("Socius Living", 4, 5),
-      buildRole("Singapore Business Federation", 4, 4),
+      buildRole("Meridian Partners", 4, 4),
       buildRole("Roland Berger", 4, 3),
     ],
   });

@@ -99,19 +99,19 @@ function main() {
       "resume PDF export filename",
       buildResumePdfFileName(
         buildResumeExportFileNameInput({
-          fullName: "Hset Min Htet",
+          fullName: "Alex Tan",
           job: { companyName: urlCompany, roleTitle: "B2B Sales Manager", jobUrl: urlCompany },
           companyContext: { displayName: savedDisplay, website: urlCompany },
         }),
-      ) === "Hset Min Htet - Resume_ShelfPerfect_B2B Sales Manager.pdf",
+      ) === "Alex Tan - Resume_ShelfPerfect_B2B Sales Manager.pdf",
     ],
     [
       "cover letter DOCX export filename",
       buildCoverLetterDocxFileName({
-        fullName: "Hset Min Htet",
+        fullName: "Alex Tan",
         companyName: savedDisplay,
         roleTitle: "B2B Sales Manager",
-      }) === "Hset Min Htet - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf".replace(
+      }) === "Alex Tan - Cover Letter_ShelfPerfect_B2B Sales Manager.pdf".replace(
         ".pdf",
         ".docx",
       ),

@@ -56,10 +56,10 @@ function buildInventory(): InventoryState {
         filename: "resume.docx",
         uploadedAt: "2025-01-01T00:00:00.000Z",
         profile: {
-          fullName: "Hset Min Htet",
+          fullName: "Alex Tan",
           email: "name@example.com",
           phone: "+65 0000 0000",
-          rawText: "Hset Min Htet\nname@example.com",
+          rawText: "Alex Tan\nname@example.com",
           parseWarnings: [],
         },
         workExperiences: [
@@ -145,7 +145,7 @@ async function main() {
     draftId: "draft-export-1",
     draftStatus: "approved",
     content: contentWithEducation,
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: "Pave Bank",
     roleTitle: "Product Manager",
   });
@@ -185,14 +185,14 @@ async function main() {
     [
       "filename convention with company and role",
       buildResumeDocxFileName({
-        fullName: "Hset Min Htet",
+        fullName: "Alex Tan",
         companyName: "Pave Bank",
         roleTitle: "Product Manager",
-      }) === "Hset Min Htet - Resume_Pave Bank_Product Manager.docx",
+      }) === "Alex Tan - Resume_Pave Bank_Product Manager.docx",
     ],
     [
       "filename fallback without company role",
-      buildResumeDocxFileName({ fullName: "Hset Min Htet" }) === "Hset Min Htet - Resume.docx",
+      buildResumeDocxFileName({ fullName: "Alex Tan" }) === "Alex Tan - Resume.docx",
     ],
     [
       "sanitize unsafe filename chars",
@@ -200,8 +200,8 @@ async function main() {
     ],
     [
       "storage path convention",
-      buildResumeDocxStoragePath("user-1", "draft-1", "Hset Min Htet - Resume.docx") ===
-        "user-1/resumes/draft-1/Hset Min Htet - Resume.docx",
+      buildResumeDocxStoragePath("user-1", "draft-1", "Alex Tan - Resume.docx") ===
+        "user-1/resumes/draft-1/Alex Tan - Resume.docx",
     ],
     ["document model has work experience", documentModel.layout.workExperience.length > 0],
     ["document model has education", documentModel.layout.education.length === 1],

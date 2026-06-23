@@ -9,7 +9,7 @@ import { parseResumeTextForTest } from "../../src/lib/parser/docx-parser";
 import type { InventoryState } from "../../src/types/resume";
 
 const additionalInput =
-  "Other Past Roles: BayCurrent Consulting – Enterprise Blockchain (Japan), Entrepreneur First – Founders Experience Weekend, Active Global – Strategy & Operations, elderly primary care (Singapore), SE3D – 3D Bioprinting (Silicon Valley), Deloitte Consulting – Strategy & Operations (Myanmar)";
+  "Other Past Roles: Acme Consulting – Enterprise Systems (Japan), Growth Labs – Founder Sprint Weekend, CareOps – Strategy & Operations, elderly primary care (Singapore), BuildCo – Product & Engineering (Remote), Delta Consulting – Strategy & Operations";
 
 const additionalCategory = extractCategoryPrefix(additionalInput);
 const additionalSegments = splitAdditionalExperienceSegments(
@@ -79,7 +79,7 @@ const checks: [string, boolean][] = [
   [
     "additional merged comma segment",
     additionalSegments.some((item) =>
-      item.includes("Active Global – Strategy & Operations, elderly primary care"),
+      item.includes("CareOps – Strategy & Operations, elderly primary care"),
     ),
   ],
   ["language skill split", languageSkills.length === 5],

@@ -37,7 +37,7 @@ function buildInventory(): InventoryState {
         id: "resume-parity-1",
         filename: "resume.docx",
         uploadedAt: "2025-01-01T00:00:00.000Z",
-        profile: { fullName: "Hset Min Htet", rawText: "", parseWarnings: [] },
+        profile: { fullName: "Alex Tan", rawText: "", parseWarnings: [] },
         workExperiences: [
           {
             id: "exp-1",

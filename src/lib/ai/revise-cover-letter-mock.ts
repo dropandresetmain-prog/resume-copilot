@@ -4,8 +4,8 @@ import { countWords } from "@/lib/cover-letter/resume-evidence";
 import { FORMAL_COVER_LETTER_MAX_WORDS } from "@/lib/cover-letter/word-limits";
 import type { CoverLetterRevisionModelResult } from "@/lib/cover-letter/revision-parse";
 
-function truncateToMaxWords(body: string, maxWords: number): string {
-  const closing = "\n\nRegards,\nMin Htet";
+function truncateToMaxWords(body: string, maxWords: number, closingName?: string): string {
+  const closing = `\n\nRegards,\n${closingName ?? "[Candidate Name]"}`;
   const closingWordCount = countWords(closing);
   const contentBudget = Math.max(1, maxWords - closingWordCount);
   const words = body.trim().split(/\s+/).filter(Boolean);
@@ -19,9 +19,10 @@ export function reviseMockCoverLetter(
   input: CoverLetterRevisionPromptInput,
 ): CoverLetterRevisionModelResult {
   let body = input.currentBody;
+  const closingName = input.candidateName?.trim() || undefined;
 
   if (input.action === "shorten" || countWords(body) > FORMAL_COVER_LETTER_MAX_WORDS) {
-    body = truncateToMaxWords(body, FORMAL_COVER_LETTER_MAX_WORDS);
+    body = truncateToMaxWords(body, FORMAL_COVER_LETTER_MAX_WORDS, closingName);
   }
 
   if (input.action === "warmer" || input.action === "more_conversational") {
@@ -43,7 +44,7 @@ export function reviseMockCoverLetter(
 
   if (input.action === "custom" && input.customInstruction?.trim()) {
     body = `${body}\n\n[Note: custom revision requested — ${input.customInstruction.trim()}]`;
-    body = truncateToMaxWords(body, FORMAL_COVER_LETTER_MAX_WORDS);
+    body = truncateToMaxWords(body, FORMAL_COVER_LETTER_MAX_WORDS, closingName);
   }
 
   const wordCount = countWords(body);

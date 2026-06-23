@@ -47,10 +47,10 @@ function buildInventory(): InventoryState {
         filename: "resume.docx",
         uploadedAt: "2025-01-01T00:00:00.000Z",
         profile: {
-          fullName: "Hset Min Htet",
+          fullName: "Alex Tan",
           email: "name@example.com",
           phone: "+65 0000 0000",
-          rawText: "Hset Min Htet",
+          rawText: "Alex Tan",
           parseWarnings: [],
         },
         workExperiences: [
@@ -137,7 +137,7 @@ function main() {
     draftId: "draft-parity-1",
     draftStatus: "approved",
     content: contentWithSettings,
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
     companyName: sampleJd.companyName,
     roleTitle: sampleJd.roleTitle,
   });
@@ -147,7 +147,7 @@ function main() {
     draftStatus: "approved",
     content: contentWithSettings,
     layoutSettings: liveOverride,
-    fullName: "Hset Min Htet",
+    fullName: "Alex Tan",
   });
 
   const pdfHtml = renderResumePdfHtml(modelFromOverride);
@@ -158,11 +158,11 @@ function main() {
   const checks: [string, boolean][] = [
     [
       "uppercase display name helper",
-      formatCandidateDisplayName("Hset Min Htet") === "HSET MIN HTET",
+      formatCandidateDisplayName("Alex Tan") === "ALEX TAN",
     ],
     [
       "pdf html renders uppercase name",
-      pdfHtml.includes("HSET MIN HTET") && !pdfHtml.includes(">Hset Min Htet<"),
+      pdfHtml.includes("ALEX TAN") && !pdfHtml.includes(">Alex Tan<"),
     ],
     [
       "stored settings used when no override",

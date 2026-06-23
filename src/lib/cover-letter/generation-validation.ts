@@ -66,6 +66,8 @@ export function validateFormalCoverLetterBody(
     checkBannedPhrases?: boolean;
     companyDisplayName?: string;
     rationale?: CoverLetterRationale;
+    /** Candidate name for signature check. If provided, warns when not found in body. */
+    candidateName?: string;
   } = {},
 ): CoverLetterValidationResult {
   const strictMax = options.strictMax ?? true;
@@ -147,11 +149,14 @@ export function validateFormalCoverLetterBody(
     }
   }
 
-  if (!/min htet/i.test(body)) {
-    warnings.push({
-      code: "missing_signature",
-      message: 'Cover letter should end with "Min Htet".',
-    });
+  if (options.candidateName?.trim()) {
+    const name = options.candidateName.trim();
+    if (!body.toLowerCase().includes(name.toLowerCase())) {
+      warnings.push({
+        code: "missing_signature",
+        message: `Cover letter should end with the candidate's name ("${name}").`,
+      });
+    }
   }
 
   return {
