@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11H** (code)
+**v0.9.11I** (code)
 
 ## v0.9.11G implementation note
 
@@ -36,6 +36,12 @@ UI/UX Redesign Foundation is the latest code milestone. It delivers a broader vi
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no source-of-truth changes. Recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD remain parked/follow-up.
 
+## v0.9.11I implementation note
+
+Package First Viewport + Mobile CTA/Nav Polish: narrow follow-up to v0.9.11H addressing first-viewport hierarchy, mobile nav clipping, and Generate CTA placement. Key changes: (1) Application Package page is now a two-column layout on desktop — compact sticky action rail (review/approve/export) in left 20rem column, resume PDF preview immediately visible as dominant right column; section rail removed; (2) review center Approve→Export grid changed to single-column stack for narrow sidebar fit; (3) mobile nav replaced with compact 5-item `grid-cols-5` — no horizontal scroll, no clipping, "Applications" shortened to "Apps" on mobile, Generate remains visually primary; (4) Generate JD textarea height reduced on mobile via responsive CSS (`h-[6.5rem] sm:h-auto`); (5) sticky bottom Generate CTA bar added on mobile only, mirrors main action with same disabled guard; (6) JD panel description shortened.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
+
 ## v0.9.11H implementation note
 
 Application Package Guided Review + Generate Composer Density: addresses post-generation UX failures identified in screenshot audit. Key changes: (1) new `DRAFT_READY` status for fresh drafts — neutral cyan banner instead of red "Not Ready to Export"; (2) explicit two-step Approve → Export sequence with step labels and sequential emphasis; (3) review checklists collapsed behind "Review details (N)" disclosure so the review card is no longer a blocking wall above the resume; (4) compact package page header; (5) Generate composer density — base resume + CTA appear directly after the JD textarea, optional company/role/URL/recruitment fields collapsed behind "Job details (optional)"; (6) single compact readiness strip replacing 4–5 scattered amber/red notices on Generate; (7) mobile nav right-edge fade affordance.
@@ -44,14 +50,15 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## Latest milestone (code)
 
-**v0.9.11H - Application Package Guided Review + Generate Composer Density**
+**v0.9.11I - Package First Viewport + Mobile CTA/Nav Polish**
 
-Post-generation UX: DRAFT_READY neutral status, Approve→Export sequencing, review details behind disclosure, compact package header, Generate CTA density, readiness strip, mobile nav fade.
+Two-col package layout (action rail left, resume right), mobile nav grid (no scroll, Apps label), mobile sticky Generate CTA, shorter mobile JD textarea.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11I | Package first viewport + mobile CTA/nav polish |
 | v0.9.11H | Application Package guided review + Generate composer density |
 | v0.9.11G | Mobile nav + alert fatigue — stacked nav, collapsible storage warnings, compact headers |
 | v0.9.11F | Visual + flow correction — landing, nav, Generate, progress, Uploads, Applications |

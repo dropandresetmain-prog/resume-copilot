@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11H**
+**v0.9.11I**
 
 ## Completed capabilities
 
@@ -31,8 +31,20 @@
 | Visual + flow correction (landing, nav, Generate, Applications) | v0.9.11F |
 | Mobile nav + alert fatigue fix | v0.9.11G |
 | Application Package guided review + Generate density | v0.9.11H |
+| Package first viewport + mobile CTA/nav polish | v0.9.11I |
 
 ## Milestone log (recent)
+
+### v0.9.11I - Package First Viewport + Mobile CTA/Nav Polish
+
+- Application Package page two-column layout on desktop (lg+): sticky 20rem action rail (review/approve/export) left, resume PDF preview as dominant right column. First viewport shows both simultaneously.
+- Review center Approve→Export changed from two-column grid to single-column stack — fits the narrow sidebar without overflow.
+- Removed the sticky section rail (superseded by the left-column layout).
+- Mobile nav replaced with compact `grid-cols-5` — no horizontal scroll, no clipping. "Applications" shortened to "Apps" on mobile. Generate stays visually primary (dark pill). `mobileLabel` field added to `AppNavItem`.
+- Generate JD textarea height constrained on mobile (`h-[6.5rem]`) with `sm:h-auto` restoring desktop rows-based height.
+- Sticky bottom Generate CTA bar added on mobile only (sm:hidden): mirrors main action, same `canGenerate` disabled guard, bottom spacer prevents content overlap.
+- JD panel intro description shortened.
+- No schema, generation, export/approval logic, or model ID changes.
 
 ### v0.9.11H - Application Package Guided Review + Generate Composer Density
 

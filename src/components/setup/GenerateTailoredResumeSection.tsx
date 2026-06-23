@@ -816,6 +816,31 @@ export function GenerateTailoredResumeSection({
         </details>
       ) : null}
 
+      {/* Sticky bottom Generate bar — mobile only, not shown while generating */}
+      {!isGenerating ? (
+        <div className="sm:hidden" data-testid="generate-mobile-sticky-cta">
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate || isGenerating}
+              className={`${primaryButtonClassName} w-full py-3 text-base font-semibold`}
+              aria-label={
+                generateMode === "resume_and_cover_letter"
+                  ? "Generate Resume & Cover Letter"
+                  : "Generate Tailored Resume"
+              }
+            >
+              {generateMode === "resume_and_cover_letter"
+                ? "Generate Resume & Cover Letter"
+                : "Generate Tailored Resume"}
+            </button>
+          </div>
+          {/* Spacer so fixed bar does not cover bottom page content */}
+          <div className="h-[4.5rem]" aria-hidden="true" />
+        </div>
+      ) : null}
+
     </div>
   );
 }

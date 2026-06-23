@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11H"')],
-    ["package json version", packageJson.includes('"version": "0.9.11H"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11I"')],
+    ["package json version", packageJson.includes('"version": "0.9.11I"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -169,8 +169,9 @@ function main() {
       generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
     ],
     [
-      "v0.9.11G mobile nav stacked layout",
-      appNav.includes("flex-col") &&
+      "v0.9.11I mobile nav grid layout",
+      appNav.includes("grid-cols-5") &&
+        appNav.includes("sm:hidden") &&
         appNav.includes("Workspace pages") &&
         appNav.includes("md:inline"),
     ],
@@ -194,8 +195,16 @@ function main() {
       handoff.includes("v0.9.11H") && roadmap.includes("v0.9.11H"),
     ],
     [
-      "mobile nav fade affordance",
-      appNav.includes("bg-gradient-to-l") && appNav.includes("from-white") && appNav.includes("sm:hidden"),
+      "v0.9.11I documented",
+      handoff.includes("v0.9.11I") && roadmap.includes("v0.9.11I"),
+    ],
+    [
+      "mobile nav no horizontal scroll",
+      appNav.includes("grid-cols-5") && !appNav.includes("overflow-x-auto"),
+    ],
+    [
+      "mobile nav apps short label",
+      nav.includes('mobileLabel: "Apps"') && nav.includes('label: "Applications"'),
     ],
     [
       "generate readiness strip",
@@ -212,6 +221,18 @@ function main() {
     [
       "application package draft ready status",
       resumePreview.includes("exportReady={exportReady}"),
+    ],
+    [
+      "package two-col layout desktop",
+      resumePreview.includes("lg:grid-cols-[20rem") && resumePreview.includes("lg:sticky"),
+    ],
+    [
+      "generate mobile sticky cta",
+      generateSection.includes("generate-mobile-sticky-cta") && generateSection.includes("fixed bottom-0"),
+    ],
+    [
+      "generate mobile textarea shorter",
+      jdPanel.includes("h-[6.5rem]") && jdPanel.includes("sm:h-auto"),
     ],
   ];
 

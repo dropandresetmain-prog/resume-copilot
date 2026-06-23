@@ -215,7 +215,7 @@ export function ApplicationReviewCenter({
           </div>
         ) : (
           /* Step 1: Approve is the primary action, export is inert with hint */
-          <div className="grid gap-4 lg:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)] lg:items-start">
+          <div className="space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase text-cyan-800">
                 Step 1 — Approve

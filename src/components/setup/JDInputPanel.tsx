@@ -357,7 +357,7 @@ export function JDInputPanel({
               rows={10}
               disabled={disabled}
               placeholder="Paste the full job description here…"
-              className={formFieldClassName}
+              className={`${formFieldClassName}${generateFlow ? " h-[6.5rem] sm:h-auto" : ""}`}
             />
           </div>
 

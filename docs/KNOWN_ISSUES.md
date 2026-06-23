@@ -110,24 +110,29 @@
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional, not export gate.
 - **Layout Fit (One Page)** browser estimate is separate from server validation.
 
-## Mobile shell (v0.9.11H)
+## Mobile shell (v0.9.11I)
 
-- Nav uses a **two-row mobile layout** (brand, then scrollable links). A right-edge fade gradient signals scroll when Profile is partially offscreen. Very narrow Browser Tab panes may still clip; verify in real Chrome at 390px.
+- Nav uses a **two-row mobile layout**: brand/version row, then a `grid-cols-5` nav row. No horizontal scroll; all 5 items fit at 390px. "Applications" uses short label "Apps" on mobile. Generate stays visually primary (dark pill).
+- Desktop/tablet (sm+): original flex nav unchanged.
 - Persistent storage warnings are **collapsible** on workspace pages — expand "Local data needs sync" for full text.
 
-## Application Package (v0.9.11H)
+## Application Package (v0.9.11I)
 
-- **DRAFT_READY** is a new overall status shown on first page load after generation — neutral cyan tone, "Draft ready — approve to export." Red `NOT_READY_TO_EXPORT` is reserved for real post-approval failures (server PDF > 1 page, layout changed).
-- **Review details disclosure** collapses section checklists by default. Users who need to inspect individual items can expand "Review details."
-- **Approve → Export sequence** is now explicit (Step 1 / Step 2 labels). Export buttons are already disabled before approval; the step labels reinforce the sequence.
-- **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring. Accept Risk until live data available.
+- **Two-column desktop layout** (lg+): sticky 20rem action rail (review/approve/export) on left; resume PDF preview fills the right column in the first viewport. Cover letter, research, edit, and developer details are below the grid.
+- **DRAFT_READY** is the default status on first page load after generation — neutral cyan, "Draft ready — approve to export." Red `NOT_READY_TO_EXPORT` is reserved for real post-approval failures.
+- **Review details disclosure** collapses section checklists by default.
+- **Approve → Export sequence** is explicit (Step 1 / Step 2 labels). Two-step section is single-column for narrow sidebar fit.
+- **Screenshot timeout** (Package/Cover Letter): PDF preview iframes may still cause screenshot timeouts in browser automation. The two-column layout removes the section rail; the main content renders the PDF faster in the viewport. Accept Risk until confirmed in live signed-in QA.
+- **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
-## Generate page (v0.9.11H)
+## Generate page (v0.9.11I)
 
-- **Job details disclosure** starts closed. Auto-extracted company/role from JD text populates the hidden fields silently; users can open "Job details (optional)" to review or edit.
-- **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider). Strip hides once all are satisfied (`canGenerate` = true) or while provider status is still loading.
-- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside the collapsed Job details section — does not affect generation.
+- **Mobile sticky CTA bar**: a `fixed bottom-0` Generate button appears on mobile only when not generating. It mirrors the main action with the same `canGenerate` disabled guard. Both the sticky and inline CTAs are visible when the user scrolls to the inline CTA — minor duplication; Accept Risk.
+- **JD textarea height**: `h-[6.5rem]` on mobile (reduces from ~200px to ~104px); `sm:h-auto` restores rows-based height on desktop.
+- **Job details disclosure** starts closed. Auto-extracted company/role populates the hidden fields silently.
+- **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider).
+- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside collapsed Job details — does not affect generation.
 
 ## Uploads page (Investigate Now — v0.9.11H)
 

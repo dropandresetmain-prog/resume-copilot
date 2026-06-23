@@ -76,8 +76,9 @@ function main() {
     ["draft ready status type defined", reviewCenter.includes("DRAFT_READY") || resumePreview.includes("DRAFT_READY") || reviewCenter.includes("exportReady")],
     ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Review and approve")],
     ["package page passes exportReady to review center", resumePreview.includes("exportReady={exportReady}")],
-    ["package rail research is conditional on companyContext", resumePreview.includes("companyContext ? [[\"Research\"") || resumePreview.includes("companyContext ? [") && resumePreview.includes('"Research"') && resumePreview.includes('"#package-research"')],
-    ["package rail research not hardcoded", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
+    ["research section conditional on companyContext", resumePreview.includes("companyContext ?") && resumePreview.includes('"application-package-company-research"')],
+    ["research section not hardcoded unconditional", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
+    ["package two-col layout on desktop", resumePreview.includes("lg:grid-cols-[20rem") && resumePreview.includes("lg:sticky")],
   ];
 
   for (const [name, ok] of checks) {

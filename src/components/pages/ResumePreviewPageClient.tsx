@@ -449,85 +449,74 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
       />
 
       <div className="space-y-6">
-        <div className="sticky top-[6.75rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white/90 p-1 shadow-sm backdrop-blur">
-          {([
-            ["Resume", "#package-resume"],
-            ["Cover letter", "#package-cover-letter"],
-            ...(companyContext ? [["Research", "#package-research"]] : []),
-            ["Edit", "#package-edit"],
-            ["Details", "#package-details"],
-          ] as [string, string][]).map(([label, href]) => (
-            <a
-              key={href}
-              href={href}
-              className="shrink-0 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              {label}
-            </a>
-          ))}
-        </div>
+        {/* Two-column layout on lg+: compact action rail left, resume preview right */}
+        <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
 
-        {reviewStatus ? (
-          <ApplicationReviewCenter
-            companyName={displayCompany}
-            roleTitle={linkedJob?.roleTitle ?? draft.content.targetRoleTitle}
-            reviewStatus={reviewStatus}
-            resumeDraftId={draftId}
-            coverLetterId={coverLetter?.id}
-            onApproveForExport={() => void handleApproveForExport()}
-            isApproving={isApproving}
-            canApprove={canApprove}
-            approveButtonLabel={approveButtonLabel}
-            exportReady={exportReady}
-            exportControls={
-              <>
-                <DownloadResumePdfButton
-                  draftId={draftId}
-                  layoutSettings={currentLayoutSettings}
-                  disabled={!exportReady}
-                  disabledReason={exportDisabledReason}
-                  onWarning={setExportWarning}
-                />
-                <div className="inline-flex flex-col gap-1">
-                  <DownloadResumeDocxButton
-                    draftId={draftId}
-                    layoutSettings={currentLayoutSettings}
-                    disabled={!exportReady}
-                    disabledReason={exportDisabledReason}
-                    onHint={setExportWarning}
-                  />
-                  <p className="max-w-xs text-xs text-slate-500">
-                    PDF is the final layout. DOCX is editable and may reflow in Word.
-                  </p>
-                </div>
-              </>
-            }
-          />
-        ) : null}
+          {/* Left: sticky review / approve / export rail */}
+          <div className="space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+            {reviewStatus ? (
+              <ApplicationReviewCenter
+                companyName={displayCompany}
+                roleTitle={linkedJob?.roleTitle ?? draft.content.targetRoleTitle}
+                reviewStatus={reviewStatus}
+                resumeDraftId={draftId}
+                coverLetterId={coverLetter?.id}
+                onApproveForExport={() => void handleApproveForExport()}
+                isApproving={isApproving}
+                canApprove={canApprove}
+                approveButtonLabel={approveButtonLabel}
+                exportReady={exportReady}
+                exportControls={
+                  <>
+                    <DownloadResumePdfButton
+                      draftId={draftId}
+                      layoutSettings={currentLayoutSettings}
+                      disabled={!exportReady}
+                      disabledReason={exportDisabledReason}
+                      onWarning={setExportWarning}
+                    />
+                    <div className="inline-flex flex-col gap-1">
+                      <DownloadResumeDocxButton
+                        draftId={draftId}
+                        layoutSettings={currentLayoutSettings}
+                        disabled={!exportReady}
+                        disabledReason={exportDisabledReason}
+                        onHint={setExportWarning}
+                      />
+                      <p className="max-w-xs text-xs text-slate-500">
+                        PDF is the final layout. DOCX is editable and may reflow in Word.
+                      </p>
+                    </div>
+                  </>
+                }
+              />
+            ) : null}
 
-        {validationFailure ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            <p className="font-medium">
-              Server PDF: {validationFailure.pageCount} page(s) — export blocked
-            </p>
-            <p className="mt-1">{validationFailure.message}</p>
+            {validationFailure ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                <p className="font-medium">
+                  Server PDF: {validationFailure.pageCount} page(s) — export blocked
+                </p>
+                <p className="mt-1">{validationFailure.message}</p>
+              </div>
+            ) : isApproving ? (
+              <p className="text-sm text-slate-600">Validating server PDF layout…</p>
+            ) : null}
+
+            {exportWarning ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {exportWarning}
+              </p>
+            ) : null}
           </div>
-        ) : isApproving ? (
-          <p className="text-sm text-slate-600">Validating server PDF layout…</p>
-        ) : null}
 
-        {exportWarning ? (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {exportWarning}
-          </p>
-        ) : null}
-
-        <SetupCard
-          className="scroll-mt-32"
-          title="Resume"
-          description="Primary artifact — preview the final PDF and tune layout if needed. Approve and export from Application Review above."
-          variant="primary"
-        >
+          {/* Right: resume PDF preview — dominant artifact in first viewport */}
+          <SetupCard
+            className="scroll-mt-24 mt-4 lg:mt-0"
+            title="Resume"
+            description="Preview the final PDF and tune layout if needed."
+            variant="primary"
+          >
           <div id="package-resume" className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
@@ -646,7 +635,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             </details>
 
           </div>
-        </SetupCard>
+          </SetupCard>
+        </div>{/* end two-column grid */}
 
         <div
           id="package-cover-letter"
