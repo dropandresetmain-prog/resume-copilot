@@ -110,6 +110,11 @@
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional, not export gate.
 - **Layout Fit (One Page)** browser estimate is separate from server validation.
 
+## Mobile shell (v0.9.11G)
+
+- Nav uses a **two-row mobile layout** (brand, then scrollable links). Very narrow Browser Tab panes may still clip; verify in real Chrome at 390px when possible.
+- Persistent storage warnings are **collapsible** on workspace pages — expand "Local data needs sync" for full text.
+
 ## Inventory workflow (Investigate Now — v0.9.11F)
 
 - **Duplicate cleanup, bullet variant management, force-exclude, and internship ranking** remain messy/confusing in the Inventory UI — intentionally **not** addressed in v0.9.11F.

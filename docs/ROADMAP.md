@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11F**
+**v0.9.11G**
 
 ## Completed capabilities
 
@@ -29,8 +29,16 @@
 | Action placement and workflow surfaces | v0.9.11D |
 | Live Package/Cover Letter UX fixes | v0.9.11E |
 | Visual + flow correction (landing, nav, Generate, Applications) | v0.9.11F |
+| Mobile nav + alert fatigue fix | v0.9.11G |
 
 ## Milestone log (recent)
+
+### v0.9.11G - Mobile Nav + Alert Fatigue Fix
+
+- Stacked mobile nav: compact RC brand on row one, full-width horizontal nav on row two (no logo/Generate overlap).
+- Collapsible compact storage warnings on Generate, Uploads, and Applications.
+- Tighter page headers and quieter Generate readiness notice so composer/CTA appear sooner.
+- No schema, generation, export, or model ID changes.
 
 ### v0.9.11F - Visual + Flow Correction
 

@@ -2,7 +2,13 @@
 
 ## Current version
 
-**v0.9.11F** (code)
+**v0.9.11G** (code)
+
+## v0.9.11G implementation note
+
+Mobile Nav + Alert Fatigue Fix addresses v0.9.11F browser QA: stacked mobile nav (logo row + full-width scroll links — no RC/Generate collision), collapsible compact storage warnings on Generate/Uploads/Applications, tighter page headers, and quieter readiness notices so the Generate composer and CTA appear sooner.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no route changes.
 
 ## v0.9.11F implementation note
 
@@ -32,14 +38,15 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## Latest milestone (code)
 
-**v0.9.11F - Visual + Flow Correction**
+**v0.9.11G - Mobile Nav + Alert Fatigue Fix**
 
-Product-flow and visual correction pass from user feedback: richer landing page, premium nav, composer-first Generate, dynamic progress, upload layout fixes, compact Applications cards. Recruitment/confidential checkbox UI only. Inventory cleanup remains parked.
+Narrow follow-up to v0.9.11F browser QA: stacked mobile nav, collapsible storage warnings, compact headers, quieter Generate readiness notices.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11G | Mobile nav + alert fatigue — stacked nav, collapsible storage warnings, compact headers |
 | v0.9.11F | Visual + flow correction — landing, nav, Generate, progress, Uploads, Applications |
 | v0.9.11E | Live Package/Cover Letter UX fixes — mojibake, review cover-letter path, rail anchors, save model |
 | v0.9.11D | Action placement and workflow surfaces - Generate, Package, Cover Letter, Applications |

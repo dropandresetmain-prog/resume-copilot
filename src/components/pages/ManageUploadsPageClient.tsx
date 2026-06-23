@@ -34,10 +34,11 @@ export function ManageUploadsPageClient() {
   return (
     <>
       <PageHeader
+        compact
         eyebrow="Readiness"
         milestone={pageMilestone("Uploads")}
         title="Uploads"
-        description="Start with a trusted resume inventory: sign in, upload DOCX resumes, and confirm the parser has enough evidence for generation."
+        description="Sign in, upload DOCX resumes, and confirm the parser has enough evidence for generation."
       />
 
       {hasInventory && isSignedIn ? (
@@ -83,6 +84,8 @@ export function ManageUploadsPageClient() {
         importError={null}
         failures={inventory.failures}
         warnings={warnings}
+        persistenceCollapsible
+        compact
       />
     </>
   );

@@ -23,10 +23,11 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
+        compact
         eyebrow="Workspace"
         milestone={pageMilestone("Applications")}
         title="Applications"
-        description="Track each application package by job, status, notes, latest resume draft, cover letter, and research state."
+        description="Track each application package by job, status, notes, and latest artifacts."
       />
 
       <SetupAlerts
@@ -34,6 +35,8 @@ export function RecordsPageClient() {
         importError={null}
         failures={[]}
         warnings={[]}
+        persistenceCollapsible
+        compact
       />
 
       <ApplicationRecordsPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />

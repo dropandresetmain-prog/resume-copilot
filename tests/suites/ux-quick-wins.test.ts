@@ -69,10 +69,14 @@ function main() {
     join(process.cwd(), "src/components/pages/ProfilePageClient.tsx"),
     "utf8",
   );
+  const setupAlerts = readFileSync(
+    join(process.cwd(), "src/components/setup/SetupAlerts.tsx"),
+    "utf8",
+  );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11F"')],
-    ["package json version", packageJson.includes('"version": "0.9.11F"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11G"')],
+    ["package json version", packageJson.includes('"version": "0.9.11G"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -165,11 +169,25 @@ function main() {
       generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
     ],
     [
-      "v0.9.11F parked follow-ups documented",
-      handoff.includes("v0.9.11F") &&
-        handoff.includes("Recruiter/confidential-client mode") &&
-        handoff.includes("Inventory") &&
-        roadmap.includes("v0.9.11F"),
+      "v0.9.11G mobile nav stacked layout",
+      appNav.includes("flex-col") &&
+        appNav.includes("Workspace pages") &&
+        appNav.includes("md:inline"),
+    ],
+    [
+      "generate collapsible compact alerts",
+      generate.includes("persistenceCollapsible") &&
+        generate.includes("compact") &&
+        setupAlerts.includes("Local data needs sync"),
+    ],
+    [
+      "uploads and applications use compact alerts",
+      uploads.includes("persistenceCollapsible") && records.includes("persistenceCollapsible"),
+    ],
+    ["generate compact page header", generate.includes("compact") && generate.includes("PageHeader")],
+    [
+      "v0.9.11G documented",
+      handoff.includes("v0.9.11G") && roadmap.includes("v0.9.11G"),
     ],
   ];
 
