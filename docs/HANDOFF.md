@@ -2,18 +2,21 @@
 
 ## Current version
 
-**v0.9.11A** (code)
+**v0.9.11B** (code)
 
 ## Latest milestone (code)
 
-**v0.9.11A — UX Quick Wins**
+**v0.9.11B — IA Cleanup**
 
-Presentation and safe workflow polish from the v0.9.10 audit: unified version labels, persistence alerts on Generate/Records, duplicate approve removal, clearer navigation labels, collapsed layout controls, cover letter unsaved hint, draft delete error UX, Dev Tools removed from main nav.
+Information architecture cleanup from the v0.9.11B audit: main nav reordered to Uploads → Inventory → Generate → Applications → Profile with route hrefs unchanged, Records/Manage Uploads labels renamed to Applications/Uploads, Generate secondary controls moved under Advanced, Application Review co-locates Approve for Export with resume PDF/DOCX downloads, package debug/assessment content collapsed under Developer details, Uploads uses one merged resume list, and SetupCard supports primary/secondary/muted variants.
+
+B6 remains Investigate Now unless approved: Generate still shows saved-job management; `ensureJobDescriptionForGeneration()` covers save-on-generate by reusing duplicate jobs or saving new/edited jobs during generation, so removing Generate management controls appears safe but was not implemented in v0.9.11B.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11B | IA cleanup — nav order, label renames, Generate advanced demotion, package action/developer hierarchy, merged Uploads list |
 | v0.9.11A | UX quick wins — alerts, labels, approve dedup, version sync |
 | v0.9.9 | Application Review Center — export/readiness aggregation on resume preview |
 | v0.9.8H | Gemini model tier selection for resume/cover letter generation |
@@ -55,13 +58,13 @@ Inventory (Supabase) + JD
 
 ## Application package page order
 
-1. Summary (company, role, status chips)
+1. Application Review — company, role, readiness, Approve for Export + resume PDF/DOCX downloads
 2. Structure repair banner (when auto-repair ran)
-3. Resume — PDF preview, collapsed layout sliders, downloads (approve in Application Review above)
+3. Resume — PDF preview and collapsed layout sliders
 4. Cover letter — **inline body**, Edit / PDF / DOCX
 5. Company research — collapsed by default; summary visible in header
 6. Edit resume content — hidden until toggled (evidence + regenerate)
-7. Advanced options — assessment, browser layout, HTML debug, JSON
+7. Developer details — collapsed by default; assessment, browser layout estimate, PDF HTML, JSON
 
 ## Post-generation navigation
 
@@ -99,6 +102,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.9 — Application Review Center** shipped on resume preview. See `ApplicationReviewCenter` + `build-application-review-status.ts`.
+**v0.9.11C — IA restructure candidates** are parked for approval: package tabs, Applications spine restructure, Inventory IA redesign, and Cover Letter hierarchy demotion.
 
-Parked after that: v0.10.0 Edit Learning Log, v0.10.1 Cover Letter Version History.
+Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

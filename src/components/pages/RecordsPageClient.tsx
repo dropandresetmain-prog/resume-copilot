@@ -23,8 +23,8 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
-        milestone={pageMilestone("Records")}
-        title="Records"
+        milestone={pageMilestone("Applications")}
+        title="Applications"
         description="Track applications by job, update status and notes, and review saved jobs and draft history."
       />
 

@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { AuthPanel } from "@/components/setup/AuthPanel";
 import { CloudFileStoragePanel } from "@/components/setup/CloudFileStoragePanel";
-import { ResumeList } from "@/components/setup/ResumeList";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SummaryCards } from "@/components/setup/SummaryCards";
 import { UploadCard } from "@/components/setup/UploadCard";
@@ -34,8 +33,8 @@ export function ManageUploadsPageClient() {
   return (
     <>
       <PageHeader
-        milestone={pageMilestone("Manage Uploads")}
-        title="Manage Uploads"
+        milestone={pageMilestone("Uploads")}
+        title="Uploads"
         description="Sign in, upload DOCX resumes, and review parsing results. This is the starting point for new users."
       />
 
@@ -70,6 +69,8 @@ export function ManageUploadsPageClient() {
       <CloudFileStoragePanel
         isSignedIn={isSignedIn}
         refreshToken={fileStorageRefreshToken}
+        resumes={inventory.resumes}
+        onDeleteResume={handleDeleteResume}
       />
 
       <SetupAlerts
@@ -78,8 +79,6 @@ export function ManageUploadsPageClient() {
         failures={inventory.failures}
         warnings={warnings}
       />
-
-      <ResumeList resumes={inventory.resumes} onDeleteResume={handleDeleteResume} />
     </>
   );
 }

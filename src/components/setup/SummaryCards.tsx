@@ -22,6 +22,7 @@ export function SummaryCards({ totals }: SummaryCardsProps) {
     <SetupCard
       title="Inventory summary"
       description="Totals across all uploaded resumes in this browser."
+      variant="muted"
     >
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {STAT_ITEMS.map((item) => (

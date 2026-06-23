@@ -33,6 +33,7 @@ export function UploadCard({
     <SetupCard
       title="Upload resumes"
       description="Files are parsed in your browser. Original DOCX files are stored in private Supabase Storage when you are signed in."
+      variant="primary"
     >
       {disabled && disabledReason ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

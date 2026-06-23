@@ -22,15 +22,24 @@ export function SetupCard({
   description,
   children,
   className = "",
+  variant = "secondary",
 }: {
   title?: string;
   description?: string;
   children: ReactNode;
   className?: string;
+  variant?: "primary" | "secondary" | "muted";
 }) {
+  const variantClassName =
+    variant === "primary"
+      ? "border-slate-300 bg-white shadow-md"
+      : variant === "muted"
+        ? "border-slate-100 bg-slate-50 shadow-none"
+        : "border-slate-200 bg-white shadow-sm";
+
   return (
     <section
-      className={`rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm ${className}`}
+      className={`rounded-xl border p-5 text-slate-900 ${variantClassName} ${className}`}
     >
       {title && (
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>

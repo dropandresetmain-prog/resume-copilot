@@ -3,13 +3,13 @@ export type AppNavItem = {
   label: string;
 };
 
-/** Main navigation order: Generate > Inventory > Records > Profile > Manage Uploads */
+/** Main navigation order: Uploads > Inventory > Generate > Applications > Profile */
 export const APP_NAV_ITEMS: AppNavItem[] = [
-  { href: "/generate", label: "Generate" },
+  { href: "/setup", label: "Uploads" },
   { href: "/inventory", label: "Inventory" },
-  { href: "/records", label: "Records" },
+  { href: "/generate", label: "Generate" },
+  { href: "/records", label: "Applications" },
   { href: "/profile", label: "Profile" },
-  { href: "/setup", label: "Manage Uploads" },
 ];
 
 export function isAppNavActive(pathname: string, href: string): boolean {

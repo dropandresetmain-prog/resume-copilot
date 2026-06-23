@@ -14,6 +14,29 @@ function main() {
     join(process.cwd(), "src/components/pages/RecordsPageClient.tsx"),
     "utf8",
   );
+  const uploads = readFileSync(
+    join(process.cwd(), "src/components/pages/ManageUploadsPageClient.tsx"),
+    "utf8",
+  );
+  const generateSection = readFileSync(
+    join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
+    "utf8",
+  );
+  const cloudFileStoragePanel = readFileSync(
+    join(process.cwd(), "src/components/setup/CloudFileStoragePanel.tsx"),
+    "utf8",
+  );
+  const uploadCard = readFileSync(
+    join(process.cwd(), "src/components/setup/UploadCard.tsx"),
+    "utf8",
+  );
+  const summaryCards = readFileSync(
+    join(process.cwd(), "src/components/setup/SummaryCards.tsx"),
+    "utf8",
+  );
+  const ui = readFileSync(join(process.cwd(), "src/components/setup/ui.tsx"), "utf8");
+  const handoff = readFileSync(join(process.cwd(), "docs/HANDOFF.md"), "utf8");
+  const roadmap = readFileSync(join(process.cwd(), "docs/ROADMAP.md"), "utf8");
   const resumePreview = readFileSync(
     join(process.cwd(), "src/components/pages/ResumePreviewPageClient.tsx"),
     "utf8",
@@ -36,11 +59,49 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11A"')],
-    ["package json version", packageJson.includes('"version": "0.9.11A"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11B"')],
+    ["package json version", packageJson.includes('"version": "0.9.11B"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
+    [
+      "nav labels ordered for IA cleanup",
+      nav.indexOf('label: "Uploads"') < nav.indexOf('label: "Inventory"') &&
+        nav.indexOf('label: "Inventory"') < nav.indexOf('label: "Generate"') &&
+        nav.indexOf('label: "Generate"') < nav.indexOf('label: "Applications"') &&
+        nav.indexOf('label: "Applications"') < nav.indexOf('label: "Profile"'),
+    ],
+    ["nav route hrefs unchanged", nav.includes('href: "/setup"') && nav.includes('href: "/records"')],
+    ["records renamed applications", records.includes('title="Applications"') && records.includes('pageMilestone("Applications")')],
+    ["uploads page renamed", uploads.includes('title="Uploads"') && uploads.includes('pageMilestone("Uploads")')],
     ["generate shows setup alerts", generate.includes("SetupAlerts") && generate.includes("persistenceWarning")],
+    ["generate removes everything in one card banner", !generate.includes("Everything you need is in one card below")],
+    [
+      "generate advanced controls hidden under disclosure",
+      generateSection.indexOf("Base resume (formatting template)") <
+        generateSection.indexOf("Show advanced options") &&
+        generateSection.indexOf("Show advanced options") <
+          generateSection.indexOf("Generation mode") &&
+        generateSection.indexOf("Show advanced options") <
+          generateSection.indexOf("Resume model") &&
+        generateSection.indexOf("Show advanced options") <
+          generateSection.indexOf("Company website"),
+    ],
+    [
+      "uploads merged parsed and cloud list",
+      uploads.includes("CloudFileStoragePanel") &&
+        uploads.includes("resumes={inventory.resumes}") &&
+        !uploads.includes("<ResumeList") &&
+        cloudFileStoragePanel.includes("countResume") &&
+        cloudFileStoragePanel.includes("Original resume files") &&
+        cloudFileStoragePanel.includes("onDeleteResume(resume.id)"),
+    ],
+    [
+      "setup card variants",
+      ui.includes('variant?: "primary" | "secondary" | "muted"') &&
+        ui.includes("variantClassName") &&
+        uploadCard.includes('variant="primary"') &&
+        summaryCards.includes('variant="muted"'),
+    ],
     ["records shows setup alerts", records.includes("SetupAlerts") && records.includes("persistenceWarning")],
     ["single resume approve button", !resumePreview.includes("onClick={handleApproveForExport}")],
     ["review center still approves", resumePreview.includes("onApproveForExport={() => void handleApproveForExport()}")],
@@ -51,6 +112,11 @@ function main() {
     ["cover letter unsaved hint", coverLetterPreview.includes("hasUnsavedBodyChanges")],
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
+    [
+      "b6 investigation remains documented",
+      handoff.includes("B6 remains Investigate Now") &&
+        roadmap.includes("B6 remains Investigate Now"),
+    ],
   ];
 
   for (const [name, ok] of checks) {

@@ -456,12 +456,52 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             isApproving={isApproving}
             canApprove={canApprove}
             approveButtonLabel={approveButtonLabel}
+            exportControls={
+              <>
+                <DownloadResumePdfButton
+                  draftId={draftId}
+                  layoutSettings={currentLayoutSettings}
+                  disabled={!exportReady}
+                  disabledReason={exportDisabledReason}
+                  onWarning={setExportWarning}
+                />
+                <div className="inline-flex flex-col gap-1">
+                  <DownloadResumeDocxButton
+                    draftId={draftId}
+                    layoutSettings={currentLayoutSettings}
+                    disabled={!exportReady}
+                    disabledReason={exportDisabledReason}
+                    onHint={setExportWarning}
+                  />
+                  <p className="max-w-xs text-xs text-slate-500">
+                    PDF is the final layout. DOCX is editable and may reflow in Word.
+                  </p>
+                </div>
+              </>
+            }
           />
+        ) : null}
+
+        {validationFailure ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p className="font-medium">
+              Server PDF: {validationFailure.pageCount} page(s) — export blocked
+            </p>
+            <p className="mt-1">{validationFailure.message}</p>
+          </div>
+        ) : isApproving ? (
+          <p className="text-sm text-slate-600">Validating server PDF layout…</p>
+        ) : null}
+
+        {exportWarning ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {exportWarning}
+          </p>
         ) : null}
 
         <SetupCard
           title="Resume"
-          description="Primary artifact — tune layout and download PDF or DOCX. Approve for export from Application Review above."
+          description="Primary artifact — preview the final PDF and tune layout if needed. Approve and export from Application Review above."
         >
           <div className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
@@ -580,44 +620,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               </div>
             </details>
 
-            {validationFailure ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                <p className="font-medium">
-                  Server PDF: {validationFailure.pageCount} page(s) — export blocked
-                </p>
-                <p className="mt-1">{validationFailure.message}</p>
-              </div>
-            ) : isApproving ? (
-              <p className="text-sm text-slate-600">Validating server PDF layout…</p>
-            ) : null}
-
-            <div className="flex flex-wrap items-end gap-3" data-section="resume-approve-export">
-              <DownloadResumePdfButton
-                draftId={draftId}
-                layoutSettings={currentLayoutSettings}
-                disabled={!exportReady}
-                disabledReason={exportDisabledReason}
-                onWarning={setExportWarning}
-              />
-              <div className="inline-flex flex-col gap-1">
-                <DownloadResumeDocxButton
-                  draftId={draftId}
-                  layoutSettings={currentLayoutSettings}
-                  disabled={!exportReady}
-                  disabledReason={exportDisabledReason}
-                  onHint={setExportWarning}
-                />
-                <p className="max-w-xs text-xs text-slate-500">
-                  PDF is the final layout. DOCX is editable and may reflow in Word.
-                </p>
-              </div>
-            </div>
-
-            {exportWarning ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {exportWarning}
-              </p>
-            ) : null}
           </div>
         </SetupCard>
 
@@ -679,7 +681,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
         <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <summary className="cursor-pointer text-sm font-medium text-slate-900">
-            Advanced options
+            Developer details
           </summary>
           <div className="mt-4 space-y-4">
             <p className="text-xs text-slate-500">
@@ -696,10 +698,10 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               isValidating={isApproving}
             />
 
-            <details className="rounded-lg border border-slate-200 bg-white p-3">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            <section className="rounded-lg border border-slate-200 bg-white p-3">
+              <h3 className="text-sm font-medium text-slate-700">
                 Advanced browser layout estimate
-              </summary>
+              </h3>
               <p className="mt-2 text-xs text-slate-500">
                 Approximate browser-only spacing — not used for export. Trust PDF Preview above.
               </p>
@@ -712,25 +714,25 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                   headerAlignment={headerAlignment}
                 />
               </div>
-            </details>
+            </section>
 
-            <details className="rounded-lg border border-slate-200 bg-white p-3">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            <section className="rounded-lg border border-slate-200 bg-white p-3">
+              <h3 className="text-sm font-medium text-slate-700">
                 PDF layout HTML source
-              </summary>
+              </h3>
               <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-800">
                 {documentModel ? renderResumePdfHtml(documentModel) : ""}
               </pre>
-            </details>
+            </section>
 
-            <details className="rounded-lg border border-slate-200 bg-white p-3">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            <section className="rounded-lg border border-slate-200 bg-white p-3">
+              <h3 className="text-sm font-medium text-slate-700">
                 Debug JSON
-              </summary>
+              </h3>
               <pre className="mt-2 max-h-80 overflow-auto text-xs text-slate-800">
                 {JSON.stringify({ content: draft.content, rationale: draft.rationale }, null, 2)}
               </pre>
-            </details>
+            </section>
           </div>
         </details>
 

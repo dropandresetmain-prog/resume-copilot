@@ -77,18 +77,13 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
             <>
               Upload your resumes first in{" "}
               <Link href="/setup" className="font-medium underline">
-                Manage Uploads
+                Uploads
               </Link>{" "}
               to build your career inventory before generating.
             </>
           )}
         </p>
-      ) : (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Everything you need is in one card below: paste the job, pick a base resume, and click
-          Generate Tailored Resume.
-        </p>
-      )}
+      ) : null}
 
       <JDInputPanel
         jobDescriptions={jobDescriptions}

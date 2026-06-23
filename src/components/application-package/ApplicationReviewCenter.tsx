@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { primaryButtonClassName, secondaryButtonClassName } from "@/components/setup/ui";
 import type {
@@ -19,6 +20,7 @@ type ApplicationReviewCenterProps = {
   isApproving: boolean;
   canApprove: boolean;
   approveButtonLabel: string;
+  exportControls?: ReactNode;
 };
 
 const OVERALL_LABELS: Record<ApplicationReviewOverallStatus, string> = {
@@ -116,6 +118,7 @@ export function ApplicationReviewCenter({
   isApproving,
   canApprove,
   approveButtonLabel,
+  exportControls,
 }: ApplicationReviewCenterProps) {
   const displayTitle =
     companyName && roleTitle
@@ -155,7 +158,7 @@ export function ApplicationReviewCenter({
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap items-end gap-3" data-section="resume-approve-export">
         <button
           type="button"
           onClick={onApproveForExport}
@@ -165,6 +168,10 @@ export function ApplicationReviewCenter({
         >
           {approveButtonLabel}
         </button>
+        {exportControls}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
         <Link
           href={`/resume-preview/${resumeDraftId}/edit`}
           className={`inline-flex ${secondaryButtonClassName}`}

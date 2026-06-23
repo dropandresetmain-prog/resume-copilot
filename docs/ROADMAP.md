@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.8B**
+**v0.9.11B**
 
 ## Completed capabilities
 
@@ -22,8 +22,28 @@
 | Application package UX | v0.9.8 |
 | Workflow paper cuts (naming, navigation) | v0.9.8A |
 | Resume structure auto-repair | v0.9.8B |
+| Application Review Center | v0.9.9 |
+| UX quick wins | v0.9.11A |
+| IA cleanup | v0.9.11B |
 
 ## Milestone log (recent)
+
+### v0.9.11B — IA Cleanup
+
+- Reordered main nav labels to Uploads → Inventory → Generate → Applications → Profile while keeping `/setup` and `/records` routes unchanged.
+- Renamed Manage Uploads/Records page labels to Uploads/Applications and bumped the shared version label to v0.9.11B.
+- Co-located Application Review approve and resume export actions without changing approval/export logic.
+- Collapsed package assessment/debug/browser-layout details under a single Developer details drawer.
+- Moved Generate secondary controls under Advanced while keeping JD input, base resume, and Generate as the visible primary path.
+- Merged Uploads cloud storage and parsed resume lists into one row-per-file presentation.
+- Added SetupCard visual hierarchy variants.
+- B6 remains Investigate Now unless approved: saved-job management on Generate was investigated, but not removed.
+
+### v0.9.11A — UX Quick Wins
+
+- Unified version labels and persistence alerts.
+- Removed duplicate approve affordances.
+- Clarified navigation labels, collapsed layout controls, added cover-letter unsaved hint, and improved draft delete error UX.
 
 ### v0.9.8B — Resume Generation Auto-Repair
 
@@ -66,17 +86,17 @@
 
 ## Next (planned)
 
-### v0.9.9 — Application Review Center
+### v0.9.11C — IA Restructure Candidates
 
-Aggregated export/readiness dashboard on `/resume-preview/[draftId]` using existing signals (fit heuristic, validation, forced bullets, research, export gates). **Shipped.**
+Potential medium-risk UI restructuring only: package tabs, Applications spine restructure, Inventory IA redesign, and Cover Letter hierarchy demotion. **Not started.**
 
-### v0.10.0 — Edit Learning Log
+### v0.10.0 — Inventory CRUD
 
-Track user edits to improve future generation. **Not started.**
+Prepare and implement Inventory CRUD for work experience, bullets, skills, education, additional experience, and keywords without breaking the inventory source-of-truth model. **Not started.**
 
-### v0.10.1 — Cover Letter Version History
+### v0.10.1 — Cover Letter Version History / Learning Log
 
-Versioned cover letter drafts per application. **Not started.**
+Versioned cover letter drafts per application and/or edit learning log. **Not started.**
 
 ## Parked (not scheduled)
 

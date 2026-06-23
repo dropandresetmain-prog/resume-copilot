@@ -166,7 +166,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           </Link>
         ) : null}
         <Link href="/records" className={secondaryButtonClassName}>
-          Back to Records
+          Back to Applications
         </Link>
       </div>
 

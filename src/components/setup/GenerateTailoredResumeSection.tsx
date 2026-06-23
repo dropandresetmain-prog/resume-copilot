@@ -488,14 +488,6 @@ export function GenerateTailoredResumeSection({
 
   return (
     <div className="border-t border-slate-200 pt-5">
-      {providerStatus ? (
-        <p className="text-sm text-slate-600">
-          Provider: {providerStatus.providerLabel}
-          {providerStatus.modelName ? ` · ${providerStatus.modelName}` : ""}
-          {providerStatus.isMock ? " (test mode)" : ""}
-        </p>
-      ) : null}
-
       {!providerConfigured ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {providerStatus?.configurationError ??
@@ -517,46 +509,6 @@ export function GenerateTailoredResumeSection({
         </div>
       ) : (
         <>
-          <div className="mt-4">
-            <label htmlFor="generate-mode" className={labelClassName}>
-              Generation mode
-            </label>
-            <select
-              id="generate-mode"
-              value={generateMode}
-              onChange={(event) => setGenerateMode(event.target.value as GenerateMode)}
-              className={formFieldClassName}
-            >
-              <option value="resume_and_cover_letter">
-                Generate Tailored Resume &amp; Formal Cover Letter
-              </option>
-              <option value="resume_only">Generate Tailored Resume only</option>
-            </select>
-          </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <ModelTierSelect
-              id="resume-model-tier"
-              label="Resume model"
-              value={resumeModelTier}
-              disabled={disabled || isGenerating}
-              onChange={(tier) => {
-                setResumeModelTier(tier);
-                writeStoredResumeModelTier(tier);
-              }}
-            />
-            <ModelTierSelect
-              id="cover-letter-model-tier"
-              label="Cover letter model"
-              value={coverLetterModelTier}
-              disabled={disabled || isGenerating || generateMode === "resume_only"}
-              onChange={(tier) => {
-                setCoverLetterModelTier(tier);
-                writeStoredCoverLetterModelTier(tier);
-              }}
-            />
-          </div>
-
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1">
               <label htmlFor="base-resume-select" className={labelClassName}>
@@ -612,6 +564,52 @@ export function GenerateTailoredResumeSection({
 
           {showAdvanced ? (
             <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              {providerStatus ? (
+                <p className="text-sm text-slate-600 lg:col-span-2">
+                  Provider: {providerStatus.providerLabel}
+                  {providerStatus.modelName ? ` · ${providerStatus.modelName}` : ""}
+                  {providerStatus.isMock ? " (test mode)" : ""}
+                </p>
+              ) : null}
+
+              <div className="lg:col-span-2">
+                <label htmlFor="generate-mode" className={labelClassName}>
+                  Generation mode
+                </label>
+                <select
+                  id="generate-mode"
+                  value={generateMode}
+                  onChange={(event) => setGenerateMode(event.target.value as GenerateMode)}
+                  className={formFieldClassName}
+                >
+                  <option value="resume_and_cover_letter">
+                    Generate Tailored Resume &amp; Formal Cover Letter
+                  </option>
+                  <option value="resume_only">Generate Tailored Resume only</option>
+                </select>
+              </div>
+
+              <ModelTierSelect
+                id="resume-model-tier"
+                label="Resume model"
+                value={resumeModelTier}
+                disabled={disabled || isGenerating}
+                onChange={(tier) => {
+                  setResumeModelTier(tier);
+                  writeStoredResumeModelTier(tier);
+                }}
+              />
+              <ModelTierSelect
+                id="cover-letter-model-tier"
+                label="Cover letter model"
+                value={coverLetterModelTier}
+                disabled={disabled || isGenerating || generateMode === "resume_only"}
+                onChange={(tier) => {
+                  setCoverLetterModelTier(tier);
+                  writeStoredCoverLetterModelTier(tier);
+                }}
+              />
+
               <div>
                 <label htmlFor="company-name-override" className={labelClassName}>
                   Company name
@@ -683,6 +681,10 @@ export function GenerateTailoredResumeSection({
                 lastEnsureStatus={companyContextEnsureStatus}
                 onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
               />
+
+              <p className="text-sm text-slate-600 lg:col-span-2">
+                Approved keywords available: {approvedKeywordCount}
+              </p>
             </div>
           ) : null}
         </>
@@ -693,10 +695,6 @@ export function GenerateTailoredResumeSection({
           {companyContextWarning}
         </p>
       ) : null}
-
-      <p className="mt-3 text-sm text-slate-600">
-        Approved keywords available: {approvedKeywordCount}
-      </p>
 
       {partialCoverLetterFailure ? (
         <div className="mt-3 space-y-3">
@@ -776,7 +774,7 @@ export function GenerateTailoredResumeSection({
 
       {inventory.resumes.length === 0 ? (
         <p className="mt-3 text-sm text-amber-800">
-          Upload at least one resume in Manage Uploads before generating.
+          Upload at least one resume in Uploads before generating.
         </p>
       ) : null}
     </div>
