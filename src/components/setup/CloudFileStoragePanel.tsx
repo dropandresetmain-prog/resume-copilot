@@ -115,7 +115,7 @@ export function CloudFileStoragePanel({
             description="Upload one or more DOCX files to start building your inventory."
           />
         ) : (
-          <ul className="grid gap-3 lg:grid-cols-2">
+          <ul className="space-y-3">
             {resumes.map((resume) => {
               const counts = countResume(resume);
               const storedFile = fileByName.get(resume.filename);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  applicationStatusBadgeClassName,
   formatApplicationLabel,
   formatApplicationStatusLabel,
 } from "@/lib/application/labels";
@@ -27,11 +28,9 @@ import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 import {
   EmptyState,
-  actionBarClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
-  primaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -45,6 +44,7 @@ type ApplicationCardState = {
   notesDraft: string;
   isSavingNotes: boolean;
   isSavingStatus: boolean;
+  expanded: boolean;
 };
 
 function buildLatestDraftByApplicationId(
@@ -79,6 +79,14 @@ function buildLatestCoverLetterByApplicationId(
     }
   }
   return latest;
+}
+
+function buildStatusCounts(applications: StoredApplicationRecord[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const application of applications) {
+    counts[application.status] = (counts[application.status] ?? 0) + 1;
+  }
+  return counts;
 }
 
 export function ApplicationRecordsPanel({
@@ -119,6 +127,7 @@ export function ApplicationRecordsPanel({
                 notesDraft: record.notes ?? "",
                 isSavingNotes: false,
                 isSavingStatus: false,
+                expanded: false,
               },
             ]),
           ),
@@ -153,6 +162,15 @@ export function ApplicationRecordsPanel({
     () => buildLatestCoverLetterByApplicationId(coverLetters),
     [coverLetters],
   );
+  const statusCounts = useMemo(() => buildStatusCounts(applications), [applications]);
+  const linkedDraftCount = useMemo(
+    () => drafts.filter((draft) => Boolean(draft.applicationId)).length,
+    [drafts],
+  );
+  const linkedCoverLetterCount = useMemo(
+    () => coverLetters.filter((letter) => Boolean(letter.applicationId)).length,
+    [coverLetters],
+  );
 
   function updateCardState(
     applicationId: string,
@@ -164,6 +182,7 @@ export function ApplicationRecordsPanel({
         notesDraft: current[applicationId]?.notesDraft ?? "",
         isSavingNotes: current[applicationId]?.isSavingNotes ?? false,
         isSavingStatus: current[applicationId]?.isSavingStatus ?? false,
+        expanded: current[applicationId]?.expanded ?? false,
         ...patch,
       },
     }));
@@ -216,7 +235,7 @@ export function ApplicationRecordsPanel({
   return (
     <SetupCard
       title="Application workspace"
-      description="Each row groups the job, status, notes, latest resume draft, cover letter, and company research."
+      description="Compact overview of each job — expand a row for notes, status edits, and artifact details."
       variant="primary"
     >
       {!isSignedIn ? (
@@ -231,186 +250,245 @@ export function ApplicationRecordsPanel({
           description="Generate a tailored resume on the Generate page to create your first application record."
         />
       ) : (
-        <ul className="mt-4 grid gap-4">
-          {applications.map((application) => {
-            const job = application.jobDescriptionId
-              ? jobById.get(application.jobDescriptionId)
-              : undefined;
-            const label = formatApplicationLabel(application, job);
-            const latestDraft = latestDraftByApplicationId.get(application.id);
-            const latestCoverLetter = latestCoverLetterByApplicationId.get(application.id);
-            const artifactSummary = formatApplicationArtifactSummary({
-              hasResume: Boolean(latestDraft),
-              hasCoverLetter: Boolean(latestCoverLetter),
-            });
-            const jobUrl = application.jobUrl ?? job?.jobUrl;
-            const state = cardState[application.id] ?? {
-              notesDraft: application.notes ?? "",
-              isSavingNotes: false,
-              isSavingStatus: false,
-            };
-            const updatedLabel = new Date(application.updatedAt).toLocaleString();
-
-            return (
-              <li
-                key={application.id}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-slate-950">{label}</p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      Resume {artifactSummary.resumeLabel} · Cover letter{" "}
-                      {artifactSummary.coverLetterLabel} · Company context{" "}
-                      {hasUsableCompanyContext(application.companyContext)
-                        ? application.companyContext?.sourceType === "website_research"
-                          ? "website research"
-                          : "JD-based"
-                        : "none"}
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-500">Updated {updatedLabel}</p>
-                </div>
-
-                {jobUrl ? (
-                  <p className="mt-1 text-xs text-slate-500">
-                    <a
-                      href={jobUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium text-blue-700 underline"
+        <>
+          <dl className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Applications
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+                {applications.length}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Resume drafts
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+                {linkedDraftCount}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Cover letters
+              </dt>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-950">
+                {linkedCoverLetterCount}
+              </dd>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                By status
+              </dt>
+              <dd className="mt-2 flex flex-wrap gap-1.5">
+                {APPLICATION_RECORD_STATUSES.filter((status) => statusCounts[status]).map(
+                  (status) => (
+                    <span
+                      key={status}
+                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${applicationStatusBadgeClassName(status)}`}
                     >
-                      Job posting
-                    </a>
-                  </p>
-                ) : null}
+                      {formatApplicationStatusLabel(status)} {statusCounts[status]}
+                    </span>
+                  ),
+                )}
+              </dd>
+            </div>
+          </dl>
 
-                {application.jobDescriptionId ? (
-                  <p className="mt-2">
-                    <Link
-                      href={`/generate?jobId=${application.jobDescriptionId}`}
-                      className="text-xs font-medium text-blue-700 underline"
-                    >
-                      Edit company research on Generate page
-                    </Link>
-                  </p>
-                ) : null}
+          <ul className="mt-4 space-y-2">
+            {applications.map((application) => {
+              const job = application.jobDescriptionId
+                ? jobById.get(application.jobDescriptionId)
+                : undefined;
+              const label = formatApplicationLabel(application, job);
+              const latestDraft = latestDraftByApplicationId.get(application.id);
+              const latestCoverLetter = latestCoverLetterByApplicationId.get(application.id);
+              const artifactSummary = formatApplicationArtifactSummary({
+                hasResume: Boolean(latestDraft),
+                hasCoverLetter: Boolean(latestCoverLetter),
+              });
+              const jobUrl = application.jobUrl ?? job?.jobUrl;
+              const state = cardState[application.id] ?? {
+                notesDraft: application.notes ?? "",
+                isSavingNotes: false,
+                isSavingStatus: false,
+                expanded: false,
+              };
+              const updatedLabel = new Date(application.updatedAt).toLocaleString();
+              const contextLabel = hasUsableCompanyContext(application.companyContext)
+                ? application.companyContext?.sourceType === "website_research"
+                  ? "website research"
+                  : "JD-based"
+                : "none";
 
-                {latestDraft ? (
-                  <div className={`mt-4 ${actionBarClassName}`}>
-                    <p className="text-xs font-semibold uppercase text-cyan-800">
-                      Primary action
-                    </p>
-                    <div className={`${primaryActionGroupClassName} mt-2`}>
-                      <Link
-                        href={`/resume-preview/${latestDraft.id}`}
-                        className={`${primaryButtonClassName} w-full sm:w-auto`}
-                      >
-                        Open package
-                      </Link>
-                      {latestCoverLetter ? (
-                        <Link
-                          href={`/cover-letter-preview/${latestCoverLetter.id}`}
-                          className={secondaryButtonClassName}
+              return (
+                <li
+                  key={application.id}
+                  className="overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm"
+                >
+                  <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${applicationStatusBadgeClassName(application.status)}`}
                         >
-                          Edit cover letter
-                        </Link>
-                      ) : null}
+                          {formatApplicationStatusLabel(application.status)}
+                        </span>
+                        <p className="truncate text-base font-semibold text-slate-950">{label}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Resume {artifactSummary.resumeLabel} · Cover letter{" "}
+                        {artifactSummary.coverLetterLabel} · Research {contextLabel} · Updated{" "}
+                        {updatedLabel}
+                      </p>
                     </div>
-                  </div>
-                ) : null}
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor={`application-status-${application.id}`}
-                      className={labelClassName}
-                    >
-                      Status
-                    </label>
-                    <select
-                      id={`application-status-${application.id}`}
-                      value={application.status}
-                      disabled={state.isSavingStatus}
-                      onChange={(event) =>
-                        void handleStatusChange(
-                          application,
-                          event.target.value as ApplicationRecordStatus,
-                        )
-                      }
-                      className={formFieldClassName}
-                    >
-                      {APPLICATION_RECORD_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {formatApplicationStatusLabel(status)}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Current: {formatApplicationStatusLabel(application.status)}
-                      {state.isSavingStatus ? " · Saving…" : ""}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className={labelClassName}>Artifacts</p>
-                    {latestDraft ? (
-                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                        <p className="text-sm text-slate-800">
-                          {formatDraftStatusLabel(latestDraft.status)}
-                          {latestDraft.modelName ? ` · ${latestDraft.modelName}` : ""}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Updated {new Date(latestDraft.updatedAt).toLocaleString()}
-                        </p>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {latestDraft ? (
                         <Link
                           href={`/resume-preview/${latestDraft.id}`}
-                          className={`mt-2 ${secondaryButtonClassName}`}
+                          className={`${primaryButtonClassName} min-h-9 px-4 py-2 text-sm`}
                         >
-                          Open draft details
+                          Open package
                         </Link>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-600">No linked draft yet.</p>
-                    )}
-                    {latestCoverLetter ? (
-                      <Link
-                        href={`/cover-letter-preview/${latestCoverLetter.id}`}
-                        className={`mt-2 ${secondaryButtonClassName}`}
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateCardState(application.id, { expanded: !state.expanded })
+                        }
+                        className={secondaryButtonClassName}
+                        aria-expanded={state.expanded}
                       >
-                        Open formal cover letter
-                      </Link>
-                    ) : null}
+                        {state.expanded ? "Hide details" : "Details"}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-                  <label htmlFor={`application-notes-${application.id}`} className={labelClassName}>
-                    Notes
-                  </label>
-                  <textarea
-                    id={`application-notes-${application.id}`}
-                    value={state.notesDraft}
-                    onChange={(event) =>
-                      updateCardState(application.id, { notesDraft: event.target.value })
-                    }
-                    rows={3}
-                    className={formFieldClassName}
-                    placeholder="Interview prep, recruiter contact, follow-up reminders…"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleSaveNotes(application)}
-                    disabled={state.isSavingNotes}
-                    className={`mt-2 w-full sm:w-auto ${secondaryButtonClassName}`}
-                  >
-                    {state.isSavingNotes ? "Saving notes…" : "Save notes"}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  {state.expanded ? (
+                    <div className="space-y-4 border-t border-slate-200 bg-slate-50/60 px-4 py-4">
+                      {jobUrl ? (
+                        <p className="text-xs text-slate-600">
+                          <a
+                            href={jobUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-blue-700 underline"
+                          >
+                            Job posting
+                          </a>
+                        </p>
+                      ) : null}
+
+                      {application.jobDescriptionId ? (
+                        <p>
+                          <Link
+                            href={`/generate?jobId=${application.jobDescriptionId}`}
+                            className="text-xs font-medium text-blue-700 underline"
+                          >
+                            Edit company research on Generate page
+                          </Link>
+                        </p>
+                      ) : null}
+
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div>
+                          <label
+                            htmlFor={`application-status-${application.id}`}
+                            className={labelClassName}
+                          >
+                            Status
+                          </label>
+                          <select
+                            id={`application-status-${application.id}`}
+                            value={application.status}
+                            disabled={state.isSavingStatus}
+                            onChange={(event) =>
+                              void handleStatusChange(
+                                application,
+                                event.target.value as ApplicationRecordStatus,
+                              )
+                            }
+                            className={formFieldClassName}
+                          >
+                            {APPLICATION_RECORD_STATUSES.map((status) => (
+                              <option key={status} value={status}>
+                                {formatApplicationStatusLabel(status)}
+                              </option>
+                            ))}
+                          </select>
+                          {state.isSavingStatus ? (
+                            <p className="mt-1 text-xs text-slate-500">Saving…</p>
+                          ) : null}
+                        </div>
+
+                        <div>
+                          <p className={labelClassName}>Latest artifacts</p>
+                          {latestDraft ? (
+                            <div className="rounded-md border border-slate-200 bg-white px-3 py-2">
+                              <p className="text-sm text-slate-800">
+                                {formatDraftStatusLabel(latestDraft.status)}
+                                {latestDraft.modelName ? ` · ${latestDraft.modelName}` : ""}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Updated {new Date(latestDraft.updatedAt).toLocaleString()}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <Link
+                                  href={`/resume-preview/${latestDraft.id}`}
+                                  className={secondaryButtonClassName}
+                                >
+                                  Open draft
+                                </Link>
+                                {latestCoverLetter ? (
+                                  <Link
+                                    href={`/cover-letter-preview/${latestCoverLetter.id}`}
+                                    className={secondaryButtonClassName}
+                                  >
+                                    Edit cover letter
+                                  </Link>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-600">No linked draft yet.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-white p-3">
+                        <label
+                          htmlFor={`application-notes-${application.id}`}
+                          className={labelClassName}
+                        >
+                          Notes
+                        </label>
+                        <textarea
+                          id={`application-notes-${application.id}`}
+                          value={state.notesDraft}
+                          onChange={(event) =>
+                            updateCardState(application.id, { notesDraft: event.target.value })
+                          }
+                          rows={3}
+                          className={formFieldClassName}
+                          placeholder="Interview prep, recruiter contact, follow-up reminders…"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveNotes(application)}
+                          disabled={state.isSavingNotes}
+                          className={`mt-2 w-full sm:w-auto ${secondaryButtonClassName}`}
+                        >
+                          {state.isSavingNotes ? "Saving notes…" : "Save notes"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </SetupCard>
   );

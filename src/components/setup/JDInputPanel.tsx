@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   EmptyState,
@@ -73,6 +73,8 @@ const DEFAULT_MANAGE_TITLE = "Manage Saved Jobs";
 const DEFAULT_MANAGE_DESCRIPTION =
   "View, edit, or delete jobs you saved while tailoring resumes. Paste new jobs on the Generate page.";
 
+const SAVED_JOBS_DEFAULT_LIMIT = 10;
+
 export function JDInputPanel({
   jobDescriptions,
   onSave,
@@ -99,6 +101,7 @@ export function JDInputPanel({
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showAllSavedJobs, setShowAllSavedJobs] = useState(false);
   const companyTouchedRef = useRef(false);
   const roleTouchedRef = useRef(false);
 
@@ -129,6 +132,23 @@ export function JDInputPanel({
     (showIntakeForm ? DEFAULT_INTAKE_DESCRIPTION : DEFAULT_MANAGE_DESCRIPTION);
   const resolvedListTitle = listTitle ?? `Saved Jobs (${jobDescriptions.length})`;
   const showForm = showIntakeForm || editingId !== null;
+
+  const sortedSavedJobs = useMemo(
+    () =>
+      [...jobDescriptions].sort(
+        (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      ),
+    [jobDescriptions],
+  );
+  const hasMoreSavedJobs = sortedSavedJobs.length > SAVED_JOBS_DEFAULT_LIMIT;
+  const visibleSavedJobs =
+    showAllSavedJobs || !hasMoreSavedJobs
+      ? sortedSavedJobs
+      : sortedSavedJobs.slice(0, SAVED_JOBS_DEFAULT_LIMIT);
+  const hiddenSavedJobCount = Math.max(
+    0,
+    sortedSavedJobs.length - SAVED_JOBS_DEFAULT_LIMIT,
+  );
 
   function updateField<K extends keyof JobDescriptionInput>(
     field: K,
@@ -285,7 +305,7 @@ export function JDInputPanel({
         </div>
       ) : (
         <ul className="mt-3 space-y-3">
-          {jobDescriptions.map((jd) => (
+          {visibleSavedJobs.map((jd) => (
             <SavedJobCard
               key={jd.id}
               job={jd}
@@ -297,6 +317,17 @@ export function JDInputPanel({
           ))}
         </ul>
       )}
+      {hasMoreSavedJobs ? (
+        <button
+          type="button"
+          onClick={() => setShowAllSavedJobs((current) => !current)}
+          className="mt-3 text-sm font-medium text-cyan-800 underline underline-offset-4 hover:text-cyan-950"
+        >
+          {showAllSavedJobs
+            ? "Show fewer saved jobs"
+            : `Show ${hiddenSavedJobCount} more saved job${hiddenSavedJobCount === 1 ? "" : "s"}`}
+        </button>
+      ) : null}
     </>
   );
 
@@ -342,6 +373,20 @@ export function JDInputPanel({
                 disabled={disabled}
                 className={formFieldClassName}
               />
+              <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  disabled
+                  aria-describedby="recruitment-firm-hint"
+                  className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+                />
+                <span className="text-sm text-slate-600">
+                  Recruitment firm / confidential client posting
+                  <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
+                    Coming soon — does not affect generation in this release.
+                  </span>
+                </span>
+              </label>
             </div>
             <div>
               <label htmlFor="jd-role" className={labelClassName}>

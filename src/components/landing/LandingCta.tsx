@@ -9,7 +9,7 @@ import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { loadResumeInventoryFromCloud } from "@/lib/supabase/resume-inventories";
 import { primaryButtonClassName } from "@/components/setup/ui";
 
-export function LandingCta() {
+export function LandingCta({ variant = "default" }: { variant?: "default" | "hero" }) {
   const [href, setHref] = useState<"/setup" | "/generate">("/setup");
 
   useEffect(() => {
@@ -53,9 +53,14 @@ export function LandingCta() {
     };
   }, []);
 
+  const buttonClass =
+    variant === "hero"
+      ? `${primaryButtonClassName} min-h-12 px-8 py-3 text-base font-semibold shadow-lg shadow-cyan-950/30 ring-2 ring-white/20 hover:bg-slate-800`
+      : primaryButtonClassName;
+
   return (
-    <div className="mt-8">
-      <Link href={href} className={`inline-flex ${primaryButtonClassName}`}>
+    <div className={variant === "hero" ? "" : "mt-8"}>
+      <Link href={href} className={`inline-flex ${buttonClass}`}>
         Customize your resume now
       </Link>
     </div>

@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.11E**
+**v0.9.11F**
 
 ## Completed capabilities
 
@@ -28,8 +28,19 @@
 | UI/UX redesign foundation | v0.9.11C |
 | Action placement and workflow surfaces | v0.9.11D |
 | Live Package/Cover Letter UX fixes | v0.9.11E |
+| Visual + flow correction (landing, nav, Generate, Applications) | v0.9.11F |
 
 ## Milestone log (recent)
+
+### v0.9.11F - Visual + Flow Correction
+
+- Richer startup-style landing hero with centered tags/CTA and product-document visual treatment.
+- Premium shell nav: Generate is early and styled as primary CTA; improved typography and mobile scroll nav.
+- Generate composer: centered large CTA, quieter base-resume row, saved jobs limited to 10 with show more/less, recruitment-firm checkbox UI (disabled/coming soon).
+- Dynamic generation progress panel with stage hints and animated treatment.
+- Uploads: inventory summary row layout; single-column uploaded resume list.
+- Applications: rollup summary stats; compact collapsed cards with expandable details.
+- No Supabase schema, generation, export/approval, or model ID changes. Inventory duplicate/bullet cleanup remains parked.
 
 ### v0.9.11E - Live Package/Cover Letter UX Fixes
 

@@ -1,13 +1,15 @@
 export type AppNavItem = {
   href: string;
   label: string;
+  /** Primary product action — styled as CTA in the shell nav. */
+  primary?: boolean;
 };
 
-/** Main navigation order: Uploads > Inventory > Generate > Applications > Profile */
+/** Main navigation order: Uploads > Generate > Inventory > Applications > Profile */
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: "/setup", label: "Uploads" },
+  { href: "/generate", label: "Generate", primary: true },
   { href: "/inventory", label: "Inventory" },
-  { href: "/generate", label: "Generate" },
   { href: "/records", label: "Applications" },
   { href: "/profile", label: "Profile" },
 ];

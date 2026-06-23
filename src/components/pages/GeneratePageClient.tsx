@@ -60,7 +60,7 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
         eyebrow="Composer"
         milestone={pageMilestone("Generate")}
         title="Generate"
-        description="Paste the job description, choose the base resume, and generate the application package from one focused workspace."
+        description="Paste the job description, choose a base resume, and generate your tailored application package from one focused composer."
       />
 
       <SetupAlerts

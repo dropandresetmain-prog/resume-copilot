@@ -110,6 +110,12 @@
 - **Resume–Job Fit** uses `preview-fit-heuristic-v1` — provisional, not export gate.
 - **Layout Fit (One Page)** browser estimate is separate from server validation.
 
+## Inventory workflow (Investigate Now — v0.9.11F)
+
+- **Duplicate cleanup, bullet variant management, force-exclude, and internship ranking** remain messy/confusing in the Inventory UI — intentionally **not** addressed in v0.9.11F.
+- Enrichment/duplicate-review wording and actions need a dedicated source-of-truth milestone before further visual polish.
+- **Recruitment firm / confidential client posting** checkbox exists on Generate (disabled) but does **not** affect generation yet — wire-up requires schema/generation policy decisions.
+
 ## Documentation
 
 - **v0.9.8C** doc audit — README/roadmap were stale through v0.9.7; synced in this pass.

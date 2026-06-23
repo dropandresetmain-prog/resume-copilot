@@ -46,8 +46,9 @@ data/uploads/
 generated/
 dist/
 
-# vercel
-.vercel
+# local manual QA artifacts (screenshots, notes — not for CI)
+/local-tests/
+
 
 # typescript
 *.tsbuildinfo

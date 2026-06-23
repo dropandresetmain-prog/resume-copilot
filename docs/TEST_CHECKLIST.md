@@ -1,6 +1,20 @@
-# Test Checklist — v0.9.8C (full regression)
+# Test Checklist — v0.9.11F
 
 Run `npm run test`, `npm run lint`, `npm run build` before manual QA.
+
+---
+
+## v0.9.11F Visual + Flow QA
+
+- [ ] Desktop screenshot QA: Landing, Generate, Uploads, Applications
+- [ ] Mobile screenshot QA: Landing, Generate, Uploads, Applications
+- [ ] Landing: centered hero, tags, CTA, product-document visual — not admin-dashboard empty
+- [ ] Nav: Generate is prominent/early; no tiny cramped top-right buttons; mobile nav scrolls without awkward wrap
+- [ ] Generate: large centered CTA; base resume in quiet supporting row; saved jobs collapsed and limited (show more)
+- [ ] Generate: recruitment-firm checkbox visible but disabled with coming-soon copy
+- [ ] Uploads: inventory summary labels do not break/wrap badly; resume list is single-column
+- [ ] Applications: rollup stats visible; cards compact by default; details expand for notes/status
+- [ ] No horizontal overflow on mobile action bars
 
 ---
 

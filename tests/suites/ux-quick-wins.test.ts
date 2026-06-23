@@ -49,6 +49,18 @@ function main() {
     join(process.cwd(), "src/components/setup/DraftHistoryPanel.tsx"),
     "utf8",
   );
+  const landingHero = readFileSync(
+    join(process.cwd(), "src/components/landing/LandingHero.tsx"),
+    "utf8",
+  );
+  const jdPanel = readFileSync(
+    join(process.cwd(), "src/components/setup/JDInputPanel.tsx"),
+    "utf8",
+  );
+  const generationProgress = readFileSync(
+    join(process.cwd(), "src/components/setup/GenerationProgressPanel.tsx"),
+    "utf8",
+  );
   const recordsPanel = readFileSync(
     join(process.cwd(), "src/components/setup/ApplicationRecordsPanel.tsx"),
     "utf8",
@@ -59,17 +71,18 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11E"')],
-    ["package json version", packageJson.includes('"version": "0.9.11E"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.11F"')],
+    ["package json version", packageJson.includes('"version": "0.9.11F"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
       "nav labels ordered for IA cleanup",
-      nav.indexOf('label: "Uploads"') < nav.indexOf('label: "Inventory"') &&
-        nav.indexOf('label: "Inventory"') < nav.indexOf('label: "Generate"') &&
-        nav.indexOf('label: "Generate"') < nav.indexOf('label: "Applications"') &&
+      nav.indexOf('label: "Uploads"') < nav.indexOf('label: "Generate"') &&
+        nav.indexOf('label: "Generate"') < nav.indexOf('label: "Inventory"') &&
+        nav.indexOf('label: "Inventory"') < nav.indexOf('label: "Applications"') &&
         nav.indexOf('label: "Applications"') < nav.indexOf('label: "Profile"'),
     ],
+    ["generate nav is primary action", nav.includes('primary: true') && nav.includes('label: "Generate"')],
     ["nav route hrefs unchanged", nav.includes('href: "/setup"') && nav.includes('href: "/records"')],
     ["records renamed applications", records.includes('title="Applications"') && records.includes('pageMilestone("Applications")')],
     ["uploads page renamed", uploads.includes('title="Uploads"') && uploads.includes('pageMilestone("Uploads")')],
@@ -117,12 +130,46 @@ function main() {
     ["cover letter pdf hint clarifies revisions are auto-saved", coverLetterPreview.includes("Quick revisions (below) are saved")],
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
+    ["uploads single column resume list", !cloudFileStoragePanel.includes("lg:grid-cols-2")],
+    ["uploads summary uses row layout", summaryCards.includes("flex flex-col gap-2")],
     [
-      "v0.9.11E parked follow-ups documented",
-      handoff.includes("Recruiter/confidential-client mode") &&
-        handoff.includes("Inventory CRUD") &&
-        roadmap.includes("recruiter/confidential-client mode") &&
-        roadmap.includes("Inventory CRUD"),
+      "landing hero centered product story",
+      landingHero.includes("Customize your resume for every role") &&
+        landingHero.includes("LandingCta") &&
+        landingHero.includes("Application package preview"),
+    ],
+    [
+      "generate centered primary cta",
+      generateSection.includes("Generate Resume & Cover Letter") &&
+        generateSection.includes("max-w-md") &&
+        !generateSection.includes("Primary action"),
+    ],
+    [
+      "recruitment firm checkbox ui only",
+      jdPanel.includes("Recruitment firm / confidential client posting") &&
+        jdPanel.includes("Coming soon") &&
+        jdPanel.includes("disabled"),
+    ],
+    [
+      "saved jobs default limit with show more",
+      jdPanel.includes("SAVED_JOBS_DEFAULT_LIMIT = 10") && jdPanel.includes("Show fewer saved jobs"),
+    ],
+    [
+      "applications compact rollup and details",
+      recordsPanel.includes("By status") &&
+        recordsPanel.includes("Hide details") &&
+        recordsPanel.includes("applicationStatusBadgeClassName"),
+    ],
+    [
+      "generation progress dynamic treatment",
+      generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
+    ],
+    [
+      "v0.9.11F parked follow-ups documented",
+      handoff.includes("v0.9.11F") &&
+        handoff.includes("Recruiter/confidential-client mode") &&
+        handoff.includes("Inventory") &&
+        roadmap.includes("v0.9.11F"),
     ],
   ];
 

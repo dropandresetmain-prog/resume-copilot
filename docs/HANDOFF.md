@@ -2,7 +2,15 @@
 
 ## Current version
 
-**v0.9.11E** (code)
+**v0.9.11F** (code)
+
+## v0.9.11F implementation note
+
+Visual + Flow Correction addresses hands-on user feedback that the app felt too much like internal admin software. Delivers a startup-style landing hero, premium product-led shell nav (Generate as early primary CTA), composer-first Generate layout with centered CTA and quieter base-resume row, dynamic generation progress, upload summary/list fixes, and compact expandable Applications cards with rollup stats.
+
+Recruitment firm / confidential client posting checkbox is UI-only (disabled, coming soon) — no generation behavior change. Inventory duplicate/bullet variant cleanup remains a separate milestone.
+
+Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval behavior changes, no model ID changes, and no route changes.
 
 ## v0.9.11E implementation note
 
@@ -24,16 +32,15 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## Latest milestone (code)
 
-**v0.9.11E - Live Package/Cover Letter UX Fixes**
+**v0.9.11F - Visual + Flow Correction**
 
-Targeted defect-fix pass on the Package and Cover Letter surfaces. Closes four audit-identified issues: mojibake text, missing cover letter action path in Review Center, dead Research rail anchor, and misleading save/edit model copy. No route, schema, or generation behavior changes.
-
-Remaining workflow features are parked: recruiter/confidential-client mode, force-exclude semantics, internship ranking policy, and Inventory CRUD.
+Product-flow and visual correction pass from user feedback: richer landing page, premium nav, composer-first Generate, dynamic progress, upload layout fixes, compact Applications cards. Recruitment/confidential checkbox UI only. Inventory cleanup remains parked.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11F | Visual + flow correction — landing, nav, Generate, progress, Uploads, Applications |
 | v0.9.11E | Live Package/Cover Letter UX fixes — mojibake, review cover-letter path, rail anchors, save model |
 | v0.9.11D | Action placement and workflow surfaces - Generate, Package, Cover Letter, Applications |
 | v0.9.11C | UI/UX redesign foundation - shell, page structure, package rail, A4 preview polish |

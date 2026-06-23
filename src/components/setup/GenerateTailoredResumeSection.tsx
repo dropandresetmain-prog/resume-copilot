@@ -9,7 +9,6 @@ import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
 import {
-  actionBarClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
@@ -511,60 +510,52 @@ export function GenerateTailoredResumeSection({
         </div>
       ) : (
         <>
-          <div className={`mt-4 ${actionBarClassName}`}>
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,auto)] lg:items-end">
-              <div className="min-w-0">
-                <label htmlFor="base-resume-select" className={labelClassName}>
-                  Base resume (formatting template)
-                </label>
-                <select
-                  id="base-resume-select"
-                  value={effectiveBaseResumeId}
-                  onChange={(event) => setSelectedBaseResumeId(event.target.value)}
-                  disabled={disabled || inventory.resumes.length === 0 || isGenerating}
-                  className={formFieldClassName}
-                >
-                  {inventory.resumes.length === 0 ? (
-                    <option value="">No uploaded resumes</option>
-                  ) : (
-                    inventory.resumes.map((resume) => (
-                      <option key={resume.id} value={resume.id}>
-                        {resume.filename}
-                      </option>
-                    ))
-                  )}
-                </select>
-                <p className="mt-1 text-xs text-slate-500">
-                  Uses layout and bullet style only — tailored content comes from your career
-                  inventory, not this file&apos;s text.
-                  {storedPreference && storedPreference === effectiveBaseResumeId
-                    ? " Last used base resume selected."
-                    : null}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-3">
-                <p className="text-xs font-semibold uppercase text-cyan-800">
-                  Primary action
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void handleGenerate()}
-                  disabled={!canGenerate || isGenerating}
-                  className={`${primaryButtonClassName} mt-2 w-full`}
-                >
-                  {generateMode === "resume_and_cover_letter"
-                    ? "Generate Resume & Cover Letter"
-                    : "Generate Tailored Resume"}
-                </button>
-                <p className="mt-2 text-xs text-slate-500">
-                  Saves the job, prepares research when enabled, then opens the package.
-                </p>
-              </div>
-            </div>
+          <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
+            <label htmlFor="base-resume-select" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Base resume (formatting template)
+            </label>
+            <select
+              id="base-resume-select"
+              value={effectiveBaseResumeId}
+              onChange={(event) => setSelectedBaseResumeId(event.target.value)}
+              disabled={disabled || inventory.resumes.length === 0 || isGenerating}
+              className={`${formFieldClassName} mt-1.5 max-w-xl`}
+            >
+              {inventory.resumes.length === 0 ? (
+                <option value="">No uploaded resumes</option>
+              ) : (
+                inventory.resumes.map((resume) => (
+                  <option key={resume.id} value={resume.id}>
+                    {resume.filename}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="mt-1.5 text-xs leading-5 text-slate-500">
+              Layout and bullet style only — tailored content comes from your career inventory.
+              {storedPreference && storedPreference === effectiveBaseResumeId
+                ? " Last used base resume selected."
+                : null}
+            </p>
           </div>
 
-          <div className={`mt-4 ${secondaryActionGroupClassName}`}>
+          <div className="mt-6 flex flex-col items-center text-center">
+            <button
+              type="button"
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate || isGenerating}
+              className={`${primaryButtonClassName} min-h-12 w-full max-w-md px-8 py-3.5 text-base font-semibold shadow-md sm:w-auto`}
+            >
+              {generateMode === "resume_and_cover_letter"
+                ? "Generate Resume & Cover Letter"
+                : "Generate Tailored Resume"}
+            </button>
+            <p className="mt-3 max-w-md text-sm text-slate-500">
+              Saves the job, prepares research when enabled, then opens your application package.
+            </p>
+          </div>
+
+          <div className={`mt-5 ${secondaryActionGroupClassName}`}>
             <button
               type="button"
               className={secondaryButtonClassName}

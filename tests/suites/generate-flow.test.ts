@@ -146,8 +146,11 @@ async function main() {
     ["generate page removed coming later", !generatePage.includes("Coming later")],
     ["generate page uses single jd panel", generatePage.includes("generateFlow={{") && !generatePage.includes("ResumeDraftPanel")],
     ["generate cta inside jd panel", jdPanel.includes("GenerateTailoredResumeSection")],
-    ["primary CTA copy", generateSection.includes("Generate Tailored Resume")],
-    ["generate primary action separated", generateSection.includes("Primary action") && generateSection.includes("actionBarClassName")],
+    ["primary CTA copy", generateSection.includes("Generate Resume & Cover Letter")],
+    [
+      "generate centered cta layout",
+      generateSection.includes("max-w-md") && generateSection.includes("items-center text-center"),
+    ],
     ["auto save helper used", generateSection.includes("ensureJobDescriptionForGeneration")],
     ["reference resume passed to payload", generateSection.includes("referenceResumeId: effectiveBaseResumeId")],
     ["progress panel rendered while generating", generateSection.includes("GenerationProgressPanel")],

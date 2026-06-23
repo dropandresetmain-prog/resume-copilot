@@ -24,6 +24,25 @@ export function formatApplicationLabel(
   return role ?? company ?? "Application";
 }
 
+export function applicationStatusBadgeClassName(status: string): string {
+  switch (status) {
+    case "drafting":
+      return "border-slate-200 bg-slate-100 text-slate-700";
+    case "resume_generated":
+      return "border-cyan-200 bg-cyan-50 text-cyan-800";
+    case "ready_to_apply":
+      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    case "applied":
+      return "border-blue-200 bg-blue-50 text-blue-800";
+    case "rejected":
+      return "border-red-200 bg-red-50 text-red-800";
+    case "archived":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+}
+
 export function formatApplicationStatusLabel(status: string): string {
   switch (status) {
     case "drafting":
