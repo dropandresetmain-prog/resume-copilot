@@ -74,6 +74,28 @@ function splitSkillValues(value: string): string[] {
     .filter(Boolean);
 }
 
+const BULLET_PREFIX_RE = /^[\s]*(?:[•●▪‣◦\-–—*►▸]|\d+[.)])\s*/;
+
+function stripBulletPrefix(line: string): string {
+  return line.replace(BULLET_PREFIX_RE, "").trim();
+}
+
+function hasBulletPrefix(line: string): boolean {
+  return BULLET_PREFIX_RE.test(line.trim());
+}
+
+/**
+ * Parse a labeled skill line like "Programming: Python, SQL" or
+ * "Soft skills: Communication, Teamwork" where the label is not one of the
+ * three canonical labels (languages/technical/interests).
+ * Returns the values if it looks like a labeled list, otherwise null.
+ */
+function parseLabeledSkillLine(line: string): string[] | null {
+  const match = line.match(/^[A-Z][A-Za-z\s/&'-]{1,40}:\s*(.+)$/);
+  if (!match) return null;
+  return splitSkillValues(match[1]);
+}
+
 export function parseSkillsSection(
   lines: string[],
   sourceResumeId: string,
@@ -91,34 +113,71 @@ export function parseSkillsSection(
     parseWarnings: [],
   };
 
+  let hasLabeledCategories = false;
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
+    // Canonical labeled categories
     const languageMatch = trimmed.match(/^languages?\s*:\s*(.+)$/i);
     if (languageMatch) {
       section.languages.push(...splitSkillValues(languageMatch[1]));
+      hasLabeledCategories = true;
       continue;
     }
 
     const technicalMatch = trimmed.match(/^technical\s+skills?\s*:\s*(.+)$/i);
     if (technicalMatch) {
       section.technicalSkills.push(...splitSkillValues(technicalMatch[1]));
+      hasLabeledCategories = true;
       continue;
     }
 
     const interestsMatch = trimmed.match(/^interests?\s*:\s*(.+)$/i);
     if (interestsMatch) {
       section.interests.push(...splitSkillValues(interestsMatch[1]));
+      hasLabeledCategories = true;
       continue;
     }
 
+    // Other labeled categories (e.g. "Programming: Python, SQL") → technicalSkills
+    const otherLabeled = parseLabeledSkillLine(trimmed);
+    if (otherLabeled && otherLabeled.length > 0) {
+      section.technicalSkills.push(...otherLabeled);
+      hasLabeledCategories = true;
+      continue;
+    }
+
+    // Bullet list items — strip prefix and add as individual other skills
+    if (hasBulletPrefix(trimmed)) {
+      const value = stripBulletPrefix(trimmed);
+      if (value) {
+        // If it contains commas, split further
+        splitSkillValues(value).forEach((item) => section.other.push(item));
+      }
+      continue;
+    }
+
+    // Plain comma/semicolon separated line (e.g. "Python, SQL, React, Git")
+    // Split and add each as an individual other item
+    const commaParts = splitSkillValues(trimmed);
+    if (commaParts.length >= 2) {
+      section.other.push(...commaParts);
+      continue;
+    }
+
+    // Single item line — add as-is
     section.other.push(trimmed);
   }
 
-  if (rawText && section.languages.length === 0 && section.technicalSkills.length === 0) {
+  if (rawText && !hasLabeledCategories && section.other.length === 0) {
     section.parseWarnings.push(
-      "Skills section preserved as raw text; labeled categories were not detected.",
+      "Skills section content could not be parsed; preserved as raw text.",
+    );
+  } else if (rawText && !hasLabeledCategories) {
+    section.parseWarnings.push(
+      "Skills section had no labeled categories (Languages/Technical Skills/Interests); items placed in general bucket.",
     );
   }
 

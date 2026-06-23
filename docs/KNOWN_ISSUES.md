@@ -134,11 +134,23 @@
 - **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider).
 - **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside collapsed Job details — does not affect generation.
 
+## DOCX import (v0.9.12B)
+
+- **Inline experience profile now supported** — "Role at Company — Date", "Role | Company | Date", comma-separated "Role, Company, Date", and date-first blocks parse into structured work experience. Best-scoring profile wins.
+- **Two-line-column profile preserved** — original reference format still parses correctly and scores highly on its native format.
+- **Comma-separated role/company is ambiguous** — parser assumes first token is role, second is company; no disambiguation heuristic available without ML. Medium confidence.
+- **Date-first format** requires role/company on the immediately following non-empty line; multi-line role descriptions spread across further lines may not associate correctly.
+- **Plain comma skills split into `other` bucket** — no automatic classification into languages/technical/interests without labels. Warning issued.
+- **Unlabeled section headers** (title-case, not ALL_CAPS) are NOT automatically caught as unparsed if not in the known alias list. Known common headers are now covered; niche headers remain silently absorbed as section content.
+- **Education format** unchanged from v0.9.12A — still requires institution + date structure for structured parse; gracefully falls back to raw text.
+- **Profile/contact parsing** is fully generic (no hardcoded name patterns).
+- **PDF import**, **free-text input**, and **AI-assisted parsing** remain out of scope.
+- **Remaining risk**: unusual format combinations (e.g. "Company, Role — Date" vs "Role, Company — Date") may misclassify role/company. Low risk for common formats; Investigate Now for production usage across diverse resume inputs.
+
 ## AI / export pipeline identity (v0.9.12A)
 
 - **Founder identity removed from production pipeline** — prompts, validation, mocks, filenames, and test fixtures no longer assume "Min Htet" as the candidate.
-- **Parser generalization remains pending** — the DOCX parser, profile-contact extractor, and inventory pipeline are not yet candidate-agnostic at a structural level. No schema changes made in this milestone.
-- **Reference format generalization pending** — bullet format conventions (style, date patterns, two-column layout) were developed with the founder's resume as reference. A separate milestone should validate these against diverse resume inputs.
+- **Reference format generalization** — bullet format conventions (style, date patterns, two-column layout) were developed with the founder's resume as reference. v0.9.12B extended the parser to common non-founder formats; further improvement may be needed based on real-world testing.
 - **candidateName** is derived from `header.fullName` on the resume draft — if AI omits or misparses the name, prompts fall back to "the candidate" / "[Candidate Name]" closing.
 - **Cover letter validation signature check** is now opt-in (only fires when `candidateName` is provided to the validator). Validation callers that do not pass `candidateName` will not warn on missing signatures.
 

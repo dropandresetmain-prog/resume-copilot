@@ -11,6 +11,14 @@ const checks: [string, boolean][] = [
     matchSectionHeader("PROFESSIONAL EXPERIENCE")?.key === "work_experience",
   ],
   [
+    "employment history alias",
+    matchSectionHeader("EMPLOYMENT HISTORY")?.key === "work_experience",
+  ],
+  [
+    "career history alias",
+    matchSectionHeader("CAREER HISTORY")?.key === "work_experience",
+  ],
+  [
     "education alias",
     matchSectionHeader("ACADEMIC BACKGROUND")?.key === "education",
   ],
@@ -19,12 +27,24 @@ const checks: [string, boolean][] = [
     matchSectionHeader("LEADERSHIP")?.key === "additional_experience",
   ],
   [
+    "certifications maps to additional experience",
+    matchSectionHeader("CERTIFICATIONS")?.key === "additional_experience",
+  ],
+  [
     "skills alias",
     matchSectionHeader("TECHNICAL SKILLS")?.key === "skills",
   ],
   [
+    "key skills alias",
+    matchSectionHeader("KEY SKILLS")?.key === "skills",
+  ],
+  [
+    "core competencies alias",
+    matchSectionHeader("CORE COMPETENCIES")?.key === "skills",
+  ],
+  [
     "unknown section preserved",
-    matchSectionHeader("CERTIFICATIONS")?.key === "unparsed",
+    matchSectionHeader("REFERENCES")?.key === "unparsed",
   ],
   [
     "section colon header",
@@ -32,7 +52,7 @@ const checks: [string, boolean][] = [
   ],
   [
     "person name is not section header",
-    matchSectionHeader("HSET MIN HTET") === null,
+    matchSectionHeader("ALEX TAN") === null,
   ],
 ];
 
@@ -48,8 +68,8 @@ EDUCATION
 National University of Singapore                                                       Singapore
 Bachelor of Business Administration                                                     Aug 2018 – May 2022
 
-CERTIFICATIONS
-AWS Solutions Architect – Professional
+REFERENCES
+Available on request.
 `;
 
 const summaryHeaderResume = `
@@ -78,16 +98,16 @@ checks.push(
   ],
   ["known sections detected", detected.sections.length >= 3],
   [
-    "certifications unparsed section",
+    "references unparsed section",
     detected.sections.some(
-      (section) => section.key === "unparsed" && section.title === "CERTIFICATIONS",
+      (section) => section.key === "unparsed" && section.title === "REFERENCES",
     ),
   ],
   ["parsed work experience", parsed.workExperiences.length === 1],
   ["parsed education", parsed.education.length >= 1],
   [
-    "certifications in unparsed output",
-    parsed.unparsedSections.some((section) => section.title === "CERTIFICATIONS"),
+    "references in unparsed output",
+    parsed.unparsedSections.some((section) => section.title === "REFERENCES"),
   ],
   ["experience profile confidence", experience.confidence !== "low"],
   [

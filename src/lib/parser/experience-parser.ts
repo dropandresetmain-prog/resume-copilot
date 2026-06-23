@@ -6,6 +6,10 @@
  */
 
 import {
+  parseInlineExperience,
+  INLINE_EXPERIENCE_PROFILE_ID,
+} from "@/lib/parser/profiles/inline-experience";
+import {
   parseTwoLineColumnExperience,
   TWO_LINE_COLUMN_PROFILE_ID,
 } from "@/lib/parser/profiles/two-line-column";
@@ -21,6 +25,11 @@ const EXPERIENCE_PROFILES: ExperienceParseProfile<ParsedExperienceBlock>[] = [
     id: TWO_LINE_COLUMN_PROFILE_ID,
     name: "Two-line column (company + role/date)",
     parse: parseTwoLineColumnExperience,
+  },
+  {
+    id: INLINE_EXPERIENCE_PROFILE_ID,
+    name: "Inline (role/company/date on single line)",
+    parse: parseInlineExperience,
   },
 ];
 

@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12A** (code)
+**v0.9.12B** (code)
 
 ## v0.9.11G implementation note
 
@@ -48,6 +48,12 @@ Application Package Guided Review + Generate Composer Density: addresses post-ge
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
 
+## v0.9.12B implementation note
+
+General DOCX Resume Import Baseline: broadens DOCX parsing to handle common non-founder resume layouts. Key changes: (1) section detection — added "Employment History", "Professional History" aliases for work experience; "Certifications", "Achievements", "Awards", "Honors", "Publications", "Activities" mapped to additional_experience; "Key Skills", "Core Competencies", "Competencies", "Skill Set", "Areas of Expertise", "Technologies", "Tools & Technologies" mapped to skills; "Qualifications", "Academic History", "Education & Training" mapped to education; (2) new inline experience parser profile — handles "Role at Company — Date", "Role | Company | Date", and comma-separated "Role, Company, Date" single-line formats; also handles date-first blocks ("Date\nRole, Company"); registered alongside two-line-column profile, score-wins selection picks best result; (3) skills section — plain comma/semicolon-separated lines now split into individual `other` items; bullet-list skills stripped of prefix and split; custom labeled lines (e.g. "Programming: Python, SQL") parsed into technicalSkills; (4) profile/contact parser confirmed generic — no hardcoded name patterns; (5) all new behavior tested in existing suites (parser.test.ts and section-detection.test.ts); original two-line-column reference tests unchanged.
+
+Runtime constraints held: no Supabase schema changes, no generation/export behavior changes, no PDF import, no AI/LLM parsing, no new test scripts.
+
 ## v0.9.12A implementation note
 
 Remove Founder Identity From AI/Export Pipeline: critical generalization milestone removing founder-specific hardcoding from production AI behavior. Key changes: (1) cover letter prompt now uses dynamic `candidateName` from resume draft header (falls back to "the candidate" / "[Candidate Name]" closing — never "Min Htet"); (2) rule 7 generalized — "Do NOT describe the candidate as a software engineer unless evidence clearly supports it"; (3) cover letter validation no longer requires "Min Htet" signature — validates against `candidateName` when provided, silent otherwise; (4) revision prompt uses dynamic `candidateName` for signature preservation; (5) company context prompt updated to "a candidate" (was "Min Htet"); (6) cover letter export filename fallback changed from "Min Htet" to "Candidate"; (7) resume prompt BayCurrent/Entrepreneur First hardcoded examples replaced with generic `Company A – Role Description`; (8) SBF-specific +8 story ranking boost removed — generic signal matching only; (9) cover letter mock and revision mock updated to use `candidateName` dynamically; (10) all test fixtures updated to use "Alex Tan" / "Jordan Lee" (parser tests, PDF/DOCX export tests, story ranking tests, collation tests); (11) regression checks added for no-hardcoded-name prompt, generic filename fallback, and story ranking without founder boost.
@@ -56,7 +62,11 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12A - Remove Founder Identity From AI/Export Pipeline**
+**v0.9.12B - General DOCX Resume Import Baseline**
+
+Inline experience profile (at/pipe/comma single-line and date-first formats), broader section aliases (Employment History, Certifications, Key Skills, etc.), plain comma/bullet skills parsing.
+
+## Latest milestone summary (v0.9.12A)
 
 Dynamic candidateName in all prompts/mocks/validation, generic filename fallback (Candidate), removed SBF boost, replaced founder employer examples, updated all test fixtures to generic names.
 
@@ -64,6 +74,7 @@ Dynamic candidateName in all prompts/mocks/validation, generic filename fallback
 
 | Version | Theme |
 |---------|--------|
+| v0.9.12B | General DOCX resume import baseline — inline experience profile, broader section aliases, plain skills parsing |
 | v0.9.12A | Remove founder identity from AI/export pipeline — dynamic candidate name, generic fallbacks |
 | v0.9.11I | Package first viewport + mobile CTA/nav polish |
 | v0.9.11H | Application Package guided review + Generate composer density |

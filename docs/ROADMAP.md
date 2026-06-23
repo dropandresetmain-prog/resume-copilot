@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12A**
+**v0.9.12B**
 
 ## Completed capabilities
 
@@ -33,8 +33,17 @@
 | Application Package guided review + Generate density | v0.9.11H |
 | Package first viewport + mobile CTA/nav polish | v0.9.11I |
 | Remove founder identity from AI/export pipeline | v0.9.12A |
+| General DOCX resume import baseline | v0.9.12B |
 
 ## Milestone log (recent)
+
+### v0.9.12B - General DOCX Resume Import Baseline
+
+- Section detection: added "Employment History", "Professional History" → work_experience; "Certifications", "Achievements", "Awards", "Honors", "Publications", "Activities" → additional_experience; "Key Skills", "Core Competencies", "Competencies", "Skill Set", "Areas of Expertise", "Technologies", "Tools & Technologies" → skills; "Qualifications", "Academic History", "Education & Training" → education.
+- Inline experience profile: new parser profile (`inline-experience.ts`) handles "Role at Company — Date", "Role | Company | Date", and comma-separated "Role, Company, Date" single-line formats; also handles date-first blocks ("Date\nRole, Company"). Registered alongside two-line-column profile; best-score wins.
+- Skills parsing: plain comma/semicolon-separated lines now split into individual `other` items; bullet-list skills stripped and split; custom labeled lines (e.g. "Programming: Python, SQL") parsed into technicalSkills.
+- Profile/contact parser: confirmed generic — no hardcoded name patterns.
+- Tests: behavior-level tests added to `parser.test.ts` (inline format, date-first, plain bullets, plain comma skills, bullet skills, labeled skills) and `section-detection.test.ts` (Employment History, Career History, Certifications, Key Skills, Core Competencies aliases). Original reference tests unchanged.
 
 ### v0.9.12A - Remove Founder Identity From AI/Export Pipeline
 
