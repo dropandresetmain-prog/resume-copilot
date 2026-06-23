@@ -9,6 +9,7 @@ import type {
   CreateGeneratedCoverLetterDraftInput,
   GeneratedCoverLetterDraftRecord,
 } from "@/types/cover-letter-draft";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -43,6 +44,14 @@ function parseCoverLetterRationale(value: unknown): CoverLetterRationale | undef
     recruiterDm: typeof value.recruiterDm === "string" ? value.recruiterDm : "",
     whatsappIntro:
       typeof value.whatsappIntro === "string" ? value.whatsappIntro : "",
+    modelSelection:
+      isObject(value.modelSelection) &&
+      typeof value.modelSelection.requestedTier === "string"
+        ? {
+            requestedTier: value.modelSelection.requestedTier as ModelTier,
+            fallbackApplied: value.modelSelection.fallbackApplied === true,
+          }
+        : undefined,
   };
 }
 
@@ -203,12 +212,15 @@ export async function updateGeneratedCoverLetterDraftInCloudForUser(
   supabase: ReturnType<typeof getSupabaseClient>,
   id: string,
   userId: string,
-  input: { body: string; rationale?: CoverLetterRationale },
+  input: { body: string; rationale?: CoverLetterRationale; modelName?: string },
 ): Promise<GeneratedCoverLetterDraftRecord | null> {
   const updatePayload: Record<string, unknown> = {
     body: input.body,
     updated_at: new Date().toISOString(),
   };
+  if (input.modelName) {
+    updatePayload.model_name = input.modelName;
+  }
   if (input.rationale) {
     updatePayload.rationale = {
       ...input.rationale,

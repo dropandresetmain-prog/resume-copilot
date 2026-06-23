@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import { reviseCoverLetterWithAI } from "@/lib/ai/revise-cover-letter-provider";
 import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
@@ -34,6 +35,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
+    let coverLetterModelTier;
+    try {
+      coverLetterModelTier = parseModelTier(body.coverLetterModelTier);
+    } catch (error) {
+      if (error instanceof InvalidModelTierError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+
     const draft = await getGeneratedCoverLetterDraftForUser(supabase, body.draftId, userId);
     if (!draft) {
       return NextResponse.json({ error: "Cover letter draft not found." }, { status: 404 });
@@ -56,22 +67,34 @@ export async function POST(request: Request) {
       draft.companyName ?? job?.companyName ?? draft.companyContext?.companyName ?? "",
     );
 
-    const revision = await reviseCoverLetterWithAI({
-      currentBody: body.currentBody,
-      action: body.action,
-      customInstruction: body.customInstruction,
-      companyDisplayName,
-      roleTitle: job?.roleTitle,
-      resumeEvidenceSpine: resumeDraft ? buildResumeEvidenceSpine(resumeDraft) : undefined,
-      communicationProfile:
-        typeof profileRow?.content === "string" ? profileRow.content : undefined,
-      additionalInstructions: draft.additionalInstructions,
-    });
+    const revision = await reviseCoverLetterWithAI(
+      {
+        currentBody: body.currentBody,
+        action: body.action,
+        customInstruction: body.customInstruction,
+        companyDisplayName,
+        roleTitle: job?.roleTitle,
+        resumeEvidenceSpine: resumeDraft ? buildResumeEvidenceSpine(resumeDraft) : undefined,
+        communicationProfile:
+          typeof profileRow?.content === "string" ? profileRow.content : undefined,
+        additionalInstructions: draft.additionalInstructions,
+      },
+      process.env.AI_PROVIDER,
+      { modelTier: coverLetterModelTier },
+    );
 
     const updated = await updateGeneratedCoverLetterDraftInCloudForUser(supabase, draft.id, userId, {
       body: revision.body,
+      modelName: revision.modelName,
       rationale: draft.rationale
-        ? { ...draft.rationale, wordCount: revision.wordCount }
+        ? {
+            ...draft.rationale,
+            wordCount: revision.wordCount,
+            modelSelection: {
+              requestedTier: coverLetterModelTier,
+              fallbackApplied: revision.modelFallbackApplied,
+            },
+          }
         : undefined,
     });
 
@@ -87,6 +110,8 @@ export async function POST(request: Request) {
       isMock: revision.isMock,
       providerLabel: revision.providerLabel,
       modelName: revision.modelName,
+      requestedModelTier: coverLetterModelTier,
+      modelFallbackApplied: revision.modelFallbackApplied,
       timestamp,
     });
   } catch (error) {

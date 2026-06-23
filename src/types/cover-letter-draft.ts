@@ -1,5 +1,6 @@
 import type { CompanyContext } from "@/types/company-context";
 import type { AIProviderId } from "@/types/enrichment";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 
 export const COVER_LETTER_SCHEMA_VERSION = 1 as const;
 
@@ -16,6 +17,10 @@ export type CoverLetterRationale = {
   linkedinMessage: string;
   recruiterDm: string;
   whatsappIntro: string;
+  modelSelection?: {
+    requestedTier: ModelTier;
+    fallbackApplied?: boolean;
+  };
 };
 
 export type CoverLetterGenerationResult = {
@@ -42,6 +47,7 @@ export type CoverLetterGenerationInput = {
   companyWebsite?: string;
   additionalInstructions?: string;
   companyContext: CompanyContext;
+  coverLetterModelTier?: ModelTier;
 };
 
 export type CoverLetterGenerationResponse = CoverLetterGenerationResult & {
@@ -49,6 +55,8 @@ export type CoverLetterGenerationResponse = CoverLetterGenerationResult & {
   isMock: boolean;
   providerLabel: string;
   modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
   timestamp: string;
 };
 
@@ -127,6 +135,7 @@ export type CoverLetterRevisionRequest = {
   currentBody: string;
   action: CoverLetterRevisionAction;
   customInstruction?: string;
+  coverLetterModelTier?: ModelTier;
 };
 
 export type CoverLetterRevisionResponse = {
@@ -137,5 +146,7 @@ export type CoverLetterRevisionResponse = {
   isMock: boolean;
   providerLabel: string;
   modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
   timestamp: string;
 };

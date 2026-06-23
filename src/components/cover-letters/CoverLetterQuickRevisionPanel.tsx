@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
+import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import {
   formFieldClassName,
   labelClassName,
@@ -9,6 +11,11 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import {
+  resolveCoverLetterModelTierForDraft,
+  writeStoredCoverLetterModelTier,
+} from "@/lib/ai/model-tier-storage";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 import {
   COVER_LETTER_REVISION_ACTION_LABELS,
 } from "@/lib/cover-letter/revision-prompt";
@@ -32,13 +39,27 @@ type CoverLetterQuickRevisionPanelProps = {
   draftId: string;
   currentBody: string;
   disabled?: boolean;
-  onRevised: (body: string, warnings: string[]) => void;
+  draftModelTier?: ModelTier | null;
+  actualModel?: string | null;
+  fallbackApplied?: boolean;
+  onRevised: (
+    body: string,
+    warnings: string[],
+    modelSelection?: {
+      requestedTier: ModelTier;
+      actualModel?: string;
+      fallbackApplied?: boolean;
+    },
+  ) => void;
 };
 
 export function CoverLetterQuickRevisionPanel({
   draftId,
   currentBody,
   disabled = false,
+  draftModelTier,
+  actualModel,
+  fallbackApplied = false,
   onRevised,
 }: CoverLetterQuickRevisionPanelProps) {
   const [isRevising, setIsRevising] = useState(false);
@@ -46,6 +67,11 @@ export function CoverLetterQuickRevisionPanel({
   const [customInstruction, setCustomInstruction] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [coverLetterModelTier, setCoverLetterModelTier] = useState<ModelTier>(() =>
+    resolveCoverLetterModelTierForDraft({ draftTier: draftModelTier }),
+  );
+  const [lastModelName, setLastModelName] = useState<string | null>(actualModel ?? null);
+  const [lastFallbackApplied, setLastFallbackApplied] = useState(fallbackApplied);
 
   async function runRevision(action: CoverLetterRevisionAction, instruction?: string) {
     if (!currentBody.trim() || isRevising || disabled) {
@@ -63,8 +89,17 @@ export function CoverLetterQuickRevisionPanel({
         currentBody,
         action,
         customInstruction: instruction,
+        coverLetterModelTier,
       });
-      onRevised(response.body, response.warnings);
+      if (response.modelName) {
+        setLastModelName(response.modelName);
+      }
+      setLastFallbackApplied(response.modelFallbackApplied ?? false);
+      onRevised(response.body, response.warnings, {
+        requestedTier: coverLetterModelTier,
+        actualModel: response.modelName,
+        fallbackApplied: response.modelFallbackApplied,
+      });
       setWarnings(response.warnings);
     } catch (revisionError) {
       setError(
@@ -83,6 +118,24 @@ export function CoverLetterQuickRevisionPanel({
       title="Quick adjustments"
       description="Revise the formal letter without regenerating the resume. Changes are saved to this cover letter draft."
     >
+      <div className="mt-4 max-w-md">
+        <ModelTierSelect
+          id="cover-letter-revision-model-tier"
+          label="Cover letter model"
+          value={coverLetterModelTier}
+          disabled={disabled || isRevising}
+          onChange={(tier) => {
+            setCoverLetterModelTier(tier);
+            writeStoredCoverLetterModelTier(tier);
+          }}
+        />
+        <ModelSelectionDebug
+          requestedTier={coverLetterModelTier}
+          actualModel={lastModelName}
+          fallbackApplied={lastFallbackApplied}
+        />
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-2">
         {QUICK_REVISION_ACTIONS.map((action) => (
           <button

@@ -1,3 +1,5 @@
+import { resolveCoverLetterModelTierForDraft } from "@/lib/ai/model-tier-storage";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
 import { resolveCompanyContextForGeneration } from "@/lib/company-context/resolve-for-generation";
 import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
@@ -20,6 +22,7 @@ export type CoverLetterGenerationOptions = {
   companyWebsite?: string;
   additionalInstructions?: string;
   savedCompanyContext?: CompanyContext | null;
+  coverLetterModelTier?: ModelTier;
 };
 
 export function resolveCoverLetterCompanyNames(
@@ -59,6 +62,11 @@ export async function generateAndSaveCoverLetterDraft(
     options.savedCompanyContext,
   );
   const country = options.country?.trim() || "Singapore";
+  const coverLetterModelTier =
+    options.coverLetterModelTier ??
+    resolveCoverLetterModelTierForDraft({
+      draftTier: options.resumeDraft.inputSnapshot?.coverLetterModelTier,
+    });
   const companyContext = resolveCompanyContextForGeneration({
     savedContext: options.savedCompanyContext,
     input: {
@@ -106,6 +114,7 @@ export async function generateAndSaveCoverLetterDraft(
     companyWebsite,
     additionalInstructions: options.additionalInstructions,
     companyContext: reconciledContext,
+    coverLetterModelTier,
   });
 
   return createGeneratedCoverLetterDraftInCloud({
@@ -118,7 +127,13 @@ export async function generateAndSaveCoverLetterDraft(
     additionalInstructions: options.additionalInstructions,
     companyContext: reconciledContext,
     body: response.formalContent,
-    rationale: response.rationale,
+    rationale: {
+      ...response.rationale,
+      modelSelection: response.rationale.modelSelection ?? {
+        requestedTier: coverLetterModelTier,
+        fallbackApplied: response.modelFallbackApplied ?? false,
+      },
+    },
     provider: response.provider,
     modelName: response.modelName,
   });

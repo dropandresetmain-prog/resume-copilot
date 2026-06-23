@@ -104,23 +104,40 @@ export type CallGeminiWithRetryResult = {
   text: string;
   modelUsed: string;
   attempts: number;
+  requestedModelId: string;
+  fallbackApplied: boolean;
+};
+
+export type CallGeminiWithRetryOptions = Omit<CallGeminiGenerateContentOptions, "model"> & {
+  /** When set, overrides env-based primary/fallback (tiered generation). */
+  models?: string[];
 };
 
 export async function callGeminiWithRetry(
-  options: Omit<CallGeminiGenerateContentOptions, "model">,
+  options: CallGeminiWithRetryOptions,
 ): Promise<CallGeminiWithRetryResult> {
-  const models = resolveGeminiModelsForCall();
+  const models =
+    options.models && options.models.length > 0
+      ? options.models
+      : resolveGeminiModelsForCall();
+  const requestedModelId = models[0] ?? resolveGeminiModelsForCall()[0];
   let lastError: Error | undefined;
   let totalAttempts = 0;
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
-    const model = models[modelIndex];
+    const model = models[modelIndex]!;
 
     for (let attempt = 0; attempt < GEMINI_MAX_ATTEMPTS; attempt += 1) {
       totalAttempts += 1;
       try {
         const text = await callGeminiGenerateContent({ ...options, model });
-        return { text, modelUsed: model, attempts: totalAttempts };
+        return {
+          text,
+          modelUsed: model,
+          attempts: totalAttempts,
+          requestedModelId,
+          fallbackApplied: model !== requestedModelId,
+        };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         const transient = isTransientGeminiError(lastError);

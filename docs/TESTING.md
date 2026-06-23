@@ -11,6 +11,10 @@ npx tsx tests/suites/parser.test.ts   # single suite
 
 No Vitest/Jest — each suite is a standalone `tsx` script with `PASS`/`FAIL` checks and `process.exit(1)` on failure.
 
+## Build plan checklist
+
+Every milestone plan must start by explicitly checking the 10 rules in [`HANDOFF.md` — Build plan checklist](HANDOFF.md#build-plan-checklist-required-before-every-milestone).
+
 ## Policy: bug fixes add test cases, not files
 
 When fixing a bug:

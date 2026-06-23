@@ -1,6 +1,7 @@
 import type { SourceCitation } from "@/types/collated";
 import type { AIProviderId } from "@/types/enrichment";
 import type { CompanyContext } from "@/types/company-context";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 
 export const RESUME_DRAFT_SCHEMA_VERSION = 1 as const;
 
@@ -160,6 +161,9 @@ export type ResumeDraftInputSnapshot = {
   };
   regenerationControls?: ResumeDraftRegenerationControls;
   generatedAtRequest: string;
+  resumeModelTier?: ModelTier;
+  coverLetterModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
 };
 
 export type GeneratedResumeDraftRecord = {
@@ -276,6 +280,7 @@ export type ResumeDraftGenerationInput = {
 
 export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {
   inputSnapshot: ResumeDraftInputSnapshot;
+  resumeModelTier?: ModelTier;
 };
 
 export type ResumeDraftGenerationResult = {
@@ -290,6 +295,8 @@ export type ResumeDraftGenerationResponse = ResumeDraftGenerationResult & {
   isMock: boolean;
   providerLabel: string;
   modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
   timestamp: string;
   draftStatus?: string;
 };
@@ -339,6 +346,7 @@ export type ResumeRoleRewriteRequest = {
   };
   referenceResume?: Pick<ResumeDraftReferenceResumeExcerpt, "bulletStyle">;
   roles: ResumeRoleRewriteRequestItem[];
+  resumeModelTier?: ModelTier;
 };
 
 export type ResumeRoleRewriteResponse = {
@@ -352,6 +360,8 @@ export type ResumeRoleRewriteResponse = {
   isMock: boolean;
   providerLabel: string;
   modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
   timestamp: string;
 };
 

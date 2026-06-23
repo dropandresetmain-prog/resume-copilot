@@ -1,6 +1,6 @@
 import { getResumeDraftProviderStatus } from "@/lib/ai/resume-draft-provider";
+import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import {
-  getResumeRoleRewriteModelName,
   getResumeRoleRewriteProviderLabel,
   rewriteResumeRoleWithAI,
 } from "@/lib/ai/resume-role-rewrite-provider";
@@ -24,6 +24,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "At least one role rewrite is required." }, { status: 400 });
     }
 
+    let resumeModelTier;
+    try {
+      resumeModelTier = parseModelTier(body.resumeModelTier);
+    } catch (error) {
+      if (error instanceof InvalidModelTierError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+
     if (!providerStatus.configured) {
       return NextResponse.json(
         {
@@ -38,6 +48,8 @@ export async function POST(request: Request) {
 
     const rewrittenRoles = [];
     const validationIssues: string[] = [];
+    let lastModelName: string | undefined;
+    let lastFallbackApplied = false;
 
     for (const roleRequest of body.roles) {
       const result = await rewriteResumeRoleWithAI(
@@ -50,7 +62,11 @@ export async function POST(request: Request) {
           bulletStyle: body.referenceResume?.bulletStyle,
         },
         process.env.AI_PROVIDER,
+        { modelTier: resumeModelTier },
       );
+
+      lastModelName = result.modelName;
+      lastFallbackApplied = result.modelFallbackApplied ?? false;
 
       const issues = validateRewrittenRoleBullets({
         bullets: result.bullets,
@@ -90,7 +106,9 @@ export async function POST(request: Request) {
       provider,
       isMock: provider === "mock",
       providerLabel: getResumeRoleRewriteProviderLabel(provider),
-      modelName: getResumeRoleRewriteModelName(provider),
+      modelName: lastModelName,
+      requestedModelTier: resumeModelTier,
+      modelFallbackApplied: lastFallbackApplied,
       timestamp,
     });
   } catch (error) {

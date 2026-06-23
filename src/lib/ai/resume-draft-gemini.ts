@@ -1,5 +1,10 @@
 import { callGeminiWithRetry } from "@/lib/ai/call-gemini";
 import {
+  buildModelSelectionMetadata,
+  resolveModelsForTier,
+  type ModelTier,
+} from "@/lib/ai/model-tiers";
+import {
   getHardBlockValidationErrors,
   prepareGeneratedResumeContent,
   ResumeDraftValidationError,
@@ -12,16 +17,24 @@ import { buildResumeDraftPrompt } from "@/lib/resume-draft/prompt";
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
 import type { ResumeDraftGenerationResult } from "@/types/resume-draft";
 
+export type ResumeDraftGeminiResult = ResumeDraftGenerationResult & {
+  modelName: string;
+  requestedModelTier: ModelTier;
+  modelFallbackApplied: boolean;
+};
+
 export async function generateResumeDraftWithGemini(
   input: ResumeDraftGenerationInput,
   apiKey: string,
-): Promise<ResumeDraftGenerationResult> {
+  modelTier: ModelTier = "standard",
+): Promise<ResumeDraftGeminiResult> {
   const prompt = buildResumeDraftPrompt(input);
-  const { text } = await callGeminiWithRetry({
+  const { text, modelUsed, fallbackApplied } = await callGeminiWithRetry({
     apiKey,
     prompt,
     temperature: 0.2,
     responseMimeType: "application/json",
+    models: resolveModelsForTier(modelTier),
   });
 
   const parsed = parseResumeDraftJson(text);
@@ -64,9 +77,14 @@ export async function generateResumeDraftWithGemini(
         }
       : parsed.value.rationale;
 
+  const selection = buildModelSelectionMetadata(modelTier, modelUsed);
+
   return {
     content: prepared.content,
     rationale,
     draftStatus: prepared.draftStatus,
+    modelName: selection.actualModelId,
+    requestedModelTier: selection.requestedTier,
+    modelFallbackApplied: fallbackApplied,
   };
 }

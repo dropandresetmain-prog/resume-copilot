@@ -11,6 +11,7 @@ import {
 } from "@/components/cover-letters/CoverLetterBodyViewSwitch";
 import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdfPreview";
 import { CoverLetterQuickRevisionPanel } from "@/components/cover-letters/CoverLetterQuickRevisionPanel";
+import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -175,6 +176,12 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         }
         description={formatWordCountLabel(wordCount)}
       >
+        <ModelSelectionDebug
+          requestedTier={draft.rationale?.modelSelection?.requestedTier}
+          actualModel={draft.modelName}
+          fallbackApplied={draft.rationale?.modelSelection?.fallbackApplied}
+        />
+
         {exportBlocked ? (
           <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             {isOverWordLimit(wordCount)
@@ -233,15 +240,28 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         draftId={draft.id}
         currentBody={bodyDraft}
         disabled={isSaving}
-        onRevised={(body, warnings) => {
+        draftModelTier={draft.rationale?.modelSelection?.requestedTier}
+        actualModel={draft.modelName}
+        fallbackApplied={draft.rationale?.modelSelection?.fallbackApplied}
+        onRevised={(body, warnings, modelSelection) => {
           setBodyDraft(body);
           setDraft((current) =>
             current
               ? {
                   ...current,
                   body,
+                  modelName: modelSelection?.actualModel ?? current.modelName,
                   rationale: current.rationale
-                    ? { ...current.rationale, wordCount: countWords(body) }
+                    ? {
+                        ...current.rationale,
+                        wordCount: countWords(body),
+                        modelSelection: modelSelection
+                          ? {
+                              requestedTier: modelSelection.requestedTier,
+                              fallbackApplied: modelSelection.fallbackApplied,
+                            }
+                          : current.rationale.modelSelection,
+                      }
                     : current.rationale,
                 }
               : current,

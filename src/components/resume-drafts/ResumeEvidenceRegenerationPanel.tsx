@@ -2,11 +2,18 @@
 
 import { useMemo, useState } from "react";
 
+import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
+import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import {
   primaryButtonClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import type { ModelTier } from "@/lib/ai/model-tiers";
+import {
+  resolveResumeModelTierForDraft,
+  writeStoredResumeModelTier,
+} from "@/lib/ai/model-tier-storage";
 import { listCollatedBulletsWithEditState } from "@/lib/inventory/edits";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
@@ -81,6 +88,15 @@ export function ResumeEvidenceRegenerationPanel({
   const [outcomeSummary, setOutcomeSummary] = useState<
     RegenerationOutcomeSummary | TargetedRewriteOutcomeSummary | null
   >(null);
+  const [resumeModelTier, setResumeModelTier] = useState<ModelTier>(() =>
+    resolveResumeModelTierForDraft({
+      draftTier: draft.inputSnapshot?.resumeModelTier,
+    }),
+  );
+  const [lastModelName, setLastModelName] = useState<string | null>(draft.modelName ?? null);
+  const [lastFallbackApplied, setLastFallbackApplied] = useState(
+    draft.inputSnapshot?.modelFallbackApplied ?? false,
+  );
 
   const regenerationControls: ResumeDraftRegenerationControls = useMemo(
     () => ({
@@ -212,6 +228,7 @@ export function ResumeEvidenceRegenerationPanel({
         referenceResume: {
           bulletStyle: generationInput.referenceResume.bulletStyle,
         },
+        resumeModelTier,
         roles: targetedPlan.roles.map((role) => ({
           roleIndex: role.roleIndex,
           currentRole: role.currentRole,
@@ -235,9 +252,17 @@ export function ResumeEvidenceRegenerationPanel({
         inputSnapshot: {
           ...inputSnapshot,
           regenerationControls,
+          resumeModelTier,
+          modelFallbackApplied: response.modelFallbackApplied,
         },
         status: nextStatus,
+        modelName: response.modelName,
       });
+
+      if (response.modelName) {
+        setLastModelName(response.modelName);
+      }
+      setLastFallbackApplied(response.modelFallbackApplied ?? false);
 
       setOutcomeSummary(
         buildTargetedRewriteOutcomeSummary({
@@ -294,6 +319,7 @@ export function ResumeEvidenceRegenerationPanel({
       const response = await requestResumeDraftGeneration({
         ...generationInput,
         inputSnapshot,
+        resumeModelTier,
       });
 
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
@@ -301,7 +327,13 @@ export function ResumeEvidenceRegenerationPanel({
         rationale: response.rationale,
         inputSnapshot: response.inputSnapshot,
         status: response.draftStatus ?? "generated",
+        modelName: response.modelName,
       });
+
+      if (response.modelName) {
+        setLastModelName(response.modelName);
+      }
+      setLastFallbackApplied(response.inputSnapshot?.modelFallbackApplied ?? false);
 
       const audit = auditForcedBullets({
         forcedKeys: regenerationControls.forcedBulletKeys,
@@ -326,6 +358,9 @@ export function ResumeEvidenceRegenerationPanel({
 
       onDraftUpdated(updated);
       setExcludedGeneratedKeys(new Set());
+      if (response.inputSnapshot?.resumeModelTier) {
+        setResumeModelTier(response.inputSnapshot.resumeModelTier);
+      }
     } catch (regenerationError) {
       setError(
         regenerationError instanceof Error
@@ -486,6 +521,24 @@ export function ResumeEvidenceRegenerationPanel({
           {error}
         </p>
       ) : null}
+
+      <div className="mt-4 max-w-md">
+        <ModelTierSelect
+          id="regeneration-resume-model-tier"
+          label="Resume model"
+          value={resumeModelTier}
+          disabled={isRegenerating}
+          onChange={(tier) => {
+            setResumeModelTier(tier);
+            writeStoredResumeModelTier(tier);
+          }}
+        />
+        <ModelSelectionDebug
+          requestedTier={resumeModelTier}
+          actualModel={lastModelName ?? draft.modelName}
+          fallbackApplied={lastFallbackApplied}
+        />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
         {canRunTargetedUpdate ? (

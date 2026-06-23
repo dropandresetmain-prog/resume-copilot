@@ -14,6 +14,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { ApplicationPackageCoverLetterPanel } from "@/components/application-package/ApplicationPackageCoverLetterPanel";
+import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { ApplicationPackageSummary } from "@/components/application-package/ApplicationPackageSummary";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
@@ -670,6 +671,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             Advanced options
           </summary>
           <div className="mt-4 space-y-4">
+            <ModelSelectionDebug
+              requestedTier={draft.inputSnapshot?.resumeModelTier}
+              actualModel={draft.modelName}
+              fallbackApplied={draft.inputSnapshot?.modelFallbackApplied}
+            />
             <p className="text-xs text-slate-500">
               Canonical section order: {FINAL_RESUME_SECTION_ORDER.join(" → ")} · Font:{" "}
               {fontFamily.split(",")[0]}

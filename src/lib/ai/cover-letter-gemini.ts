@@ -1,4 +1,9 @@
-import { callGeminiWithRetry } from "@/lib/ai/call-gemini";
+import { callGeminiWithRetry, type CallGeminiWithRetryResult } from "@/lib/ai/call-gemini";
+import {
+  buildModelSelectionMetadata,
+  resolveModelsForTier,
+  type ModelTier,
+} from "@/lib/ai/model-tiers";
 import {
   CoverLetterValidationError,
   prepareGeneratedCoverLetterResult,
@@ -11,14 +16,24 @@ import {
 import { countWords } from "@/lib/cover-letter/resume-evidence";
 import type { CoverLetterGenerationInput, CoverLetterGenerationResult } from "@/types/cover-letter-draft";
 
-async function callGeminiJson(apiKey: string, prompt: string): Promise<string> {
-  const { text } = await callGeminiWithRetry({
+export type CoverLetterGeminiResult = CoverLetterGenerationResult & {
+  modelName: string;
+  requestedModelTier: ModelTier;
+  modelFallbackApplied: boolean;
+};
+
+async function callGeminiJson(
+  apiKey: string,
+  prompt: string,
+  modelTier: ModelTier,
+): Promise<CallGeminiWithRetryResult> {
+  return callGeminiWithRetry({
     apiKey,
     prompt,
     temperature: 0.3,
     responseMimeType: "application/json",
+    models: resolveModelsForTier(modelTier),
   });
-  return text;
 }
 
 function shouldRetryCompression(error: unknown): boolean {
@@ -33,13 +48,14 @@ function shouldRetryCompression(error: unknown): boolean {
 export async function generateCoverLetterWithGemini(
   input: CoverLetterGenerationInput,
   apiKey: string,
-): Promise<CoverLetterGenerationResult> {
+  modelTier: ModelTier = "standard",
+): Promise<CoverLetterGeminiResult> {
   const prompt = buildCoverLetterPrompt(input);
-  const text = await callGeminiJson(apiKey, prompt);
+  let geminiResult = await callGeminiJson(apiKey, prompt, modelTier);
 
   let parsed;
   try {
-    parsed = parseCoverLetterJsonOrThrow(text);
+    parsed = parseCoverLetterJsonOrThrow(geminiResult.text);
   } catch (error) {
     if (error instanceof CoverLetterParseError) {
       throw error;
@@ -51,9 +67,19 @@ export async function generateCoverLetterWithGemini(
     const prepared = prepareGeneratedCoverLetterResult(parsed, {
       companyDisplayName: input.companyDisplayName ?? input.companyName,
     });
+    const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
     return {
       formalContent: prepared.formalContent,
-      rationale: prepared.rationale,
+      rationale: {
+        ...prepared.rationale,
+        modelSelection: {
+          requestedTier: selection.requestedTier,
+          fallbackApplied: geminiResult.fallbackApplied,
+        },
+      },
+      modelName: selection.actualModelId,
+      requestedModelTier: selection.requestedTier,
+      modelFallbackApplied: geminiResult.fallbackApplied,
     };
   } catch (error) {
     if (error instanceof CoverLetterValidationError && shouldRetryCompression(error)) {
@@ -61,14 +87,24 @@ export async function generateCoverLetterWithGemini(
         formalContent: parsed.formalContent,
         wordCount: countWords(parsed.formalContent),
       });
-      const retryText = await callGeminiJson(apiKey, compressionPrompt);
-      const retryParsed = parseCoverLetterJsonOrThrow(retryText);
+      geminiResult = await callGeminiJson(apiKey, compressionPrompt, modelTier);
+      const retryParsed = parseCoverLetterJsonOrThrow(geminiResult.text);
       const prepared = prepareGeneratedCoverLetterResult(retryParsed, {
         companyDisplayName: input.companyDisplayName ?? input.companyName,
       });
+      const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
       return {
         formalContent: prepared.formalContent,
-        rationale: prepared.rationale,
+        rationale: {
+          ...prepared.rationale,
+          modelSelection: {
+            requestedTier: selection.requestedTier,
+            fallbackApplied: geminiResult.fallbackApplied,
+          },
+        },
+        modelName: selection.actualModelId,
+        requestedModelTier: selection.requestedTier,
+        modelFallbackApplied: geminiResult.fallbackApplied,
       };
     }
     throw error;

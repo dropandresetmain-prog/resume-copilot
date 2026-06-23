@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
+import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
 import {
@@ -30,6 +31,13 @@ import {
   researchProgressLabelForPlan,
   RESUME_ONLY_PROGRESS_STAGES,
 } from "@/lib/generate/generation-progress";
+import {
+  readStoredCoverLetterModelTier,
+  readStoredResumeModelTier,
+  writeStoredCoverLetterModelTier,
+  writeStoredResumeModelTier,
+} from "@/lib/ai/model-tier-storage";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 import { planCompanyResearchForGeneration } from "@/lib/company-context/research-plan";
 import {
   buildArtifactSnapshot,
@@ -130,6 +138,12 @@ export function GenerateTailoredResumeSection({
   const [companyContextEnsureStatus, setCompanyContextEnsureStatus] =
     useState<CompanyContextEnsureStatus | undefined>();
   const [companyContextWarning, setCompanyContextWarning] = useState<string | null>(null);
+  const [resumeModelTier, setResumeModelTier] = useState<ModelTier>(() =>
+    readStoredResumeModelTier(),
+  );
+  const [coverLetterModelTier, setCoverLetterModelTier] = useState<ModelTier>(() =>
+    readStoredCoverLetterModelTier(),
+  );
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -270,6 +284,9 @@ export function GenerateTailoredResumeSection({
       jobDescription: savedJob,
       referenceResumeId: effectiveBaseResumeId,
       companyContext: companyContextForGeneration,
+      resumeModelTier,
+      coverLetterModelTier:
+        generateMode === "resume_and_cover_letter" ? coverLetterModelTier : undefined,
     });
 
     await advanceStage(stages.generatingResume);
@@ -277,6 +294,7 @@ export function GenerateTailoredResumeSection({
     const response = await requestResumeDraftGeneration({
       ...generationInput,
       inputSnapshot,
+      resumeModelTier,
     });
 
     const resumeDraft = await createGeneratedResumeDraftInCloud({
@@ -325,6 +343,7 @@ export function GenerateTailoredResumeSection({
         applicationId: context.applicationId,
         fields: readCoverLetterFields(),
         savedCompanyContext: context.companyContext,
+        coverLetterModelTier,
       }),
     );
   }
@@ -429,6 +448,7 @@ export function GenerateTailoredResumeSection({
           applicationId: partialCoverLetterFailure.applicationId,
           fields: readCoverLetterFields(),
           savedCompanyContext: application?.companyContext,
+          coverLetterModelTier,
         }),
       );
       void coverRecord;
@@ -512,6 +532,29 @@ export function GenerateTailoredResumeSection({
               </option>
               <option value="resume_only">Generate Tailored Resume only</option>
             </select>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <ModelTierSelect
+              id="resume-model-tier"
+              label="Resume model"
+              value={resumeModelTier}
+              disabled={disabled || isGenerating}
+              onChange={(tier) => {
+                setResumeModelTier(tier);
+                writeStoredResumeModelTier(tier);
+              }}
+            />
+            <ModelTierSelect
+              id="cover-letter-model-tier"
+              label="Cover letter model"
+              value={coverLetterModelTier}
+              disabled={disabled || isGenerating || generateMode === "resume_only"}
+              onChange={(tier) => {
+                setCoverLetterModelTier(tier);
+                writeStoredCoverLetterModelTier(tier);
+              }}
+            />
           </div>
 
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">

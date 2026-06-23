@@ -1,4 +1,6 @@
+import { resolveCoverLetterModelTierForDraft } from "@/lib/ai/model-tier-storage";
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 import type { CompanyContext } from "@/types/company-context";
 import type { CoverLetterGenerationOptions } from "@/lib/generate/cover-letter-generation";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
@@ -18,7 +20,14 @@ export function buildCoverLetterGenerationOptions(input: {
   applicationId?: string;
   fields: CoverLetterFieldInput;
   savedCompanyContext?: CompanyContext | null;
+  coverLetterModelTier?: ModelTier;
 }): CoverLetterGenerationOptions {
+  const coverLetterModelTier =
+    input.coverLetterModelTier ??
+    resolveCoverLetterModelTierForDraft({
+      draftTier: input.resumeDraft.inputSnapshot?.coverLetterModelTier,
+    });
+
   return {
     job: input.job,
     resumeDraft: input.resumeDraft,
@@ -32,6 +41,7 @@ export function buildCoverLetterGenerationOptions(input: {
     country: input.fields.country?.trim() || "Singapore",
     companyWebsite: input.fields.companyWebsite?.trim() || undefined,
     additionalInstructions: input.fields.additionalInstructions,
+    coverLetterModelTier,
   };
 }
 

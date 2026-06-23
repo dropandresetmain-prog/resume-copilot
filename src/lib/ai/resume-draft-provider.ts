@@ -1,6 +1,7 @@
-import { GEMINI_MODEL } from "@/lib/ai/config";
+import { GEMINI_MODEL_PRIMARY } from "@/lib/ai/config";
 import { generateMockResumeDraft } from "@/lib/ai/resume-draft-mock";
 import { generateResumeDraftWithGemini } from "@/lib/ai/resume-draft-gemini";
+import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
 import {
   getProviderLabel,
   resolveProviderId,
@@ -12,6 +13,13 @@ import type {
   ResumeDraftGenerationResult,
   ResumeDraftProviderStatusResponse,
 } from "@/types/resume-draft";
+
+export type ResumeDraftAIResult = ResumeDraftGenerationResult & {
+  providerId: AIProviderId;
+  modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
+};
 
 export function getResumeDraftProviderStatus(): ResumeDraftProviderStatusResponse {
   const provider = resolveProviderId(process.env.AI_PROVIDER);
@@ -33,7 +41,7 @@ export function getResumeDraftProviderStatus(): ResumeDraftProviderStatusRespons
     provider,
     isMock,
     providerLabel: getProviderLabel(provider),
-    modelName: provider === "gemini" ? GEMINI_MODEL : undefined,
+    modelName: provider === "gemini" ? GEMINI_MODEL_PRIMARY : undefined,
     configured,
     configurationError,
     supportsResumeDraft: true,
@@ -43,16 +51,26 @@ export function getResumeDraftProviderStatus(): ResumeDraftProviderStatusRespons
 export async function generateResumeDraftWithAI(
   input: ResumeDraftGenerationInput,
   providerId?: string | null,
-): Promise<ResumeDraftGenerationResult & { providerId: AIProviderId }> {
+  options?: { modelTier?: ModelTier },
+): Promise<ResumeDraftAIResult> {
   const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
     const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
     }
-    const result = await generateResumeDraftWithGemini(input, apiKey);
-    return { ...result, providerId: "gemini" };
+    const result = await generateResumeDraftWithGemini(input, apiKey, modelTier);
+    return {
+      content: result.content,
+      rationale: result.rationale,
+      draftStatus: result.draftStatus,
+      providerId: "gemini",
+      modelName: result.modelName,
+      requestedModelTier: result.requestedModelTier,
+      modelFallbackApplied: result.modelFallbackApplied,
+    };
   }
 
   if (provider === "openai") {
@@ -62,14 +80,19 @@ export async function generateResumeDraftWithAI(
   return {
     ...generateMockResumeDraft(input),
     providerId: "mock",
+    modelName: undefined,
+    requestedModelTier: modelTier,
+    modelFallbackApplied: false,
   };
 }
 
 export function toResumeDraftApiResponse(
-  result: ResumeDraftGenerationResult & { providerId: AIProviderId },
+  result: ResumeDraftAIResult,
   context: {
     inputSnapshot: ResumeDraftGenerationResponse["inputSnapshot"];
     modelName?: string;
+    requestedModelTier?: ModelTier;
+    modelFallbackApplied?: boolean;
     timestamp?: string;
   },
 ): ResumeDraftGenerationResponse {
@@ -84,7 +107,13 @@ export function toResumeDraftApiResponse(
     provider,
     isMock: provider === "mock",
     providerLabel: getProviderLabel(provider),
-    modelName: context.modelName ?? (provider === "gemini" ? GEMINI_MODEL : undefined),
+    modelName: context.modelName ?? result.modelName,
+    requestedModelTier: context.requestedModelTier ?? result.requestedModelTier,
+    modelFallbackApplied: context.modelFallbackApplied ?? result.modelFallbackApplied,
     timestamp,
   };
+}
+
+export function getResumeDraftDefaultModelLabel(tier: ModelTier = "standard"): string | undefined {
+  return getPrimaryModelIdForTier(tier);
 }

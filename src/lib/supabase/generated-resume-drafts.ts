@@ -189,6 +189,7 @@ export type UpdateGeneratedResumeDraftInput = {
   rationale?: ResumeDraftRationale;
   inputSnapshot?: ResumeDraftInputSnapshot;
   status?: string;
+  modelName?: string;
 };
 
 /**
@@ -215,6 +216,9 @@ export async function updateGeneratedResumeDraftInCloud(
   }
   if (input.inputSnapshot !== undefined) {
     updatePayload.input_snapshot = input.inputSnapshot;
+  }
+  if (input.modelName !== undefined) {
+    updatePayload.model_name = input.modelName;
   }
 
   const { data, error } = await supabase

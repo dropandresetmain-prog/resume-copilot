@@ -8,6 +8,7 @@ import {
 import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
 import type { CompanyContext } from "@/types/company-context";
+import type { ModelTier } from "@/lib/ai/model-tiers";
 import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState, KeywordBankItem } from "@/types/enrichment";
 import type { StoredJobDescription } from "@/types/jd";
@@ -170,6 +171,8 @@ export function buildResumeDraftInputSnapshot(options: {
   collated: CollatedInventory;
   regenerationControls?: ResumeDraftRegenerationControls;
   generatedAtRequest?: string;
+  resumeModelTier?: ModelTier;
+  coverLetterModelTier?: ModelTier;
 }): ResumeDraftInputSnapshot {
   const approved = filterApprovedKeywords(options.enrichment);
   const bulletCount = options.collated.experiences.reduce(
@@ -192,6 +195,8 @@ export function buildResumeDraftInputSnapshot(options: {
     },
     regenerationControls: normalizeRegenerationControls(options.regenerationControls),
     generatedAtRequest: options.generatedAtRequest ?? new Date().toISOString(),
+    resumeModelTier: options.resumeModelTier,
+    coverLetterModelTier: options.coverLetterModelTier,
   };
 }
 
@@ -202,6 +207,8 @@ export function buildResumeDraftPayloadFromInventory(options: {
   maxBullets?: number;
   regenerationControls?: ResumeDraftRegenerationControls;
   companyContext?: CompanyContext;
+  resumeModelTier?: ModelTier;
+  coverLetterModelTier?: ModelTier;
 }): {
   generationInput: ResumeDraftGenerationInput;
   inputSnapshot: ResumeDraftInputSnapshot;
@@ -230,6 +237,8 @@ export function buildResumeDraftPayloadFromInventory(options: {
     enrichment: options.inventory.enrichment,
     collated,
     regenerationControls: options.regenerationControls,
+    resumeModelTier: options.resumeModelTier,
+    coverLetterModelTier: options.coverLetterModelTier,
   });
 
   return {

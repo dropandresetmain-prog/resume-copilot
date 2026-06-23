@@ -3,6 +3,7 @@ import {
   getCoverLetterProviderStatus,
   toCoverLetterApiResponse,
 } from "@/lib/ai/cover-letter-provider";
+import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
 import { CoverLetterParseError } from "@/lib/cover-letter/parse";
 import { CoverLetterValidationError } from "@/lib/cover-letter/generation-validation";
@@ -33,6 +34,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Company name is required." }, { status: 400 });
     }
 
+    let coverLetterModelTier;
+    try {
+      coverLetterModelTier = parseModelTier(body.coverLetterModelTier);
+    } catch (error) {
+      if (error instanceof InvalidModelTierError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+
     const companyNameRaw = body.companyNameRaw?.trim() || body.companyName.trim();
     const reconciledDisplayName = resolveCompanyDisplayNameForProse({
       rawName: companyNameRaw,
@@ -44,6 +55,7 @@ export async function POST(request: Request) {
       companyName: reconciledDisplayName,
       companyDisplayName: reconciledDisplayName,
       companyNameRaw,
+      coverLetterModelTier,
       companyContext: {
         ...body.companyContext,
         companyName: reconciledDisplayName,
@@ -67,11 +79,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateCoverLetterWithAI(normalizedBody, process.env.AI_PROVIDER);
+    const result = await generateCoverLetterWithAI(normalizedBody, process.env.AI_PROVIDER, {
+      modelTier: coverLetterModelTier,
+    });
 
     return NextResponse.json(
       toCoverLetterApiResponse(result, {
-        modelName: providerStatus.modelName,
+        modelName: result.modelName,
+        requestedModelTier: coverLetterModelTier,
+        modelFallbackApplied: result.modelFallbackApplied,
         timestamp,
       }),
     );

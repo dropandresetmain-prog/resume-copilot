@@ -1,6 +1,7 @@
-import { GEMINI_MODEL } from "@/lib/ai/config";
+import { GEMINI_MODEL_PRIMARY } from "@/lib/ai/config";
 import { generateMockCoverLetter } from "@/lib/ai/cover-letter-mock";
 import { generateCoverLetterWithGemini } from "@/lib/ai/cover-letter-gemini";
+import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
 import { prepareGeneratedCoverLetterResult } from "@/lib/cover-letter/generation-validation";
 import type { AIProviderId } from "@/lib/ai/types";
@@ -10,6 +11,13 @@ import type {
   CoverLetterGenerationResult,
   CoverLetterProviderStatusResponse,
 } from "@/types/cover-letter-draft";
+
+export type CoverLetterAIResult = CoverLetterGenerationResult & {
+  providerId: AIProviderId;
+  modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
+};
 
 export function getCoverLetterProviderStatus(): CoverLetterProviderStatusResponse {
   const provider = resolveProviderId(process.env.AI_PROVIDER);
@@ -31,7 +39,7 @@ export function getCoverLetterProviderStatus(): CoverLetterProviderStatusRespons
     provider,
     isMock,
     providerLabel: getProviderLabel(provider),
-    modelName: provider === "gemini" ? GEMINI_MODEL : undefined,
+    modelName: provider === "gemini" ? GEMINI_MODEL_PRIMARY : undefined,
     configured,
     configurationError,
     supportsCoverLetter: true,
@@ -41,16 +49,25 @@ export function getCoverLetterProviderStatus(): CoverLetterProviderStatusRespons
 export async function generateCoverLetterWithAI(
   input: CoverLetterGenerationInput,
   providerId?: string | null,
-): Promise<CoverLetterGenerationResult & { providerId: AIProviderId }> {
+  options?: { modelTier?: ModelTier },
+): Promise<CoverLetterAIResult> {
   const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const modelTier = options?.modelTier ?? input.coverLetterModelTier ?? "standard";
 
   if (provider === "gemini") {
     const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
     }
-    const result = await generateCoverLetterWithGemini(input, apiKey);
-    return { ...result, providerId: "gemini" };
+    const result = await generateCoverLetterWithGemini(input, apiKey, modelTier);
+    return {
+      formalContent: result.formalContent,
+      rationale: result.rationale,
+      providerId: "gemini",
+      modelName: result.modelName,
+      requestedModelTier: result.requestedModelTier,
+      modelFallbackApplied: result.modelFallbackApplied,
+    };
   }
 
   if (provider === "openai") {
@@ -60,20 +77,37 @@ export async function generateCoverLetterWithAI(
   const result = prepareGeneratedCoverLetterResult(generateMockCoverLetter(input), {
     companyDisplayName: input.companyDisplayName ?? input.companyName,
   });
-  return { ...result, providerId: "mock" };
+  return {
+    ...result,
+    providerId: "mock",
+    modelName: undefined,
+    requestedModelTier: modelTier,
+    modelFallbackApplied: false,
+  };
 }
 
 export function toCoverLetterApiResponse(
-  result: CoverLetterGenerationResult & { providerId: AIProviderId },
-  options: { modelName?: string; timestamp: string },
+  result: CoverLetterAIResult,
+  options: {
+    modelName?: string;
+    requestedModelTier?: ModelTier;
+    modelFallbackApplied?: boolean;
+    timestamp: string;
+  },
 ): CoverLetterGenerationResponse {
-  const status = getCoverLetterProviderStatus();
   return {
-    ...result,
+    formalContent: result.formalContent,
+    rationale: result.rationale,
     provider: result.providerId,
     isMock: result.providerId === "mock",
     providerLabel: getProviderLabel(result.providerId),
-    modelName: options.modelName ?? status.modelName,
+    modelName: options.modelName ?? result.modelName,
+    requestedModelTier: options.requestedModelTier ?? result.requestedModelTier,
+    modelFallbackApplied: options.modelFallbackApplied ?? result.modelFallbackApplied,
     timestamp: options.timestamp,
   };
+}
+
+export function getCoverLetterDefaultModelLabel(tier: ModelTier = "standard"): string | undefined {
+  return getPrimaryModelIdForTier(tier);
 }

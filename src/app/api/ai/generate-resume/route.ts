@@ -3,13 +3,10 @@ import {
   getResumeDraftProviderStatus,
   toResumeDraftApiResponse,
 } from "@/lib/ai/resume-draft-provider";
+import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import { ResumeDraftParseError } from "@/lib/resume-draft/parse";
-import type { ResumeDraftGenerationInput, ResumeDraftInputSnapshot } from "@/types/resume-draft";
+import type { ResumeDraftGenerationRequest } from "@/types/resume-draft";
 import { NextResponse } from "next/server";
-
-type GenerateResumeDraftRequestBody = ResumeDraftGenerationInput & {
-  inputSnapshot: ResumeDraftInputSnapshot;
-};
 
 export async function GET() {
   return NextResponse.json(getResumeDraftProviderStatus());
@@ -20,7 +17,7 @@ export async function POST(request: Request) {
   const providerStatus = getResumeDraftProviderStatus();
 
   try {
-    const body = (await request.json()) as GenerateResumeDraftRequestBody;
+    const body = (await request.json()) as ResumeDraftGenerationRequest;
 
     if (!body?.jobDescription?.id || !body.jobDescription.rawText?.trim()) {
       return NextResponse.json(
@@ -50,6 +47,16 @@ export async function POST(request: Request) {
       );
     }
 
+    let resumeModelTier;
+    try {
+      resumeModelTier = parseModelTier(body.resumeModelTier);
+    } catch (error) {
+      if (error instanceof InvalidModelTierError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+
     if (!providerStatus.configured) {
       return NextResponse.json(
         {
@@ -66,12 +73,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateResumeDraftWithAI(body, process.env.AI_PROVIDER);
+    const result = await generateResumeDraftWithAI(body, process.env.AI_PROVIDER, {
+      modelTier: resumeModelTier,
+    });
+
+    const inputSnapshot = {
+      ...body.inputSnapshot,
+      resumeModelTier,
+      modelFallbackApplied: result.modelFallbackApplied,
+    };
 
     return NextResponse.json(
       toResumeDraftApiResponse(result, {
-        inputSnapshot: body.inputSnapshot,
-        modelName: providerStatus.modelName,
+        inputSnapshot,
+        modelName: result.modelName,
+        requestedModelTier: resumeModelTier,
+        modelFallbackApplied: result.modelFallbackApplied,
         timestamp,
       }),
     );

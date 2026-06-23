@@ -3,6 +3,7 @@ import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { createEmptyEnrichmentState, upsertKeywordBankItem } from "../../src/lib/enrichment/state";
 import {
   buildResumeDraftGenerationInput,
+  buildResumeDraftInputSnapshot,
   buildResumeDraftPayloadFromInventory,
   filterApprovedKeywords,
   summarizeResumeDraftContent,
@@ -190,6 +191,26 @@ const checks: [string, boolean][] = [
   ["mock draft has experience", mockDraft.content.experience.length > 0],
   ["summary helper works", summarizeResumeDraftContent(mockDraft.content).bulletCount > 0],
   ["inventory not mutated by builders", serializedBefore === serializedAfter],
+  [
+    "input snapshot stores resume model tier",
+    buildResumeDraftInputSnapshot({
+      jobDescription: sampleJd,
+      referenceResume: inventory.resumes[0]!,
+      enrichment: inventory.enrichment,
+      collated: buildCollatedInventory(inventory),
+      resumeModelTier: "enhanced",
+      coverLetterModelTier: "premium",
+    }).resumeModelTier === "enhanced",
+  ],
+  [
+    "payload builder passes cover letter tier into snapshot",
+    buildResumeDraftPayloadFromInventory({
+      inventory,
+      jobDescription: sampleJd,
+      referenceResumeId: "resume-1",
+      coverLetterModelTier: "premium",
+    }).inputSnapshot.coverLetterModelTier === "premium",
+  ],
 ];
 
 let failed = 0;

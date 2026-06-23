@@ -2,18 +2,19 @@
 
 ## Current version
 
-**v0.9.8G** (code)
+**v0.9.8H** (code)
 
 ## Latest milestone (code)
 
-**v0.9.8G — Test Suite & Documentation Hygiene**
+**v0.9.8H — Gemini Model Tier Selection**
 
-Moved project docs to `docs/`. Consolidated verification into `tests/run-all.ts` + `tests/suites/` (no product behavior changes). Profile parser + backfill merged into `profile.test.ts`. See `docs/TESTING.md`.
+User-selectable resume and cover letter model tiers (Standard / Enhanced / Premium) with per-call Gemini model lists, fallback to `gemini-2.5-flash-lite`, and persistence of requested tier + actual model used. Enrichment and company context remain on the fixed Standard env path.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.8H | Gemini model tier selection for resume/cover letter generation |
 | v0.9.8G | Test runner consolidation, docs under `/docs`, scripts cleanup |
 | v0.9.8F | Targeted forced bullet role rewrite |
 | v0.9.8E | Cover letter PDF preview parity |
@@ -76,6 +77,23 @@ npm run test
 npm run lint
 npm run build
 ```
+
+## Build plan checklist (required before every milestone)
+
+Before writing an implementation plan or code for any milestone, explicitly confirm:
+
+1. Is this one focused milestone?
+2. Are we avoiding unrelated scope?
+3. Are we avoiding new one-off test scripts?
+4. Are tests added to existing suites unless a new domain truly requires a new suite?
+5. Are docs updated under `/docs`, not project root?
+6. Are source-grep tests avoided unless explicitly justified?
+7. Are environment variable changes documented?
+8. Are user-facing model/API IDs verified before hardcoding?
+9. Are Cursor-raised bugs/risks classified as Act Now / Investigate Now / Park / Accept Risk / Ignore?
+10. Are commit/push instructions given after the milestone is complete?
+
+See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
