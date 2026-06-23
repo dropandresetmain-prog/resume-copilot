@@ -345,7 +345,7 @@ function main() {
     })],
     ["default body font is 12.5px", PREVIEW_BODY_FONT_DEFAULT_PX === 12.5],
     ["body font min is 10px", PREVIEW_BODY_FONT_MIN_PX === 10],
-    ["wrapped line spacing default is 1.08", PREVIEW_LINE_SPACING_DEFAULT === 1.08],
+    ["wrapped line spacing default is 1.12", PREVIEW_LINE_SPACING_DEFAULT === 1.12],
     ["item line spacing default is 1.2", PREVIEW_ITEM_LINE_SPACING_DEFAULT === 1.2],
     ["section spacing default is 0.65", PREVIEW_SECTION_SPACING_DEFAULT === 0.65],
     ["print bullet padding reduced", RESUME_PRINT_LAYOUT_SPACING.bulletPaddingLeftRem === 0.275],

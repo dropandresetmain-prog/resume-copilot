@@ -169,7 +169,7 @@ function main() {
       generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
     ],
     [
-      "v0.9.12C company-first parser",
+      "v0.9.12C import robustness and output polish",
       appNav.includes("grid-cols-5") &&
         appNav.includes("sm:hidden"),
     ],

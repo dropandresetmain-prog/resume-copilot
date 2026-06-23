@@ -34,16 +34,15 @@
 | Package first viewport + mobile CTA/nav polish | v0.9.11I |
 | Remove founder identity from AI/export pipeline | v0.9.12A |
 | General DOCX resume import baseline | v0.9.12B |
-| Company-first comma + title-case section preservation | v0.9.12C |
+| Import robustness + output polish defaults | v0.9.12C |
 
 ## Milestone log (recent)
 
-### v0.9.12C - Company-First + Unknown Section Preservation
+### v0.9.12C - Import Robustness + Output Polish Defaults
 
-- Inline comma disambiguation: company-like suffixes vs role-like terms resolve `Company, Role, Date` and `Role, Company, Date`; ambiguous pairs get low confidence + warning.
-- Date-first descriptor skip: Full-time, Part-time, Contract, Internship, Remote, Hybrid, On-site lines skipped before role/company.
-- Title-case unparsed sections: Summary, Professional Summary, Profile, Objective, References preserved as unparsed (in addition to ALL_CAPS).
-- Tests in `parser.test.ts` and `section-detection.test.ts`.
+**Import:** Inline comma disambiguation (company/role heuristics), date-first descriptor skip, title-case Summary/References/etc. as unparsed.
+
+**Output:** Resume `PREVIEW_LINE_SPACING_DEFAULT` 1.12 (preview/PDF/DOCX via shared layout model). Cover letter generation/revision prompts avoid em dashes and inflated AI/corporate wording.
 
 ### v0.9.12B - General DOCX Resume Import Baseline
 

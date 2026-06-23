@@ -7,6 +7,7 @@ import { parseCoverLetterJson } from "../../src/lib/cover-letter/parse";
 import {
   buildCoverLetterPrompt,
   promptIncludesCoverLetterRules,
+  promptIncludesPunctuationRules,
 } from "../../src/lib/cover-letter/prompt";
 import { validateCoverLetterGenerationResult } from "../../src/lib/cover-letter/generation-validation";
 import { buildResumeEvidenceSpine } from "../../src/lib/cover-letter/resume-evidence";
@@ -114,6 +115,7 @@ function main() {
     ["resolve company name prefers override", resolveCompanyNameForGeneration({ override: "Beta Co", jobDescriptionText: "at Alpha" }) === "Beta Co"],
     ["resume evidence spine includes bullet", input.resumeEvidenceSpine.includes("workflow automation")],
     ["prompt includes cover letter rules", promptIncludesCoverLetterRules(prompt)],
+    ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt does not hardcode founder name", !prompt.includes("Min Htet")],
     ["mock formal content present", mock.formalContent.length > 0],
     ["mock secondary email present", mock.rationale.emailCoverLetter.length > 0],

@@ -12,6 +12,7 @@ import {
 import {
   buildCoverLetterPrompt,
   promptIncludesBannedPhraseRules,
+  promptIncludesPunctuationRules,
   promptIncludesToneRules,
 } from "../../src/lib/cover-letter/prompt";
 import { buildCoverLetterRevisionPrompt } from "../../src/lib/cover-letter/revision-prompt";
@@ -136,7 +137,9 @@ function main() {
     ],
     ["banned phrase detection finds founder-operator", detectBannedPhrases("founder-operator").length > 0],
     ["prompt includes tone rules", promptIncludesToneRules(prompt)],
+    ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt includes banned phrase rules", promptIncludesBannedPhraseRules(prompt)],
+    ["revision prompt avoids em dashes", revisionPrompt.includes("em dash")],
     ["prompt includes 420 max", prompt.includes("420")],
     ["revision prompt includes current body", revisionPrompt.includes(mock.formalContent)],
     [

@@ -20,7 +20,7 @@ export const PREVIEW_MARGIN_TOP_DEFAULT_MM = 9;
 /** Wrapped line height inside bullets, paragraphs, and compact rows. */
 export const PREVIEW_LINE_SPACING_MIN = 0.95;
 export const PREVIEW_LINE_SPACING_MAX = 1.4;
-export const PREVIEW_LINE_SPACING_DEFAULT = 1.08;
+export const PREVIEW_LINE_SPACING_DEFAULT = 1.12;
 
 /** Gap between bullets, skills rows, and additional-experience items. */
 export const PREVIEW_ITEM_LINE_SPACING_MIN = 1.05;

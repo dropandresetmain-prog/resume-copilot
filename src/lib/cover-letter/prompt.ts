@@ -35,10 +35,16 @@ Return ONLY valid JSON matching this schema:
 }
 
 ## Tone (critical)
-Write in a conversational professional style — warm, human, grounded, and specific.
+Write in a conversational professional style: warm, human, grounded, and specific.
 - Sound natural, not stiff, corporate, salesy, or AI-polished.
 - Prefer plain sentences over stacked abstractions.
 - Use specific operational language from real work, not positioning jargon.
+- Avoid inflated phrases, generic enthusiasm, and overly polished corporate wording.
+
+## Punctuation (critical)
+- Do NOT use em dashes (—) in final copy.
+- Prefer commas, periods, semicolons, or separate sentences instead of dash-linked clauses.
+- Keep sentences readable; split long thoughts rather than chaining with dashes.
 
 ## Length (critical)
 Formal cover letter HARD MAXIMUM: ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS} words. One page only. If unsure, write shorter.
@@ -156,7 +162,15 @@ export function promptIncludesBannedPhraseRules(prompt: string): boolean {
 }
 
 export function promptIncludesToneRules(prompt: string): boolean {
-  return prompt.includes("warm") && prompt.includes("human");
+  return (
+    prompt.includes("warm") &&
+    prompt.includes("human") &&
+    prompt.includes("generic enthusiasm")
+  );
+}
+
+export function promptIncludesPunctuationRules(prompt: string): boolean {
+  return prompt.includes("em dash") && prompt.includes("commas, periods, semicolons");
 }
 
 export function promptIncludesCoverLetterCompanyContextRules(prompt: string): boolean {

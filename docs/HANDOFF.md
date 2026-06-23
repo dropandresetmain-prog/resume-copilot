@@ -50,9 +50,13 @@ Runtime constraints held: no Supabase schema/persistence changes, no generation 
 
 ## v0.9.12C implementation note
 
-Company-First + Unknown Section Preservation: narrow parser follow-up to v0.9.12B demo blockers. Key changes: (1) inline experience comma disambiguation — company-like suffixes (Corp, Inc, Labs, etc.) vs role-like terms (Manager, Engineer, etc.) assign company/role correctly for both `Acme Corp, Product Manager, Date` and `Product Manager, Acme Corp, Date`; ambiguous pairs downgrade confidence and emit warnings; (2) date-first descriptor skip — lines like Full-time, Part-time, Contract, Remote skipped before role/company line; (3) title-case unknown section preservation — Summary, Professional Summary, Profile, Objective, References map to unparsed sections (in addition to ALL_CAPS heuristic).
+Import Robustness + Output Polish Defaults: parser follow-up to v0.9.12B demo blockers plus default output tuning.
 
-Runtime constraints held: no Supabase schema changes, no generation/export behavior changes, two-line-column profile unchanged.
+**Import robustness:** (1) inline experience comma disambiguation via company-like suffixes vs role-like terms; ambiguous pairs downgrade confidence and warn; (2) date-first descriptor skip (Full-time, Remote, etc.); (3) title-case unparsed sections (Summary, Professional Summary, Profile, Objective, References).
+
+**Output polish defaults:** (1) resume wrapped line spacing default `1.08` → `1.12` via `PREVIEW_LINE_SPACING_DEFAULT` (preview, PDF, DOCX share `document-model` / `resume-layout-styles` source of truth); (2) cover letter generation/revision prompts strongly avoid em dashes and inflated corporate/AI wording while preserving v0.9.12A candidate-name generalization and existing letter structure.
+
+Runtime constraints held: no Supabase schema changes, no generation/export approval mechanics changes, no new model calls, two-line-column profile unchanged.
 
 ## v0.9.12B implementation note
 
@@ -68,9 +72,9 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12C - Company-First + Unknown Section Preservation**
+**v0.9.12C - Import Robustness + Output Polish Defaults**
 
-Company-first comma disambiguation, date-first descriptor skip, title-case Summary/References/etc. preserved as unparsed sections.
+Import: company-first comma disambiguation, date-first descriptor skip, title-case section preservation. Output: resume line spacing default 1.12, cover letter em-dash / AI-tone prompt rules.
 
 ## Latest milestone summary (v0.9.12A)
 
@@ -80,7 +84,7 @@ Dynamic candidateName in all prompts/mocks/validation, generic filename fallback
 
 | Version | Theme |
 |---------|--------|
-| v0.9.12C | Company-first comma disambiguation + title-case unknown section preservation |
+| v0.9.12C | Import robustness + output polish defaults (parser + line spacing + cover letter tone) |
 | v0.9.12B | General DOCX resume import baseline — inline experience profile, broader section aliases, plain skills parsing |
 | v0.9.12A | Remove founder identity from AI/export pipeline — dynamic candidate name, generic fallbacks |
 | v0.9.11I | Package first viewport + mobile CTA/nav polish |

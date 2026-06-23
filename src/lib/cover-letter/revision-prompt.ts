@@ -84,7 +84,9 @@ ${instruction}
 - Preserve factual claims supported by the resume evidence spine. Do not invent employers, titles, metrics, or achievements.
 - Preserve addressee and closing signature ("${closingSignature}").
 - HARD MAX ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}.
-- Conversational professional tone: warm, human, grounded, specific — not corporate or AI-polished.
+- Conversational professional tone: warm, human, grounded, specific. Not corporate or AI-polished.
+- Avoid inflated phrases, generic enthusiasm, and overly polished corporate wording.
+- Do NOT use em dashes (—) in final copy. Prefer commas, periods, semicolons, or separate sentences.
 - Never use banned phrases: ${COVER_LETTER_BANNED_PHRASES.join(", ")}.
 ${input.companyDisplayName ? `- Use company display name in prose: "${input.companyDisplayName}"` : ""}
 ${input.roleTitle ? `- Role: ${input.roleTitle}` : ""}

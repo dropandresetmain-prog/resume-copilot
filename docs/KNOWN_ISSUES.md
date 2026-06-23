@@ -26,7 +26,7 @@
 ## Layout controls (v0.7.1)
 
 - Body font slider **10–20px** (default **12.5px**). Optimizer starts at 12.5px then tightens if needed.
-- **Wrapped line height** (`lineSpacing`, default 1.08) vs **item spacing** (`itemLineSpacing`, default 1.2) are separate in print CSS.
+- **Wrapped line height** (`lineSpacing`, default **1.12** since v0.9.12C) vs **item spacing** (`itemLineSpacing`, default 1.2) are separate in print CSS.
 - Default 12.5px body may require slider tuning to pass server one-page validation on dense drafts.
 
 ## DOCX export
@@ -136,16 +136,20 @@
 
 ## DOCX import (v0.9.12C)
 
-- **Company-first comma formats** — `Acme Corp, Product Manager, Date` and `Role, Company, Date` disambiguated via company/role term heuristics; ambiguous pairs warn and downgrade confidence.
-- **Date-first descriptor skip** — Full-time, Remote, etc. skipped before role/company line in date-first blocks.
+- **Company-first comma formats** — disambiguated via company/role term heuristics; ambiguous pairs warn and downgrade confidence.
+- **Date-first descriptor skip** — Full-time, Remote, etc. skipped before role/company line.
 - **Title-case section headers** — Summary, Professional Summary, Profile, Objective, References preserved as unparsed sections.
 - **Inline experience profile** (v0.9.12B) — "Role at Company — Date", pipe/comma formats, date-first blocks.
 - **Two-line-column profile preserved** — original reference format still parses correctly.
 - **Plain comma skills** split into `other` bucket with warning when unlabeled.
 - **Education format** unchanged — still requires institution + date structure for structured parse.
-- **Profile/contact parsing** is fully generic.
-- **PDF import**, **free-text input**, and **AI-assisted parsing** remain out of scope.
-- **Remaining risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no company/role signals stay ambiguous with role-first fallback (Accept Risk).
+- **Remaining import risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no signals (Accept Risk).
+
+## Cover letter output (v0.9.12C)
+
+- **Prompt rules** now discourage em dashes and inflated corporate/AI phrasing in generation and revision.
+- **Enforcement is prompt-level only** — no post-generation punctuation linter yet; model may still occasionally use em dashes (Accept Risk).
+- **Banned phrase list** and word-limit validation unchanged.
 
 ## AI / export pipeline identity (v0.9.12A)
 
