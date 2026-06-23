@@ -15,6 +15,7 @@ import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { pageMilestone } from "@/lib/app-version";
 import {
   formFieldClassName,
   primaryButtonClassName,
@@ -114,6 +115,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const wordCount = countWords(bodyDraft);
   const bannedPhrases = detectBannedPhrases(bodyDraft);
   const exportBlocked = isOverWordLimit(wordCount) || bannedPhrases.length > 0;
+  const hasUnsavedBodyChanges = draft ? bodyDraft !== draft.body : false;
 
   async function handleSave() {
     if (!draft) {
@@ -152,7 +154,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   return (
     <>
       <PageHeader
-        milestone="v0.9.3 · Cover Letter"
+        milestone={pageMilestone("Cover Letter")}
         title="Formal cover letter"
         description="Preview and edit the formal cover letter. Company context is shown below when available."
       />
@@ -187,6 +189,15 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             {isOverWordLimit(wordCount)
               ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use Shorten to 420 words or edit manually.`
               : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
+          </p>
+        ) : null}
+
+        {hasUnsavedBodyChanges ? (
+          <p
+            role="status"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            You have unsaved changes. Save before leaving this page.
           </p>
         ) : null}
 

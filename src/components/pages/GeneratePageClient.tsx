@@ -9,7 +9,9 @@ import {
   EMPTY_JOB_DESCRIPTION_FORM,
   JDInputPanel,
 } from "@/components/setup/JDInputPanel";
+import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import type { JobDescriptionInput } from "@/types/jd";
+import { pageMilestone } from "@/lib/app-version";
 
 type GeneratePageClientProps = {
   initialJobId?: string;
@@ -23,6 +25,7 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
     cloudEnabled,
     signInRequiredReason,
     hasInventory,
+    persistenceWarning,
     handleSaveJobDescription,
     handleDeleteJobDescription,
     handleClearSavedJobDescriptions,
@@ -54,9 +57,16 @@ export function GeneratePageClient({ initialJobId }: GeneratePageClientProps = {
   return (
     <>
       <PageHeader
-        milestone="v0.9.5 · Company Research"
+        milestone={pageMilestone("Generate")}
         title="Generate tailored resume"
         description="Paste a job description and company website for Firecrawl-backed research, then generate a tailored resume and cover letter."
+      />
+
+      <SetupAlerts
+        persistenceWarning={persistenceWarning}
+        importError={null}
+        failures={[]}
+        warnings={[]}
       />
 
       {!isSignedIn || !hasInventory ? (

@@ -30,7 +30,8 @@ export function DraftHistoryPanel({
   jobDescriptions,
 }: DraftHistoryPanelProps) {
   const [drafts, setDrafts] = useState<GeneratedResumeDraftRecord[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,11 +46,11 @@ export function DraftHistoryPanel({
         const rows = await listGeneratedResumeDraftsFromCloud();
         if (!cancelled) {
           setDrafts(rows);
-          setError(null);
+          setLoadError(null);
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(
+          setLoadError(
             loadError instanceof Error
               ? loadError.message
               : "Failed to load generated drafts.",
@@ -83,12 +84,12 @@ export function DraftHistoryPanel({
     }
 
     setDeletingId(draft.id);
-    setError(null);
+    setActionError(null);
     try {
       await deleteGeneratedResumeDraftFromCloud(draft.id);
       setDrafts((current) => current.filter((item) => item.id !== draft.id));
     } catch (deleteError) {
-      setError(
+      setActionError(
         deleteError instanceof Error
           ? deleteError.message
           : "Failed to delete generated draft.",
@@ -107,65 +108,85 @@ export function DraftHistoryPanel({
         <p className="mt-3 text-sm text-slate-600">
           Sign in to see generated drafts from Supabase.
         </p>
-      ) : error ? (
-        <p className="mt-3 text-sm text-red-700">{error}</p>
-      ) : visibleDrafts.length === 0 ? (
-        <EmptyState
-          title="No unlinked drafts"
-          description="Generate a resume on the Generate page. Linked drafts appear under Applications."
-        />
       ) : (
-        <ul className="mt-4 space-y-3">
-          {visibleDrafts.map((draft, index) => {
-            const display = displays[index];
-            return (
-              <li
-                key={draft.id}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium text-slate-900">{display.primaryLabel}</p>
-                  <p className="text-xs text-slate-500">{display.timestampLabel}</p>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{display.secondaryLabel}</p>
-                <div className="mt-3 flex flex-wrap items-end gap-2">
-                  <Link
-                    href={`/resume-preview/${draft.id}`}
-                    className={`inline-flex ${secondaryButtonClassName}`}
+        <>
+          {actionError ? (
+            <div
+              role="alert"
+              className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              <p className="font-medium">Could not delete draft</p>
+              <p className="mt-1">{actionError}</p>
+            </div>
+          ) : null}
+          {loadError ? (
+            <div
+              role="alert"
+              className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              <p className="font-medium">Could not load drafts</p>
+              <p className="mt-1">{loadError}</p>
+            </div>
+          ) : null}
+          {visibleDrafts.length === 0 ? (
+            <EmptyState
+              title="No unlinked drafts"
+              description="Generate a resume on the Generate page. Linked drafts appear under Applications."
+            />
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {visibleDrafts.map((draft, index) => {
+                const display = displays[index];
+                return (
+                  <li
+                    key={draft.id}
+                    className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm"
                   >
-                    Edit
-                  </Link>
-                  <DownloadResumeDocxButton
-                    draftId={draft.id}
-                    disabled={draft.status !== "approved"}
-                    disabledReason={
-                      draft.status === "approved"
-                        ? undefined
-                        : "Approve for Export before downloading."
-                    }
-                  />
-                  <DownloadResumePdfButton
-                    draftId={draft.id}
-                    disabled={draft.status !== "approved"}
-                    disabledReason={
-                      draft.status === "approved"
-                        ? undefined
-                        : "Approve for Export before downloading."
-                    }
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleDeleteDraft(draft)}
-                    disabled={deletingId === draft.id}
-                    className={destructiveButtonClassName}
-                  >
-                    {deletingId === draft.id ? "Deleting…" : "Delete"}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="font-medium text-slate-900">{display.primaryLabel}</p>
+                      <p className="text-xs text-slate-500">{display.timestampLabel}</p>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{display.secondaryLabel}</p>
+                    <div className="mt-3 flex flex-wrap items-end gap-2">
+                      <Link
+                        href={`/resume-preview/${draft.id}`}
+                        className={`inline-flex ${secondaryButtonClassName}`}
+                      >
+                        Open package
+                      </Link>
+                      <DownloadResumeDocxButton
+                        draftId={draft.id}
+                        disabled={draft.status !== "approved"}
+                        disabledReason={
+                          draft.status === "approved"
+                            ? undefined
+                            : "Approve for Export before downloading."
+                        }
+                      />
+                      <DownloadResumePdfButton
+                        draftId={draft.id}
+                        disabled={draft.status !== "approved"}
+                        disabledReason={
+                          draft.status === "approved"
+                            ? undefined
+                            : "Approve for Export before downloading."
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteDraft(draft)}
+                        disabled={deletingId === draft.id}
+                        className={destructiveButtonClassName}
+                      >
+                        {deletingId === draft.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
       )}
     </SetupCard>
   );

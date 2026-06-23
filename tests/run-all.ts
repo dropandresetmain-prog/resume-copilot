@@ -47,6 +47,7 @@ const SUITES: { name: string; file: string }[] = [
     file: "suites/cover-letter-pdf-preview.test.ts",
   },
   { name: "application-package-ux", file: "suites/application-package-ux.test.ts" },
+  { name: "ux-quick-wins", file: "suites/ux-quick-wins.test.ts" },
   { name: "workflow-paper-cuts", file: "suites/workflow-paper-cuts.test.ts" },
   { name: "company-context", file: "suites/company-context.test.ts" },
   { name: "gemini-retry", file: "suites/gemini-retry.test.ts" },

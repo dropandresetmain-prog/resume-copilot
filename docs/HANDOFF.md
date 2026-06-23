@@ -2,18 +2,19 @@
 
 ## Current version
 
-**v0.9.9** (code)
+**v0.9.11A** (code)
 
 ## Latest milestone (code)
 
-**v0.9.9 — Application Review Center**
+**v0.9.11A — UX Quick Wins**
 
-Single application-package dashboard aggregating existing resume, cover letter, company research, export, evidence, and generation signals. No new AI calls or scoring systems.
+Presentation and safe workflow polish from the v0.9.10 audit: unified version labels, persistence alerts on Generate/Records, duplicate approve removal, clearer navigation labels, collapsed layout controls, cover letter unsaved hint, draft delete error UX, Dev Tools removed from main nav.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.11A | UX quick wins — alerts, labels, approve dedup, version sync |
 | v0.9.9 | Application Review Center — export/readiness aggregation on resume preview |
 | v0.9.8H | Gemini model tier selection for resume/cover letter generation |
 | v0.9.8G | Test runner consolidation, docs under `/docs`, scripts cleanup |
@@ -56,7 +57,7 @@ Inventory (Supabase) + JD
 
 1. Summary (company, role, status chips)
 2. Structure repair banner (when auto-repair ran)
-3. Resume — PDF preview, layout sliders, **Approve for Export**, downloads
+3. Resume — PDF preview, collapsed layout sliders, downloads (approve in Application Review above)
 4. Cover letter — **inline body**, Edit / PDF / DOCX
 5. Company research — collapsed by default; summary visible in header
 6. Edit resume content — hidden until toggled (evidence + regenerate)

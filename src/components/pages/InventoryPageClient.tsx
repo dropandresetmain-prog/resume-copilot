@@ -10,8 +10,9 @@ import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
 import { ViewTabs } from "@/components/setup/ui";
-import { inventoryEditsEqual } from "@/lib/inventory/edits";
+import { pageMilestone } from "@/lib/app-version";
 import { createEmptyInventoryEdits, type InventoryEdits } from "@/types/inventory-edits";
+import { inventoryEditsEqual } from "@/lib/inventory/edits";
 
 export function InventoryPageClient() {
   const {
@@ -77,7 +78,7 @@ export function InventoryPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.7.7B · Inventory"
+        milestone={pageMilestone("Inventory")}
         title="Career inventory"
         description="Review collated experience, enrich items, edit bullets on the Edit Bullets tab, and manage approved keywords."
       />

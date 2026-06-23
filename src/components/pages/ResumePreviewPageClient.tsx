@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { pageMilestone } from "@/lib/app-version";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
 import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
-  primaryButtonClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
@@ -439,7 +439,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   return (
     <>
       <PageHeader
-        milestone="v0.9.8B · Application Package"
+        milestone={pageMilestone("Application Package")}
         title="Application package"
         description="Review your resume, cover letter, and company research in one place."
       />
@@ -461,16 +461,16 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
         <SetupCard
           title="Resume"
-          description="Primary artifact — tune layout, approve for export, then download PDF or DOCX."
+          description="Primary artifact — tune layout and download PDF or DOCX. Approve for export from Application Review above."
         >
           <div className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+            <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
                 Layout controls
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              </summary>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <label className="text-sm text-slate-700">
                   Body font ({bodyFontPx}px)
                   <input
@@ -578,7 +578,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                   />
                 </label>
               </div>
-            </div>
+            </details>
 
             {validationFailure ? (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -592,14 +592,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             ) : null}
 
             <div className="flex flex-wrap items-end gap-3" data-section="resume-approve-export">
-              <button
-                type="button"
-                onClick={handleApproveForExport}
-                disabled={isApproving || !canApprove}
-                className={primaryButtonClassName}
-              >
-                {approveButtonLabel}
-              </button>
               <DownloadResumePdfButton
                 draftId={draftId}
                 layoutSettings={currentLayoutSettings}

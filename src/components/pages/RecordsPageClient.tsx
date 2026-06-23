@@ -5,6 +5,8 @@ import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { ApplicationRecordsPanel } from "@/components/setup/ApplicationRecordsPanel";
 import { DraftHistoryPanel } from "@/components/setup/DraftHistoryPanel";
 import { JDInputPanel } from "@/components/setup/JDInputPanel";
+import { SetupAlerts } from "@/components/setup/SetupAlerts";
+import { pageMilestone } from "@/lib/app-version";
 
 export function RecordsPageClient() {
   const {
@@ -12,6 +14,7 @@ export function RecordsPageClient() {
     isSignedIn,
     cloudEnabled,
     signInRequiredReason,
+    persistenceWarning,
     handleSaveJobDescription,
     handleDeleteJobDescription,
     handleClearSavedJobDescriptions,
@@ -20,9 +23,16 @@ export function RecordsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.8.0 · Records"
+        milestone={pageMilestone("Records")}
         title="Records"
         description="Track applications by job, update status and notes, and review saved jobs and draft history."
+      />
+
+      <SetupAlerts
+        persistenceWarning={persistenceWarning}
+        importError={null}
+        failures={[]}
+        warnings={[]}
       />
 
       <JDInputPanel

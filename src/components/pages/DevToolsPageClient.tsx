@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { ProfileContactBackfillPanel } from "@/components/setup/ProfileContactBackfillPanel";
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
+import { pageMilestone } from "@/lib/app-version";
 
 export function DevToolsPageClient() {
   const {
@@ -30,7 +31,7 @@ export function DevToolsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.4.4 · Dev Tools"
+        milestone={pageMilestone("Dev Tools")}
         title="Dev Tools"
         description="Maintenance helpers for developers. These are not part of the normal resume generation flow."
       />

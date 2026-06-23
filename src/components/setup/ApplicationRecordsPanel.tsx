@@ -357,7 +357,7 @@ export function ApplicationRecordsPanel({
                         href={`/resume-preview/${latestDraft.id}`}
                         className={`mt-2 inline-flex ${secondaryButtonClassName}`}
                       >
-                        Generate cover letter
+                        Open package
                       </Link>
                     ) : null}
                   </div>

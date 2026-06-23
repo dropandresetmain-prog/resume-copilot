@@ -10,6 +10,7 @@ import {
   primaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import { pageMilestone } from "@/lib/app-version";
 import {
   getApplicationCommunicationProfileFromCloud,
   saveApplicationCommunicationProfileToCloud,
@@ -78,9 +79,9 @@ export function ProfilePageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.9.0 · Profile"
+        milestone={pageMilestone("Profile")}
         title="Application Communication Profile"
-        description="Paste your positioning, tone preferences, story bank, and writing rules. Used for cover letters and outreach generation. Always refer to yourself as Min Htet in generated output."
+        description="Paste your positioning, tone preferences, story bank, and writing rules. Used for cover letters and outreach generation."
       />
 
       {!isSignedIn && cloudEnabled ? (
@@ -124,6 +125,13 @@ export function ProfilePageClient() {
           </>
         )}
       </SetupCard>
+
+      <p className="text-xs text-slate-500">
+        <Link href="/dev-tools" className="font-medium text-blue-700 underline">
+          Developer tools
+        </Link>{" "}
+        (not shown in main navigation)
+      </p>
     </>
   );
 }

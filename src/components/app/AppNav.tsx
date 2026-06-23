@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { APP_NAV_ITEMS, isAppNavActive } from "@/components/app/nav";
+import { APP_VERSION } from "@/lib/app-version";
 
 export function AppNav() {
   const pathname = usePathname();
@@ -18,7 +19,7 @@ export function AppNav() {
           <Link href="/" className="text-sm font-semibold text-slate-900">
             Career Resume Copilot
           </Link>
-          <p className="text-xs text-slate-500">v0.7.6</p>
+          <p className="text-xs text-slate-500">v{APP_VERSION}</p>
         </div>
         <div className="-mx-1 flex gap-1 overflow-x-auto pb-1">
           {APP_NAV_ITEMS.map((item) => {

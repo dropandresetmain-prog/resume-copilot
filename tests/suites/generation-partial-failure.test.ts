@@ -140,8 +140,8 @@ function main() {
       recordsPanel.includes("formatApplicationArtifactSummary"),
     ],
     [
-      "records page links to generate cover letter when missing",
-      recordsPanel.includes("Generate cover letter"),
+      "records page links to application package when cover letter missing",
+      recordsPanel.includes("Open package"),
     ],
     ["records cover letter missing shows cross", artifactSummary.coverLetterLabel === "✗"],
     ["records resume present shows check", artifactSummary.resumeLabel === "✓"],

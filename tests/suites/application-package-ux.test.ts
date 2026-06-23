@@ -48,6 +48,7 @@ function main() {
     ["browser layout under advanced options", advancedIndex < indexOrInfinity(resumePreview, "Advanced browser layout estimate")],
     ["application review center component", resumePreview.includes("ApplicationReviewCenter")],
     ["review center before approve export section", reviewCenterIndex < approveIndex],
+    ["resume card has no duplicate approve button", !resumePreview.includes("onClick={handleApproveForExport}")],
     ["no open formal cover letter only cta", !resumePreview.includes("ResumeCoverLetterPanel")],
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
     ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],

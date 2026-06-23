@@ -10,6 +10,7 @@ import { ResumeList } from "@/components/setup/ResumeList";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SummaryCards } from "@/components/setup/SummaryCards";
 import { UploadCard } from "@/components/setup/UploadCard";
+import { pageMilestone } from "@/lib/app-version";
 
 export function ManageUploadsPageClient() {
   const {
@@ -33,7 +34,7 @@ export function ManageUploadsPageClient() {
   return (
     <>
       <PageHeader
-        milestone="v0.4.4 · Manage Uploads"
+        milestone={pageMilestone("Manage Uploads")}
         title="Manage Uploads"
         description="Sign in, upload DOCX resumes, and review parsing results. This is the starting point for new users."
       />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
+import { pageMilestone } from "@/lib/app-version";
 import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDraftReviewWorkspace";
 import { secondaryButtonClassName, SetupCard } from "@/components/setup/ui";
 import { getGeneratedResumeDraftFromCloud } from "@/lib/supabase/generated-resume-drafts";
@@ -78,7 +79,7 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
   return (
     <>
       <PageHeader
-        milestone="v0.9.8A · Resume Editor"
+        milestone={pageMilestone("Resume Editor")}
         title="Edit resume details"
         description="Review and edit generated content. Changes save back to this draft. Return to the application package when ready."
       />
