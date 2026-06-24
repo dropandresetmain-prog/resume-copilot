@@ -2,7 +2,33 @@
 
 ## Current version
 
-**v0.9.13D** (code)
+**v0.9.14B** (code)
+
+## v0.9.14B implementation note
+
+Company Website Discovery + Verification: when company website is empty and context is needed, Firecrawl `/v1/search` (same `FIRECRAWL_API_KEY` as scrape) finds candidate homepages; verification scores confidence (high / medium / low) and rejects job boards, social, news, and directories.
+
+**Policy:** High confidence requires homepage verification (SERP-only never auto-high). Medium → user confirmation. Low / no match → JD-only. Confidential → no discovery (UI + API).
+
+**UX:** Explicit “Find company website” only (no Generate preflight). Generate disabled while discovery runs. Cached per composer form state.
+
+**Cost:** 1 Firecrawl search + up to 2 verification scrapes per Find (`MAX_DISCOVERY_VERIFICATION_SCRAPES`).
+
+**Env:** Production requires `FIRECRAWL_API_KEY`; `AI_PROVIDER=mock` discovery fixtures are disabled in production. Mock fixtures only when `NODE_ENV !== "production"`.
+
+## v0.9.14A implementation note
+
+Generate Decision Tree & Context Policy: pre-generation flow from job intake to Generate with automatic, explainable context policy.
+
+**Output mode:** Visible near Generate CTA (default Resume + Cover Letter; Resume only; Cover letter only parked/disabled).
+
+**Context policy:** Confidential/recruitment → JD-only (no Firecrawl, no saved website context). Website provided or high-confidence URL in JD → website + JD. Otherwise → JD-only with clear copy.
+
+**Company source of truth:** Single Company field feeds job metadata, application record, and generation — `companyNameOverride` removed from generate path.
+
+**UI:** Merged advanced surfaces — primary composer (company, role, JD, output, context summary, base resume, CTA); secondary details (job URL, models, website, instructions, saved jobs collapsed).
+
+**Parked:** cover letter-only generation (needs existing tailored resume draft), broad web search discovery, text blob inventory import.
 
 ## v0.9.13D implementation note
 
@@ -136,19 +162,20 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.13B - Post-Generation Save + Edit Workflow Repair**
+**v0.9.14B - Company Website Discovery + Verification**
 
-Clear resume save model, package fix hub, cover letter manual vs AI revision split.
+Firecrawl search discovery, confidence scoring, confirmation UX for medium matches.
 
-## Latest milestone summary (v0.9.13B)
+## Latest milestone summary (v0.9.14B)
 
-Save resume edits (not mark reviewed), package fix actions before export, cover letter manual/AI modes separated.
+Best-effort company website discovery with verification; high auto-use, medium confirm, low JD-only.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
-| v0.9.13B | Post-generation save + edit workflow repair |
+| v0.9.14B | Company website discovery + verification |
+| v0.9.14A | Generate decision tree & context policy |
 | v0.9.13A | Inventory cleanup + bullet control baseline |
 | v0.9.12E | AI call cost guardrails — step estimates, research skip, Gemini call logging |
 | v0.9.12D | Restore Generate company/role primary fields |
@@ -248,6 +275,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.11D — deeper workflow redesign candidates** are parked for approval: post-generation review/edit/export flow consolidation, stronger package tabs or stepper, dedicated resume edit command model, cover letter revision hierarchy, Applications spine restructure, Inventory IA redesign, and Cover Letter hierarchy demotion.
+**v0.9.14B+ candidates** (parked for approval): cover letter-only generate path, post-generation workflow consolidation, Inventory CRUD, text blob inventory import.
 
 Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

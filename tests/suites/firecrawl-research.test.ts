@@ -22,6 +22,10 @@ import {
   normalizeCompanyWebsiteUrl,
   resolveCompanyWebsiteForResearch,
 } from "../../src/lib/firecrawl/url";
+import {
+  MAX_DISCOVERY_VERIFICATION_SCRAPES,
+  DISCOVERY_COST_NOTE,
+} from "../../src/lib/company-context/discover-company-website";
 import { createJobDescriptionFromInput } from "../../src/lib/jd/persistence";
 
 async function main() {
@@ -118,6 +122,17 @@ async function main() {
     ["editor uses refresh terminology", editorPanel.includes("Refresh research")],
     ["editor collapsed optional panel", editorPanel.includes("<details")],
     ["mock without scrape is jd-based", generateMockCompanyContext({ jobDescriptionText: job.rawText, companyName: "Acme" }).sourceType === "jd_based_context"],
+    ["firecrawl search module exists", readFileSync(join(process.cwd(), "src/lib/firecrawl/search-company-website.ts"), "utf8").includes("searchWebWithFirecrawl")],
+    ["discovery rejects social urls", readFileSync(join(process.cwd(), "src/lib/firecrawl/url.ts"), "utf8").includes("isRejectedDiscoveryUrl")],
+    ["discovery scrape cap exported", MAX_DISCOVERY_VERIFICATION_SCRAPES === 2],
+    ["discovery cost note mentions scrape cap", DISCOVERY_COST_NOTE.includes("up to 2 verification scrapes")],
+    [
+      "discover api requires bearer auth",
+      readFileSync(
+        join(process.cwd(), "src/app/api/company/discover-website/route.ts"),
+        "utf8",
+      ).includes("getAccessTokenFromRequest"),
+    ],
   ];
 
   for (const [name, ok] of checks) {

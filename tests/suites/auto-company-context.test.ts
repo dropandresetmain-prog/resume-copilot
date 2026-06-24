@@ -6,8 +6,9 @@ import {
   COMPANY_RESEARCH_AUTO_FAIL_WARNING,
   ensureCompanyContextForGeneration,
 } from "../../src/lib/company-context/ensure-for-generation";
-import { hasUsableCompanyContext } from "../../src/lib/company-context/normalize";
+import { hasUsableCompanyContext, savedWebsiteContextMatchesTarget } from "../../src/lib/company-context/normalize";
 import { planCompanyResearchForGeneration } from "../../src/lib/company-context/research-plan";
+import { resolveGenerateContextPolicy } from "../../src/lib/generate/context-policy";
 import {
   formatCompanyResearchStatusLabel,
   resolveCompanyResearchDisplayStatus,
@@ -52,6 +53,40 @@ async function main() {
     companyWebsite: "https://pavebank.com",
   });
 
+  const staleSaved = await ensureCompanyContextForGeneration({
+    applicationId: "app-1b",
+    savedContext: saved,
+    job,
+    autoGenerate: false,
+    companyWebsite: "https://otherbank.com",
+    allowSavedWebsiteContext: true,
+    runWebsiteResearch: false,
+  });
+
+  const jdOnlyBlocked = await ensureCompanyContextForGeneration({
+    applicationId: "app-2",
+    savedContext: saved,
+    job,
+    autoGenerate: true,
+    companyWebsite: "https://pavebank.com",
+    allowSavedWebsiteContext: false,
+    runWebsiteResearch: false,
+  });
+  void jdOnlyBlocked;
+
+  const websitePolicy = resolveGenerateContextPolicy({
+    confidentialPosting: false,
+    companyWebsiteInput: "https://pavebank.com",
+    outputMode: "resume_and_cover_letter",
+    jobDescriptionText: job.rawText,
+  });
+  const confidentialPolicy = resolveGenerateContextPolicy({
+    confidentialPosting: true,
+    companyWebsiteInput: "https://pavebank.com",
+    outputMode: "resume_and_cover_letter",
+    jobDescriptionText: job.rawText,
+  });
+
   const generateSection = readFileSync(
     join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
     "utf8",
@@ -67,14 +102,39 @@ async function main() {
     "utf8",
   );
 
+  const ensureTs = readFileSync(
+    join(process.cwd(), "src/lib/company-context/ensure-for-generation.ts"),
+    "utf8",
+  );
+
   const checks: [string, boolean][] = [
-    ["saved website research reused", reused.status === "saved" && reused.companyContext === saved],
+    ["saved website research reused when domain matches", reused.status === "saved" && reused.companyContext === saved],
     [
-      "jd-only saved does not block when website provided",
+      "saved website not reused when domain differs",
+      staleSaved.status !== "saved" || staleSaved.companyContext !== saved,
+    ],
+    [
+      "saved context match helper",
+      savedWebsiteContextMatchesTarget(saved, "https://www.pavebank.com") &&
+        !savedWebsiteContextMatchesTarget(saved, "https://otherbank.com"),
+    ],
+    [
+      "jd only policy does not reuse saved website context",
+      planCompanyResearchForGeneration({
+        savedContext: saved,
+        policy: confidentialPolicy,
+      }) !== "use_saved_website" &&
+        ensureTs.includes("savedWebsiteContextMatchesTarget"),
+    ],
+    [
+      "jd only saved plans build jd not saved website",
       planCompanyResearchForGeneration({
         savedContext: jdOnly,
-        companyWebsite: "https://pavebank.com",
-        combinedMode: true,
+        policy: resolveGenerateContextPolicy({
+          confidentialPosting: false,
+          companyWebsiteInput: "https://pavebank.com",
+          outputMode: "resume_and_cover_letter",
+        }),
       }) === "run_firecrawl",
     ],
     ["failure warning mentions JD-based", COMPANY_RESEARCH_AUTO_FAIL_WARNING.includes("JD-based")],
@@ -82,17 +142,25 @@ async function main() {
       "will auto-research when website provided",
       resolveCompanyResearchDisplayStatus({
         savedContext: null,
-        combinedMode: true,
-        companyWebsite: "https://pavebank.com",
+        policy: websitePolicy,
       }) === "will_auto_research",
     ],
     [
       "will jd-only without website",
       resolveCompanyResearchDisplayStatus({
         savedContext: null,
-        combinedMode: true,
-        companyWebsite: "",
+        policy: resolveGenerateContextPolicy({
+          confidentialPosting: false,
+          outputMode: "resume_and_cover_letter",
+        }),
       }) === "will_jd_only",
+    ],
+    [
+      "confidential display status",
+      resolveCompanyResearchDisplayStatus({
+        savedContext: null,
+        policy: confidentialPolicy,
+      }) === "confidential_jd_only",
     ],
     [
       "website saved label",
@@ -121,6 +189,7 @@ async function main() {
     ],
     ["research only scrapes with explicit website", research.includes("resolveCompanyWebsiteForResearch")],
     ["saved research is usable", hasUsableCompanyContext(saved)],
+    ["no company name override in generate section", !generateSection.includes("companyNameOverride")],
   ];
 
   for (const [name, ok] of checks) {

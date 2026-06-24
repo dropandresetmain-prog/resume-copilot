@@ -7,11 +7,9 @@ import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 export type CoverLetterFieldInput = {
-  companyNameOverride?: string;
   country?: string;
   companyWebsite?: string;
   additionalInstructions?: string;
-  jobFormCompanyName?: string;
 };
 
 export function buildCoverLetterGenerationOptions(input: {
@@ -34,7 +32,6 @@ export function buildCoverLetterGenerationOptions(input: {
     applicationId: input.applicationId,
     savedCompanyContext: input.savedCompanyContext,
     companyName: resolveCompanyNameForGeneration({
-      override: input.fields.companyNameOverride || input.fields.jobFormCompanyName,
       jobCompanyName: input.job.companyName,
       jobDescriptionText: input.job.rawText,
     }),
@@ -46,14 +43,12 @@ export function buildCoverLetterGenerationOptions(input: {
 }
 
 export function readCoverLetterFieldsFromJobForm(
-  jobForm: JobDescriptionInput,
+  _jobForm: JobDescriptionInput,
   overrides: CoverLetterFieldInput,
 ): CoverLetterFieldInput {
   return {
-    companyNameOverride: overrides.companyNameOverride,
     country: overrides.country ?? "Singapore",
     companyWebsite: overrides.companyWebsite,
     additionalInstructions: overrides.additionalInstructions,
-    jobFormCompanyName: jobForm.companyName,
   };
 }

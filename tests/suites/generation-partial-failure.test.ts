@@ -65,7 +65,6 @@ function main() {
     applicationId: "app-1",
     fields: {
       country: "Singapore",
-      jobFormCompanyName: "Pave Bank",
     },
   });
 

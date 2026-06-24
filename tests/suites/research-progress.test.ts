@@ -10,7 +10,8 @@ import {
   researchProgressLabelAfterEnsure,
   researchProgressLabelForPlan,
 } from "../../src/lib/company-context/research-plan";
-import { hasWebsiteBackedResearch } from "../../src/lib/company-context/normalize";
+import { hasWebsiteBackedResearch, savedWebsiteContextMatchesTarget } from "../../src/lib/company-context/normalize";
+import { resolveGenerateContextPolicy } from "../../src/lib/generate/context-policy";
 import { generationProgressPercent } from "../../src/lib/generate/generation-progress";
 
 async function main() {
@@ -36,6 +37,26 @@ async function main() {
     jobDescriptionText: "Product Manager role.",
   });
 
+  const websitePolicy = resolveGenerateContextPolicy({
+    confidentialPosting: false,
+    companyWebsiteInput: "https://acme.com",
+    outputMode: "resume_and_cover_letter",
+  });
+  const jdOnlyPolicy = resolveGenerateContextPolicy({
+    confidentialPosting: false,
+    outputMode: "resume_and_cover_letter",
+  });
+  const confidentialPolicy = resolveGenerateContextPolicy({
+    confidentialPosting: true,
+    companyWebsiteInput: "https://acme.com",
+    outputMode: "resume_and_cover_letter",
+  });
+  const resumeOnlyPolicy = resolveGenerateContextPolicy({
+    confidentialPosting: false,
+    companyWebsiteInput: "https://acme.com",
+    outputMode: "resume_only",
+  });
+
   const combinedStages = buildCombinedProgressStages("Researching company website");
   const combinedIndices = getGenerationStageIndices(true);
   const resumeOnlyIndices = getGenerationStageIndices(false);
@@ -45,63 +66,83 @@ async function main() {
       "combined mode plans firecrawl when website and no website-backed research",
       planCompanyResearchForGeneration({
         savedContext: null,
-        companyWebsite: "https://acme.com",
-        combinedMode: true,
+        policy: websitePolicy,
       }) === "run_firecrawl",
     ],
     [
-      "saved website-backed research skips firecrawl",
+      "saved website-backed research skips firecrawl when domain matches",
       planCompanyResearchForGeneration({
         savedContext: {
           ...jdOnly,
           sourceType: "website_research",
+          website: "https://acme.com",
           sources: [{ type: "firecrawl", url: "https://acme.com", success: true }],
         },
-        companyWebsite: "https://acme.com",
-        combinedMode: true,
+        policy: websitePolicy,
       }) === "use_saved_website",
+    ],
+    [
+      "saved website-backed research reruns when domain differs",
+      planCompanyResearchForGeneration({
+        savedContext: {
+          ...jdOnly,
+          sourceType: "website_research",
+          website: "https://oldco.com",
+          sources: [{ type: "firecrawl", url: "https://oldco.com", success: true }],
+        },
+        policy: websitePolicy,
+      }) === "run_firecrawl" &&
+        !savedWebsiteContextMatchesTarget(
+          {
+            ...jdOnly,
+            sourceType: "website_research",
+            website: "https://oldco.com",
+            sources: [{ type: "firecrawl", url: "https://oldco.com", success: true }],
+          },
+          websitePolicy.effectiveWebsite,
+        ),
     ],
     [
       "no website skips firecrawl",
       planCompanyResearchForGeneration({
         savedContext: null,
-        companyWebsite: "",
-        combinedMode: true,
+        policy: jdOnlyPolicy,
       }) === "build_jd",
     ],
     [
-      "skip website research plans jd path even with website",
+      "confidential policy plans jd path even with website",
       planCompanyResearchForGeneration({
         savedContext: null,
-        companyWebsite: "https://acme.com",
-        combinedMode: true,
-        skipWebsiteResearch: true,
+        policy: confidentialPolicy,
       }) === "build_jd",
     ],
     [
-      "skip website research uses saved jd context when present",
+      "confidential policy uses saved jd context when present",
       planCompanyResearchForGeneration({
         savedContext: jdOnly,
-        companyWebsite: "https://acme.com",
-        combinedMode: true,
-        skipWebsiteResearch: true,
+        policy: confidentialPolicy,
       }) === "use_saved_jd",
     ],
     [
       "jd-only saved with website still plans firecrawl",
       planCompanyResearchForGeneration({
         savedContext: jdOnly,
-        companyWebsite: "https://acme.com",
-        combinedMode: true,
+        policy: websitePolicy,
       }) === "run_firecrawl",
     ],
     [
       "jd-only saved without website uses saved jd",
       planCompanyResearchForGeneration({
         savedContext: jdOnly,
-        companyWebsite: "",
-        combinedMode: true,
+        policy: jdOnlyPolicy,
       }) === "use_saved_jd",
+    ],
+    [
+      "resume only skips company research plan",
+      planCompanyResearchForGeneration({
+        savedContext: null,
+        policy: resumeOnlyPolicy,
+      }) === "skip",
     ],
     [
       "research progress label for firecrawl plan",
@@ -130,13 +171,12 @@ async function main() {
         generationProgressPercent(combinedStages.length - 1, combinedStages.length),
     ],
     [
-      "ensure supports skip website research",
-      ensureTs.includes("skipWebsiteResearch"),
+      "ensure supports allow saved website flag",
+      ensureTs.includes("allowSavedWebsiteContext"),
     ],
     [
-      "ensure only reuses website-backed early",
-      ensureTs.includes("hasWebsiteBackedResearch(input.savedContext)") &&
-        !ensureTs.includes("if (hasUsableCompanyContext(input.savedContext)) {\n    return"),
+      "ensure only reuses website-backed when domain matches",
+      ensureTs.includes("savedWebsiteContextMatchesTarget"),
     ],
     ["generate section passes dynamic stages", generateSection.includes("stages={progressStages}")],
     [

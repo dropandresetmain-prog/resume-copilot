@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.13D"')],
-    ["package json version", packageJson.includes('"version": "0.9.13D"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.14B"')],
+    ["package json version", packageJson.includes('"version": "0.9.14B"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -93,15 +93,11 @@ function main() {
     ["generate shows setup alerts", generate.includes("SetupAlerts") && generate.includes("persistenceWarning")],
     ["generate removes everything in one card banner", !generate.includes("Everything you need is in one card below")],
     [
-      "generate advanced controls hidden under disclosure",
-      generateSection.indexOf("Base resume (formatting template)") <
-        generateSection.indexOf("Show advanced options") &&
-        generateSection.indexOf("Show advanced options") <
-          generateSection.indexOf("Generation mode") &&
-        generateSection.indexOf("Show advanced options") <
-          generateSection.indexOf("Resume model") &&
-        generateSection.indexOf("Show advanced options") <
-          generateSection.indexOf("Company website"),
+      "generate secondary options hidden under disclosure",
+      generateSection.includes("More options (optional)") &&
+        generateSection.includes('label="Cover letter model"') &&
+        generateSection.indexOf("More options (optional)") <
+          generateSection.indexOf('label="Cover letter model"'),
     ],
     [
       "uploads merged parsed and cloud list",
@@ -151,10 +147,10 @@ function main() {
         !generateSection.includes("Primary action"),
     ],
     [
-      "recruitment firm checkbox ui only",
+      "recruitment firm checkbox wired",
       jdPanel.includes("Recruitment firm / confidential client posting") &&
-        jdPanel.includes("Coming soon") &&
-        jdPanel.includes("disabled"),
+        jdPanel.includes("confidentialPosting") &&
+        jdPanel.includes("Use JD-only context. No website research or saved website context."),
     ],
     [
       "saved jobs default limit with show more",
@@ -227,6 +223,14 @@ function main() {
       handoff.includes("v0.9.13D") && roadmap.includes("v0.9.13D"),
     ],
     [
+      "v0.9.14A documented",
+      handoff.includes("v0.9.14A") && roadmap.includes("v0.9.14A"),
+    ],
+    [
+      "v0.9.14B documented",
+      handoff.includes("v0.9.14B") && roadmap.includes("v0.9.14B"),
+    ],
+    [
       "mobile nav no horizontal scroll",
       appNav.includes("grid-cols-5") && !appNav.includes("overflow-x-auto"),
     ],
@@ -239,8 +243,8 @@ function main() {
       generateSection.includes("generate-readiness-strip") && generateSection.includes("Readiness"),
     ],
     [
-      "generate advanced options collapsible",
-      jdPanel.includes("Advanced options (optional)") && jdPanel.includes("Job URL"),
+      "generate secondary job details collapsible",
+      jdPanel.includes("More job details (optional)") && jdPanel.includes("Job URL"),
     ],
     [
       "generate company role before jd textarea",
@@ -253,9 +257,9 @@ function main() {
         const afterJd = jdPanel.split('id="jd-raw-text"')[1] ?? "";
         return (
           afterJd.includes("GenerateTailoredResumeSection") &&
-          afterJd.includes("Advanced options (optional)") &&
+          afterJd.includes("More job details (optional)") &&
           afterJd.indexOf("GenerateTailoredResumeSection") <
-            afterJd.indexOf("Advanced options (optional)")
+            afterJd.indexOf("More job details (optional)")
         );
       })(),
     ],

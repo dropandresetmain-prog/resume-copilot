@@ -92,9 +92,7 @@ export function ApplicationPackageCoverLetterPanel({
           job,
           resumeDraft: draft,
           applicationId: draft.applicationId,
-          fields: {
-            jobFormCompanyName: job.companyName,
-          },
+          fields: {},
         }),
       );
       setCoverLetter(record);

@@ -12,16 +12,14 @@ import type { CompanyContext } from "@/types/company-context";
 
 type CompanyResearchCompactStatusProps = {
   editingJobId?: string | null;
-  combinedMode: boolean;
-  companyWebsite: string;
+  policy: import("@/lib/generate/context-policy").GenerateContextPolicy;
   lastEnsureStatus?: CompanyContextEnsureStatus;
   generationWarning?: string | null;
 };
 
 export function CompanyResearchCompactStatus({
   editingJobId,
-  combinedMode,
-  companyWebsite,
+  policy,
   lastEnsureStatus,
   generationWarning,
 }: CompanyResearchCompactStatusProps) {
@@ -54,15 +52,14 @@ export function CompanyResearchCompactStatus({
 
   const effectiveSavedContext = editingJobId ? savedContext : null;
 
-  if (!combinedMode) {
+  if (!policy.needsCompanyContext) {
     return null;
   }
 
   const status = resolveCompanyResearchDisplayStatus({
     savedContext: effectiveSavedContext,
     lastEnsureStatus,
-    combinedMode,
-    companyWebsite,
+    policy,
     hadResearchWarning: Boolean(generationWarning),
   });
 

@@ -3,6 +3,7 @@ import {
   hasWebsiteBackedResearch,
 } from "@/lib/company-context/normalize";
 import { planCompanyResearchForGeneration } from "@/lib/company-context/research-plan";
+import type { GenerateContextPolicy } from "@/lib/generate/context-policy";
 import type { CompanyContext } from "@/types/company-context";
 import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-for-generation";
 
@@ -11,18 +12,31 @@ export type CompanyResearchDisplayStatus =
   | "jd_saved"
   | "will_auto_research"
   | "will_jd_only"
+  | "confidential_jd_only"
   | "research_failed"
   | "unavailable";
 
 export function resolveCompanyResearchDisplayStatus(options: {
   savedContext?: CompanyContext | null;
   lastEnsureStatus?: CompanyContextEnsureStatus;
-  combinedMode: boolean;
-  companyWebsite?: string;
+  policy: GenerateContextPolicy;
   hadResearchWarning?: boolean;
 }): CompanyResearchDisplayStatus {
-  if (!options.combinedMode) {
+  if (!options.policy.needsCompanyContext) {
     return "unavailable";
+  }
+
+  if (options.policy.kind === "jd_only" && !options.policy.allowSavedWebsiteContext) {
+    if (
+      hasUsableCompanyContext(options.savedContext) &&
+      !hasWebsiteBackedResearch(options.savedContext)
+    ) {
+      return "jd_saved";
+    }
+    if (options.policy.summaryDetail.includes("Confidential")) {
+      return "confidential_jd_only";
+    }
+    return "will_jd_only";
   }
 
   if (hasWebsiteBackedResearch(options.savedContext)) {
@@ -31,8 +45,7 @@ export function resolveCompanyResearchDisplayStatus(options: {
 
   const plan = planCompanyResearchForGeneration({
     savedContext: options.savedContext,
-    companyWebsite: options.companyWebsite,
-    combinedMode: true,
+    policy: options.policy,
   });
 
   if (
@@ -58,11 +71,13 @@ export function formatCompanyResearchStatusLabel(status: CompanyResearchDisplayS
     case "website_saved":
       return "Company research: website-backed research saved";
     case "jd_saved":
-      return "Company research: JD-based fallback only";
+      return "Company research: JD-based context saved";
     case "will_auto_research":
       return "Company research: will run automatically";
     case "will_jd_only":
-      return "Company research: JD-based fallback only";
+      return "Company research: JD-based context only";
+    case "confidential_jd_only":
+      return "Company research: JD-only (confidential posting)";
     case "research_failed":
       return "Company research: failed last time; will retry if website is provided";
     case "unavailable":

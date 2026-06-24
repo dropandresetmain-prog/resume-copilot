@@ -102,6 +102,7 @@ export function JDInputPanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showAllSavedJobs, setShowAllSavedJobs] = useState(false);
+  const [confidentialPosting, setConfidentialPosting] = useState(false);
   const companyTouchedRef = useRef(false);
   const roleTouchedRef = useRef(false);
 
@@ -196,6 +197,7 @@ export function JDInputPanel({
     setSaveError(null);
     companyTouchedRef.current = false;
     roleTouchedRef.current = false;
+    setConfidentialPosting(false);
   }
 
   function handleEdit(jd: StoredJobDescription) {
@@ -365,15 +367,16 @@ export function JDInputPanel({
                 <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
                   <input
                     type="checkbox"
-                    disabled
+                    checked={confidentialPosting}
+                    onChange={(event) => setConfidentialPosting(event.target.checked)}
+                    disabled={disabled}
                     aria-describedby="recruitment-firm-hint"
                     className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
                   />
                   <span className="text-sm text-slate-600">
                     Recruitment firm / confidential client posting
                     <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
-                      Coming soon — when enabled, will use JD-only context and skip website
-                      research. Does not change generation today.
+                      Use JD-only context. No website research or saved website context.
                     </span>
                   </span>
                 </label>
@@ -420,6 +423,7 @@ export function JDInputPanel({
                 editingJobId={editingId}
                 isSignedIn={generateFlow.isSignedIn}
                 disabled={disabled}
+                confidentialPosting={confidentialPosting}
                 onSaveJob={generateFlow.onSaveJob}
                 onGenerationFinished={generateFlow.onGenerationFinished}
               />
@@ -427,7 +431,7 @@ export function JDInputPanel({
               <details className="rounded-lg border border-slate-200">
                 <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
                   <span className="flex items-center justify-between gap-2">
-                    <span>Advanced options (optional)</span>
+                    <span>More job details (optional)</span>
                     <span className="text-xs font-normal text-slate-400">Job URL</span>
                   </span>
                 </summary>

@@ -1,4 +1,8 @@
 import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
+import {
+  extractWebsiteHostname,
+  normalizeCompanyWebsiteUrl,
+} from "@/lib/firecrawl/url";
 import type {
   CompanyContext,
   CompanyNarrativeAngle,
@@ -173,6 +177,46 @@ export function hasWebsiteBackedResearch(
     return false;
   }
   return Boolean(context.sources?.some((source) => source.type === "firecrawl" && source.success));
+}
+
+export function resolveSavedContextWebsite(
+  context: CompanyContext | null | undefined,
+): string | null {
+  if (!context) {
+    return null;
+  }
+
+  const fromField = normalizeCompanyWebsiteUrl(context.website);
+  if (fromField) {
+    return fromField;
+  }
+
+  const firecrawlSource = context.sources?.find(
+    (source) => source.type === "firecrawl" && source.success && source.url,
+  );
+  return firecrawlSource?.url
+    ? normalizeCompanyWebsiteUrl(firecrawlSource.url)
+    : null;
+}
+
+/** True when saved website-backed research targets the same domain as the effective website. */
+export function savedWebsiteContextMatchesTarget(
+  context: CompanyContext | null | undefined,
+  targetWebsite: string | undefined | null,
+): boolean {
+  if (!hasWebsiteBackedResearch(context)) {
+    return false;
+  }
+
+  const savedWebsite = resolveSavedContextWebsite(context);
+  const normalizedTarget = normalizeCompanyWebsiteUrl(targetWebsite);
+  if (!savedWebsite || !normalizedTarget) {
+    return false;
+  }
+
+  const savedHost = extractWebsiteHostname(savedWebsite);
+  const targetHost = extractWebsiteHostname(normalizedTarget);
+  return Boolean(savedHost && targetHost && savedHost === targetHost);
 }
 
 export function formatCompanyContextForPrompt(context: CompanyContext): string {

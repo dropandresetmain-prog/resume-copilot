@@ -28,12 +28,11 @@ type CompanyContextEditorPanelProps = {
   jobForm: JobDescriptionInput;
   jobDescriptions: StoredJobDescription[];
   editingJobId?: string | null;
-  companyNameOverride: string;
   country: string;
   companyWebsite: string;
   additionalInstructions: string;
   onSaveJob: SaveJobForGenerationHandler;
-  combinedMode: boolean;
+  policy: import("@/lib/generate/context-policy").GenerateContextPolicy;
   lastEnsureStatus?: CompanyContextEnsureStatus;
   onSaved?: () => void;
 };
@@ -42,12 +41,11 @@ export function CompanyContextEditorPanel({
   jobForm,
   jobDescriptions,
   editingJobId = null,
-  companyNameOverride,
   country,
   companyWebsite,
   additionalInstructions,
   onSaveJob,
-  combinedMode,
+  policy,
   lastEnsureStatus,
   onSaved,
 }: CompanyContextEditorPanelProps) {
@@ -92,7 +90,7 @@ export function CompanyContextEditorPanel({
     };
   }, [editingJobId, lastEnsureStatus]);
 
-  if (!combinedMode) {
+  if (!policy.needsCompanyContext) {
     return null;
   }
 
@@ -115,7 +113,7 @@ export function CompanyContextEditorPanel({
       setError("Paste a job description before refreshing company research.");
       return;
     }
-    if (!companyNameOverride.trim() && !jobForm.companyName?.trim()) {
+    if (!jobForm.companyName?.trim()) {
       setError("Company name is required for company research.");
       return;
     }
@@ -134,7 +132,7 @@ export function CompanyContextEditorPanel({
         buildCompanyContextGenerationRequest({
           jobDescriptionId: job.id,
           jobDescriptionText: job.rawText,
-          companyName: companyNameOverride || jobForm.companyName || job.companyName || "",
+          companyName: jobForm.companyName || job.companyName || "",
           country,
           website: companyWebsite,
           roleTitle: jobForm.roleTitle || job.roleTitle,
@@ -229,8 +227,9 @@ export function CompanyContextEditorPanel({
       </summary>
       <div className="space-y-4 border-t border-slate-200 p-4">
         <p className="text-xs text-slate-600">
-          Research runs automatically during combined generation when a company website is
-          provided. Use this panel to preview, edit, refresh, or clear saved research.
+          Research runs automatically during generation when context policy uses a company
+          website. Use this panel to preview, edit, refresh, or clear saved research.
+          {policy.kind === "jd_only" ? " Current policy is JD-only — refresh is disabled." : ""}
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -244,7 +243,13 @@ export function CompanyContextEditorPanel({
           <button
             type="button"
             onClick={() => void handleRefreshResearch()}
-            disabled={isResearching || isSaving || isClearing}
+            disabled={
+              isResearching ||
+              isSaving ||
+              isClearing ||
+              policy.kind === "jd_only" ||
+              !companyWebsite.trim()
+            }
             className={secondaryButtonClassName}
           >
             {isResearching ? "Refreshing research…" : "Refresh research"}

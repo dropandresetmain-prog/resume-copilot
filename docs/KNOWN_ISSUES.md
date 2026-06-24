@@ -34,11 +34,24 @@
 - DOCX uses Gill Sans MT; Word may substitute.
 - Not pixel-identical to PDF.
 
-## Generate flow (v0.7.2+)
+## Generate flow (v0.9.14B+)
 
-- **Generate page:** Paste JD → select base resume → **Generate** (resume only or combined). Job saves automatically.
+- **Website discovery:** When company website is empty and cover letter context is needed, click **Find company website** (Firecrawl search — billable, requires `FIRECRAWL_API_KEY`). High-confidence matches use website + JD automatically; medium requires confirmation; low/none stays JD-only.
+- **Confidential/recruitment** skips discovery entirely.
+
+## Generate flow (v0.9.14A)
+
+- **Generate page:** Company + Role → JD → output mode → context policy summary → base resume → **Generate**. Job saves automatically.
+- **Output mode** visible near CTA: Resume + Cover Letter (default), Resume only. Cover letter only parked (requires existing tailored resume draft).
+- **Context policy** is automatic: confidential posting → JD-only; company website (provided or URL in JD) → website + JD; else JD-only. JD-only never reuses saved website-backed context.
+- **Confidential/recruitment checkbox** forces JD-only — no Firecrawl, no saved website context reuse.
 - **Base resume** = formatting/reference template only; content from inventory.
 - Last-used base resume in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`).
+- **Parked:** cover letter-only generate path, broad web search company discovery, text blob inventory import.
+
+## Generate flow (legacy v0.7.2–v0.9.13D)
+
+- Superseded by v0.9.14A decision tree above.
 
 ## Application workflow (v0.8.0+)
 
@@ -67,15 +80,27 @@
 - **Export** blocked when over word limit or banned phrases (client + server).
 - Hostname-derived brand may be `Shelfperfect` vs marketing `ShelfPerfect` without saved research `displayName`.
 
-## Company research (v0.9.5–v0.9.6)
+## Company research (v0.9.14B+)
+
+- **Discovery search** uses Firecrawl `POST /v1/search` (same `FIRECRAWL_API_KEY` as scrape). Runs only on explicit **Find company website** — not on Generate.
+- **Cost cap:** 1 search + up to 2 homepage verification scrapes per Find.
+- **Verification** rejects job boards, ATS, social, news, directories; high confidence requires homepage scrape (SERP metadata alone caps at medium).
+- **Saved website context** is reused only when the saved domain matches the effective website; mismatches trigger fresh research.
+- **API:** `/api/company/discover-website` requires signed-in Bearer token; confidential/JD-only flags rejected server-side.
+- **Mock provider** (`AI_PROVIDER=mock`) discovery fixtures only when `NODE_ENV !== "production"` and Firecrawl key is absent.
+- **Production:** set `FIRECRAWL_API_KEY`; do not use `AI_PROVIDER=mock`.
+
+## Company research (v0.9.14A+)
 
 - **Firecrawl** is server-side only — requires `FIRECRAWL_API_KEY`.
-- **Automatic in combined flow** when website provided and no website-backed research saved.
-- **JD-only saved context** does not block Firecrawl when user later adds a website.
-- **Job posting URLs** are not scraped as company homepages.
+- **Automatic** when context policy is website + JD and no website-backed research saved.
+- **JD-only policy** (no website, or confidential mode) does not reuse saved website-backed context; may build fresh JD-based context for cover letter.
+- **Job posting URLs** are not scraped as company homepages; explicit company URLs in JD may be extracted conservatively.
 - **Scrape failure** falls back to JD-based context; does not block resume generation.
-- **Manual research panel** optional (collapsed Advanced on Generate; expandable on package page).
-- **Parked:** Tavily/Serper/Perplexity; reuse research across roles at same company.
+- **Manual research panel** optional (collapsed under More options on Generate).
+- **Parked:** Tavily/Serper/Perplexity broad discovery; reuse research across roles at same company.
+
+## Company research (v0.9.5–v0.9.13D)
 
 ## Company context (v0.9.3–v0.9.4)
 

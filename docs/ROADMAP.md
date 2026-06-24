@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.13D**
+**v0.9.14B**
 
 ## Completed capabilities
 
@@ -41,8 +41,26 @@
 | Post-generation save + edit workflow repair | v0.9.13B |
 | Package review workspace decision tree | v0.9.13C |
 | Fit summary signal upgrade | v0.9.13D |
+| Generate decision tree & context policy | v0.9.14A |
+| Company website discovery + verification | v0.9.14B |
 
 ## Milestone log (recent)
+
+### v0.9.14B - Company Website Discovery + Verification
+
+- Firecrawl `/v1/search` for company website discovery (same API key as scrape).
+- Candidate verification: domain/title/homepage/JD overlap scoring; rejects job boards, social, news, directories.
+- High → auto website + JD; medium → confirm; low/none → JD-only; confidential → no discovery.
+- Generate UI: Find website button, confidence actions, billable search note.
+
+### v0.9.14A - Generate Decision Tree & Context Policy
+
+- Visible output mode (default resume + cover letter) near Generate CTA.
+- Automatic context policy: confidential → JD-only; website provided/discovered → website + JD; else JD-only.
+- Single company name source of truth on Generate; confidential checkbox wired.
+- JD-only never reuses saved website-backed context.
+- Conservative URL extraction from JD (no broad web search).
+- **Parked:** cover letter-only path, broad web discovery, text blob inventory import.
 
 ### v0.9.13D - Fit Summary Signal Upgrade
 

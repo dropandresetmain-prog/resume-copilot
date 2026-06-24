@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { GenerationProgressPanel } from "@/components/setup/GenerationProgressPanel";
+import {
+  CompanyWebsiteDiscoveryPanel,
+  focusCompanyWebsiteField,
+} from "@/components/setup/CompanyWebsiteDiscoveryPanel";
 import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
@@ -12,9 +16,20 @@ import {
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
-  secondaryActionGroupClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
+import {
+  formatContextPolicyWebsiteLine,
+  resolveGenerateContextPolicy,
+  canGenerateWithDiscoveryPolicy,
+  type GenerateOutputMode,
+} from "@/lib/generate/context-policy";
+import {
+  buildWebsiteDiscoveryCacheKey,
+  shouldOfferWebsiteDiscovery,
+  type CompanyWebsiteDiscoveryResult,
+} from "@/lib/company-context/discover-company-website";
+import { requestCompanyWebsiteDiscovery } from "@/lib/company-context/discover-client";
 import { estimateGenerateAiSteps } from "@/lib/generate/ai-call-budget";
 import {
   readLastBaseResumeId,
@@ -57,6 +72,7 @@ import {
   ensureCompanyContextForGeneration,
   type CompanyContextEnsureStatus,
 } from "@/lib/company-context/ensure-for-generation";
+import { hasWebsiteBackedResearch } from "@/lib/company-context/normalize";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
 import {
   fetchResumeDraftProviderStatus,
@@ -83,11 +99,10 @@ type GenerateTailoredResumeSectionProps = {
   editingJobId?: string | null;
   isSignedIn: boolean;
   disabled?: boolean;
+  confidentialPosting?: boolean;
   onSaveJob: SaveJobForGenerationHandler;
   onGenerationFinished?: () => void;
 };
-
-type GenerateMode = "resume_only" | "resume_and_cover_letter";
 
 type PartialCoverLetterFailure = {
   resumeDraft: GeneratedResumeDraftRecord;
@@ -111,6 +126,7 @@ export function GenerateTailoredResumeSection({
   editingJobId = null,
   isSignedIn,
   disabled = false,
+  confidentialPosting = false,
   onSaveJob,
   onGenerationFinished,
 }: GenerateTailoredResumeSectionProps) {
@@ -125,12 +141,11 @@ export function GenerateTailoredResumeSection({
   ]);
   const [error, setError] = useState<string | null>(null);
   const [debugRaw, setDebugRaw] = useState<string | null>(null);
-  const [generateMode, setGenerateMode] = useState<GenerateMode>("resume_and_cover_letter");
-  const [companyNameOverride, setCompanyNameOverride] = useState("");
+  const [generateMode, setGenerateMode] =
+    useState<GenerateOutputMode>("resume_and_cover_letter");
   const [country, setCountry] = useState("Singapore");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [resumeStatus, setResumeStatus] = useState<ArtifactGenerationStatus>("pending");
   const [coverLetterStatus, setCoverLetterStatus] =
     useState<ArtifactGenerationStatus>("pending");
@@ -146,9 +161,128 @@ export function GenerateTailoredResumeSection({
   const [coverLetterModelTier, setCoverLetterModelTier] = useState<ModelTier>(() =>
     readStoredCoverLetterModelTier(),
   );
-  const [skipWebsiteResearch, setSkipWebsiteResearch] = useState(false);
-
+  const [websiteDiscoveryBundle, setWebsiteDiscoveryBundle] = useState<{
+    cacheKey: string;
+    result: CompanyWebsiteDiscoveryResult | null;
+    error: string | null;
+    choice: "auto" | "use_website" | "jd_only";
+  }>({
+    cacheKey: "",
+    result: null,
+    error: null,
+    choice: "auto",
+  });
+  const [isDiscoveringWebsite, setIsDiscoveringWebsite] = useState(false);
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
+
+  const discoveryQueryInput = useMemo(
+    () => ({
+      companyName: jobForm.companyName ?? "",
+      roleTitle: jobForm.roleTitle,
+      country,
+      jobDescriptionText: jobForm.rawText,
+      confidentialPosting,
+      companyWebsiteInput: companyWebsite,
+      outputMode: generateMode,
+    }),
+    [
+      jobForm.companyName,
+      jobForm.roleTitle,
+      jobForm.rawText,
+      country,
+      confidentialPosting,
+      companyWebsite,
+      generateMode,
+    ],
+  );
+
+  const discoveryCacheKey = useMemo(
+    () => buildWebsiteDiscoveryCacheKey(discoveryQueryInput),
+    [discoveryQueryInput],
+  );
+
+  const discoveryState =
+    websiteDiscoveryBundle.cacheKey === discoveryCacheKey
+      ? websiteDiscoveryBundle
+      : {
+          cacheKey: discoveryCacheKey,
+          result: null,
+          error: null,
+          choice: "auto" as const,
+        };
+
+  const discoveryResult = discoveryState.result;
+  const discoveryError = discoveryState.error;
+  const websiteDiscoveryChoice = discoveryState.choice;
+
+  const discoveryInput = useMemo(
+    () => ({
+      ...discoveryQueryInput,
+      forceJdOnly: websiteDiscoveryChoice === "jd_only",
+    }),
+    [discoveryQueryInput, websiteDiscoveryChoice],
+  );
+
+  function updateDiscoveryState(
+    patch: Partial<{
+      result: CompanyWebsiteDiscoveryResult | null;
+      error: string | null;
+      choice: "auto" | "use_website" | "jd_only";
+    }>,
+  ) {
+    setWebsiteDiscoveryBundle((current) => {
+      const base =
+        current.cacheKey === discoveryCacheKey
+          ? current
+          : {
+              cacheKey: discoveryCacheKey,
+              result: null,
+              error: null,
+              choice: "auto" as const,
+            };
+      return {
+        cacheKey: discoveryCacheKey,
+        result: patch.result !== undefined ? patch.result : base.result,
+        error: patch.error !== undefined ? patch.error : base.error,
+        choice: patch.choice !== undefined ? patch.choice : base.choice,
+      };
+    });
+  }
+
+  const canOfferWebsiteDiscovery = shouldOfferWebsiteDiscovery(discoveryInput);
+
+  function buildDiscoveredWebsitePolicy(
+    result: CompanyWebsiteDiscoveryResult | null,
+    choice: "auto" | "use_website" | "jd_only",
+  ) {
+    if (!result?.candidate || choice === "jd_only") {
+      return null;
+    }
+    const candidate = result.candidate;
+    return {
+      url: candidate.url,
+      confidence: candidate.confidence,
+      userConfirmed: choice === "use_website" || candidate.confidence === "high",
+      userDeclined: false,
+    };
+  }
+
+  function buildContextPolicy(
+    result: CompanyWebsiteDiscoveryResult | null = discoveryResult,
+    choice: "auto" | "use_website" | "jd_only" = websiteDiscoveryChoice,
+  ) {
+    return resolveGenerateContextPolicy({
+      confidentialPosting,
+      companyWebsiteInput: companyWebsite,
+      jobDescriptionText: jobForm.rawText,
+      outputMode: generateMode,
+      forceJdOnly: choice === "jd_only",
+      discoveredWebsite: buildDiscoveredWebsitePolicy(result, choice),
+    });
+  }
+
+  const contextPolicy = buildContextPolicy();
+  const contextWebsiteLine = formatContextPolicyWebsiteLine(contextPolicy);
 
   useEffect(() => {
     fetchResumeDraftProviderStatus()
@@ -205,19 +339,44 @@ export function GenerateTailoredResumeSection({
   const canGenerate =
     isSignedIn &&
     !disabled &&
+    !isDiscoveringWebsite &&
     providerConfigured &&
     inventory.resumes.length > 0 &&
     hasJobText &&
-    Boolean(effectiveBaseResumeId);
+    Boolean(effectiveBaseResumeId) &&
+    canGenerateWithDiscoveryPolicy(contextPolicy);
+
+  async function handleFindCompanyWebsite(): Promise<CompanyWebsiteDiscoveryResult | null> {
+    if (isDiscoveringWebsite || !canOfferWebsiteDiscovery) {
+      return discoveryResult;
+    }
+
+    setIsDiscoveringWebsite(true);
+    updateDiscoveryState({ error: null });
+
+    try {
+      const result = await requestCompanyWebsiteDiscovery(discoveryInput);
+      updateDiscoveryState({ result });
+      return result;
+    } catch (error) {
+      updateDiscoveryState({
+        error:
+          error instanceof Error ? error.message : "Company website discovery failed.",
+      });
+      return null;
+    } finally {
+      setIsDiscoveringWebsite(false);
+    }
+  }
 
   async function advanceStage(index: number) {
     setProgressStageIndex(index);
     await delay(250);
   }
 
-  async function runResumeGeneration(): Promise<
-    ResumeGenerationContext & { companyContextWarning?: string }
-  > {
+  async function runResumeGeneration(
+    policyForRun: ReturnType<typeof buildContextPolicy>,
+  ): Promise<ResumeGenerationContext & { companyContextWarning?: string }> {
     const isCombined = generateMode === "resume_and_cover_letter";
     const stages = getGenerationStageIndices(isCombined);
 
@@ -229,18 +388,25 @@ export function GenerateTailoredResumeSection({
       editingId: editingJobId,
     });
 
+    const policy = policyForRun;
+    const effectiveWebsite = policy.effectiveWebsite ?? undefined;
+
     const applicationRecord = await ensureApplicationRecordForJobDescription(savedJob);
     let companyContextForGeneration = applicationRecord.companyContext ?? undefined;
+    if (
+      !policy.allowSavedWebsiteContext &&
+      hasWebsiteBackedResearch(companyContextForGeneration)
+    ) {
+      companyContextForGeneration = undefined;
+    }
     let contextWarning: string | undefined;
 
     await advanceStage(stages.preparingApplication);
 
-    if (isCombined) {
+    if (policy.needsCompanyContext) {
       const plan = planCompanyResearchForGeneration({
         savedContext: applicationRecord.companyContext,
-        companyWebsite,
-        combinedMode: true,
-        skipWebsiteResearch,
+        policy,
       });
       setProgressStages(
         buildCombinedProgressStages(researchProgressLabelForPlan(plan)),
@@ -250,12 +416,12 @@ export function GenerateTailoredResumeSection({
         applicationId: applicationRecord.id,
         savedContext: applicationRecord.companyContext,
         job: savedJob,
-        companyNameOverride,
         country,
-        companyWebsite,
+        companyWebsite: effectiveWebsite,
         additionalInstructions,
         autoGenerate: true,
-        skipWebsiteResearch,
+        allowSavedWebsiteContext: policy.allowSavedWebsiteContext,
+        runWebsiteResearch: policy.runWebsiteResearch,
       });
       setCompanyContextEnsureStatus(ensured.status);
       setProgressStages((current) => {
@@ -331,9 +497,8 @@ export function GenerateTailoredResumeSection({
 
   function readCoverLetterFields() {
     return readCoverLetterFieldsFromJobForm(jobForm, {
-      companyNameOverride,
       country,
-      companyWebsite,
+      companyWebsite: contextPolicy.effectiveWebsite ?? companyWebsite,
       additionalInstructions,
     });
   }
@@ -354,7 +519,15 @@ export function GenerateTailoredResumeSection({
   }
 
   async function handleGenerate() {
-    if (isGenerating) {
+    if (isGenerating || isDiscoveringWebsite) {
+      return;
+    }
+
+    const policyForRun = buildContextPolicy(discoveryResult);
+    if (!canGenerateWithDiscoveryPolicy(policyForRun)) {
+      updateDiscoveryState({
+        error: "Confirm the discovered website or choose JD-only before generating.",
+      });
       return;
     }
 
@@ -374,7 +547,7 @@ export function GenerateTailoredResumeSection({
     );
 
     try {
-      const context = await runResumeGeneration();
+      const context = await runResumeGeneration(policyForRun);
       setResumeStatus("success");
 
       if (context.companyContextWarning) {
@@ -492,9 +665,18 @@ export function GenerateTailoredResumeSection({
   const storedPreference = readLastBaseResumeId();
   const aiStepEstimate = estimateGenerateAiSteps({
     mode: generateMode,
-    skipWebsiteResearch,
-    companyWebsite,
+    policy: contextPolicy,
   });
+
+  function generateCtaLabel(): string {
+    if (generateMode === "resume_and_cover_letter") {
+      return "Generate Resume & Cover Letter";
+    }
+    if (generateMode === "cover_letter_only") {
+      return "Generate Cover Letter";
+    }
+    return "Generate Tailored Resume";
+  }
 
   // Readiness strip: consolidates all pre-generation conditions into one compact strip.
   const readinessItems: { id: string; ready: boolean; label: string; href?: string }[] = [
@@ -569,48 +751,6 @@ export function GenerateTailoredResumeSection({
       ) : (
         <>
           <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
-            <fieldset
-              className="space-y-2"
-              data-testid="generate-website-research-control"
-              disabled={disabled || isGenerating}
-            >
-              <legend className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Company research for this run
-              </legend>
-              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="website-research-mode"
-                  className="mt-0.5 size-4 shrink-0"
-                  checked={!skipWebsiteResearch}
-                  onChange={() => setSkipWebsiteResearch(false)}
-                />
-                <span>
-                  Use website research when a company website is provided
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    Adds a website fetch and company research step in combined mode.
-                  </span>
-                </span>
-              </label>
-              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="website-research-mode"
-                  className="mt-0.5 size-4 shrink-0"
-                  checked={skipWebsiteResearch}
-                  onChange={() => setSkipWebsiteResearch(true)}
-                />
-                <span>
-                  JD-only for this run (skip website research)
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    Uses job description context only — no new website fetch.
-                  </span>
-                </span>
-              </label>
-            </fieldset>
-          </div>
-
-          <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
             <label htmlFor="base-resume-select" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Base resume (formatting template)
             </label>
@@ -639,6 +779,69 @@ export function GenerateTailoredResumeSection({
             </p>
           </div>
 
+          <div
+            className="mt-5 rounded-lg border border-slate-200/80 bg-white px-4 py-3"
+            data-testid="generate-output-mode"
+          >
+            <label htmlFor="generate-mode" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Output
+            </label>
+            <select
+              id="generate-mode"
+              value={generateMode}
+              onChange={(event) => setGenerateMode(event.target.value as GenerateOutputMode)}
+              disabled={disabled || isGenerating}
+              className={`${formFieldClassName} mt-1.5 max-w-xl`}
+            >
+              <option value="resume_and_cover_letter">Resume + Cover Letter</option>
+              <option value="resume_only">Resume only</option>
+              <option value="cover_letter_only" disabled>
+                Cover letter only (requires existing tailored resume — parked)
+              </option>
+            </select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Default is resume and cover letter. Cover letter only needs a saved tailored resume draft.
+            </p>
+          </div>
+
+          <div
+            className="mt-5 rounded-lg border border-cyan-100 bg-cyan-50/50 px-4 py-3"
+            data-testid="generate-context-policy-summary"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900/70">
+              Context policy
+            </p>
+            <p className="mt-1 text-sm font-medium text-slate-800">
+              {contextPolicy.summaryHeadline}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">{contextPolicy.summaryDetail}</p>
+            {contextWebsiteLine ? (
+              <p className="mt-2 text-sm text-slate-700" data-testid="generate-effective-website">
+                {contextWebsiteLine}
+              </p>
+            ) : null}
+            <CompanyWebsiteDiscoveryPanel
+              canDiscover={canOfferWebsiteDiscovery}
+              policy={contextPolicy}
+              discoveryResult={discoveryResult}
+              isDiscovering={isDiscoveringWebsite}
+              discoveryError={discoveryError}
+              websiteChoice={websiteDiscoveryChoice}
+              disabled={disabled || isGenerating}
+              onFindWebsite={() => void handleFindCompanyWebsite()}
+              onUseWebsite={() => {
+                updateDiscoveryState({ choice: "use_website", error: null });
+              }}
+              onUseJdOnly={() => {
+                updateDiscoveryState({ choice: "jd_only", error: null });
+              }}
+              onChangeWebsite={() => {
+                updateDiscoveryState({ choice: "auto", error: null });
+                focusCompanyWebsiteField();
+              }}
+            />
+          </div>
+
           <div className="mt-6 flex flex-col items-center text-center">
             <p
               className="mb-3 max-w-md text-sm text-slate-600"
@@ -649,33 +852,28 @@ export function GenerateTailoredResumeSection({
             <button
               type="button"
               onClick={() => void handleGenerate()}
-              disabled={!canGenerate || isGenerating}
+              disabled={!canGenerate || isGenerating || generateMode === "cover_letter_only"}
               aria-busy={isGenerating}
               className={`${primaryButtonClassName} min-h-12 w-full max-w-md px-8 py-3.5 text-base font-semibold shadow-md sm:w-auto`}
             >
-              {generateMode === "resume_and_cover_letter"
-                ? "Generate Resume & Cover Letter"
-                : "Generate Tailored Resume"}
+              {generateCtaLabel()}
             </button>
             <p className="mt-3 max-w-md text-sm text-slate-500">
-              Saves the job, prepares research when enabled, then opens your application package.
+              Saves the job, applies context policy automatically, then opens your application package.
             </p>
             <p className="mt-1 max-w-md text-xs text-slate-400">{aiStepEstimate.footnote}</p>
           </div>
 
-          <div className={`mt-5 ${secondaryActionGroupClassName}`}>
-            <button
-              type="button"
-              className={secondaryButtonClassName}
-              onClick={() => setShowAdvanced((current) => !current)}
-            >
-              {showAdvanced ? "Hide advanced options" : "Show advanced options"}
-            </button>
-            <p className="text-sm text-slate-500">Approved keywords available: {approvedKeywordCount}</p>
-          </div>
-
-          {showAdvanced ? (
-            <div className="mt-3 grid gap-4 rounded-lg border border-slate-200 bg-white p-4 lg:grid-cols-2">
+          <details className="mt-5 rounded-lg border border-slate-200 bg-white">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center justify-between gap-2">
+                <span>More options (optional)</span>
+                <span className="text-xs font-normal text-slate-400">
+                  Models · website · instructions
+                </span>
+              </span>
+            </summary>
+            <div className="grid gap-4 border-t border-slate-100 px-4 pb-4 pt-3 lg:grid-cols-2">
               {providerStatus ? (
                 <p className="text-sm text-slate-600 lg:col-span-2">
                   Provider: {providerStatus.providerLabel}
@@ -684,28 +882,11 @@ export function GenerateTailoredResumeSection({
                 </p>
               ) : null}
 
-              <div className="lg:col-span-2">
-                <label htmlFor="generate-mode" className={labelClassName}>
-                  Generation mode
-                </label>
-                <select
-                  id="generate-mode"
-                  value={generateMode}
-                  onChange={(event) => setGenerateMode(event.target.value as GenerateMode)}
-                  className={formFieldClassName}
-                >
-                  <option value="resume_and_cover_letter">
-                    Generate Tailored Resume &amp; Formal Cover Letter
-                  </option>
-                  <option value="resume_only">Generate Tailored Resume only</option>
-                </select>
-              </div>
-
               <ModelTierSelect
                 id="resume-model-tier"
                 label="Resume model"
                 value={resumeModelTier}
-                disabled={disabled || isGenerating}
+                disabled={disabled || isGenerating || generateMode === "cover_letter_only"}
                 onChange={(tier) => {
                   setResumeModelTier(tier);
                   writeStoredResumeModelTier(tier);
@@ -715,7 +896,12 @@ export function GenerateTailoredResumeSection({
                 id="cover-letter-model-tier"
                 label="Cover letter model"
                 value={coverLetterModelTier}
-                disabled={disabled || isGenerating || generateMode === "resume_only"}
+                disabled={
+                  disabled ||
+                  isGenerating ||
+                  generateMode === "resume_only" ||
+                  generateMode === "cover_letter_only"
+                }
                 onChange={(tier) => {
                   setCoverLetterModelTier(tier);
                   writeStoredCoverLetterModelTier(tier);
@@ -723,58 +909,57 @@ export function GenerateTailoredResumeSection({
               />
 
               <div>
-                <label htmlFor="company-name-override" className={labelClassName}>
-                  Company name
-                </label>
-                <input
-                  id="company-name-override"
-                  value={companyNameOverride}
-                  onChange={(event) => setCompanyNameOverride(event.target.value)}
-                  placeholder={jobForm.companyName ?? "Extracted from JD if blank"}
-                  className={formFieldClassName}
-                />
-              </div>
-              <div>
                 <label htmlFor="company-country" className={labelClassName}>
-                  Country
+                  Country / location
                 </label>
                 <input
                   id="company-country"
                   value={country}
                   onChange={(event) => setCountry(event.target.value)}
+                  disabled={disabled || isGenerating}
                   className={formFieldClassName}
                 />
               </div>
               <div>
                 <label htmlFor="company-website" className={labelClassName}>
-                  Company website (for research — not the job posting URL)
+                  Company website
                 </label>
                 <input
                   id="company-website"
                   value={companyWebsite}
                   onChange={(event) => setCompanyWebsite(event.target.value)}
+                  disabled={disabled || isGenerating || confidentialPosting}
                   placeholder="https://company.com"
                   className={formFieldClassName}
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  {confidentialPosting
+                    ? "Disabled for confidential postings — JD-only context."
+                    : "Not the job posting URL. Used when context policy is website + JD."}
+                </p>
               </div>
               <div className="lg:col-span-2">
                 <label htmlFor="additional-instructions" className={labelClassName}>
-                  Additional instructions (optional)
+                  Custom instructions (optional)
                 </label>
                 <textarea
                   id="additional-instructions"
                   value={additionalInstructions}
                   onChange={(event) => setAdditionalInstructions(event.target.value)}
+                  disabled={disabled || isGenerating}
                   rows={3}
                   className={formFieldClassName}
                   placeholder="Tone, addressee hints, or extra company notes."
                 />
               </div>
 
+              <p className="text-sm text-slate-500 lg:col-span-2">
+                Approved keywords available: {approvedKeywordCount}
+              </p>
+
               <CompanyResearchCompactStatus
                 editingJobId={editingJobId}
-                combinedMode={generateMode === "resume_and_cover_letter"}
-                companyWebsite={companyWebsite}
+                policy={contextPolicy}
                 lastEnsureStatus={companyContextEnsureStatus}
                 generationWarning={companyContextWarning}
               />
@@ -784,18 +969,16 @@ export function GenerateTailoredResumeSection({
                 jobForm={jobForm}
                 jobDescriptions={jobDescriptions}
                 editingJobId={editingJobId}
-                companyNameOverride={companyNameOverride}
                 country={country}
-                companyWebsite={companyWebsite}
+                companyWebsite={contextPolicy.effectiveWebsite ?? companyWebsite}
                 additionalInstructions={additionalInstructions}
                 onSaveJob={onSaveJob}
-                combinedMode={generateMode === "resume_and_cover_letter"}
+                policy={contextPolicy}
                 lastEnsureStatus={companyContextEnsureStatus}
                 onSaved={() => setCompanyContextEditorKey((current) => current + 1)}
               />
-
             </div>
-          ) : null}
+          </details>
         </>
       )}
 
@@ -885,15 +1068,9 @@ export function GenerateTailoredResumeSection({
               disabled={!canGenerate || isGenerating}
               aria-busy={isGenerating}
               className={`${primaryButtonClassName} w-full py-3 text-base font-semibold`}
-              aria-label={
-                generateMode === "resume_and_cover_letter"
-                  ? "Generate Resume & Cover Letter"
-                  : "Generate Tailored Resume"
-              }
+              aria-label={generateCtaLabel()}
             >
-              {generateMode === "resume_and_cover_letter"
-                ? "Generate Resume & Cover Letter"
-                : "Generate Tailored Resume"}
+              {generateCtaLabel()}
             </button>
           </div>
           {/* Spacer so fixed bar does not cover bottom page content */}

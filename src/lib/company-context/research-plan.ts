@@ -2,8 +2,9 @@ import type { CompanyContextEnsureStatus } from "@/lib/company-context/ensure-fo
 import {
   hasUsableCompanyContext,
   hasWebsiteBackedResearch,
+  savedWebsiteContextMatchesTarget,
 } from "@/lib/company-context/normalize";
-import { resolveCompanyWebsiteForResearch } from "@/lib/firecrawl/url";
+import type { GenerateContextPolicy } from "@/lib/generate/context-policy";
 import type { CompanyContext } from "@/types/company-context";
 
 export type CompanyResearchPlan =
@@ -15,34 +16,45 @@ export type CompanyResearchPlan =
 
 export function planCompanyResearchForGeneration(options: {
   savedContext?: CompanyContext | null;
-  companyWebsite?: string;
-  combinedMode: boolean;
-  skipWebsiteResearch?: boolean;
+  policy: GenerateContextPolicy;
 }): CompanyResearchPlan {
-  if (!options.combinedMode) {
+  if (!options.policy.needsCompanyContext) {
     return "skip";
   }
 
-  if (options.skipWebsiteResearch) {
-    if (hasUsableCompanyContext(options.savedContext)) {
+  if (options.policy.kind === "jd_only") {
+    if (
+      hasUsableCompanyContext(options.savedContext) &&
+      !hasWebsiteBackedResearch(options.savedContext)
+    ) {
       return "use_saved_jd";
     }
     return "build_jd";
   }
 
-  if (hasWebsiteBackedResearch(options.savedContext)) {
+  if (
+    options.policy.allowSavedWebsiteContext &&
+    hasWebsiteBackedResearch(options.savedContext) &&
+    savedWebsiteContextMatchesTarget(
+      options.savedContext,
+      options.policy.effectiveWebsite,
+    )
+  ) {
     return "use_saved_website";
   }
 
-  const website = resolveCompanyWebsiteForResearch(options.companyWebsite);
-  if (!website) {
-    if (hasUsableCompanyContext(options.savedContext)) {
-      return "use_saved_jd";
-    }
-    return "build_jd";
+  if (options.policy.runWebsiteResearch && options.policy.effectiveWebsite) {
+    return "run_firecrawl";
   }
 
-  return "run_firecrawl";
+  if (
+    hasUsableCompanyContext(options.savedContext) &&
+    !hasWebsiteBackedResearch(options.savedContext)
+  ) {
+    return "use_saved_jd";
+  }
+
+  return "build_jd";
 }
 
 export function researchProgressLabelForPlan(plan: CompanyResearchPlan): string {

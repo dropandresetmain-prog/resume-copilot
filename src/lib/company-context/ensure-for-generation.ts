@@ -6,6 +6,7 @@ import { buildFallbackCompanyContext } from "@/lib/company-context/build-company
 import {
   hasUsableCompanyContext,
   hasWebsiteBackedResearch,
+  savedWebsiteContextMatchesTarget,
 } from "@/lib/company-context/normalize";
 import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-company-context";
 import {
@@ -39,13 +40,14 @@ export type EnsureCompanyContextInput = {
   applicationId: string;
   savedContext?: CompanyContext | null;
   job: StoredJobDescription;
-  companyNameOverride?: string;
   country?: string;
   companyWebsite?: string;
   additionalInstructions?: string;
   autoGenerate: boolean;
-  /** When true, skip Firecrawl/website-backed generation for this run (JD-only). */
-  skipWebsiteResearch?: boolean;
+  /** When false, never reuse saved website-backed context (JD-only / confidential). */
+  allowSavedWebsiteContext?: boolean;
+  /** When false, skip Firecrawl even if a website is known. */
+  runWebsiteResearch?: boolean;
 };
 
 async function saveJdBasedContext(
@@ -74,8 +76,15 @@ export async function ensureCompanyContextForGeneration(
   input: EnsureCompanyContextInput,
 ): Promise<CompanyContextEnsureResult> {
   const website = resolveCompanyWebsiteForResearch(input.companyWebsite);
+  const allowSavedWebsite = input.allowSavedWebsiteContext !== false;
+  const runWebsiteResearch = input.runWebsiteResearch !== false;
 
-  if (hasWebsiteBackedResearch(input.savedContext)) {
+  const canReuseSavedWebsiteContext =
+    allowSavedWebsite &&
+    hasWebsiteBackedResearch(input.savedContext) &&
+    (!website || savedWebsiteContextMatchesTarget(input.savedContext, website));
+
+  if (canReuseSavedWebsiteContext && input.savedContext) {
     return {
       companyContext: input.savedContext,
       status: "saved",
@@ -83,7 +92,13 @@ export async function ensureCompanyContextForGeneration(
   }
 
   if (!input.autoGenerate) {
-    if (hasUsableCompanyContext(input.savedContext)) {
+    if (
+      hasUsableCompanyContext(input.savedContext) &&
+      (allowSavedWebsite || !hasWebsiteBackedResearch(input.savedContext)) &&
+      (!hasWebsiteBackedResearch(input.savedContext) ||
+        !website ||
+        savedWebsiteContextMatchesTarget(input.savedContext, website))
+    ) {
       return {
         companyContext: input.savedContext,
         status: "saved",
@@ -92,8 +107,11 @@ export async function ensureCompanyContextForGeneration(
     return { status: "skipped" };
   }
 
-  if (input.skipWebsiteResearch) {
-    if (hasUsableCompanyContext(input.savedContext)) {
+  if (!runWebsiteResearch) {
+    if (
+      hasUsableCompanyContext(input.savedContext) &&
+      !hasWebsiteBackedResearch(input.savedContext)
+    ) {
       return {
         companyContext: input.savedContext,
         status: "saved",
@@ -101,7 +119,6 @@ export async function ensureCompanyContextForGeneration(
     }
 
     const companyName = resolveCompanyNameForGeneration({
-      override: input.companyNameOverride || input.job.companyName,
       jobCompanyName: input.job.companyName,
       jobDescriptionText: input.job.rawText,
     });
@@ -117,7 +134,6 @@ export async function ensureCompanyContextForGeneration(
       const companyContext = await saveJdBasedContext(input.applicationId, {
         companyName,
         country: input.country,
-        website: website ?? undefined,
         job: input.job,
         additionalInstructions: input.additionalInstructions,
       });
@@ -133,7 +149,11 @@ export async function ensureCompanyContextForGeneration(
     }
   }
 
-  if (!website && hasUsableCompanyContext(input.savedContext)) {
+  if (
+    !website &&
+    hasUsableCompanyContext(input.savedContext) &&
+    !hasWebsiteBackedResearch(input.savedContext)
+  ) {
     return {
       companyContext: input.savedContext,
       status: "saved",
@@ -141,7 +161,6 @@ export async function ensureCompanyContextForGeneration(
   }
 
   const companyName = resolveCompanyNameForGeneration({
-    override: input.companyNameOverride || input.job.companyName,
     jobCompanyName: input.job.companyName,
     jobDescriptionText: input.job.rawText,
   });
