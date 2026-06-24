@@ -126,6 +126,14 @@
 - **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
+## Post-generation editing (v0.9.13B)
+
+- **Resume text editor** — persistent save is "Save resume edits" (not "Mark as reviewed"). Draft `status` is shown separately; saving updates content only.
+- **Dirty state** — unsaved/saving/saved strip on resume editor; beforeunload warning when leaving with unsaved edits.
+- **Application Package fix hub** — Fix resume text, Fix evidence (`#package-edit` auto-opens panel), Fix cover letter, Adjust layout (`#package-layout-controls`).
+- **Cover letter modes** — Manual edit requires Save changes when dirty; AI revision saves immediately and overwrites the letter (no undo).
+- **Parked:** forced evidence pending change queue, cover letter version history/undo, deeper package IA redesign, full browser interaction test coverage.
+
 ## Inventory cleanup (v0.9.13A)
 
 - **Deterministic duplicate detection** groups likely variant bullets within the same role (`detectInventoryDuplicateGroups`). Signals: shared metrics, keyword overlap, normalized text similarity. Does **not** call Gemini and does **not** auto-delete bullets.

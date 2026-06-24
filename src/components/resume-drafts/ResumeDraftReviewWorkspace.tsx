@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
 import { ResumeDraftBulletCard } from "@/components/resume-drafts/ResumeDraftBulletCard";
@@ -21,6 +21,7 @@ import {
   applyReviewStateToContent,
   countReviewDecisions,
   createInitialReviewState,
+  reviewStateDiffersFromSavedContent,
   updateAdditionalExperienceReview,
   updateEducationBulletReview,
   updateExperienceBulletReview,
@@ -45,8 +46,34 @@ export function ResumeDraftReviewWorkspace({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [summaryEditing, setSummaryEditing] = useState(false);
   const [summaryDraft, setSummaryDraft] = useState(draft.content.professionalSummary.text);
+
+  useEffect(() => {
+    setReviewState(createInitialReviewState(draft.content));
+    setSummaryDraft(draft.content.professionalSummary.text);
+    setSummaryEditing(false);
+  }, [draft.id, draft.updatedAt]);
+
+  const hasUnsavedChanges = useMemo(
+    () => reviewStateDiffersFromSavedContent(draft.content, reviewState),
+    [draft.content, reviewState],
+  );
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const previewContent = useMemo(
     () => applyReviewStateToContent(draft.content, reviewState),
@@ -71,28 +98,37 @@ export function ResumeDraftReviewWorkspace({
   const showProfessionalSummary = Boolean(draft.content.professionalSummary.text?.trim());
 
   const reviewCounts = useMemo(() => countReviewDecisions(reviewState), [reviewState]);
-  const isReviewed = draft.status === "reviewed";
 
-  async function handleMarkReviewed() {
+  function formatLastSavedLabel(savedAt: Date | null): string | null {
+    if (!savedAt) {
+      return null;
+    }
+    const elapsedMs = Date.now() - savedAt.getTime();
+    if (elapsedMs < 60_000) {
+      return "Saved just now";
+    }
+    return `Last saved ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+
+  async function handleSaveResumeEdits() {
     setIsSaving(true);
     setSaveError(null);
 
     try {
-      // Persist reviewed/edited generated draft content only — never source inventory.
       const reviewedContent = applyReviewStateToContent(draft.content, reviewState, {
         includePending: true,
       });
 
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
         content: reviewedContent,
-        status: "reviewed",
       });
 
       onDraftUpdated(updated);
       setReviewState(createInitialReviewState(updated.content));
+      setLastSavedAt(new Date());
     } catch (error) {
       setSaveError(
-        error instanceof Error ? error.message : "Failed to save reviewed draft.",
+        error instanceof Error ? error.message : "Failed to save resume edits.",
       );
     } finally {
       setIsSaving(false);
@@ -103,12 +139,33 @@ export function ResumeDraftReviewWorkspace({
     <div className="mt-6 space-y-6">
       <SetupCard
         title="Edit resume details"
-        description="Secondary review workspace for accept/edit/omit changes. Use the layout preview page for final formatting validation."
+        description="Accept, edit, or omit generated bullets. Card-level edits update the preview below — click Save resume edits to persist to this draft."
       >
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-          <span>
-            Status: <strong className="text-slate-900">{draft.status}</strong>
+        <div
+          className="mt-4 flex flex-wrap items-center gap-3 text-sm"
+          data-testid="resume-edit-save-status"
+        >
+          {hasUnsavedChanges ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+              Unsaved changes
+            </span>
+          ) : isSaving ? (
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Saving…
+            </span>
+          ) : formatLastSavedLabel(lastSavedAt) ? (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900">
+              {formatLastSavedLabel(lastSavedAt)}
+            </span>
+          ) : (
+            <span className="text-slate-600">No unsaved edits</span>
+          )}
+          <span className="text-slate-600">
+            Draft status: <strong className="text-slate-900">{draft.status}</strong>
           </span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
           <span>Pending: {reviewCounts.pending}</span>
           <span>Accepted: {reviewCounts.accepted}</span>
           <span>Edited: {reviewCounts.edited}</span>
@@ -476,15 +533,21 @@ export function ResumeDraftReviewWorkspace({
           </p>
         ) : null}
 
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
           <button
             type="button"
-            onClick={handleMarkReviewed}
-            disabled={isSaving || isReviewed}
+            onClick={() => void handleSaveResumeEdits()}
+            disabled={isSaving || !hasUnsavedChanges}
             className={primaryButtonClassName}
+            data-action="save-resume-edits"
+            aria-busy={isSaving}
           >
-            {isReviewed ? "Marked as reviewed" : isSaving ? "Saving…" : "Mark as reviewed"}
+            {isSaving ? "Saving…" : "Save resume edits"}
           </button>
+          <p className="text-xs text-slate-500">
+            Saves text changes to this generated draft only. Export approval on the application
+            package is separate.
+          </p>
         </div>
       </SetupCard>
     </div>

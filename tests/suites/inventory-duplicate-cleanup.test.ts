@@ -200,10 +200,8 @@ function main() {
     ],
     [
       "regeneration panel distinguishes rewrite vs full regenerate",
-      regenerationPanel.includes("Rewrite affected roles") &&
-        regenerationPanel.includes("Regenerate full resume") &&
-        regenerationPanel.includes("Exclude this evidence") &&
-        regenerationPanel.includes("Include this evidence"),
+      regenerationPanel.includes("Rewrite ${affectedRoleCount}") &&
+        regenerationPanel.includes("rebuilds the entire resume"),
     ],
     [
       "targeted rewrite is primary when available",

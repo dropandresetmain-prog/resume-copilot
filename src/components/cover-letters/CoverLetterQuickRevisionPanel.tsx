@@ -116,9 +116,10 @@ export function CoverLetterQuickRevisionPanel({
   }
 
   return (
+    <div data-testid="cover-letter-ai-revision">
     <SetupCard
-      title="Quick adjustments"
-      description="Revise the formal letter without regenerating the resume. Changes are saved to this cover letter draft."
+      title="AI revision"
+      description="Quick or custom AI rewrites. Each revision overwrites the saved letter immediately (1 AI step) — no separate save button."
     >
       <div className="mt-4 max-w-md">
         <ModelTierSelect
@@ -175,10 +176,11 @@ export function CoverLetterQuickRevisionPanel({
           type="button"
           disabled={disabled || isRevising || !customInstruction.trim()}
           onClick={() => void runRevision("custom", customInstruction)}
-          className={`mt-2 w-full sm:w-auto ${primaryButtonClassName}`}
+          className={`mt-2 w-full sm:w-auto ${secondaryButtonClassName}`}
         >
           {isRevising && activeAction === "custom" ? "Revising…" : "Apply custom revision"}
         </button>
+        <p className="mt-1 text-xs text-slate-500">Runs 1 AI revision and saves immediately.</p>
       </div>
 
       {warnings.length > 0 ? (
@@ -190,5 +192,6 @@ export function CoverLetterQuickRevisionPanel({
       ) : null}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
     </SetupCard>
+    </div>
   );
 }

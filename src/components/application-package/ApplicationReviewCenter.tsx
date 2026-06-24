@@ -187,6 +187,61 @@ export function ApplicationReviewCenter({
         )}
       </div>
 
+      {/* Fix paths — shown before approve/export when issues exist */}
+      <div
+        className={`mt-4 rounded-lg border px-4 py-3 ${
+          reviewItemCount > 0
+            ? "border-amber-200 bg-amber-50/80"
+            : "border-slate-200 bg-slate-50/60"
+        }`}
+        data-testid="application-fix-actions"
+      >
+        <p className="text-xs font-semibold uppercase text-slate-600">
+          {blockingCount > 0
+            ? "Fix before exporting"
+            : warningCount > 0
+              ? "Review fixes recommended"
+              : "Review and fix"}
+        </p>
+        <div className={`${secondaryActionGroupClassName} mt-3`}>
+          <Link
+            href={`/resume-preview/${resumeDraftId}/edit`}
+            className={secondaryButtonClassName}
+          >
+            Fix resume text
+          </Link>
+          <a
+            href={`/resume-preview/${resumeDraftId}#package-edit`}
+            className={secondaryButtonClassName}
+          >
+            Fix evidence
+          </a>
+          {coverLetterId ? (
+            <Link
+              href={`/cover-letter-preview/${coverLetterId}`}
+              className={secondaryButtonClassName}
+            >
+              Fix cover letter
+            </Link>
+          ) : (
+            <a href="#package-cover-letter" className={secondaryButtonClassName}>
+              Fix cover letter
+            </a>
+          )}
+          <a
+            href={`/resume-preview/${resumeDraftId}#package-layout-controls`}
+            className={secondaryButtonClassName}
+          >
+            Adjust layout
+          </a>
+        </div>
+        {reviewItemCount > 0 ? (
+          <p className="mt-2 text-xs text-slate-600">
+            Resolve blocking or warning items before approving for export when possible.
+          </p>
+        ) : null}
+      </div>
+
       {/* Approve → Export two-step sequence */}
       <div className={`mt-4 ${actionBarClassName}`} data-section="resume-approve-export">
         {exportReady ? (
@@ -241,31 +296,6 @@ export function ApplicationReviewCenter({
               <div className={`${primaryActionGroupClassName} mt-2`}>{exportControls}</div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Edit and research secondary links */}
-      <div className={`mt-4 ${secondaryActionGroupClassName}`}>
-        <p className="text-xs font-semibold uppercase text-slate-500 sm:w-full">
-          Edit and research
-        </p>
-        <Link
-          href={`/resume-preview/${resumeDraftId}/edit`}
-          className={secondaryButtonClassName}
-        >
-          Edit resume
-        </Link>
-        {coverLetterId ? (
-          <Link
-            href={`/cover-letter-preview/${coverLetterId}`}
-            className={secondaryButtonClassName}
-          >
-            Edit cover letter
-          </Link>
-        ) : (
-          <a href="#package-cover-letter" className={secondaryButtonClassName}>
-            Go to cover letter
-          </a>
         )}
       </div>
 

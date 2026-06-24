@@ -461,7 +461,7 @@ function main() {
     ],
     [
       "regeneration panel exposes targeted and full actions",
-      regenerationPanel.includes("Rewrite affected roles") &&
+      regenerationPanel.includes("Rewrite ${affectedRoleCount}") &&
         regenerationPanel.includes("Regenerate full resume"),
     ],
     [

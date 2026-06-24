@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.13A**
+**v0.9.13B**
 
 ## Completed capabilities
 
@@ -38,8 +38,17 @@
 | Generate company/role primary fields restored | v0.9.12D |
 | AI call cost guardrails (estimates, research skip, call logging) | v0.9.12E |
 | Inventory duplicate cleanup + bullet control baseline | v0.9.13A |
+| Post-generation save + edit workflow repair | v0.9.13B |
 
 ## Milestone log (recent)
+
+### v0.9.13B - Post-Generation Save + Edit Workflow Repair
+
+- Resume editor: "Save resume edits" CTA, dirty/saved status, beforeunload warning.
+- Application Package: Fix resume text / evidence / cover letter / layout actions before approve/export.
+- Cover letter: Manual edit vs AI revision sections; manual Save only primary when dirty.
+- Evidence panel: role-count rewrite label, clearer include/exclude scope.
+- **Parked:** evidence pending change queue, cover letter undo/history, full package redesign.
 
 ### v0.9.13A - Inventory Cleanup + Bullet Control Baseline
 

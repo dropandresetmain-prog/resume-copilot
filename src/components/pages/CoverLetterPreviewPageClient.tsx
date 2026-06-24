@@ -47,12 +47,24 @@ type CoverLetterPreviewPageClientProps = {
   draftId: string;
 };
 
+function formatLastSavedLabel(savedAt: Date | null): string | null {
+  if (!savedAt) {
+    return null;
+  }
+  const elapsedMs = Date.now() - savedAt.getTime();
+  if (elapsedMs < 60_000) {
+    return "Saved just now";
+  }
+  return `Last saved ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
 export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPageClientProps) {
   const { jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [bodyDraft, setBodyDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
@@ -73,6 +85,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           } else {
             setDraft(record);
             setBodyDraft(record.body);
+            setLastSavedAt(new Date(record.updatedAt));
             let resolvedContext =
               normalizeCompanyContext(record.companyContext) ??
               null;
@@ -119,13 +132,28 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const bannedPhrases = detectBannedPhrases(bodyDraft);
   const exportBlocked = isOverWordLimit(wordCount) || bannedPhrases.length > 0;
   const hasUnsavedBodyChanges = draft ? bodyDraft !== draft.body : false;
+  const lastSavedLabel = formatLastSavedLabel(lastSavedAt);
 
-  async function handleSave() {
+  useEffect(() => {
+    if (!hasUnsavedBodyChanges) {
+      return;
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedBodyChanges]);
+
+  async function handleManualSave() {
     if (!draft) {
       return;
     }
     setIsSaving(true);
-    setSaveMessage(null);
+    setSaveFeedback(null);
     setError(null);
     try {
       const updated = await updateGeneratedCoverLetterDraftInCloud(draft.id, {
@@ -136,7 +164,9 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       });
       setDraft(updated);
       setBodyDraft(updated.body);
-      setSaveMessage("Cover letter saved.");
+      const savedAt = new Date();
+      setLastSavedAt(savedAt);
+      setSaveFeedback(formatLastSavedLabel(savedAt));
     } catch (saveError) {
       setError(
         saveError instanceof Error ? saveError.message : "Failed to save cover letter.",
@@ -160,7 +190,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         eyebrow="Editor"
         milestone={pageMilestone("Cover Letter")}
         title="Cover letter editor"
-        description="Edit the formal letter, preview the exported PDF, run quick revisions, and export from one mobile-safe workspace."
+        description="Manual edits and AI revisions are separate — manual changes require Save changes. AI revisions save immediately."
       />
 
       <div className="flex flex-wrap gap-3">
@@ -174,6 +204,14 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         </Link>
       </div>
 
+      {exportBlocked ? (
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {isOverWordLimit(wordCount)
+            ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use an AI revision shortcut or edit manually.`
+            : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
+        </p>
+      ) : null}
+
       <SetupCard
         variant="primary"
         title={
@@ -182,29 +220,41 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             : "Cover letter"
         }
         description={formatWordCountLabel(wordCount)}
+        className="mt-4"
       >
         <ModelSelectionDebug
           requestedTier={draft.rationale?.modelSelection?.requestedTier}
           actualModel={draft.modelName}
           fallbackApplied={draft.rationale?.modelSelection?.fallbackApplied}
         />
+      </SetupCard>
 
-        {exportBlocked ? (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {isOverWordLimit(wordCount)
-              ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use Shorten to 420 words or edit manually.`
-              : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
-          </p>
-        ) : null}
-
-        {hasUnsavedBodyChanges ? (
-          <p
-            role="status"
-            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
-          >
-            You have unsaved changes. Save before leaving this page.
-          </p>
-        ) : null}
+      <div data-testid="cover-letter-manual-edit">
+        <SetupCard
+          title="Manual edit"
+          description="Edit the letter text yourself. Changes stay local until you click Save changes."
+          className="mt-4"
+        >
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2 text-sm"
+          data-testid="cover-letter-manual-save-status"
+        >
+          {hasUnsavedBodyChanges ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
+              Unsaved manual changes
+            </span>
+          ) : isSaving ? (
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Saving…
+            </span>
+          ) : lastSavedLabel ? (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900">
+              {lastSavedLabel}
+            </span>
+          ) : (
+            <span className="text-slate-600">No manual changes pending</span>
+          )}
+        </div>
 
         <div className={`mt-4 ${actionBarClassName}`}>
           <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
@@ -216,18 +266,23 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             </div>
             <div>
               <p className="text-xs font-semibold uppercase text-cyan-800">
-                Save changes
+                Save manual changes
               </p>
               <div className={`${primaryActionGroupClassName} mt-2`}>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={isSaving || !hasUnsavedBodyChanges}
-              className={`${bodyView === "raw" || hasUnsavedBodyChanges ? primaryButtonClassName : secondaryButtonClassName} w-full sm:w-auto`}
-            >
-              {isSaving ? "Saving…" : "Save changes"}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => void handleManualSave()}
+                  disabled={isSaving || !hasUnsavedBodyChanges}
+                  className={`${hasUnsavedBodyChanges ? primaryButtonClassName : secondaryButtonClassName} w-full sm:w-auto`}
+                  data-action="cover-letter-manual-save"
+                  aria-busy={isSaving}
+                >
+                  {isSaving ? "Saving…" : "Save changes"}
+                </button>
               </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Only needed for manual edits. AI revisions below save immediately.
+              </p>
             </div>
           </div>
           <div className={`mt-3 ${secondaryActionGroupClassName}`}>
@@ -253,13 +308,17 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
 
         {bodyView === "pdf" ? (
           <p className="mt-3 text-sm text-slate-600">
-            Switch to Raw Text to edit manually and save. Quick revisions (below) are saved
-            automatically — manual edits require the Save changes button.
+            Switch to Raw Text to edit manually, then Save changes. PDF view is read-only.
           </p>
         ) : null}
-        {saveMessage ? <p className="mt-3 text-sm text-emerald-800">{saveMessage}</p> : null}
+        {saveFeedback && !hasUnsavedBodyChanges ? (
+          <p className="mt-3 text-sm text-emerald-800" role="status">
+            {saveFeedback}
+          </p>
+        ) : null}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-      </SetupCard>
+        </SetupCard>
+      </div>
 
       {companyContext ? (
         <CompanyContextPreviewPanel
@@ -278,11 +337,15 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         fallbackApplied={draft.rationale?.modelSelection?.fallbackApplied}
         onRevised={(body, warnings, modelSelection) => {
           setBodyDraft(body);
+          const savedAt = new Date();
+          setLastSavedAt(savedAt);
+          setSaveFeedback(formatLastSavedLabel(savedAt));
           setDraft((current) =>
             current
               ? {
                   ...current,
                   body,
+                  updatedAt: savedAt.toISOString(),
                   modelName: modelSelection?.actualModel ?? current.modelName,
                   rationale: current.rationale
                     ? {
@@ -299,7 +362,6 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
                 }
               : current,
           );
-          setSaveMessage("Cover letter revised.");
           if (warnings.length > 0) {
             setError(null);
           }

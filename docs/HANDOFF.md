@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.13A** (code)
+**v0.9.13B** (code)
+
+## v0.9.13B implementation note
+
+Post-Generation Save + Edit Workflow Repair: clearer save models and fix paths without full redesign.
+
+**Resume text editor:** Persistent CTA renamed to "Save resume edits" (no longer "Mark as reviewed"). Dirty/saving/saved status strip, beforeunload warning, card-level "Apply local edit" clarifies preview vs persist.
+
+**Application Package:** Targeted fix actions (Fix resume text, Fix evidence, Fix cover letter, Adjust layout) shown before approve/export. `#package-edit` auto-opens evidence panel.
+
+**Evidence/regeneration:** Include vs exclude evidence copy; rewrite button shows affected role count when available.
+
+**Cover letter:** Split Manual edit (Save changes when dirty) vs AI revision (saves immediately). Manual save not primary without unsaved changes.
+
+**Parked:** forced evidence pending change queue, cover letter version history/undo, deeper package redesign.
 
 ## v0.9.13A implementation note
 
@@ -102,18 +116,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.13A - Inventory Cleanup + Bullet Control Baseline**
+**v0.9.13B - Post-Generation Save + Edit Workflow Repair**
 
-Deterministic duplicate detection, inventory cleanup controls, clearer evidence/regeneration wording.
+Clear resume save model, package fix hub, cover letter manual vs AI revision split.
 
-## Latest milestone summary (v0.9.13A)
+## Latest milestone summary (v0.9.13B)
 
-Inventory duplicate groups surfaced with keep/hide/keep-both controls; hidden bullets continue to flow through existing generation exclusion path.
+Save resume edits (not mark reviewed), package fix actions before export, cover letter manual/AI modes separated.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.13B | Post-generation save + edit workflow repair |
 | v0.9.13A | Inventory cleanup + bullet control baseline |
 | v0.9.12E | AI call cost guardrails — step estimates, research skip, Gemini call logging |
 | v0.9.12D | Restore Generate company/role primary fields |

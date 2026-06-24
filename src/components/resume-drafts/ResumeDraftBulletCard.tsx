@@ -108,7 +108,7 @@ export function ResumeDraftBulletCard({
         {isEditing ? (
           <>
             <button type="button" onClick={handleSaveEdit} className={secondaryButtonClassName}>
-              Save edit
+              Apply local edit
             </button>
             <button
               type="button"
@@ -120,6 +120,9 @@ export function ResumeDraftBulletCard({
             >
               Cancel
             </button>
+            <p className="w-full text-xs text-slate-500">
+              Updates the preview only until you click Save resume edits.
+            </p>
           </>
         ) : (
           <>

@@ -93,6 +93,15 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     suggestedActions: string[];
   } | null>(null);
   const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.location.hash === "#package-edit") {
+      setShowEditResumeContent(true);
+    }
+  }, [draftId]);
   const [manualSettings, setManualSettings] = useState<{
     draftId: string;
     bodyFontPx: number;
@@ -520,7 +529,10 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           <div id="package-resume" className="mt-4 space-y-4">
             {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
 
-            <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <details
+              id="package-layout-controls"
+              className="scroll-mt-32 rounded-lg border border-slate-200 bg-slate-50 p-4"
+            >
               <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
                 Layout controls
               </summary>
@@ -672,11 +684,11 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             <div className={`${actionBarClassName} space-y-3`}>
               <div>
                 <p className="text-xs font-semibold uppercase text-slate-500">
-                  Resume editing
+                  Fix evidence
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Targeted rewrites and text edits live here. Return to review/export above
-                  before downloading.
+                  Include or exclude inventory evidence, then rewrite affected roles or
+                  regenerate the full resume.
                 </p>
               </div>
               <ResumeEvidenceRegenerationPanel
@@ -715,7 +727,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 className={`${secondaryButtonClassName} mt-3 w-full sm:w-auto`}
                 data-action="edit-resume-content-toggle"
               >
-                Edit resume content
+                Fix evidence
               </button>
             </div>
           )}

@@ -319,3 +319,14 @@ export function countReviewDecisions(state: ResumeDraftReviewState): {
     rejected: items.filter((status) => status === "rejected").length,
   };
 }
+
+/** True when review overlay would change persisted draft content. */
+export function reviewStateDiffersFromSavedContent(
+  savedContent: ResumeDraftContent,
+  reviewState: ResumeDraftReviewState,
+): boolean {
+  const nextContent = applyReviewStateToContent(savedContent, reviewState, {
+    includePending: true,
+  });
+  return JSON.stringify(nextContent) !== JSON.stringify(savedContent);
+}

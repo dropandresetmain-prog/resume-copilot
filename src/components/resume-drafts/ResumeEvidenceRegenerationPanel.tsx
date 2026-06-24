@@ -200,6 +200,13 @@ export function ResumeEvidenceRegenerationPanel({
   const canRunTargetedUpdate =
     forcedKeys.size > 0 && targetedPlan.mode === "targeted" && feasibility.ok;
 
+  const affectedRoleCount =
+    targetedPlan.mode === "targeted" ? targetedPlan.roles.length : 0;
+  const rewriteButtonLabel =
+    affectedRoleCount > 0
+      ? `Rewrite ${affectedRoleCount} affected role${affectedRoleCount === 1 ? "" : "s"}`
+      : "Rewrite affected role(s)";
+
   async function handleTargetedUpdate() {
     if (!jobDescription || !draft.referenceResumeId || !canRunTargetedUpdate) {
       return;
@@ -390,7 +397,8 @@ export function ResumeEvidenceRegenerationPanel({
         <section>
           <h3 className="text-sm font-semibold text-slate-900">Exclude this evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Uncheck a generated bullet to omit its source evidence from the next regeneration run.
+            Uncheck to omit source evidence from the next regeneration run. This removes it from
+            the draft rebuild — it does not delete inventory.
           </p>
           <ul className="mt-3 space-y-3">
             {draft.content.experience.flatMap((experience, experienceIndex) =>
@@ -443,8 +451,8 @@ export function ResumeEvidenceRegenerationPanel({
         <section>
           <h3 className="text-sm font-semibold text-slate-900">Include this evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Check inventory bullets to force them into the next run even if ranking would skip them.
-            Use targeted rewrite when only a few roles need updating.
+            Check inventory bullets to add or force them into the next run even if ranking would
+            skip them. Prefer targeted rewrite when only a few roles need updating.
           </p>
 
           {alreadyInPayloadKeys.length > 0 ? (
@@ -553,10 +561,14 @@ export function ResumeEvidenceRegenerationPanel({
               data-action="rewrite-affected-roles"
               aria-busy={isRegenerating}
             >
-              {isRegenerating ? "Rewriting…" : "Rewrite affected roles"}
+              {isRegenerating ? "Rewriting…" : rewriteButtonLabel}
             </button>
             <p className="text-xs text-slate-500">
-              Targeted rewrite — updates only roles tied to forced bullets (1 AI step).
+              Targeted rewrite — updates{" "}
+              {affectedRoleCount > 0
+                ? `${affectedRoleCount} role${affectedRoleCount === 1 ? "" : "s"} tied to forced bullets`
+                : "affected role(s) tied to forced bullets"}{" "}
+              (1 AI step).
             </p>
           </div>
         ) : null}
