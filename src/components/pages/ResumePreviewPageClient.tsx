@@ -23,6 +23,10 @@ import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDra
 import { buildApplicationReviewStatus } from "@/lib/application-review/build-application-review-status";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
+import {
+  readPackageFixModeFromHash,
+  type PackageFixMode,
+} from "@/lib/package/fix-mode";
 import { DownloadResumeDocxButton } from "@/components/resume-drafts/DownloadResumeDocxButton";
 import { DownloadResumePdfButton } from "@/components/resume-drafts/DownloadResumePdfButton";
 import {
@@ -78,28 +82,6 @@ type ResumePreviewPageClientProps = {
   draftId: string;
 };
 
-type PackageWorkspaceTab = "preview" | "edit" | "layout";
-
-function readPackageHashTab(): PackageWorkspaceTab {
-  if (typeof window === "undefined") {
-    return "preview";
-  }
-  if (window.location.hash === "#package-resume-edit") {
-    return "edit";
-  }
-  if (window.location.hash === "#package-layout-controls") {
-    return "layout";
-  }
-  return "preview";
-}
-
-function readPackageEditHash(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  return window.location.hash === "#package-edit";
-}
-
 export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProps) {
   const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
@@ -107,9 +89,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [coverLetterLoading, setCoverLetterLoading] = useState(true);
   const [coverLetterPdfOverflow, setCoverLetterPdfOverflow] = useState(false);
-  const [showEditResumeContent, setShowEditResumeContent] = useState(readPackageEditHash);
-  const [packageWorkspaceTab, setPackageWorkspaceTab] =
-    useState<PackageWorkspaceTab>(readPackageHashTab);
+  const [activeFixMode, setActiveFixMode] = useState<PackageFixMode | null>(readPackageFixModeFromHash);
   const [previewOverflow, setPreviewOverflow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
@@ -121,6 +101,18 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     suggestedActions: string[];
   } | null>(null);
   const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function openFixMode(mode: PackageFixMode) {
+    setActiveFixMode(mode);
+  }
+
+  function closeFixMode() {
+    setActiveFixMode(null);
+  }
+
+  function scrollToApprove() {
+    document.getElementById("package-approve")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const [manualSettings, setManualSettings] = useState<{
     draftId: string;
@@ -467,6 +459,178 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
   );
 
+  const layoutSliders = (
+    <div
+      className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      data-testid="package-layout-sliders"
+    >
+      <label className="text-sm text-slate-700">
+        Body font ({bodyFontPx}px)
+        <input
+          type="range"
+          min={0}
+          max={bodyFontSliderSteps}
+          step={1}
+          value={Math.round(
+            (bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
+          )}
+          onChange={(event) =>
+            updateManualSettings({
+              bodyFontPx: clampPreviewBodyFontPx(
+                PREVIEW_BODY_FONT_MIN_PX +
+                  Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+              ),
+              marginMm,
+              marginTopMm,
+              lineSpacing,
+              itemLineSpacing,
+              sectionSpacing,
+            })
+          }
+          className="mt-1 block w-full"
+        />
+      </label>
+      <label className="text-sm text-slate-700">
+        Side margins ({marginMm}mm)
+        <input
+          type="range"
+          min={PREVIEW_MARGIN_MIN_MM}
+          max={PREVIEW_MARGIN_MAX_MM}
+          value={marginMm}
+          onChange={(event) =>
+            updateManualSettings({
+              bodyFontPx,
+              marginMm: Number(event.target.value),
+              marginTopMm,
+              lineSpacing,
+              itemLineSpacing,
+              sectionSpacing,
+            })
+          }
+          className="mt-1 block w-full"
+        />
+      </label>
+      <label className="text-sm text-slate-700">
+        Top margin ({marginTopMm}mm)
+        <input
+          type="range"
+          min={PREVIEW_MARGIN_TOP_MIN_MM}
+          max={PREVIEW_MARGIN_TOP_MAX_MM}
+          value={marginTopMm}
+          onChange={(event) =>
+            updateManualSettings({
+              bodyFontPx,
+              marginMm,
+              marginTopMm: Number(event.target.value),
+              lineSpacing,
+              itemLineSpacing,
+              sectionSpacing,
+            })
+          }
+          className="mt-1 block w-full"
+        />
+      </label>
+      <label className="text-sm text-slate-700">
+        Line spacing ({lineSpacing.toFixed(2)})
+        <input
+          type="range"
+          min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+          max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
+          value={Math.round(lineSpacing * 100)}
+          onChange={(event) =>
+            updateManualSettings({
+              bodyFontPx,
+              marginMm,
+              marginTopMm,
+              lineSpacing: Number(event.target.value) / 100,
+              itemLineSpacing,
+              sectionSpacing,
+            })
+          }
+          className="mt-1 block w-full"
+        />
+      </label>
+      <label className="text-sm text-slate-700">
+        Section spacing ({sectionSpacing.toFixed(2)}rem)
+        <input
+          type="range"
+          min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+          max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
+          value={Math.round(sectionSpacing * 100)}
+          onChange={(event) =>
+            updateManualSettings({
+              bodyFontPx,
+              marginMm,
+              marginTopMm,
+              lineSpacing,
+              itemLineSpacing,
+              sectionSpacing: Number(event.target.value) / 100,
+            })
+          }
+          className="mt-1 block w-full"
+        />
+      </label>
+    </div>
+  );
+
+  const resumePreviewBlock = (
+    <div id="package-resume" className="mt-4 space-y-4" data-testid="package-default-preview">
+      {documentModel ? (
+        <ResumePdfPreview
+          documentModel={documentModel}
+          onOverflowChange={(measurement) => setPreviewOverflow(measurement.exceedsOnePage)}
+        />
+      ) : null}
+      {!previewOverflow && validationFailure ? (
+        <p
+          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          data-testid="preview-export-mismatch"
+        >
+          Browser preview fits one page, but server validation reported {validationFailure.pageCount}{" "}
+          page(s). Trust the approve/export gate — adjust layout or content and re-approve.
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const coverLetterRevisionPanel =
+    coverLetter && activeFixMode === "revise-cover-letter" ? (
+      <div
+        id="package-cover-letter-revision"
+        className="scroll-mt-32"
+        data-testid="package-fix-mode-revise-cover-letter"
+      >
+        <CoverLetterStagedRevisionPanel
+          draftId={coverLetter.id}
+          currentBody={coverLetter.body}
+          draftModelTier={coverLetter.rationale?.modelSelection?.requestedTier}
+          actualModel={coverLetter.modelName}
+          fallbackApplied={coverLetter.rationale?.modelSelection?.fallbackApplied}
+          onAccepted={async (body, warnings, modelSelection) => {
+            const updated = await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, {
+              body,
+              rationale: coverLetter.rationale
+                ? {
+                    ...coverLetter.rationale,
+                    wordCount: body.split(/\s+/).filter(Boolean).length,
+                    modelSelection: modelSelection
+                      ? {
+                          requestedTier: modelSelection.requestedTier,
+                          fallbackApplied: modelSelection.fallbackApplied,
+                        }
+                      : coverLetter.rationale.modelSelection,
+                  }
+                : undefined,
+            });
+            setCoverLetter(updated);
+            if (warnings.length > 0) {
+              setExportWarning(warnings.join(" "));
+            }
+          }}
+        />
+      </div>
+    ) : null;
+
   return (
     <>
       <PageHeader
@@ -474,103 +638,132 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         eyebrow="Package"
         milestone={pageMilestone("Application Package")}
         title="Application package"
-        description="Central review workspace — fix resume or cover letter, then approve and export."
+        description="Here is your package. Review it. Fix only if needed."
       />
 
-      <div className="space-y-6">
-        {/* Two-column layout on lg+: compact action rail left, resume preview right */}
-        <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div
+        className="space-y-6"
+        data-package-view={activeFixMode ?? "review"}
+        data-testid="package-workspace"
+      >
+        <section data-testid="package-fit-summary-top">
+          <PackageFitSummaryPanel rationale={draft.rationale} fitAssessment={assessment} />
+        </section>
 
-          {/* Left: sticky review / approve / export rail */}
-          <div className="space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
-            {reviewStatus ? (
-              <ApplicationReviewCenter
-                companyName={displayCompany}
-                roleTitle={linkedJob?.roleTitle ?? draft.content.targetRoleTitle}
-                reviewStatus={reviewStatus}
-                resumeDraftId={draftId}
-                coverLetterId={coverLetter?.id}
-                onApproveForExport={() => void handleApproveForExport()}
-                isApproving={isApproving}
-                canApprove={canApprove}
-                approveButtonLabel={approveButtonLabel}
-                exportReady={exportReady}
-                exportControls={
-                  <>
-                    <DownloadResumePdfButton
-                      draftId={draftId}
-                      layoutSettings={currentLayoutSettings}
-                      disabled={!exportReady}
-                      disabledReason={exportDisabledReason}
-                      onWarning={setExportWarning}
-                    />
-                    <div className="inline-flex flex-col gap-1">
-                      <DownloadResumeDocxButton
+        <p
+          className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+          data-testid="package-review-first-banner"
+        >
+          Here is your package. Review the resume preview below, approve when ready, and open a fix
+          mode only if something needs adjustment.
+        </p>
+
+        {activeFixMode ? (
+          <div className={actionBarClassName}>
+            <button
+              type="button"
+              onClick={closeFixMode}
+              className={secondaryButtonClassName}
+              data-action="back-to-package-review"
+            >
+              Back to review
+            </button>
+            <p className="text-sm text-slate-600">
+              {activeFixMode === "edit-resume"
+                ? "Editing resume text"
+                : activeFixMode === "fix-evidence"
+                  ? "Fixing resume evidence"
+                  : activeFixMode === "adjust-layout"
+                    ? "Adjusting resume layout"
+                    : "Revising cover letter"}
+            </p>
+          </div>
+        ) : null}
+
+        {activeFixMode === null ? (
+          <div
+            className="space-y-4 lg:grid lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:items-start lg:gap-6"
+            data-testid="package-review-default-layout"
+          >
+            <div
+              className="space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+              data-testid="package-review-rail"
+            >
+              {reviewStatus ? (
+                <ApplicationReviewCenter
+                  companyName={displayCompany}
+                  roleTitle={linkedJob?.roleTitle ?? draft.content.targetRoleTitle}
+                  reviewStatus={reviewStatus}
+                  coverLetterId={coverLetter?.id}
+                  onApproveForExport={() => void handleApproveForExport()}
+                  isApproving={isApproving}
+                  canApprove={canApprove}
+                  approveButtonLabel={approveButtonLabel}
+                  exportReady={exportReady}
+                  onFixAction={openFixMode}
+                  onScrollToApprove={scrollToApprove}
+                  exportControls={
+                    <>
+                      <DownloadResumePdfButton
                         draftId={draftId}
                         layoutSettings={currentLayoutSettings}
                         disabled={!exportReady}
                         disabledReason={exportDisabledReason}
-                        onHint={setExportWarning}
+                        onWarning={setExportWarning}
                       />
-                      <p className="max-w-xs text-xs text-slate-500">
-                        PDF is the final layout. DOCX is editable and may reflow in Word.
-                      </p>
-                    </div>
-                  </>
-                }
-              />
-            ) : null}
+                      <div className="inline-flex flex-col gap-1">
+                        <DownloadResumeDocxButton
+                          draftId={draftId}
+                          layoutSettings={currentLayoutSettings}
+                          disabled={!exportReady}
+                          disabledReason={exportDisabledReason}
+                          onHint={setExportWarning}
+                        />
+                        <p className="max-w-xs text-xs text-slate-500">
+                          PDF is the final layout. DOCX is editable and may reflow in Word.
+                        </p>
+                      </div>
+                    </>
+                  }
+                />
+              ) : null}
 
-            {validationFailure ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                <p className="font-medium">
-                  Server PDF: {validationFailure.pageCount} page(s) — export blocked
+              {validationFailure ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  <p className="font-medium">
+                    Server PDF: {validationFailure.pageCount} page(s) — export blocked
+                  </p>
+                  <p className="mt-1">{validationFailure.message}</p>
+                </div>
+              ) : isApproving ? (
+                <p className="text-sm text-slate-600">Validating server PDF layout…</p>
+              ) : null}
+
+              {exportWarning ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {exportWarning}
                 </p>
-                <p className="mt-1">{validationFailure.message}</p>
-              </div>
-            ) : isApproving ? (
-              <p className="text-sm text-slate-600">Validating server PDF layout…</p>
-            ) : null}
-
-            {exportWarning ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {exportWarning}
-              </p>
-            ) : null}
-
-            <PackageFitSummaryPanel
-              rationale={draft.rationale}
-              fitAssessment={assessment}
-            />
-          </div>
-
-          {/* Right: resume workspace — edit + preview */}
-          <div className="mt-4 space-y-4 lg:mt-0">
-            <div
-              className="flex gap-2 border-b border-slate-200 lg:hidden"
-              data-testid="package-workspace-tabs"
-            >
-              {(["edit", "preview", "layout"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setPackageWorkspaceTab(tab)}
-                  className={`px-3 py-2 text-sm font-medium capitalize ${
-                    packageWorkspaceTab === tab
-                      ? "border-b-2 border-cyan-700 text-cyan-900"
-                      : "text-slate-600"
-                  }`}
-                  data-tab={tab}
-                >
-                  {tab}
-                </button>
-              ))}
+              ) : null}
             </div>
 
-            <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+            <div data-testid="package-prominent-preview">
+              <SetupCard
+                className="scroll-mt-24 min-w-0"
+                title="Resume preview"
+                description="Read-only A4 PDF preview — your primary review surface."
+                variant="primary"
+              >
+                {resumePreviewBlock}
+              </SetupCard>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6" data-testid="package-fix-mode-panel">
+            {activeFixMode === "edit-resume" ? (
               <div
                 id="package-resume-edit"
-                className={`scroll-mt-32 ${packageWorkspaceTab === "edit" ? "block" : "hidden lg:block"}`}
+                className="scroll-mt-32 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-6"
+                data-testid="package-fix-mode-edit-resume"
               >
                 <ResumeDraftReviewWorkspace
                   key={`${draft.id}:${draft.updatedAt}`}
@@ -578,162 +771,52 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                   onDraftUpdated={setDraft}
                   packageMode
                 />
+                <SetupCard
+                  title="Resume preview"
+                  description="Preview updates as you edit structured fields."
+                  variant="primary"
+                >
+                  {resumePreviewBlock}
+                </SetupCard>
               </div>
+            ) : null}
 
-              <SetupCard
-                className="scroll-mt-24"
-                title="Resume preview"
-                description="Read-only A4 PDF preview — edit structured fields alongside on desktop."
-                variant="primary"
+            {activeFixMode === "fix-evidence" ? (
+              <div
+                id="package-edit"
+                className="scroll-mt-32"
+                data-testid="package-fix-mode-fix-evidence"
               >
-                <div
-                  id="package-resume"
-                  className={`mt-4 space-y-4 ${packageWorkspaceTab === "preview" ? "block" : "hidden lg:block"}`}
-                >
-                  {documentModel ? (
-                    <ResumePdfPreview
-                      documentModel={documentModel}
-                      onOverflowChange={(measurement) =>
-                        setPreviewOverflow(measurement.exceedsOnePage)
-                      }
-                    />
-                  ) : null}
-
-                  {!previewOverflow && validationFailure ? (
-                    <p
-                      className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-                      data-testid="preview-export-mismatch"
-                    >
-                      Browser preview fits one page, but server validation reported{" "}
-                      {validationFailure.pageCount} page(s). Trust the approve/export gate — adjust
-                      layout or content and re-approve.
-                    </p>
-                  ) : null}
-                </div>
-
-                <details
-                  id="package-layout-controls"
-                  className={`scroll-mt-32 rounded-lg border border-slate-200 bg-slate-50 p-4 ${
-                    packageWorkspaceTab === "layout" ? "block" : "hidden lg:block"
-                  }`}
-                  open={packageWorkspaceTab === "layout"}
-                >
-              <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
-                Layout controls
-              </summary>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                <label className="text-sm text-slate-700">
-                  Body font ({bodyFontPx}px)
-                  <input
-                    type="range"
-                    min={0}
-                    max={bodyFontSliderSteps}
-                    step={1}
-                    value={Math.round(
-                      (bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
-                    )}
-                    onChange={(event) =>
-                      updateManualSettings({
-                        bodyFontPx: clampPreviewBodyFontPx(
-                          PREVIEW_BODY_FONT_MIN_PX +
-                            Number(event.target.value) * PREVIEW_BODY_FONT_STEP_PX,
-                        ),
-                        marginMm,
-                        marginTopMm,
-                        lineSpacing,
-                        itemLineSpacing,
-                        sectionSpacing,
-                      })
-                    }
-                    className="mt-1 block w-full"
-                  />
-                </label>
-                <label className="text-sm text-slate-700">
-                  Side margins ({marginMm}mm)
-                  <input
-                    type="range"
-                    min={PREVIEW_MARGIN_MIN_MM}
-                    max={PREVIEW_MARGIN_MAX_MM}
-                    value={marginMm}
-                    onChange={(event) =>
-                      updateManualSettings({
-                        bodyFontPx,
-                        marginMm: Number(event.target.value),
-                        marginTopMm,
-                        lineSpacing,
-                        itemLineSpacing,
-                        sectionSpacing,
-                      })
-                    }
-                    className="mt-1 block w-full"
-                  />
-                </label>
-                <label className="text-sm text-slate-700">
-                  Top margin ({marginTopMm}mm)
-                  <input
-                    type="range"
-                    min={PREVIEW_MARGIN_TOP_MIN_MM}
-                    max={PREVIEW_MARGIN_TOP_MAX_MM}
-                    value={marginTopMm}
-                    onChange={(event) =>
-                      updateManualSettings({
-                        bodyFontPx,
-                        marginMm,
-                        marginTopMm: Number(event.target.value),
-                        lineSpacing,
-                        itemLineSpacing,
-                        sectionSpacing,
-                      })
-                    }
-                    className="mt-1 block w-full"
-                  />
-                </label>
-                <label className="text-sm text-slate-700">
-                  Line spacing ({lineSpacing.toFixed(2)})
-                  <input
-                    type="range"
-                    min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
-                    max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
-                    value={Math.round(lineSpacing * 100)}
-                    onChange={(event) =>
-                      updateManualSettings({
-                        bodyFontPx,
-                        marginMm,
-                        marginTopMm,
-                        lineSpacing: Number(event.target.value) / 100,
-                        itemLineSpacing,
-                        sectionSpacing,
-                      })
-                    }
-                    className="mt-1 block w-full"
-                  />
-                </label>
-                <label className="text-sm text-slate-700">
-                  Section spacing ({sectionSpacing.toFixed(2)}rem)
-                  <input
-                    type="range"
-                    min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
-                    max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
-                    value={Math.round(sectionSpacing * 100)}
-                    onChange={(event) =>
-                      updateManualSettings({
-                        bodyFontPx,
-                        marginMm,
-                        marginTopMm,
-                        lineSpacing,
-                        itemLineSpacing,
-                        sectionSpacing: Number(event.target.value) / 100,
-                      })
-                    }
-                    className="mt-1 block w-full"
-                  />
-                </label>
+                <ResumeEvidenceRegenerationPanel
+                  draft={draft}
+                  inventory={inventory}
+                  jobDescription={linkedJob}
+                  onDraftUpdated={setDraft}
+                />
               </div>
-            </details>
-              </SetupCard>
-            </div>
+            ) : null}
+
+            {activeFixMode === "adjust-layout" ? (
+              <div
+                id="package-layout-controls"
+                className="scroll-mt-32 space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-6"
+                data-testid="package-fix-mode-adjust-layout"
+              >
+                <SetupCard
+                  title="Layout controls"
+                  description="Tune spacing and font size, then re-approve for export."
+                >
+                  {layoutSliders}
+                </SetupCard>
+                <SetupCard title="Resume preview" description="See layout changes in the PDF preview.">
+                  {resumePreviewBlock}
+                </SetupCard>
+              </div>
+            ) : null}
+
+            {activeFixMode === "revise-cover-letter" ? coverLetterRevisionPanel : null}
           </div>
-        </div>{/* end two-column grid */}
+        )}
 
         <div
           id="package-cover-letter"
@@ -747,42 +830,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             onLoadingChange={setCoverLetterLoading}
             onPdfOverflowChange={setCoverLetterPdfOverflow}
           />
-          {coverLetter ? (
-            <div
-              id="package-cover-letter-revision"
-              className="scroll-mt-32"
-              data-testid="package-cover-letter-revision"
-            >
-              <CoverLetterStagedRevisionPanel
-                draftId={coverLetter.id}
-                currentBody={coverLetter.body}
-                draftModelTier={coverLetter.rationale?.modelSelection?.requestedTier}
-                actualModel={coverLetter.modelName}
-                fallbackApplied={coverLetter.rationale?.modelSelection?.fallbackApplied}
-                onAccepted={async (body, warnings, modelSelection) => {
-                  const updated = await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, {
-                    body,
-                    rationale: coverLetter.rationale
-                      ? {
-                          ...coverLetter.rationale,
-                          wordCount: body.split(/\s+/).filter(Boolean).length,
-                          modelSelection: modelSelection
-                            ? {
-                                requestedTier: modelSelection.requestedTier,
-                                fallbackApplied: modelSelection.fallbackApplied,
-                              }
-                            : coverLetter.rationale.modelSelection,
-                        }
-                      : undefined,
-                  });
-                  setCoverLetter(updated);
-                  if (warnings.length > 0) {
-                    setExportWarning(warnings.join(" "));
-                  }
-                }}
-              />
-            </div>
-          ) : null}
         </div>
 
         {companyContext ? (
@@ -799,32 +846,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             />
           </div>
         ) : null}
-
-        <div id="package-edit" className="scroll-mt-32">
-          {showEditResumeContent ? (
-            <ResumeEvidenceRegenerationPanel
-              draft={draft}
-              inventory={inventory}
-              jobDescription={linkedJob}
-              onDraftUpdated={setDraft}
-            />
-          ) : (
-            <div className={actionBarClassName}>
-              <p className="text-xs font-semibold uppercase text-slate-500">Fix resume evidence</p>
-              <p className="mt-1 text-sm text-slate-600">
-                Stage include/exclude changes and apply once — no AI on checkbox clicks.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowEditResumeContent(true)}
-                className={`${secondaryButtonClassName} mt-3 w-full sm:w-auto`}
-                data-action="edit-resume-content-toggle"
-              >
-                Open evidence queue
-              </button>
-            </div>
-          )}
-        </div>
 
         <details
           id="package-details"

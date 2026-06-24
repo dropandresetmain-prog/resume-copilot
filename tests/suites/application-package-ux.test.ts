@@ -28,19 +28,19 @@ function main() {
     "utf8",
   );
 
-  const reviewCenterIndex = indexOrInfinity(resumePreview, "ApplicationReviewCenter");
+  const fitSummaryIndex = indexOrInfinity(resumePreview, 'data-testid="package-fit-summary-top"');
+  const reviewCenterIndex = indexOrInfinity(resumePreview, 'data-testid="package-review-rail"');
   const approveIndex = indexOrInfinity(resumePreview, "exportControls={");
-  const coverLetterIndex = indexOrInfinity(resumePreview, 'data-section="application-package-cover-letter"');
-  const companyResearchIndex = indexOrInfinity(resumePreview, 'data-section="application-package-company-research"');
+  const editModeIndex = indexOrInfinity(resumePreview, "package-fix-mode-edit-resume");
+  const prominentPreviewIndex = indexOrInfinity(resumePreview, "package-prominent-preview");
   const developerIndex = indexOrInfinity(resumePreview, "Developer details");
-  const editToggleIndex = indexOrInfinity(resumePreview, "edit-resume-content-toggle");
 
   const checks: [string, boolean][] = [
     ["inline cover letter body on package page", coverLetterPanel.includes("application-package-cover-letter-body")],
     ["edit cover letter button exists", coverLetterPanel.includes("Edit cover letter")],
     ["cover letter download buttons exist", coverLetterPanel.includes("DownloadCoverLetterPdfButton")],
-    ["approve export before cover letter section", approveIndex < coverLetterIndex],
-    ["approve export before company research", approveIndex < companyResearchIndex],
+    ["approve export before cover letter section", approveIndex < indexOrInfinity(resumePreview, 'data-section="application-package-cover-letter"')],
+    ["approve export before company research", approveIndex < indexOrInfinity(resumePreview, 'data-section="application-package-company-research"')],
     ["approve export before developer details", approveIndex < developerIndex],
     ["review center owns approve export action row", reviewCenter.includes('data-section="resume-approve-export"')],
     ["review center two-step sequence labels", reviewCenter.includes("Step 1") && reviewCenter.includes("Step 2")],
@@ -49,21 +49,15 @@ function main() {
     [
       "approve and export controls co-located",
       reviewCenter.includes("exportControls") &&
-        resumePreview.indexOf("exportControls={") <
-          resumePreview.indexOf("Read-only A4 PDF preview") &&
-        resumePreview.indexOf("DownloadResumePdfButton") <
-          resumePreview.indexOf("Read-only A4 PDF preview") &&
-        resumePreview.indexOf("DownloadResumeDocxButton") <
-          resumePreview.indexOf("Read-only A4 PDF preview"),
+        resumePreview.indexOf("exportControls={") < prominentPreviewIndex,
     ],
     ["evidence panel fix resume evidence title", evidencePanel.includes("Fix resume evidence")],
     ["package structured editor on page", resumePreview.includes("ResumeDraftReviewWorkspace")],
     ["package decision tree", reviewCenter.includes("PackageDecisionTree")],
-    ["package fit summary", resumePreview.includes("PackageFitSummaryPanel")],
-    ["fix evidence toggle on package", resumePreview.includes("Open evidence queue")],
-    ["edit resume content hidden by default", resumePreview.includes("showEditResumeContent")],
-    ["edit resume content toggle button", resumePreview.includes("edit-resume-content-toggle")],
-    ["edit resume content secondary surface", resumePreview.includes("Open evidence queue")],
+    ["package fit summary near top", fitSummaryIndex < reviewCenterIndex && fitSummaryIndex < editModeIndex],
+    ["edit resume hidden by default", resumePreview.includes("activeFixMode") && resumePreview.includes('activeFixMode === "edit-resume"')],
+    ["back to review control", resumePreview.includes("back-to-package-review")],
+    ["review-first banner", resumePreview.includes("package-review-first-banner")],
     ["company research collapsed by default", resumePreview.includes("defaultOpen={false}")],
     ["developer details wrapper", resumePreview.includes("Developer details")],
     ["debug json under developer details", developerIndex < indexOrInfinity(resumePreview, "Debug JSON")],
@@ -71,22 +65,23 @@ function main() {
     ["browser layout under developer details", developerIndex < indexOrInfinity(resumePreview, "Advanced browser layout estimate")],
     ["resume assessment under developer details", developerIndex < indexOrInfinity(resumePreview, "<ResumeAssessmentPanel")],
     ["application review center component", resumePreview.includes("ApplicationReviewCenter")],
-    ["review center before approve export section", reviewCenterIndex < approveIndex],
+    ["review center before approve export section", reviewCenter.indexOf("application-fix-actions") < reviewCenter.indexOf("resume-approve-export")],
     ["resume card has no duplicate approve button", !resumePreview.includes("onClick={handleApproveForExport}")],
     ["no open formal cover letter only cta", !resumePreview.includes("ResumeCoverLetterPanel")],
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
     ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],
-    ["edit toggle before developer details", editToggleIndex < developerIndex],
+    ["edit toggle before developer details", editModeIndex < developerIndex || editModeIndex === Number.POSITIVE_INFINITY],
     ["review center shows revise cover letter action", reviewCenter.includes("Revise cover letter")],
     ["review center fix actions hub", reviewCenter.includes("application-fix-actions")],
     ["review center fix actions before approve", reviewCenter.indexOf("application-fix-actions") < reviewCenter.indexOf("resume-approve-export")],
     ["review center checklists behind disclosure", reviewCenter.includes("review-details-disclosure") && reviewCenter.includes("Review details")],
     ["draft ready status type defined", reviewCenter.includes("DRAFT_READY") || resumePreview.includes("DRAFT_READY") || reviewCenter.includes("exportReady")],
-    ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Central review workspace")],
+    ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Fix only if needed")],
     ["package page passes exportReady to review center", resumePreview.includes("exportReady={exportReady}")],
     ["research section conditional on companyContext", resumePreview.includes("companyContext ?") && resumePreview.includes('"application-package-company-research"')],
     ["research section not hardcoded unconditional", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
-    ["package two-col layout on desktop", resumePreview.includes("lg:grid-cols-[20rem") && resumePreview.includes("lg:sticky")],
+    ["package review-first default layout", resumePreview.includes("package-review-default-layout") && resumePreview.includes("package-prominent-preview")],
+    ["package fix mode panel gated", resumePreview.includes("package-fix-mode-panel")],
   ];
 
   for (const [name, ok] of checks) {

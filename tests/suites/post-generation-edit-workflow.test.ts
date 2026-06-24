@@ -11,7 +11,7 @@ import {
   removeBulletsFromDraftBySourceKeys,
   resolveDraftStatusAfterContentEdit,
 } from "../../src/lib/resume-draft/apply-evidence-changes";
-import { buildPackageFitSummary } from "../../src/lib/package/fit-summary";
+import { buildPackageFitSummary, PACKAGE_FIT_SUMMARY_MAX_WORDS } from "../../src/lib/package/fit-summary";
 import { PREVIEW_FIT_HEURISTIC_VERSION } from "../../src/lib/resume-draft/layout";
 
 function buildSampleContent(): ResumeDraftContent {
@@ -140,8 +140,38 @@ function main() {
         resumePreview.includes("packageMode"),
     ],
     [
-      "package mobile workspace tabs",
-      resumePreview.includes('data-testid="package-workspace-tabs"'),
+      "edit resume hidden until fix mode",
+      resumePreview.includes('activeFixMode === "edit-resume"') &&
+        resumePreview.includes('data-testid="package-fix-mode-edit-resume"'),
+    ],
+    [
+      "review-first default layout",
+      resumePreview.includes('data-testid="package-review-default-layout"') &&
+        resumePreview.includes('data-package-view={activeFixMode ?? "review"}'),
+    ],
+    [
+      "fit summary before review rail",
+      resumePreview.indexOf('data-testid="package-fit-summary-top"') <
+        resumePreview.indexOf('data-testid="package-review-rail"'),
+    ],
+    [
+      "prominent preview in default view",
+      resumePreview.includes('data-testid="package-prominent-preview"') &&
+        resumePreview.includes('data-testid="package-default-preview"'),
+    ],
+    [
+      "fix modes opened via callbacks",
+      resumePreview.includes("onFixAction={openFixMode}") &&
+        decisionTree.includes("onSelectMode"),
+    ],
+    [
+      "back to review action",
+      resumePreview.includes('data-action="back-to-package-review"'),
+    ],
+    [
+      "single fix mode at a time",
+      resumePreview.includes("activeFixMode === null") &&
+        resumePreview.includes('data-testid="package-fix-mode-panel"'),
     ],
     [
       "save resume edits action",
@@ -239,7 +269,26 @@ function main() {
     ],
     [
       "fit summary truncates",
-      fitText !== null && fitText.split(/\s+/).length <= 100,
+      fitText !== null && fitText.split(/\s+/).length <= PACKAGE_FIT_SUMMARY_MAX_WORDS,
+    ],
+    [
+      "fit summary max words constant",
+      PACKAGE_FIT_SUMMARY_MAX_WORDS === 100,
+    ],
+    [
+      "fit summary clamps long rationale",
+      (() => {
+        const long = buildPackageFitSummary({
+          rationale: {
+            overall: Array.from({ length: 120 }, (_, index) => `word${index}`).join(" "),
+            toneNotes: "",
+            keywordUsage: [],
+            omissions: [],
+          },
+          fitAssessment: null,
+        });
+        return long !== null && long.split(/\s+/).length <= PACKAGE_FIT_SUMMARY_MAX_WORDS;
+      })(),
     ],
     [
       "generated bullets with keys helper",

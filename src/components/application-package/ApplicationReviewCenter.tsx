@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
@@ -11,6 +10,7 @@ import {
   secondaryButtonClassName,
 } from "@/components/setup/ui";
 import { PackageDecisionTree } from "@/components/application-package/PackageDecisionTree";
+import type { PackageFixMode } from "@/lib/package/fix-mode";
 import type {
   ApplicationReviewOverallStatus,
   ApplicationReviewStatus,
@@ -21,7 +21,6 @@ type ApplicationReviewCenterProps = {
   companyName?: string;
   roleTitle?: string;
   reviewStatus: ApplicationReviewStatus;
-  resumeDraftId: string;
   coverLetterId?: string;
   onApproveForExport: () => void;
   isApproving: boolean;
@@ -30,6 +29,8 @@ type ApplicationReviewCenterProps = {
   exportControls?: ReactNode;
   /** Whether the draft is currently approved and export-ready — controls Approve→Export sequencing. */
   exportReady: boolean;
+  onFixAction: (mode: PackageFixMode) => void;
+  onScrollToApprove: () => void;
 };
 
 const OVERALL_LABELS: Record<ApplicationReviewOverallStatus, string> = {
@@ -124,7 +125,6 @@ export function ApplicationReviewCenter({
   companyName,
   roleTitle,
   reviewStatus,
-  resumeDraftId,
   coverLetterId,
   onApproveForExport,
   isApproving,
@@ -132,6 +132,8 @@ export function ApplicationReviewCenter({
   approveButtonLabel,
   exportControls,
   exportReady,
+  onFixAction,
+  onScrollToApprove,
 }: ApplicationReviewCenterProps) {
   const displayTitle =
     companyName && roleTitle
@@ -189,9 +191,10 @@ export function ApplicationReviewCenter({
       </div>
 
       <PackageDecisionTree
-        resumeDraftId={resumeDraftId}
-        coverLetterId={coverLetterId}
         exportReady={exportReady}
+        hasCoverLetter={Boolean(coverLetterId)}
+        onSelectMode={onFixAction}
+        onScrollToApprove={onScrollToApprove}
       />
 
       {/* Fix paths — shown before approve/export when issues exist */}
@@ -205,36 +208,39 @@ export function ApplicationReviewCenter({
       >
         <p className="text-xs font-semibold uppercase text-slate-600">Quick fix actions</p>
         <div className={`${secondaryActionGroupClassName} mt-3`}>
-          <Link
-            href={`/resume-preview/${resumeDraftId}#package-resume-edit`}
+          <button
+            type="button"
             className={secondaryButtonClassName}
+            data-action="edit-resume-text"
+            onClick={() => onFixAction("edit-resume")}
           >
             Edit resume text
-          </Link>
-          <a
-            href={`/resume-preview/${resumeDraftId}#package-edit`}
+          </button>
+          <button
+            type="button"
             className={secondaryButtonClassName}
+            data-action="fix-resume-evidence"
+            onClick={() => onFixAction("fix-evidence")}
           >
             Fix resume evidence
-          </a>
-          <a
-            href={`/resume-preview/${resumeDraftId}#package-layout-controls`}
+          </button>
+          <button
+            type="button"
             className={secondaryButtonClassName}
+            data-action="adjust-resume-layout"
+            onClick={() => onFixAction("adjust-layout")}
           >
             Adjust resume layout
-          </a>
-          {coverLetterId ? (
-            <a
-              href={`/resume-preview/${resumeDraftId}#package-cover-letter-revision`}
-              className={secondaryButtonClassName}
-            >
-              Revise cover letter
-            </a>
-          ) : (
-            <a href="#package-cover-letter" className={secondaryButtonClassName}>
-              Revise cover letter
-            </a>
-          )}
+          </button>
+          <button
+            type="button"
+            className={secondaryButtonClassName}
+            data-action="revise-cover-letter"
+            onClick={() => onFixAction("revise-cover-letter")}
+            disabled={!coverLetterId}
+          >
+            Revise cover letter
+          </button>
         </div>
         {reviewItemCount > 0 ? (
           <p className="mt-2 text-xs text-slate-600">

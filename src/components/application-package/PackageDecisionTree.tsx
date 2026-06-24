@@ -1,23 +1,24 @@
 "use client";
 
-import Link from "next/link";
-
 import {
   primaryButtonClassName,
   secondaryActionGroupClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
+import type { PackageFixMode } from "@/lib/package/fix-mode";
 
 type PackageDecisionTreeProps = {
-  resumeDraftId: string;
-  coverLetterId?: string;
   exportReady: boolean;
+  hasCoverLetter: boolean;
+  onSelectMode: (mode: PackageFixMode) => void;
+  onScrollToApprove: () => void;
 };
 
 export function PackageDecisionTree({
-  resumeDraftId,
-  coverLetterId,
   exportReady,
+  hasCoverLetter,
+  onSelectMode,
+  onScrollToApprove,
 }: PackageDecisionTreeProps) {
   return (
     <div
@@ -31,8 +32,8 @@ export function PackageDecisionTree({
           DOCX.
         </li>
         <li>
-          <span className="font-medium">Resume needs work?</span> Edit text, fix evidence, or adjust
-          layout — then re-approve.
+          <span className="font-medium">Resume needs work?</span> Open a fix mode below — then
+          re-approve.
         </li>
         <li>
           <span className="font-medium">Cover letter needs work?</span> Stage revision instructions,
@@ -40,41 +41,47 @@ export function PackageDecisionTree({
         </li>
       </ol>
       <div className={`${secondaryActionGroupClassName} mt-3`} data-testid="package-decision-actions">
-        <Link
-          href={`/resume-preview/${resumeDraftId}#package-resume-edit`}
+        <button
+          type="button"
           className={secondaryButtonClassName}
           data-action="edit-resume-text"
+          onClick={() => onSelectMode("edit-resume")}
         >
           Edit resume text
-        </Link>
-        <a href={`/resume-preview/${resumeDraftId}#package-edit`} className={secondaryButtonClassName}>
-          Fix resume evidence
-        </a>
-        <a
-          href={`/resume-preview/${resumeDraftId}#package-layout-controls`}
+        </button>
+        <button
+          type="button"
           className={secondaryButtonClassName}
+          data-action="fix-resume-evidence"
+          onClick={() => onSelectMode("fix-evidence")}
+        >
+          Fix resume evidence
+        </button>
+        <button
+          type="button"
+          className={secondaryButtonClassName}
+          data-action="adjust-resume-layout"
+          onClick={() => onSelectMode("adjust-layout")}
         >
           Adjust resume layout
-        </a>
-        {coverLetterId ? (
-          <a
-            href={`/resume-preview/${resumeDraftId}#package-cover-letter-revision`}
-            className={secondaryButtonClassName}
-          >
-            Revise cover letter
-          </a>
-        ) : (
-          <a href="#package-cover-letter" className={secondaryButtonClassName}>
-            Revise cover letter
-          </a>
-        )}
-        <a
-          href={`/resume-preview/${resumeDraftId}#package-approve`}
+        </button>
+        <button
+          type="button"
+          className={secondaryButtonClassName}
+          data-action="revise-cover-letter"
+          onClick={() => onSelectMode("revise-cover-letter")}
+          disabled={!hasCoverLetter}
+        >
+          Revise cover letter
+        </button>
+        <button
+          type="button"
           className={exportReady ? secondaryButtonClassName : primaryButtonClassName}
           data-action="approve-for-export-link"
+          onClick={onScrollToApprove}
         >
           Approve for export
-        </a>
+        </button>
       </div>
     </div>
   );

@@ -260,8 +260,9 @@ function main() {
       resumePreview.includes("exportReady={exportReady}"),
     ],
     [
-      "package two-col layout desktop",
-      resumePreview.includes("lg:grid-cols-[20rem") && resumePreview.includes("lg:sticky"),
+      "package review-first layout",
+      resumePreview.includes("package-review-default-layout") &&
+        resumePreview.includes("package-prominent-preview"),
     ],
     [
       "generate mobile sticky cta",
