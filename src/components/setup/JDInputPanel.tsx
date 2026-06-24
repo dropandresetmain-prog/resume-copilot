@@ -424,43 +424,12 @@ export function JDInputPanel({
                 isSignedIn={generateFlow.isSignedIn}
                 disabled={disabled}
                 confidentialPosting={confidentialPosting}
+                jobUrl={form.jobUrl ?? ""}
+                onJobUrlChange={(value) => updateField("jobUrl", value)}
+                onClearForm={clearForm}
                 onSaveJob={generateFlow.onSaveJob}
                 onGenerationFinished={generateFlow.onGenerationFinished}
               />
-
-              <details className="rounded-lg border border-slate-200">
-                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
-                  <span className="flex items-center justify-between gap-2">
-                    <span>More job details (optional)</span>
-                    <span className="text-xs font-normal text-slate-400">Job URL</span>
-                  </span>
-                </summary>
-                <div className="space-y-4 border-t border-slate-100 px-4 pb-4 pt-3">
-                  <div>
-                    <label htmlFor="jd-url" className={labelClassName}>
-                      Job URL (optional)
-                    </label>
-                    <input
-                      id="jd-url"
-                      type="url"
-                      value={form.jobUrl ?? ""}
-                      onChange={(event) => updateField("jobUrl", event.target.value)}
-                      disabled={disabled}
-                      placeholder="https://…"
-                      className={formFieldClassName}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={clearForm}
-                    disabled={disabled}
-                    className={`${secondaryButtonClassName} sm:w-auto`}
-                  >
-                    Clear form
-                  </button>
-                </div>
-              </details>
             </>
           ) : (
             /* Non-generate flow: standard layout */

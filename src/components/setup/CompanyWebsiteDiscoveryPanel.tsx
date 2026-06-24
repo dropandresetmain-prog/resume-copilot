@@ -1,12 +1,16 @@
 "use client";
 
 import type { CompanyWebsiteDiscoveryResult } from "@/lib/company-context/discover-company-website";
-import type { GenerateContextPolicy } from "@/lib/generate/context-policy";
+import type { GenerateContextPolicy, GenerateOutputMode } from "@/lib/generate/context-policy";
 import { secondaryButtonClassName } from "@/components/setup/ui";
 
 type CompanyWebsiteDiscoveryPanelProps = {
+  hasIntakeComplete: boolean;
+  confidentialPosting: boolean;
+  outputMode: GenerateOutputMode;
   canDiscover: boolean;
   policy: GenerateContextPolicy;
+  contextWebsiteLine: string | null;
   discoveryResult: CompanyWebsiteDiscoveryResult | null;
   isDiscovering: boolean;
   discoveryError: string | null;
@@ -19,8 +23,12 @@ type CompanyWebsiteDiscoveryPanelProps = {
 };
 
 export function CompanyWebsiteDiscoveryPanel({
+  hasIntakeComplete,
+  confidentialPosting,
+  outputMode,
   canDiscover,
   policy,
+  contextWebsiteLine,
   discoveryResult,
   isDiscovering,
   discoveryError,
@@ -33,15 +41,44 @@ export function CompanyWebsiteDiscoveryPanel({
 }: CompanyWebsiteDiscoveryPanelProps) {
   const candidate = discoveryResult?.candidate;
   const showDiscoveryActions =
+    hasIntakeComplete &&
     canDiscover &&
     !policy.effectiveWebsite &&
     policy.discoveryState !== "not_applicable";
 
+  if (!hasIntakeComplete) {
+    return (
+      <p className="mt-2 text-sm text-slate-600" data-testid="generate-website-discovery-hint">
+        Enter company and job description above to look up a company website. Role is optional but
+        helps narrow results.
+      </p>
+    );
+  }
+
+  if (confidentialPosting) {
+    return (
+      <p className="mt-2 text-sm text-slate-600" data-testid="generate-website-discovery-confidential">
+        JD-only context. Website discovery disabled.
+      </p>
+    );
+  }
+
+  if (outputMode === "resume_only") {
+    return (
+      <p className="mt-2 text-sm text-slate-600" data-testid="generate-website-discovery-resume-only">
+        Resume only — no company website research needed.
+      </p>
+    );
+  }
+
   return (
-    <div
-      className="mt-4 space-y-3 border-t border-cyan-100 pt-4"
-      data-testid="generate-website-discovery"
-    >
+    <div className="mt-2 space-y-3" data-testid="generate-website-discovery">
+      {contextWebsiteLine && !showDiscoveryActions ? (
+        <p className="text-sm text-slate-700" data-testid="generate-effective-website">
+          {contextWebsiteLine}
+        </p>
+      ) : null}
+
       {showDiscoveryActions ? (
         <div className="flex flex-wrap items-center gap-3">
           <button

@@ -97,7 +97,8 @@ function main() {
       generateSection.includes("More options (optional)") &&
         generateSection.includes('label="Cover letter model"') &&
         generateSection.indexOf("More options (optional)") <
-          generateSection.indexOf('label="Cover letter model"'),
+          generateSection.indexOf('label="Cover letter model"') &&
+        generateSection.includes("Models · job URL · website · instructions"),
     ],
     [
       "uploads merged parsed and cloud list",
@@ -243,23 +244,19 @@ function main() {
       generateSection.includes("generate-readiness-strip") && generateSection.includes("Readiness"),
     ],
     [
-      "generate secondary job details collapsible",
-      jdPanel.includes("More job details (optional)") && jdPanel.includes("Job URL"),
-    ],
-    [
       "generate company role before jd textarea",
       jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("jd-raw-text") &&
         jdPanel.indexOf('id="jd-role"') < jdPanel.indexOf("jd-raw-text"),
     ],
     [
-      "generate cta after jd in generate flow",
+      "generate flow after jd includes company context first",
       (() => {
         const afterJd = jdPanel.split('id="jd-raw-text"')[1] ?? "";
         return (
           afterJd.includes("GenerateTailoredResumeSection") &&
-          afterJd.includes("More job details (optional)") &&
-          afterJd.indexOf("GenerateTailoredResumeSection") <
-            afterJd.indexOf("More job details (optional)")
+          !afterJd.includes("More job details (optional)") &&
+          generateSection.indexOf('data-testid="generate-company-context"') <
+            generateSection.indexOf('id="base-resume-select"')
         );
       })(),
     ],

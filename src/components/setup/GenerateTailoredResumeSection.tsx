@@ -13,6 +13,7 @@ import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
 import {
+  destructiveButtonClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
@@ -100,6 +101,9 @@ type GenerateTailoredResumeSectionProps = {
   isSignedIn: boolean;
   disabled?: boolean;
   confidentialPosting?: boolean;
+  jobUrl?: string;
+  onJobUrlChange?: (jobUrl: string) => void;
+  onClearForm?: () => void;
   onSaveJob: SaveJobForGenerationHandler;
   onGenerationFinished?: () => void;
 };
@@ -127,6 +131,9 @@ export function GenerateTailoredResumeSection({
   isSignedIn,
   disabled = false,
   confidentialPosting = false,
+  jobUrl = "",
+  onJobUrlChange,
+  onClearForm,
   onSaveJob,
   onGenerationFinished,
 }: GenerateTailoredResumeSectionProps) {
@@ -283,6 +290,9 @@ export function GenerateTailoredResumeSection({
 
   const contextPolicy = buildContextPolicy();
   const contextWebsiteLine = formatContextPolicyWebsiteLine(contextPolicy);
+  const hasIntakeComplete = Boolean(
+    jobForm.companyName?.trim() && jobForm.rawText.trim(),
+  );
 
   useEffect(() => {
     fetchResumeDraftProviderStatus()
@@ -750,6 +760,53 @@ export function GenerateTailoredResumeSection({
         </div>
       ) : (
         <>
+          <div
+            className="mt-5 rounded-lg border border-cyan-100 bg-cyan-50/50 px-4 py-3"
+            data-testid="generate-company-context"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900/70">
+              Company website &amp; context
+            </p>
+            <CompanyWebsiteDiscoveryPanel
+              hasIntakeComplete={hasIntakeComplete}
+              confidentialPosting={confidentialPosting}
+              outputMode={generateMode}
+              canDiscover={canOfferWebsiteDiscovery}
+              policy={contextPolicy}
+              contextWebsiteLine={contextWebsiteLine}
+              discoveryResult={discoveryResult}
+              isDiscovering={isDiscoveringWebsite}
+              discoveryError={discoveryError}
+              websiteChoice={websiteDiscoveryChoice}
+              disabled={disabled || isGenerating}
+              onFindWebsite={() => void handleFindCompanyWebsite()}
+              onUseWebsite={() => {
+                updateDiscoveryState({ choice: "use_website", error: null });
+              }}
+              onUseJdOnly={() => {
+                updateDiscoveryState({ choice: "jd_only", error: null });
+              }}
+              onChangeWebsite={() => {
+                updateDiscoveryState({ choice: "auto", error: null });
+                focusCompanyWebsiteField();
+              }}
+            />
+            {hasIntakeComplete ? (
+              <div
+                className="mt-3 border-t border-cyan-100/80 pt-3"
+                data-testid="generate-context-policy-summary"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900/60">
+                  Context policy
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-800">
+                  {contextPolicy.summaryHeadline}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">{contextPolicy.summaryDetail}</p>
+              </div>
+            ) : null}
+          </div>
+
           <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
             <label htmlFor="base-resume-select" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Base resume (formatting template)
@@ -804,44 +861,6 @@ export function GenerateTailoredResumeSection({
             </p>
           </div>
 
-          <div
-            className="mt-5 rounded-lg border border-cyan-100 bg-cyan-50/50 px-4 py-3"
-            data-testid="generate-context-policy-summary"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900/70">
-              Context policy
-            </p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {contextPolicy.summaryHeadline}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">{contextPolicy.summaryDetail}</p>
-            {contextWebsiteLine ? (
-              <p className="mt-2 text-sm text-slate-700" data-testid="generate-effective-website">
-                {contextWebsiteLine}
-              </p>
-            ) : null}
-            <CompanyWebsiteDiscoveryPanel
-              canDiscover={canOfferWebsiteDiscovery}
-              policy={contextPolicy}
-              discoveryResult={discoveryResult}
-              isDiscovering={isDiscoveringWebsite}
-              discoveryError={discoveryError}
-              websiteChoice={websiteDiscoveryChoice}
-              disabled={disabled || isGenerating}
-              onFindWebsite={() => void handleFindCompanyWebsite()}
-              onUseWebsite={() => {
-                updateDiscoveryState({ choice: "use_website", error: null });
-              }}
-              onUseJdOnly={() => {
-                updateDiscoveryState({ choice: "jd_only", error: null });
-              }}
-              onChangeWebsite={() => {
-                updateDiscoveryState({ choice: "auto", error: null });
-                focusCompanyWebsiteField();
-              }}
-            />
-          </div>
-
           <div className="mt-6 flex flex-col items-center text-center">
             <p
               className="mb-3 max-w-md text-sm text-slate-600"
@@ -869,7 +888,7 @@ export function GenerateTailoredResumeSection({
               <span className="flex items-center justify-between gap-2">
                 <span>More options (optional)</span>
                 <span className="text-xs font-normal text-slate-400">
-                  Models · website · instructions
+                  Models · job URL · website · instructions
                 </span>
               </span>
             </summary>
@@ -908,6 +927,23 @@ export function GenerateTailoredResumeSection({
                 }}
               />
 
+              <div>
+                <label htmlFor="jd-url" className={labelClassName}>
+                  Job URL (optional)
+                </label>
+                <input
+                  id="jd-url"
+                  type="url"
+                  value={jobUrl}
+                  onChange={(event) => onJobUrlChange?.(event.target.value)}
+                  disabled={disabled || isGenerating || !onJobUrlChange}
+                  placeholder="https://…"
+                  className={formFieldClassName}
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Link to the posting — not used as the company homepage for research.
+                </p>
+              </div>
               <div>
                 <label htmlFor="company-country" className={labelClassName}>
                   Country / location
@@ -956,6 +992,20 @@ export function GenerateTailoredResumeSection({
               <p className="text-sm text-slate-500 lg:col-span-2">
                 Approved keywords available: {approvedKeywordCount}
               </p>
+
+              {onClearForm ? (
+                <div className="lg:col-span-2">
+                  <button
+                    type="button"
+                    onClick={onClearForm}
+                    disabled={disabled || isGenerating}
+                    className={`${destructiveButtonClassName} sm:w-auto`}
+                    data-testid="generate-clear-form"
+                  >
+                    Clear form
+                  </button>
+                </div>
+              ) : null}
 
               <CompanyResearchCompactStatus
                 editingJobId={editingJobId}

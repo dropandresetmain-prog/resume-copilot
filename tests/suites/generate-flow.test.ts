@@ -327,13 +327,56 @@ async function main() {
     [
       "generate company role primary fields",
       jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("jd-raw-text") &&
-        jdPanel.indexOf('id="jd-role"') < jdPanel.indexOf("jd-raw-text") &&
-        jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("More job details"),
+        jdPanel.indexOf('id="jd-role"') < jdPanel.indexOf("jd-raw-text"),
     ],
     [
-      "generate job url in secondary details only",
-      jdPanel.includes("More job details (optional)") &&
-        !jdPanel.includes("Company · Role · URL"),
+      "job url in more options not separate job details",
+      !jdPanel.includes("More job details (optional)") &&
+        generateSection.includes('id="jd-url"') &&
+        generateSection.includes("More options (optional)") &&
+        generateSection.indexOf("More options (optional)") < generateSection.indexOf('id="jd-url"'),
+    ],
+    [
+      "clear form in more options",
+      generateSection.includes('data-testid="generate-clear-form"') &&
+        jdPanel.includes("onClearForm={clearForm}"),
+    ],
+    [
+      "website discovery appears before base resume",
+      generateSection.indexOf('data-testid="generate-company-context"') <
+        generateSection.indexOf('id="base-resume-select"'),
+    ],
+    [
+      "discovery intake requires company and jd only",
+      generateSection.includes("jobForm.companyName?.trim() && jobForm.rawText.trim()") &&
+        !generateSection.includes("jobForm.roleTitle?.trim() &&"),
+    ],
+    [
+      "discovery hint mentions optional role",
+      readFileSync(
+        join(process.cwd(), "src/components/setup/CompanyWebsiteDiscoveryPanel.tsx"),
+        "utf8",
+      ).includes("Role is optional but"),
+    ],
+    [
+      "find company website visible in discovery section",
+      generateSection.includes("CompanyWebsiteDiscoveryPanel") &&
+        generateSection.includes("hasIntakeComplete={hasIntakeComplete}") &&
+        readFileSync(
+          join(process.cwd(), "src/components/setup/CompanyWebsiteDiscoveryPanel.tsx"),
+          "utf8",
+        ).includes('data-testid="find-company-website"'),
+    ],
+    [
+      "confidential discovery explanation",
+      readFileSync(
+        join(process.cwd(), "src/components/setup/CompanyWebsiteDiscoveryPanel.tsx"),
+        "utf8",
+      ).includes('data-testid="generate-website-discovery-confidential"') &&
+        readFileSync(
+          join(process.cwd(), "src/components/setup/CompanyWebsiteDiscoveryPanel.tsx"),
+          "utf8",
+        ).includes("Website discovery disabled"),
     ],
     ["primary CTA copy", generateSection.includes("Generate Resume & Cover Letter")],
     [
@@ -363,7 +406,9 @@ async function main() {
       "output mode visible near cta",
       generateSection.includes('data-testid="generate-output-mode"') &&
         generateSection.indexOf('data-testid="generate-output-mode"') <
-          generateSection.indexOf('data-testid="generate-ai-step-estimate"'),
+          generateSection.indexOf('data-testid="generate-ai-step-estimate"') &&
+        generateSection.indexOf('data-testid="generate-company-context"') <
+          generateSection.indexOf('data-testid="generate-output-mode"'),
     ],
     [
       "output mode defaults resume and cover letter",
