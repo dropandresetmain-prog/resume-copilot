@@ -125,7 +125,10 @@ export type WorkspaceContextValue = {
   handleDeleteResume: (resumeId: string) => void;
   handleClearResumeInventory: () => Promise<void>;
   handleProfileContactBackfill: (nextInventory: InventoryState) => Promise<void>;
-  handleSaveInventoryEdits: (edits: InventoryEdits) => Promise<void>;
+  handleSaveInventoryEdits: (
+    edits: InventoryEdits,
+    options?: { enrichment?: InventoryState["enrichment"] },
+  ) => Promise<void>;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -635,8 +638,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     skipCloudSaveRef.current = false;
   }
 
-  async function handleSaveInventoryEdits(edits: InventoryEdits) {
-    const nextInventory = enrichInventory(updateInventoryEdits(inventory, edits));
+  async function handleSaveInventoryEdits(
+    edits: InventoryEdits,
+    options?: { enrichment?: InventoryState["enrichment"] },
+  ) {
+    const nextInventory = enrichInventory({
+      ...updateInventoryEdits(inventory, edits),
+      enrichment: options?.enrichment ?? inventory.enrichment,
+    });
 
     if (!user || !cloudEnabled) {
       updateInventory(nextInventory);

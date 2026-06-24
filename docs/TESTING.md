@@ -30,7 +30,7 @@ Document regressions with a short check name that states the invariant (e.g. `"r
 | Area | Suite file(s) |
 |------|----------------|
 | Parser / profile | `parser.test.ts`, `duration.test.ts`, `section-detection.test.ts`, `education.test.ts`, `skills-section.test.ts`, `profile.test.ts` |
-| Inventory | `inventory.test.ts`, `collation.test.ts`, `inventory-edits.test.ts`, `inventory-edit-ux.test.ts`, `draft-inventory-safety.test.ts` |
+| Inventory | `inventory.test.ts`, `collation.test.ts`, `inventory-edits.test.ts`, `inventory-edit-ux.test.ts`, `inventory-text-extraction.test.ts`, `draft-inventory-safety.test.ts` |
 | Generation | `generation-payload.test.ts`, `generate-flow.test.ts`, `generation-partial-failure.test.ts`, `gemini-retry.test.ts`, `resume-generation-validation.test.ts`, `resume-generation-repair.test.ts`, `forced-bullet-regeneration.test.ts` |
 | Resume draft | `resume-draft.test.ts`, `resume-draft-review.test.ts`, `resume-draft-layout.test.ts` |
 | Export | `resume-docx-export.test.ts`, `resume-pdf-export.test.ts`, `resume-pdf-page-count.test.ts`, `resume-approve-validation.test.ts`, `resume-pdf-preview-overflow.test.ts`, `resume-export-delivery.test.ts`, `resume-layout-parity.test.ts`, `resume-export-strategy.test.ts`, `resume-export-model-parity.test.ts`, `resume-approval-layout.test.ts` |

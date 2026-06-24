@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.14B** (code)
+**v0.9.15A** (code)
+
+## v0.9.15A implementation note
+
+Add Experience From Text: baseline flow on Inventory to paste free-form career text (ChatGPT summaries, project notes, rough bullets) and extract structured suggestions via Gemini/mock for user review before apply.
+
+**UX:** “Add from text” → paste → “Extract suggestions” → accept/reject/edit per item → “Apply accepted suggestions”. No auto-save before user confirms apply.
+
+**Applyable (inventory overlay):** bullets mapped to existing experience (`addedBulletsByExperienceKey`), skills (`addedSkillItems`), additional experience lines (`addedAdditionalExperienceItems`), keywords (enrichment `keywordBank`).
+
+**Preview only (parked persistence):** new work experience entries, bullets for unmatched roles, education entries.
+
+**Safety:** Extraction prompt forbids fabrication; thin paste returns insufficient; duplicate-ish bullets flagged against collated inventory; source resumes never mutated.
+
+**Parked:** full Inventory CRUD, new-experience persistence, education overlay, auto-save on extract.
 
 ## v0.9.14B implementation note
 
@@ -162,18 +176,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.14B - Company Website Discovery + Verification**
+**v0.9.15A - Add Experience From Text**
 
-Firecrawl search discovery, confidence scoring, confirmation UX for medium matches.
+Paste career text → Gemini structured suggestions → review → apply to inventory overlay.
 
-## Latest milestone summary (v0.9.14B)
+## Latest milestone summary (v0.9.15A)
 
-Best-effort company website discovery with verification; high auto-use, medium confirm, low JD-only.
+Baseline text-import flow for inventory evidence; overlay apply for bullets/skills/additional/keywords; new experience and education preview-only.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.15A | Add experience from text |
 | v0.9.14B | Company website discovery + verification |
 | v0.9.14A | Generate decision tree & context policy |
 | v0.9.13A | Inventory cleanup + bullet control baseline |
@@ -275,6 +290,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.14B+ candidates** (parked for approval): cover letter-only generate path, post-generation workflow consolidation, Inventory CRUD, text blob inventory import.
+**v0.9.15A+ candidates** (parked for approval): new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
 
 Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

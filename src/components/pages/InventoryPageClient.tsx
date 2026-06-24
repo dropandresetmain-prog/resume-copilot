@@ -8,6 +8,7 @@ import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView"
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
 import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
 import { InventoryDuplicateCleanupPanel } from "@/components/setup/InventoryDuplicateCleanupPanel";
+import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
 import { SectionHeader, ViewTabs } from "@/components/setup/ui";
@@ -91,6 +92,27 @@ export function InventoryPageClient() {
         failures={inventory.failures}
         warnings={warnings}
       />
+
+      <div className="space-y-4">
+        <SectionHeader
+          eyebrow="Import"
+          title="Add evidence from pasted text"
+          description="Turn notes, ChatGPT summaries, or rough bullets into reviewable inventory suggestions."
+        />
+        <InventoryTextExtractionPanel
+          collated={collated}
+          enrichment={inventory.enrichment}
+          draftEdits={draftEdits}
+          onDraftEditsChange={setDraftEdits}
+          onSaveApplied={async (edits, enrichment) => {
+            await handleSaveInventoryEdits(edits, { enrichment });
+            setSaveFeedback({
+              type: "success",
+              message: "Applied suggestions saved to inventory.",
+            });
+          }}
+        />
+      </div>
 
       <div className="space-y-4">
         <SectionHeader

@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.14B**
+**v0.9.15A**
 
 ## Completed capabilities
 
@@ -43,8 +43,16 @@
 | Fit summary signal upgrade | v0.9.13D |
 | Generate decision tree & context policy | v0.9.14A |
 | Company website discovery + verification | v0.9.14B |
+| Add experience from text (inventory paste → review → overlay apply) | v0.9.15A |
 
 ## Milestone log (recent)
+
+### v0.9.15A - Add Experience From Text
+
+- Inventory “Add from text” flow with Gemini/mock extraction API.
+- Grouped suggestion review: work experience, bullets, skills, education, additional, keywords.
+- Apply accepted → inventory edits overlay + keyword bank; no source resume mutation.
+- Preview-only: new work experience, education, unmatched-role bullets.
 
 ### v0.9.14B - Company Website Discovery + Verification
 

@@ -38,6 +38,7 @@ const SUITES: { name: string; file: string }[] = [
   { name: "inventory-edits", file: "suites/inventory-edits.test.ts" },
   { name: "inventory-edit-ux", file: "suites/inventory-edit-ux.test.ts" },
   { name: "inventory-duplicate-cleanup", file: "suites/inventory-duplicate-cleanup.test.ts" },
+  { name: "inventory-text-extraction", file: "suites/inventory-text-extraction.test.ts" },
   { name: "post-generation-edit-workflow", file: "suites/post-generation-edit-workflow.test.ts" },
   { name: "application-records", file: "suites/application-records.test.ts" },
   { name: "cover-letter", file: "suites/cover-letter.test.ts" },

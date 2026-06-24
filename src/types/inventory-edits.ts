@@ -1,3 +1,25 @@
+/** Bullet added from pasted text import — overlay only, not source resume mutation. */
+export type InventoryAddedBullet = {
+  id: string;
+  keyword?: string;
+  description: string;
+  addedAt: string;
+};
+
+export type InventoryAddedSkillItem = {
+  id: string;
+  category: "Languages" | "Technical Skills" | "Interests" | "Other";
+  text: string;
+  addedAt: string;
+};
+
+export type InventoryAddedTextItem = {
+  id: string;
+  category?: string;
+  text: string;
+  addedAt: string;
+};
+
 /**
  * Non-destructive overlay on collated inventory.
  * Does not mutate parsed resume bullets in uploaded source files.
@@ -11,6 +33,12 @@ export type InventoryEdits = {
   dismissedDuplicateGroupIds: string[];
   /** Bullets flagged as intentional alternate wording — still active in generation. */
   alternateWordingBulletKeys: string[];
+  /** experienceKey → bullets added from text import (v0.9.15A). */
+  addedBulletsByExperienceKey?: Record<string, InventoryAddedBullet[]>;
+  /** Skills added from text import (v0.9.15A). */
+  addedSkillItems?: InventoryAddedSkillItem[];
+  /** Additional experience lines added from text import (v0.9.15A). */
+  addedAdditionalExperienceItems?: InventoryAddedTextItem[];
 };
 
 export function createEmptyInventoryEdits(): InventoryEdits {
@@ -19,5 +47,8 @@ export function createEmptyInventoryEdits(): InventoryEdits {
     editedBulletTextByBulletKey: {},
     dismissedDuplicateGroupIds: [],
     alternateWordingBulletKeys: [],
+    addedBulletsByExperienceKey: {},
+    addedSkillItems: [],
+    addedAdditionalExperienceItems: [],
   };
 }

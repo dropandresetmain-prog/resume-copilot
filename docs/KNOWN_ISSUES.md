@@ -34,6 +34,15 @@
 - DOCX uses Gill Sans MT; Word may substitute.
 - Not pixel-identical to PDF.
 
+## Inventory text import (v0.9.15A)
+
+- **Add from text** on Inventory: paste career notes → **Extract suggestions** → review accept/reject/edit → **Apply accepted suggestions**.
+- **Applyable:** bullets to existing roles (overlay), skills, additional experience lines, approved keywords.
+- **Preview only:** new work experience blocks, education entries, bullets without a matching role — not persisted until a future milestone.
+- **No auto-save** on extract; apply is explicit; source uploaded resumes are never mutated.
+- **Extraction quality** depends on pasted text richness; thin paste returns “not enough information.”
+- **Not full Inventory CRUD** — overlay fields in `InventoryEdits` + enrichment keyword bank only.
+
 ## Generate flow (v0.9.14B+)
 
 - **Website discovery:** When company website is empty and cover letter context is needed, click **Find company website** (Firecrawl search — billable, requires `FIRECRAWL_API_KEY`). High-confidence matches use website + JD automatically; medium requires confirmation; low/none stays JD-only.
@@ -47,7 +56,7 @@
 - **Confidential/recruitment checkbox** forces JD-only — no Firecrawl, no saved website context reuse.
 - **Base resume** = formatting/reference template only; content from inventory.
 - Last-used base resume in browser `localStorage` (`resumeCopilot.lastBaseResumeId.v1`).
-- **Parked:** cover letter-only generate path, broad web search company discovery, text blob inventory import.
+- **Parked:** cover letter-only generate path, broad web search company discovery.
 
 ## Generate flow (legacy v0.7.2–v0.9.13D)
 
