@@ -15,6 +15,7 @@ import {
   secondaryActionGroupClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
+import { estimateGenerateAiSteps } from "@/lib/generate/ai-call-budget";
 import {
   readLastBaseResumeId,
   resolveDefaultBaseResumeId,
@@ -145,6 +146,7 @@ export function GenerateTailoredResumeSection({
   const [coverLetterModelTier, setCoverLetterModelTier] = useState<ModelTier>(() =>
     readStoredCoverLetterModelTier(),
   );
+  const [skipWebsiteResearch, setSkipWebsiteResearch] = useState(false);
 
   const approvedKeywordCount = countApprovedKeywords(inventory.enrichment);
 
@@ -238,6 +240,7 @@ export function GenerateTailoredResumeSection({
         savedContext: applicationRecord.companyContext,
         companyWebsite,
         combinedMode: true,
+        skipWebsiteResearch,
       });
       setProgressStages(
         buildCombinedProgressStages(researchProgressLabelForPlan(plan)),
@@ -252,6 +255,7 @@ export function GenerateTailoredResumeSection({
         companyWebsite,
         additionalInstructions,
         autoGenerate: true,
+        skipWebsiteResearch,
       });
       setCompanyContextEnsureStatus(ensured.status);
       setProgressStages((current) => {
@@ -486,6 +490,11 @@ export function GenerateTailoredResumeSection({
   const primaryRetryAction = getPrimaryRetryAction(failureKind);
 
   const storedPreference = readLastBaseResumeId();
+  const aiStepEstimate = estimateGenerateAiSteps({
+    mode: generateMode,
+    skipWebsiteResearch,
+    companyWebsite,
+  });
 
   // Readiness strip: consolidates all pre-generation conditions into one compact strip.
   const readinessItems: { id: string; ready: boolean; label: string; href?: string }[] = [
@@ -560,6 +569,48 @@ export function GenerateTailoredResumeSection({
       ) : (
         <>
           <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
+            <fieldset
+              className="space-y-2"
+              data-testid="generate-website-research-control"
+              disabled={disabled || isGenerating}
+            >
+              <legend className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Company research for this run
+              </legend>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="website-research-mode"
+                  className="mt-0.5 size-4 shrink-0"
+                  checked={!skipWebsiteResearch}
+                  onChange={() => setSkipWebsiteResearch(false)}
+                />
+                <span>
+                  Use website research when a company website is provided
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Adds a website fetch and company research step in combined mode.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="website-research-mode"
+                  className="mt-0.5 size-4 shrink-0"
+                  checked={skipWebsiteResearch}
+                  onChange={() => setSkipWebsiteResearch(true)}
+                />
+                <span>
+                  JD-only for this run (skip website research)
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Uses job description context only — no new website fetch.
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+          </div>
+
+          <div className="mt-5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-4 py-3">
             <label htmlFor="base-resume-select" className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Base resume (formatting template)
             </label>
@@ -589,10 +640,17 @@ export function GenerateTailoredResumeSection({
           </div>
 
           <div className="mt-6 flex flex-col items-center text-center">
+            <p
+              className="mb-3 max-w-md text-sm text-slate-600"
+              data-testid="generate-ai-step-estimate"
+            >
+              {aiStepEstimate.headline}
+            </p>
             <button
               type="button"
               onClick={() => void handleGenerate()}
               disabled={!canGenerate || isGenerating}
+              aria-busy={isGenerating}
               className={`${primaryButtonClassName} min-h-12 w-full max-w-md px-8 py-3.5 text-base font-semibold shadow-md sm:w-auto`}
             >
               {generateMode === "resume_and_cover_letter"
@@ -602,6 +660,7 @@ export function GenerateTailoredResumeSection({
             <p className="mt-3 max-w-md text-sm text-slate-500">
               Saves the job, prepares research when enabled, then opens your application package.
             </p>
+            <p className="mt-1 max-w-md text-xs text-slate-400">{aiStepEstimate.footnote}</p>
           </div>
 
           <div className={`mt-5 ${secondaryActionGroupClassName}`}>
@@ -824,6 +883,7 @@ export function GenerateTailoredResumeSection({
               type="button"
               onClick={() => void handleGenerate()}
               disabled={!canGenerate || isGenerating}
+              aria-busy={isGenerating}
               className={`${primaryButtonClassName} w-full py-3 text-base font-semibold`}
               aria-label={
                 generateMode === "resume_and_cover_letter"

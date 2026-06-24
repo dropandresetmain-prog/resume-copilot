@@ -111,7 +111,26 @@ export type CallGeminiWithRetryResult = {
 export type CallGeminiWithRetryOptions = Omit<CallGeminiGenerateContentOptions, "model"> & {
   /** When set, overrides env-based primary/fallback (tiered generation). */
   models?: string[];
+  /** Logical step name for server logs (no prompt content). */
+  logicalStep?: string;
+  /** Optional tier label for server logs. */
+  modelTier?: string;
 };
+
+export type GeminiCallLogMetadata = {
+  logicalStep: string;
+  requestedModelId: string;
+  modelUsed?: string;
+  modelTier?: string;
+  attempts: number;
+  fallbackApplied: boolean;
+  success: boolean;
+  errorReason?: string;
+};
+
+export function logGeminiCallMetadata(metadata: GeminiCallLogMetadata): void {
+  console.info("[gemini-call]", JSON.stringify(metadata));
+}
 
 export async function callGeminiWithRetry(
   options: CallGeminiWithRetryOptions,
@@ -131,13 +150,23 @@ export async function callGeminiWithRetry(
       totalAttempts += 1;
       try {
         const text = await callGeminiGenerateContent({ ...options, model });
-        return {
+        const result = {
           text,
           modelUsed: model,
           attempts: totalAttempts,
           requestedModelId,
           fallbackApplied: model !== requestedModelId,
         };
+        logGeminiCallMetadata({
+          logicalStep: options.logicalStep ?? "unspecified",
+          requestedModelId,
+          modelUsed: model,
+          modelTier: options.modelTier,
+          attempts: totalAttempts,
+          fallbackApplied: result.fallbackApplied,
+          success: true,
+        });
+        return result;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         const transient = isTransientGeminiError(lastError);
@@ -160,10 +189,29 @@ export async function callGeminiWithRetry(
           break;
         }
 
+        logGeminiCallMetadata({
+          logicalStep: options.logicalStep ?? "unspecified",
+          requestedModelId,
+          modelUsed: model,
+          modelTier: options.modelTier,
+          attempts: totalAttempts,
+          fallbackApplied: model !== requestedModelId,
+          success: false,
+          errorReason: lastError.message,
+        });
         throw lastError;
       }
     }
   }
 
+  logGeminiCallMetadata({
+    logicalStep: options.logicalStep ?? "unspecified",
+    requestedModelId,
+    modelTier: options.modelTier,
+    attempts: totalAttempts,
+    fallbackApplied: false,
+    success: false,
+    errorReason: lastError?.message ?? "Gemini API call failed after all models exhausted.",
+  });
   throw lastError ?? new Error("Gemini API call failed.");
 }

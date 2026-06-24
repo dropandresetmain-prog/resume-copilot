@@ -13,6 +13,7 @@ export async function generateCompanyContextWithGemini(
     prompt,
     temperature: 0.25,
     responseMimeType: "application/json",
+    logicalStep: "generate_company_context",
   });
 
   return parseCompanyContextJson(text, {

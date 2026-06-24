@@ -44,6 +44,8 @@ export type EnsureCompanyContextInput = {
   companyWebsite?: string;
   additionalInstructions?: string;
   autoGenerate: boolean;
+  /** When true, skip Firecrawl/website-backed generation for this run (JD-only). */
+  skipWebsiteResearch?: boolean;
 };
 
 async function saveJdBasedContext(
@@ -88,6 +90,47 @@ export async function ensureCompanyContextForGeneration(
       };
     }
     return { status: "skipped" };
+  }
+
+  if (input.skipWebsiteResearch) {
+    if (hasUsableCompanyContext(input.savedContext)) {
+      return {
+        companyContext: input.savedContext,
+        status: "saved",
+      };
+    }
+
+    const companyName = resolveCompanyNameForGeneration({
+      override: input.companyNameOverride || input.job.companyName,
+      jobCompanyName: input.job.companyName,
+      jobDescriptionText: input.job.rawText,
+    });
+
+    if (!companyName.trim() || companyName === "the company") {
+      return {
+        status: "failed",
+        warning: COMPANY_RESEARCH_AUTO_FAIL_WARNING,
+      };
+    }
+
+    try {
+      const companyContext = await saveJdBasedContext(input.applicationId, {
+        companyName,
+        country: input.country,
+        website: website ?? undefined,
+        job: input.job,
+        additionalInstructions: input.additionalInstructions,
+      });
+      return {
+        companyContext,
+        status: "jd_fallback",
+      };
+    } catch {
+      return {
+        status: "failed",
+        warning: COMPANY_RESEARCH_AUTO_FAIL_WARNING,
+      };
+    }
   }
 
   if (!website && hasUsableCompanyContext(input.savedContext)) {

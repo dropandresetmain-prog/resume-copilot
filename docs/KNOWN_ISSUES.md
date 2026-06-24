@@ -126,14 +126,24 @@
 - **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
-## Generate page (v0.9.12D)
+## Generate page (v0.9.12E)
 
 - **Company** and **Target role** are primary visible fields above the JD textarea (v0.9.12D). Auto-extracted values still populate when the user has not manually edited those fields.
+- **AI step estimate** appears above the Generate CTA — 1 step (resume only), 2 steps (resume + cover letter), or 3 steps + website fetch when combined mode uses website research.
+- **Company research for this run** — radio choice: use website research when a company website is provided, or JD-only (skip website research). Wired to generation (`skipWebsiteResearch`); does not delete saved research on the application record.
 - **Advanced options (optional)** collapse holds Job URL and Clear form only.
 - **Mobile sticky CTA bar**: a `fixed bottom-0` Generate button appears on mobile only when not generating. Both sticky and inline CTAs may be visible when scrolled — Accept Risk.
 - **JD textarea height**: `h-[6.5rem]` on mobile; `sm:h-auto` on desktop.
 - **Readiness strip** shows readiness conditions (sign in, upload, paste JD, provider).
-- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) sits near Company — does not affect generation.
+- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) — copy states future JD-only / skip-website behavior; **does not affect generation today**.
+
+## AI call cost / observability (v0.9.12E)
+
+- **Pre-run estimates count logical steps only** — retries, model fallback, and cover letter compression can add extra Gemini HTTP calls (Accept Risk until job ledger exists).
+- **Server logging** — `[gemini-call]` JSON lines include logical step, model tier, actual model, attempt count, fallback flag, and error reason on failure. No prompts or API keys.
+- **Client metadata** — API responses unchanged; attempt counts are log-only for this milestone.
+- **Server idempotency** — double-submit guarded client-side (`isGenerating`, disabled buttons, `aria-busy`); no server-side idempotency keys (Investigate Now for v0.9.13+).
+- **Durable AI job ledger** — not implemented (Parked).
 
 ## DOCX import (v0.9.12C)
 

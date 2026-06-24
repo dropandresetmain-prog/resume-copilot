@@ -30,6 +30,8 @@ export async function rewriteResumeRoleWithGemini(
     temperature: 0.2,
     responseMimeType: "application/json",
     models: resolveModelsForTier(modelTier),
+    logicalStep: "rewrite_resume_role",
+    modelTier,
   });
 
   try {

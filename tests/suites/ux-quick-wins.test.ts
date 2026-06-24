@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.12D"')],
-    ["package json version", packageJson.includes('"version": "0.9.12D"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.12E"')],
+    ["package json version", packageJson.includes('"version": "0.9.12E"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -203,6 +203,10 @@ function main() {
     [
       "v0.9.12D documented",
       handoff.includes("v0.9.12D") && roadmap.includes("v0.9.12D"),
+    ],
+    [
+      "v0.9.12E documented",
+      handoff.includes("v0.9.12E") && roadmap.includes("v0.9.12E"),
     ],
     [
       "mobile nav no horizontal scroll",

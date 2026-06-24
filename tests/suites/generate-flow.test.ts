@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { estimateGenerateAiSteps } from "../../src/lib/generate/ai-call-budget";
 import {
   resolveDefaultBaseResumeId,
   writeLastBaseResumeId,
@@ -176,6 +177,51 @@ async function main() {
     ["duplicate detection still works", Boolean(findDuplicateJobDescription([existingJob], duplicateInput))],
     ["generate flow ensures application record", generateSection.includes("ensureApplicationRecordForJobDescription")],
     ["generate flow links draft to application", generateSection.includes("applicationId: applicationRecord.id")],
+    [
+      "generate shows ai step estimate",
+      generateSection.includes('data-testid="generate-ai-step-estimate"') &&
+        generateSection.includes("estimateGenerateAiSteps"),
+    ],
+    [
+      "generate website research skip control",
+      generateSection.includes('data-testid="generate-website-research-control"') &&
+        generateSection.includes("skipWebsiteResearch"),
+    ],
+    [
+      "ensure receives skip website research flag",
+      generateSection.includes("skipWebsiteResearch,"),
+    ],
+    [
+      "resume only estimate",
+      estimateGenerateAiSteps({ mode: "resume_only", skipWebsiteResearch: false }).headline.includes(
+        "1 AI step",
+      ),
+    ],
+    [
+      "combined estimate",
+      estimateGenerateAiSteps({
+        mode: "resume_and_cover_letter",
+        skipWebsiteResearch: true,
+      }).headline.includes("2 AI steps"),
+    ],
+    [
+      "combined with website research estimate",
+      estimateGenerateAiSteps({
+        mode: "resume_and_cover_letter",
+        skipWebsiteResearch: false,
+        companyWebsite: "https://acme.com",
+      }).headline.includes("3 AI steps") &&
+        estimateGenerateAiSteps({
+          mode: "resume_and_cover_letter",
+          skipWebsiteResearch: false,
+          companyWebsite: "https://acme.com",
+        }).includesWebsiteFetch,
+    ],
+    [
+      "recruitment checkbox does not claim full behavior",
+      jdPanel.includes("Coming soon") && jdPanel.includes("Does not change generation today"),
+    ],
+    ["generate buttons use aria-busy", generateSection.includes("aria-busy={isGenerating}")],
   ];
 
   for (const [name, ok] of checks) {

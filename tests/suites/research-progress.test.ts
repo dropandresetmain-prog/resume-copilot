@@ -70,6 +70,24 @@ async function main() {
       }) === "build_jd",
     ],
     [
+      "skip website research plans jd path even with website",
+      planCompanyResearchForGeneration({
+        savedContext: null,
+        companyWebsite: "https://acme.com",
+        combinedMode: true,
+        skipWebsiteResearch: true,
+      }) === "build_jd",
+    ],
+    [
+      "skip website research uses saved jd context when present",
+      planCompanyResearchForGeneration({
+        savedContext: jdOnly,
+        companyWebsite: "https://acme.com",
+        combinedMode: true,
+        skipWebsiteResearch: true,
+      }) === "use_saved_jd",
+    ],
+    [
       "jd-only saved with website still plans firecrawl",
       planCompanyResearchForGeneration({
         savedContext: jdOnly,
@@ -110,6 +128,10 @@ async function main() {
       "progress percent uses dynamic stage count",
       generationProgressPercent(0, combinedStages.length) <
         generationProgressPercent(combinedStages.length - 1, combinedStages.length),
+    ],
+    [
+      "ensure supports skip website research",
+      ensureTs.includes("skipWebsiteResearch"),
     ],
     [
       "ensure only reuses website-backed early",

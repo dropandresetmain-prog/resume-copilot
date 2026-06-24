@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12D**
+**v0.9.12E**
 
 ## Completed capabilities
 
@@ -36,8 +36,17 @@
 | General DOCX resume import baseline | v0.9.12B |
 | Import robustness + output polish defaults | v0.9.12C |
 | Generate company/role primary fields restored | v0.9.12D |
+| AI call cost guardrails (estimates, research skip, call logging) | v0.9.12E |
 
 ## Milestone log (recent)
+
+### v0.9.12E - AI Call Cost Guardrails
+
+- Generate shows pre-run AI step estimate (1 / 2 / 3 + website fetch).
+- User can skip website research for the current run (JD-only); wired through `planCompanyResearchForGeneration` and `ensureCompanyContextForGeneration`.
+- `callGeminiWithRetry` emits structured `[gemini-call]` logs (logical step, tier, model, attempts, fallback, error).
+- Forced-bullet regeneration buttons include short scope copy.
+- **Parked:** durable AI job ledger, server idempotency, per-attempt client metadata.
 
 ### v0.9.12D - Restore Generate Company and Role Primary Fields
 

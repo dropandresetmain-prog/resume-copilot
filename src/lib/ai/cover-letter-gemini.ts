@@ -26,6 +26,7 @@ async function callGeminiJson(
   apiKey: string,
   prompt: string,
   modelTier: ModelTier,
+  logicalStep: string,
 ): Promise<CallGeminiWithRetryResult> {
   return callGeminiWithRetry({
     apiKey,
@@ -33,6 +34,8 @@ async function callGeminiJson(
     temperature: 0.3,
     responseMimeType: "application/json",
     models: resolveModelsForTier(modelTier),
+    logicalStep,
+    modelTier,
   });
 }
 
@@ -51,7 +54,7 @@ export async function generateCoverLetterWithGemini(
   modelTier: ModelTier = "standard",
 ): Promise<CoverLetterGeminiResult> {
   const prompt = buildCoverLetterPrompt(input);
-  let geminiResult = await callGeminiJson(apiKey, prompt, modelTier);
+  let geminiResult = await callGeminiJson(apiKey, prompt, modelTier, "generate_cover_letter");
 
   let parsed;
   try {
@@ -87,7 +90,12 @@ export async function generateCoverLetterWithGemini(
         formalContent: parsed.formalContent,
         wordCount: countWords(parsed.formalContent),
       });
-      geminiResult = await callGeminiJson(apiKey, compressionPrompt, modelTier);
+      geminiResult = await callGeminiJson(
+        apiKey,
+        compressionPrompt,
+        modelTier,
+        "compress_cover_letter",
+      );
       const retryParsed = parseCoverLetterJsonOrThrow(geminiResult.text);
       const prepared = prepareGeneratedCoverLetterResult(retryParsed, {
         companyDisplayName: input.companyDisplayName ?? input.companyName,

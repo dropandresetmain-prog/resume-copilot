@@ -372,7 +372,8 @@ export function JDInputPanel({
                   <span className="text-sm text-slate-600">
                     Recruitment firm / confidential client posting
                     <span id="recruitment-firm-hint" className="mt-0.5 block text-xs text-slate-500">
-                      Coming soon — does not affect generation in this release.
+                      Coming soon — when enabled, will use JD-only context and skip website
+                      research. Does not change generation today.
                     </span>
                   </span>
                 </label>

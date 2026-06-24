@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.12D** (code)
+**v0.9.12E** (code)
+
+## v0.9.12E implementation note
+
+AI Call Cost Guardrails: practical visibility and control without redesigning the AI architecture.
+
+**Generate UX:** Pre-run AI step estimate (1 resume / 2 resume+cover letter / 3 + website fetch with research). Visible website research toggle (use when website provided vs JD-only for this run). Recruitment checkbox copy clarifies future JD-only behavior without claiming it works today.
+
+**Server observability:** `callGeminiWithRetry` logs structured `[gemini-call]` metadata (logical step, tier, model, attempts, fallback, error reason) — no prompts or secrets.
+
+**Regeneration copy:** Forced-bullet panel buttons note targeted rewrite vs full regenerate scope.
+
+**Not in scope (documented):** durable AI job ledger, server idempotency, hiding retry/compression extra calls from estimates.
+
+Runtime constraints held: no Supabase schema changes, no model ID changes, no generation quality semantics changes, no provider architecture rewrite.
 
 ## v0.9.11G implementation note
 
@@ -76,18 +90,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12D - Restore Generate Company and Role Primary Fields**
+**v0.9.12E - AI Call Cost Guardrails**
 
-Company and Target role visible above JD textarea on Generate; Job URL only in Advanced options.
+Pre-run AI step estimates, JD-only website research toggle, structured Gemini call logging, regeneration cost copy.
 
-## Latest milestone summary (v0.9.12C)
+## Latest milestone summary (v0.9.12E)
 
-Import robustness + output polish defaults: company-first comma disambiguation, title-case section preservation, resume line spacing 1.12, cover letter em-dash rules.
+AI call visibility: step estimates on Generate, skip website research for current run, `[gemini-call]` server logs with logical step/attempts/fallback.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.12E | AI call cost guardrails — step estimates, research skip, Gemini call logging |
 | v0.9.12D | Restore Generate company/role primary fields |
 | v0.9.12C | Import robustness + output polish defaults (parser + line spacing + cover letter tone) |
 | v0.9.12B | General DOCX resume import baseline — inline experience profile, broader section aliases, plain skills parsing |

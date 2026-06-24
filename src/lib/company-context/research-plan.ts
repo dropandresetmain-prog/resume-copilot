@@ -17,9 +17,17 @@ export function planCompanyResearchForGeneration(options: {
   savedContext?: CompanyContext | null;
   companyWebsite?: string;
   combinedMode: boolean;
+  skipWebsiteResearch?: boolean;
 }): CompanyResearchPlan {
   if (!options.combinedMode) {
     return "skip";
+  }
+
+  if (options.skipWebsiteResearch) {
+    if (hasUsableCompanyContext(options.savedContext)) {
+      return "use_saved_jd";
+    }
+    return "build_jd";
   }
 
   if (hasWebsiteBackedResearch(options.savedContext)) {

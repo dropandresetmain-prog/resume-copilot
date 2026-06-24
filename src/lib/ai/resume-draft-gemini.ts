@@ -35,6 +35,8 @@ export async function generateResumeDraftWithGemini(
     temperature: 0.2,
     responseMimeType: "application/json",
     models: resolveModelsForTier(modelTier),
+    logicalStep: "generate_resume",
+    modelTier,
   });
 
   const parsed = parseResumeDraftJson(text);

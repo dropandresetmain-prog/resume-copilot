@@ -23,6 +23,7 @@ async function callGeminiRevision(
   apiKey: string,
   prompt: string,
   modelTier: ModelTier,
+  logicalStep: string,
 ): Promise<CallGeminiWithRetryResult> {
   return callGeminiWithRetry({
     apiKey,
@@ -30,6 +31,8 @@ async function callGeminiRevision(
     temperature: 0.25,
     responseMimeType: "application/json",
     models: resolveModelsForTier(modelTier),
+    logicalStep,
+    modelTier,
   });
 }
 
@@ -51,7 +54,12 @@ export async function reviseCoverLetterWithGemini(
   modelTier: ModelTier = "standard",
 ): Promise<CoverLetterRevisionGeminiResult> {
   const prompt = buildCoverLetterRevisionPrompt(input);
-  let geminiResult = await callGeminiRevision(apiKey, prompt, modelTier);
+  let geminiResult = await callGeminiRevision(
+    apiKey,
+    prompt,
+    modelTier,
+    "revise_cover_letter",
+  );
   const parsed = parseCoverLetterRevisionJson(geminiResult.text);
   if (!parsed.ok || !parsed.value) {
     throw new Error(parsed.error ?? "Failed to parse cover letter revision.");
@@ -70,7 +78,12 @@ export async function reviseCoverLetterWithGemini(
     };
   } catch {
     const compressionPrompt = buildCompressionRevisionPrompt(input, parsed.value);
-    geminiResult = await callGeminiRevision(apiKey, compressionPrompt, modelTier);
+    geminiResult = await callGeminiRevision(
+      apiKey,
+      compressionPrompt,
+      modelTier,
+      "compress_cover_letter_revision",
+    );
     const retryParsed = parseCoverLetterRevisionJson(geminiResult.text);
     if (!retryParsed.ok || !retryParsed.value) {
       throw new Error(retryParsed.error ?? "Failed to parse compressed revision.");

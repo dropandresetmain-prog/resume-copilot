@@ -8,6 +8,7 @@ import {
   isGeminiModelUnavailableError,
   isTransientGeminiError,
   isTransientGeminiHttpStatus,
+  logGeminiCallMetadata,
 } from "../../src/lib/ai/call-gemini";
 import { GEMINI_MODEL_FALLBACK, GEMINI_MODEL_PRIMARY } from "../../src/lib/ai/config";
 import { toCoverLetterApiResponse } from "../../src/lib/ai/cover-letter-provider";
@@ -184,6 +185,15 @@ function main() {
     ["cover letter generation uses resolveModelsForTier", coverGemini.includes("resolveModelsForTier")],
     ["cover letter revision uses resolveModelsForTier", reviseGemini.includes("resolveModelsForTier")],
     ["role rewrite uses resolveModelsForTier", roleRewriteGemini.includes("resolveModelsForTier")],
+    ["call gemini logs metadata helper", typeof logGeminiCallMetadata === "function"],
+    [
+      "resume logical step name",
+      resumeGemini.includes('logicalStep: "generate_resume"'),
+    ],
+    [
+      "company context logical step name",
+      companyContextGemini.includes('logicalStep: "generate_company_context"'),
+    ],
     ["role rewrite route parses resumeModelTier", rewriteRoute.includes("parseModelTier(body.resumeModelTier)")],
     [
       "cover letter revision route parses coverLetterModelTier",

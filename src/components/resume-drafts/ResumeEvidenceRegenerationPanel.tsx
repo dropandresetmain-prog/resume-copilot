@@ -542,25 +542,33 @@ export function ResumeEvidenceRegenerationPanel({
 
       <div className="mt-4 flex flex-wrap gap-3">
         {canRunTargetedUpdate ? (
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => void handleTargetedUpdate()}
+              disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
+              className={primaryButtonClassName}
+              data-action="apply-forced-bullet-update"
+              aria-busy={isRegenerating}
+            >
+              {isRegenerating ? "Updating…" : "Apply forced bullet update"}
+            </button>
+            <p className="text-xs text-slate-500">Rewrites affected roles.</p>
+          </div>
+        ) : null}
+        <div className="flex flex-col gap-1">
           <button
             type="button"
-            onClick={() => void handleTargetedUpdate()}
+            onClick={() => void handleFullRegenerate()}
             disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
-            className={primaryButtonClassName}
-            data-action="apply-forced-bullet-update"
+            className={canRunTargetedUpdate ? secondaryButtonClassName : primaryButtonClassName}
+            data-action="regenerate-full-resume"
+            aria-busy={isRegenerating}
           >
-            {isRegenerating ? "Updating…" : "Apply forced bullet update"}
+            {isRegenerating ? "Regenerating…" : "Regenerate full resume"}
           </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void handleFullRegenerate()}
-          disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
-          className={canRunTargetedUpdate ? secondaryButtonClassName : primaryButtonClassName}
-          data-action="regenerate-full-resume"
-        >
-          {isRegenerating ? "Regenerating…" : "Regenerate full resume"}
-        </button>
+          <p className="text-xs text-slate-500">Regenerates the full resume.</p>
+        </div>
         <button
           type="button"
           onClick={() => {
