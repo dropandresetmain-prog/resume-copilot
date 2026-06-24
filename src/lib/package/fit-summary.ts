@@ -17,6 +17,29 @@ const VERDICT_LABELS: PackageFitVerdict[] = [
 
 const GAP_MODIFIER_PATTERN = /^(?:limited|lack of|missing|no)\s+/i;
 
+const INTERNAL_PHRASE_PATTERNS: RegExp[] = [
+  /_/,
+  /resume[_\s-]?structure/i,
+  /\bneeds[_\s-]?review\b/i,
+  /\brepaired\b/i,
+  /title:\s*detail/i,
+  /\bvalidation\b/i,
+  /\bschema\b/i,
+  /\bformatting\b/i,
+  /\bparser\b/i,
+  /keyword[_\s-]?colon/i,
+  /\bstructure repair\b/i,
+  /\bplain additional experience\b/i,
+  /\bglobalRiskFlags\b/i,
+  /\bheuristicVersion\b/i,
+];
+
+const KNOWN_LABEL_EXPANSIONS: Record<string, string> = {
+  cdd: "customer due diligence",
+  gtm: "go-to-market",
+  b2b: "B2B",
+};
+
 function truncateToWordLimit(text: string, maxWords: number): string {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length <= maxWords) {
@@ -36,6 +59,20 @@ export function fitScoreToVerdict(score: number): PackageFitVerdict {
     return "Stretch fit";
   }
   return "Weak fit";
+}
+
+export function isUserFacingFitPhrase(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length < 3) {
+    return false;
+  }
+  if (INTERNAL_PHRASE_PATTERNS.some((pattern) => pattern.test(trimmed))) {
+    return false;
+  }
+  if (/^[a-z0-9_]+$/i.test(trimmed.replace(/\s+/g, "")) && trimmed.includes("_")) {
+    return false;
+  }
+  return true;
 }
 
 function hasEnoughFitSignal(
@@ -81,8 +118,10 @@ export function normalizePhraseKey(text: string): string {
   let key = text.toLowerCase().trim();
   key = key.replace(/^your\s+/, "");
   key = key.replace(/\s+alignment$/, "");
+  key = key.replace(/\s+experience$/, "");
   key = key.replace(/^gap:\s*/, "");
   key = key.replace(GAP_MODIFIER_PATTERN, "");
+  key = key.replace(/[_-]/g, " ");
   return key.replace(/\s+/g, " ").trim();
 }
 
@@ -90,19 +129,45 @@ function phrasesOverlap(left: string, right: string): boolean {
   return left === right || left.includes(right) || right.includes(left);
 }
 
+function humanizeKeyword(keyword: string): string | null {
+  const trimmed = keyword.trim();
+  if (!trimmed || !isUserFacingFitPhrase(trimmed)) {
+    return null;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (KNOWN_LABEL_EXPANSIONS[lower]) {
+    return KNOWN_LABEL_EXPANSIONS[lower];
+  }
+
+  if (trimmed.includes("_")) {
+    return null;
+  }
+
+  if (/^[a-z]{2,3}$/i.test(trimmed) && !KNOWN_LABEL_EXPANSIONS[lower]) {
+    return null;
+  }
+
+  return lower.replace(/[_-]/g, " ");
+}
+
 function polishYourPhrase(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
   if (/^your\s+/i.test(trimmed)) {
     const rest = trimmed.replace(/^your\s+/i, "");
-    return `your ${rest.toLowerCase()}`;
+    return `your ${rest.toLowerCase().replace(/[_-]/g, " ")}`;
   }
-  return `your ${trimmed.toLowerCase()}`;
+  return `your ${trimmed.toLowerCase().replace(/[_-]/g, " ")}`;
 }
 
-function polishGapPhrase(text: string): string {
+function humanizeGapPhrase(text: string): string | null {
   let gap = toSecondPerson(text.trim().replace(/^Gap:\s*/i, ""));
   gap = gap.replace(GAP_MODIFIER_PATTERN, "");
-  return gap.trim().toLowerCase();
+  gap = gap.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!gap || !isUserFacingFitPhrase(gap)) {
+    return null;
+  }
+  return gap;
 }
 
 function dedupeNormalizedPhrases(phrases: string[], maxItems: number): string[] {
@@ -132,11 +197,27 @@ function dedupeNormalizedPhrases(phrases: string[], maxItems: number): string[] 
   return accepted;
 }
 
-function rewriteStrengthAsYour(text: string): string {
+function rewriteStrengthAsYour(text: string): string | null {
   let normalized = stripCandidateLanguage(text.trim());
+  if (!isUserFacingFitPhrase(normalized)) {
+    return null;
+  }
+
   normalized = normalized.replace(/^strong\s+/i, "");
-  normalized = normalized.replace(/^relevant\s+approved\s+keywords\s+incorporated$/i, "approved keyword alignment");
-  normalized = normalized.replace(/^inventory-backed\s+experience\s+included$/i, "inventory-backed experience");
+  normalized = normalized.replace(
+    /^relevant\s+approved\s+keywords\s+incorporated$/i,
+    "approved keyword alignment",
+  );
+  normalized = normalized.replace(
+    /^inventory-backed\s+experience\s+included$/i,
+    "inventory-backed experience",
+  );
+  normalized = normalized.replace(/\s+experience coverage$/i, " experience");
+
+  if (!isUserFacingFitPhrase(normalized)) {
+    return null;
+  }
+
   return polishYourPhrase(normalized);
 }
 
@@ -154,9 +235,9 @@ function pickStrengths(
   }
 
   for (const keyword of rationale?.keywordUsage ?? []) {
-    const trimmed = keyword.trim();
-    if (trimmed) {
-      candidates.push(polishYourPhrase(`${trimmed} alignment`));
+    const humanized = humanizeKeyword(keyword);
+    if (humanized) {
+      candidates.push(`your ${humanized} experience`);
     }
   }
 
@@ -170,14 +251,14 @@ function pickGaps(
   const candidates: string[] = [];
 
   for (const omission of rationale?.omissions ?? []) {
-    const gap = polishGapPhrase(omission);
+    const gap = humanizeGapPhrase(omission);
     if (gap) {
       candidates.push(gap);
     }
   }
 
   for (const flag of fitAssessment?.riskFlags ?? []) {
-    const gap = polishGapPhrase(flag);
+    const gap = humanizeGapPhrase(flag);
     if (gap) {
       candidates.push(gap);
     }
@@ -186,34 +267,71 @@ function pickGaps(
   return dedupeNormalizedPhrases(candidates, 2);
 }
 
-function pickPositioningAngle(
-  fitAssessment?: ResumeFitAssessment | null,
+function formatReadableList(items: string[]): string {
+  const labels = items
+    .map((item) => item.replace(/^your\s+/, "").trim())
+    .filter(Boolean);
+
+  if (labels.length === 0) {
+    return "";
+  }
+  if (labels.length === 1) {
+    return labels[0];
+  }
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+function buildPositioningSentence(
+  strengths: string[],
+  gaps: string[],
   rationale?: ResumeDraftRationale | null,
+  fitAssessment?: ResumeFitAssessment | null,
 ): string | null {
   const toneNotes = rationale?.toneNotes?.trim();
   if (toneNotes) {
-    return sentenceCaseClause(toSecondPerson(toneNotes));
+    const normalized = toSecondPerson(toneNotes).trim();
+    const toneShouldBe = normalized.match(/^tone should be\s+(.+)$/i);
+    if (toneShouldBe?.[1]) {
+      const themes = toneShouldBe[1].replace(/\.$/, "").trim();
+      if (themes && isUserFacingFitPhrase(themes)) {
+        return `Position yourself around ${sentenceCaseClause(themes)}.`;
+      }
+    } else if (/^lead with/i.test(normalized) && isUserFacingFitPhrase(normalized)) {
+      return `Position yourself to ${sentenceCaseClause(normalized)}.`;
+    } else if (isUserFacingFitPhrase(normalized)) {
+      return `Position yourself around ${sentenceCaseClause(normalized)}.`;
+    }
   }
 
-  const keyword = rationale?.keywordUsage?.[0]?.trim();
+  const keyword = rationale?.keywordUsage?.map(humanizeKeyword).find(Boolean);
   if (keyword) {
-    return `lead with your ${keyword.toLowerCase()} proof points in the opening summary`;
+    return `Position yourself around your ${keyword} proof points in the opening summary.`;
   }
 
   const optimized = fitAssessment?.optimizedFor?.find((item) => {
     const lower = item.toLowerCase();
-    return !lower.includes("one-page") && !lower.includes("additional experience");
+    return (
+      isUserFacingFitPhrase(item) &&
+      !lower.includes("one-page") &&
+      !lower.includes("additional experience")
+    );
   });
 
   if (optimized) {
-    return sentenceCaseClause(
+    const clause = sentenceCaseClause(
       toSecondPerson(optimized.replace(/^Highlighted\s+/i, "lead with ").replace(/\.$/, "")),
     );
+    return `Position yourself to ${clause}.`;
   }
 
-  const roleStrength = fitAssessment?.keyStrengths?.[0];
-  if (roleStrength) {
-    return `emphasize ${rewriteStrengthAsYour(roleStrength)} in your summary and top bullets`;
+  const strengthLabels = formatReadableList(strengths);
+  const primaryGap = gaps[0];
+
+  if (strengthLabels && primaryGap) {
+    return `Position yourself around ${strengthLabels}, while addressing ${primaryGap}.`;
+  }
+  if (strengthLabels) {
+    return `Position yourself around ${strengthLabels} in your summary and top bullets.`;
   }
 
   return null;
@@ -255,6 +373,18 @@ function buildVerdictLine(
   return `${verdict}.`;
 }
 
+function buildThinRationaleSummary(
+  fitAssessment?: ResumeFitAssessment | null,
+  rationale?: ResumeDraftRationale | null,
+): string {
+  const verdictLine = buildVerdictLine(fitAssessment, rationale);
+  return `${verdictLine} The saved rationale is too thin for a reliable read. Review the resume against the JD before exporting.`;
+}
+
+function hasMeaningfulUserContent(strengths: string[], gaps: string[]): boolean {
+  return strengths.length > 0 || gaps.length > 0;
+}
+
 /**
  * Derives a package fit summary from saved generation output — no page-load AI call.
  */
@@ -268,24 +398,37 @@ export function buildPackageFitSummary(options: {
     return null;
   }
 
-  const segments: string[] = [buildVerdictLine(fitAssessment, rationale)];
-
   const strengths = pickStrengths(fitAssessment, rationale);
-  if (strengths.length > 0) {
-    segments.push(`Your strongest fits: ${strengths.join("; ")}.`);
-  }
-
   const gaps = pickGaps(fitAssessment, rationale);
-  if (gaps.length > 0) {
-    segments.push(`Key gaps: ${gaps.join("; ")}.`);
+
+  if (!hasMeaningfulUserContent(strengths, gaps)) {
+    if (fitAssessment && Number.isFinite(fitAssessment.fitScore)) {
+      return truncateToWordLimit(
+        buildThinRationaleSummary(fitAssessment, rationale),
+        PACKAGE_FIT_SUMMARY_MAX_WORDS,
+      );
+    }
+    return null;
   }
 
-  const positioning = pickPositioningAngle(fitAssessment, rationale);
+  const sentences: string[] = [buildVerdictLine(fitAssessment, rationale)];
+
+  const strengthLabels = formatReadableList(strengths);
+  if (strengthLabels) {
+    sentences.push(`Your strongest fits are ${strengthLabels}.`);
+  }
+
+  const gapLabels = formatReadableList(gaps);
+  if (gapLabels) {
+    sentences.push(`Key gaps to address: ${gapLabels}.`);
+  }
+
+  const positioning = buildPositioningSentence(strengths, gaps, rationale, fitAssessment);
   if (positioning) {
-    segments.push(`Position yourself to ${positioning}.`);
+    sentences.push(positioning);
   }
 
-  const combined = stripCandidateLanguage(toSecondPerson(segments.join(" ").trim()));
+  const combined = stripCandidateLanguage(toSecondPerson(sentences.join(" ").trim()));
   return truncateToWordLimit(combined, PACKAGE_FIT_SUMMARY_MAX_WORDS);
 }
 

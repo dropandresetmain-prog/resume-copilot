@@ -15,6 +15,7 @@ import {
   buildPackageFitSummary,
   countFitSummaryWords,
   fitScoreToVerdict,
+  isUserFacingFitPhrase,
   PACKAGE_FIT_SUMMARY_MAX_WORDS,
   packageFitSummaryContainsVerdict,
 } from "../../src/lib/package/fit-summary";
@@ -140,6 +141,47 @@ function main() {
   const thinFitText = buildPackageFitSummary({
     rationale: null,
     fitAssessment: null,
+  });
+
+  const dirtyFitText = buildPackageFitSummary({
+    rationale: {
+      overall: "The candidate matches the job description.",
+      toneNotes: "Tone should be strategic thinking, execution, and measurable commercial outcomes.",
+      keywordUsage: ["cdd", "GTM", "product leadership"],
+      omissions: ["resume_structure_needs_review", "enterprise sales depth"],
+    },
+    fitAssessment: {
+      fitScore: 72,
+      heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
+      optimizedFor: ["one-page discipline"],
+      scoreRationale: "internal",
+      keyStrengths: ["Product leadership"],
+      riskFlags: [
+        "resume_structure_needs_review",
+        "plain additional experience items were repaired into title: detail format",
+        "Gap: limited enterprise sales depth",
+      ],
+    },
+  });
+
+  const thinDirtyFitText = buildPackageFitSummary({
+    rationale: {
+      overall: "internal only",
+      toneNotes: "tone should be professional",
+      keywordUsage: ["xy"],
+      omissions: ["resume_structure_needs_review"],
+    },
+    fitAssessment: {
+      fitScore: 64,
+      heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
+      optimizedFor: [],
+      scoreRationale: "internal",
+      keyStrengths: [],
+      riskFlags: [
+        "resume_structure_needs_review",
+        "plain additional experience items were repaired into title: detail format",
+      ],
+    },
   });
 
   const checks: [string, boolean][] = [
@@ -330,19 +372,49 @@ function main() {
     ],
     [
       "fit summary includes gaps when available",
-      richFitText !== null && richFitText.includes("Key gaps:"),
+      richFitText !== null && richFitText.includes("Key gaps to address:"),
     ],
     [
       "fit summary dedupes near duplicate phrases",
       fitText !== null &&
         !fitText.includes("product leadership alignment") &&
         !fitText.includes("limited enterprise sales depth") &&
-        fitText.includes("your product leadership") &&
+        fitText.includes("product leadership") &&
         fitText.includes("enterprise sales depth"),
     ],
     [
       "fit summary positioning uses natural casing",
-      richFitText !== null && richFitText.includes("Position yourself to lead with automation outcomes"),
+      richFitText !== null &&
+        richFitText.includes("Position yourself to lead with automation outcomes, not title history."),
+    ],
+    [
+      "fit summary uses multi-sentence shape",
+      fitText !== null && (fitText.match(/\./g)?.length ?? 0) >= 3,
+    ],
+    [
+      "fit summary filters snake_case and repair noise",
+      dirtyFitText !== null &&
+        !dirtyFitText.includes("_") &&
+        !/repaired/i.test(dirtyFitText) &&
+        !/title:\s*detail/i.test(dirtyFitText) &&
+        (dirtyFitText.includes("customer due diligence") || dirtyFitText.includes("go-to-market")),
+    ],
+    [
+      "fit summary avoids tone should be phrasing",
+      dirtyFitText !== null &&
+        !/tone should be/i.test(dirtyFitText) &&
+        dirtyFitText.includes("Position yourself around strategic thinking"),
+    ],
+    [
+      "fit summary thin dirty rationale fallback",
+      thinDirtyFitText !== null &&
+        thinDirtyFitText.includes("too thin for a reliable read") &&
+        thinDirtyFitText.includes("Stretch fit (64/100)"),
+    ],
+    [
+      "fit summary user-facing filter helper",
+      !isUserFacingFitPhrase("resume_structure_needs_review") &&
+        isUserFacingFitPhrase("enterprise sales depth"),
     ],
     [
       "fit summary thin data returns null",
