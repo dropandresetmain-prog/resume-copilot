@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.13C**
+**v0.9.13D**
 
 ## Completed capabilities
 
@@ -40,8 +40,14 @@
 | Inventory duplicate cleanup + bullet control baseline | v0.9.13A |
 | Post-generation save + edit workflow repair | v0.9.13B |
 | Package review workspace decision tree | v0.9.13C |
+| Fit summary signal upgrade | v0.9.13D |
 
 ## Milestone log (recent)
+
+### v0.9.13D - Fit Summary Signal Upgrade
+
+- Verdict-first fit read (Strong / Good / Stretch / Weak) from score bands.
+- Second-person summary: strongest fits, key gaps, positioning angle from saved rationale — no page-load AI.
 
 ### v0.9.13C - Package Review Workspace Decision Tree
 

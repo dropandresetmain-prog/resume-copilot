@@ -11,7 +11,13 @@ import {
   removeBulletsFromDraftBySourceKeys,
   resolveDraftStatusAfterContentEdit,
 } from "../../src/lib/resume-draft/apply-evidence-changes";
-import { buildPackageFitSummary, PACKAGE_FIT_SUMMARY_MAX_WORDS } from "../../src/lib/package/fit-summary";
+import {
+  buildPackageFitSummary,
+  countFitSummaryWords,
+  fitScoreToVerdict,
+  PACKAGE_FIT_SUMMARY_MAX_WORDS,
+  packageFitSummaryContainsVerdict,
+} from "../../src/lib/package/fit-summary";
 import { PREVIEW_FIT_HEURISTIC_VERSION } from "../../src/lib/resume-draft/layout";
 
 function buildSampleContent(): ResumeDraftContent {
@@ -98,15 +104,42 @@ function main() {
 
   const removed = removeBulletsFromDraftBySourceKeys(content, ["acme-1"]);
   const fitText = buildPackageFitSummary({
-    rationale: { overall: "Strong PM fit for growth stage teams.", toneNotes: "", keywordUsage: [], omissions: [] },
+    rationale: {
+      overall: "Strong PM fit for growth stage teams.",
+      toneNotes: "",
+      keywordUsage: ["product leadership"],
+      omissions: ["enterprise sales depth"],
+    },
     fitAssessment: {
       fitScore: 82,
       heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
-      optimizedFor: ["one-page"],
+      optimizedFor: ["Highlighted product leadership from approved keywords"],
       scoreRationale: "Strong match",
       keyStrengths: ["Product leadership"],
-      riskFlags: [],
+      riskFlags: ["Gap: limited enterprise sales depth"],
     },
+  });
+
+  const richFitText = buildPackageFitSummary({
+    rationale: {
+      overall: "The candidate aligns with the job description requirements for operations leadership.",
+      toneNotes: "Lead with automation outcomes, not title history.",
+      keywordUsage: ["workflow automation", "payments"],
+      omissions: ["regulated-banking depth"],
+    },
+    fitAssessment: {
+      fitScore: 88,
+      heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
+      optimizedFor: ["Highlighted workflow automation from approved keywords"],
+      scoreRationale: "Strong alignment",
+      keyStrengths: ["Strong Operations Manager experience coverage"],
+      riskFlags: ["Gap: regulated-banking depth"],
+    },
+  });
+
+  const thinFitText = buildPackageFitSummary({
+    rationale: null,
+    fitAssessment: null,
   });
 
   const checks: [string, boolean][] = [
@@ -269,11 +302,58 @@ function main() {
     ],
     [
       "fit summary truncates",
-      fitText !== null && fitText.split(/\s+/).length <= PACKAGE_FIT_SUMMARY_MAX_WORDS,
+      fitText !== null && countFitSummaryWords(fitText) <= PACKAGE_FIT_SUMMARY_MAX_WORDS,
     ],
     [
       "fit summary max words constant",
       PACKAGE_FIT_SUMMARY_MAX_WORDS === 100,
+    ],
+    [
+      "fit summary uses verdict labels",
+      richFitText !== null && packageFitSummaryContainsVerdict(richFitText),
+    ],
+    [
+      "fit summary score band mapping",
+      fitScoreToVerdict(88) === "Strong fit" &&
+        fitScoreToVerdict(82) === "Good fit" &&
+        fitScoreToVerdict(60) === "Stretch fit" &&
+        fitScoreToVerdict(40) === "Weak fit",
+    ],
+    [
+      "fit summary uses second person",
+      richFitText !== null &&
+        (richFitText.includes("you") || richFitText.includes("your") || richFitText.includes("Your")),
+    ],
+    [
+      "fit summary avoids candidate phrasing",
+      richFitText !== null && !/the candidate/i.test(richFitText) && !/\bcandidate\b/i.test(richFitText),
+    ],
+    [
+      "fit summary includes gaps when available",
+      richFitText !== null && richFitText.includes("Key gaps:"),
+    ],
+    [
+      "fit summary dedupes near duplicate phrases",
+      fitText !== null &&
+        !fitText.includes("product leadership alignment") &&
+        !fitText.includes("limited enterprise sales depth") &&
+        fitText.includes("your product leadership") &&
+        fitText.includes("enterprise sales depth"),
+    ],
+    [
+      "fit summary positioning uses natural casing",
+      richFitText !== null && richFitText.includes("Position yourself to lead with automation outcomes"),
+    ],
+    [
+      "fit summary thin data returns null",
+      thinFitText === null,
+    ],
+    [
+      "fit summary unavailable copy in panel",
+      readFileSync(
+        join(process.cwd(), "src/components/application-package/PackageFitSummaryPanel.tsx"),
+        "utf8",
+      ).includes("PACKAGE_FIT_SUMMARY_UNAVAILABLE"),
     ],
     [
       "fit summary clamps long rationale",
@@ -282,12 +362,19 @@ function main() {
           rationale: {
             overall: Array.from({ length: 120 }, (_, index) => `word${index}`).join(" "),
             toneNotes: "",
-            keywordUsage: [],
-            omissions: [],
+            keywordUsage: ["alpha", "beta", "gamma"],
+            omissions: Array.from({ length: 6 }, (_, index) => `gap${index}`),
           },
-          fitAssessment: null,
+          fitAssessment: {
+            fitScore: 72,
+            heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
+            optimizedFor: ["Highlighted alpha from approved keywords"],
+            scoreRationale: "ok",
+            keyStrengths: ["Strong alpha experience coverage", "Strong beta experience coverage"],
+            riskFlags: ["Gap: gap0", "Gap: gap1"],
+          },
         });
-        return long !== null && long.split(/\s+/).length <= PACKAGE_FIT_SUMMARY_MAX_WORDS;
+        return long !== null && countFitSummaryWords(long) <= PACKAGE_FIT_SUMMARY_MAX_WORDS;
       })(),
     ],
     [

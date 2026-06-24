@@ -2,7 +2,11 @@
 
 ## Current version
 
-**v0.9.13C** (code)
+**v0.9.13D** (code)
+
+## v0.9.13D implementation note
+
+Fit Summary Signal Upgrade: package AI fit summary is now decision-quality at a glance — verdict, your strongest fits, key gaps, and a positioning angle — composed deterministically from saved generation output (fit score, rationale, strengths, omissions). No page-load AI. ≤100 words, second-person voice, no “the candidate.”
 
 ## v0.9.13C implementation note
 
@@ -16,7 +20,7 @@ Package Review Workspace Decision Tree: Application Package is the central post-
 
 **Cover letter staged revision:** Instruction chips + custom notes; single Revise cover letter AI call; preview accept/reject before persist.
 
-**AI fit summary:** ≤100 words derived from saved `rationale.overall` + `calculateFitScore()` — no page-load AI. No schema change.
+**AI fit summary:** ≤100 words derived from saved `rationale.overall` + `calculateFitScore()` — no page-load AI. No schema change. *(Superseded by v0.9.13D verdict + gaps + positioning composition.)*
 
 **Preview/export trust:** Honest copy when browser preview fits one page but server validation blocks; mismatch banner after failed approve.
 
