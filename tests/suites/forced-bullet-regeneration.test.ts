@@ -461,7 +461,7 @@ function main() {
     ],
     [
       "regeneration panel exposes targeted and full actions",
-      regenerationPanel.includes("Apply forced bullet update") &&
+      regenerationPanel.includes("Rewrite affected roles") &&
         regenerationPanel.includes("Regenerate full resume"),
     ],
     [

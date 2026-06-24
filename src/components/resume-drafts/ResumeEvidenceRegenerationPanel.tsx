@@ -375,10 +375,12 @@ export function ResumeEvidenceRegenerationPanel({
   return (
     <SetupCard
       title="Edit resume content"
-      description="Inspect evidence, exclude or force inventory bullets, and regenerate the resume. Does not change source inventory."
+      description="Control which inventory evidence is included, then rewrite affected roles or regenerate the full resume. Does not change source inventory files."
     >
       <p className="mt-3 text-sm text-slate-600">
-        Active inventory bullets available: {buildActiveCollatedInventory(inventory).experiences.reduce(
+        Prefer <span className="font-medium">Rewrite affected roles</span> when only forced bullets
+        changed — it uses fewer AI calls than a full regenerate. Active inventory bullets available:{" "}
+        {buildActiveCollatedInventory(inventory).experiences.reduce(
           (total, experience) => total + experience.bullets.length,
           0,
         )}
@@ -386,9 +388,9 @@ export function ResumeEvidenceRegenerationPanel({
 
       <div className="mt-4 space-y-4">
         <section>
-          <h3 className="text-sm font-semibold text-slate-900">Generated work experience bullets</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Exclude this evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Uncheck to exclude a source bullet from the next regeneration.
+            Uncheck a generated bullet to omit its source evidence from the next regeneration run.
           </p>
           <ul className="mt-3 space-y-3">
             {draft.content.experience.flatMap((experience, experienceIndex) =>
@@ -439,10 +441,10 @@ export function ResumeEvidenceRegenerationPanel({
         </section>
 
         <section>
-          <h3 className="text-sm font-semibold text-slate-900">Force inventory bullets</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Include this evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Include bullets in the next regeneration even if ranking would omit them. Forced bullets
-            must appear in the regenerated resume when available.
+            Check inventory bullets to force them into the next run even if ranking would skip them.
+            Use targeted rewrite when only a few roles need updating.
           </p>
 
           {alreadyInPayloadKeys.length > 0 ? (
@@ -540,7 +542,7 @@ export function ResumeEvidenceRegenerationPanel({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap gap-3" data-testid="regeneration-action-buttons">
         {canRunTargetedUpdate ? (
           <div className="flex flex-col gap-1">
             <button
@@ -548,12 +550,14 @@ export function ResumeEvidenceRegenerationPanel({
               onClick={() => void handleTargetedUpdate()}
               disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
               className={primaryButtonClassName}
-              data-action="apply-forced-bullet-update"
+              data-action="rewrite-affected-roles"
               aria-busy={isRegenerating}
             >
-              {isRegenerating ? "Updating…" : "Apply forced bullet update"}
+              {isRegenerating ? "Rewriting…" : "Rewrite affected roles"}
             </button>
-            <p className="text-xs text-slate-500">Rewrites affected roles.</p>
+            <p className="text-xs text-slate-500">
+              Targeted rewrite — updates only roles tied to forced bullets (1 AI step).
+            </p>
           </div>
         ) : null}
         <div className="flex flex-col gap-1">
@@ -567,7 +571,9 @@ export function ResumeEvidenceRegenerationPanel({
           >
             {isRegenerating ? "Regenerating…" : "Regenerate full resume"}
           </button>
-          <p className="text-xs text-slate-500">Regenerates the full resume.</p>
+          <p className="text-xs text-slate-500">
+            Full regenerate — rebuilds the entire resume from inventory (1 AI step).
+          </p>
         </div>
         <button
           type="button"

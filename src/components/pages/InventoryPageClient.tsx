@@ -7,6 +7,7 @@ import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView";
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
 import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
+import { InventoryDuplicateCleanupPanel } from "@/components/setup/InventoryDuplicateCleanupPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
 import { SectionHeader, ViewTabs } from "@/components/setup/ui";
@@ -111,6 +112,12 @@ export function InventoryPageClient() {
           onDuplicateGroupStatus={handleDuplicateGroupStatus}
         />
       </div>
+
+      <InventoryDuplicateCleanupPanel
+        inventory={inventory}
+        draftEdits={draftEdits}
+        onDraftEditsChange={setDraftEdits}
+      />
 
       {hasUnsavedChanges ? (
         <div

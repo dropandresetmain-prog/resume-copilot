@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12E**
+**v0.9.13A**
 
 ## Completed capabilities
 
@@ -37,8 +37,17 @@
 | Import robustness + output polish defaults | v0.9.12C |
 | Generate company/role primary fields restored | v0.9.12D |
 | AI call cost guardrails (estimates, research skip, call logging) | v0.9.12E |
+| Inventory duplicate cleanup + bullet control baseline | v0.9.13A |
 
 ## Milestone log (recent)
+
+### v0.9.13A - Inventory Cleanup + Bullet Control Baseline
+
+- Deterministic duplicate/variant detection within the same company/role (metrics + keyword overlap + text similarity).
+- Inventory UI panel: Keep one / Hide from generation / Keep both / Mark alternate wording.
+- Decisions stored in `InventoryEdits` (`hiddenBulletKeys`, `dismissedDuplicateGroupIds`, `alternateWordingBulletKeys`).
+- Regeneration panel copy: include vs exclude evidence; targeted rewrite preferred over full regenerate.
+- **Parked:** full Inventory CRUD, AI-assisted merge, bullet version history.
 
 ### v0.9.12E - AI Call Cost Guardrails
 

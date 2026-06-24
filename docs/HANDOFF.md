@@ -2,7 +2,19 @@
 
 ## Current version
 
-**v0.9.12E** (code)
+**v0.9.13A** (code)
+
+## v0.9.13A implementation note
+
+Inventory Cleanup + Bullet Control Baseline: deterministic duplicate/variant detection within the same role, user cleanup controls stored in existing `InventoryEdits` overlay (no schema change), and clearer regeneration wording (include/exclude evidence, rewrite affected roles vs full regenerate).
+
+**Duplicate detection:** `detectInventoryDuplicateGroups` — shared metrics, keyword overlap, normalized text similarity. No Gemini, no auto-delete.
+
+**User controls:** Keep one / Hide from generation / Keep both / Mark alternate wording. Resolutions persist via `hiddenBulletKeys` + `dismissedDuplicateGroupIds` + optional `alternateWordingBulletKeys`.
+
+**Generation:** Hidden bullets already excluded via `buildActiveCollatedInventory` — unchanged pipeline path.
+
+**Parked:** full Inventory CRUD, AI merge of duplicates, bullet version history, server idempotency, recruitment/confidential mode.
 
 ## v0.9.12E implementation note
 
@@ -90,18 +102,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12E - AI Call Cost Guardrails**
+**v0.9.13A - Inventory Cleanup + Bullet Control Baseline**
 
-Pre-run AI step estimates, JD-only website research toggle, structured Gemini call logging, regeneration cost copy.
+Deterministic duplicate detection, inventory cleanup controls, clearer evidence/regeneration wording.
 
-## Latest milestone summary (v0.9.12E)
+## Latest milestone summary (v0.9.13A)
 
-AI call visibility: step estimates on Generate, skip website research for current run, `[gemini-call]` server logs with logical step/attempts/fallback.
+Inventory duplicate groups surfaced with keep/hide/keep-both controls; hidden bullets continue to flow through existing generation exclusion path.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.13A | Inventory cleanup + bullet control baseline |
 | v0.9.12E | AI call cost guardrails — step estimates, research skip, Gemini call logging |
 | v0.9.12D | Restore Generate company/role primary fields |
 | v0.9.12C | Import robustness + output polish defaults (parser + line spacing + cover letter tone) |

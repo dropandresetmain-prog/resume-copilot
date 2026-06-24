@@ -7,11 +7,17 @@ export type InventoryEdits = {
   hiddenBulletKeys: string[];
   /** bulletKey → user-edited active wording for generation. */
   editedBulletTextByBulletKey: Record<string, string>;
+  /** Duplicate group IDs resolved as intentional variants (keep both). */
+  dismissedDuplicateGroupIds: string[];
+  /** Bullets flagged as intentional alternate wording — still active in generation. */
+  alternateWordingBulletKeys: string[];
 };
 
 export function createEmptyInventoryEdits(): InventoryEdits {
   return {
     hiddenBulletKeys: [],
     editedBulletTextByBulletKey: {},
+    dismissedDuplicateGroupIds: [],
+    alternateWordingBulletKeys: [],
   };
 }

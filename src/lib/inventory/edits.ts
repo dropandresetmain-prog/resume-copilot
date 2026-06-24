@@ -31,7 +31,28 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
     }
   }
 
-  return { hiddenBulletKeys, editedBulletTextByBulletKey };
+  const dismissedDuplicateGroupIds = [
+    ...new Set(
+      (edits.dismissedDuplicateGroupIds ?? []).filter(
+        (id) => typeof id === "string" && id.trim(),
+      ),
+    ),
+  ];
+
+  const alternateWordingBulletKeys = [
+    ...new Set(
+      (edits.alternateWordingBulletKeys ?? []).filter(
+        (key) => typeof key === "string" && key.trim(),
+      ),
+    ),
+  ];
+
+  return {
+    hiddenBulletKeys,
+    editedBulletTextByBulletKey,
+    dismissedDuplicateGroupIds,
+    alternateWordingBulletKeys,
+  };
 }
 
 export function isBulletHidden(edits: InventoryEdits, bulletKey: string): boolean {
@@ -166,6 +187,109 @@ export function countEditedInventoryBullets(edits: InventoryEdits | undefined): 
   return Object.keys(normalizeInventoryEdits(edits).editedBulletTextByBulletKey).length;
 }
 
+export function dismissInventoryDuplicateGroup(
+  edits: InventoryEdits,
+  groupId: string,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  if (normalized.dismissedDuplicateGroupIds.includes(groupId)) {
+    return normalized;
+  }
+  return {
+    ...normalized,
+    dismissedDuplicateGroupIds: [...normalized.dismissedDuplicateGroupIds, groupId],
+  };
+}
+
+export function keepOneInventoryDuplicateBullet(
+  edits: InventoryEdits,
+  group: { id: string; bulletKeys: string[] },
+  keptBulletKey: string,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  const hidden = new Set(normalized.hiddenBulletKeys);
+
+  for (const bulletKey of group.bulletKeys) {
+    if (bulletKey !== keptBulletKey) {
+      hidden.add(bulletKey);
+    } else {
+      hidden.delete(bulletKey);
+    }
+  }
+
+  const alternate = normalized.alternateWordingBulletKeys.filter(
+    (key) => key === keptBulletKey || !group.bulletKeys.includes(key),
+  );
+
+  return dismissInventoryDuplicateGroup(
+    {
+      ...normalized,
+      hiddenBulletKeys: [...hidden],
+      alternateWordingBulletKeys: alternate,
+    },
+    group.id,
+  );
+}
+
+export function keepBothInventoryDuplicateGroup(
+  edits: InventoryEdits,
+  group: { id: string; bulletKeys: string[] },
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  const hidden = normalized.hiddenBulletKeys.filter(
+    (key) => !group.bulletKeys.includes(key),
+  );
+
+  return dismissInventoryDuplicateGroup(
+    {
+      ...normalized,
+      hiddenBulletKeys: hidden,
+    },
+    group.id,
+  );
+}
+
+export function hideInventoryDuplicateBullet(
+  edits: InventoryEdits,
+  bulletKey: string,
+): InventoryEdits {
+  return hideInventoryBullet(edits, bulletKey);
+}
+
+export function markInventoryAlternateWording(
+  edits: InventoryEdits,
+  bulletKey: string,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  if (normalized.alternateWordingBulletKeys.includes(bulletKey)) {
+    return normalized;
+  }
+  return {
+    ...normalized,
+    alternateWordingBulletKeys: [...normalized.alternateWordingBulletKeys, bulletKey],
+  };
+}
+
+export function clearInventoryAlternateWording(
+  edits: InventoryEdits,
+  bulletKey: string,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return {
+    ...normalized,
+    alternateWordingBulletKeys: normalized.alternateWordingBulletKeys.filter(
+      (key) => key !== bulletKey,
+    ),
+  };
+}
+
+export function isInventoryAlternateWording(
+  edits: InventoryEdits | undefined,
+  bulletKey: string,
+): boolean {
+  return normalizeInventoryEdits(edits).alternateWordingBulletKeys.includes(bulletKey);
+}
+
 function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
   return JSON.stringify({
     hiddenBulletKeys: [...edits.hiddenBulletKeys].sort(),
@@ -174,6 +298,8 @@ function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
         left.localeCompare(right),
       ),
     ),
+    dismissedDuplicateGroupIds: [...edits.dismissedDuplicateGroupIds].sort(),
+    alternateWordingBulletKeys: [...edits.alternateWordingBulletKeys].sort(),
   });
 }
 

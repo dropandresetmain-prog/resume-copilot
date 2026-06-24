@@ -126,6 +126,15 @@
 - **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
+## Inventory cleanup (v0.9.13A)
+
+- **Deterministic duplicate detection** groups likely variant bullets within the same role (`detectInventoryDuplicateGroups`). Signals: shared metrics, keyword overlap, normalized text similarity. Does **not** call Gemini and does **not** auto-delete bullets.
+- **Detection limits:** Different roles or companies are never grouped; paraphrases without shared metrics may be missed (Accept Risk); enrichment AI duplicate hints remain separate.
+- **User controls** on Inventory: Keep one, Hide from generation, Keep both, Mark alternate wording. Stored in existing `InventoryEdits` overlay — no Supabase schema change.
+- **Generation respect:** `hiddenBulletKeys` excluded via `buildActiveCollatedInventory` before payload build. Existing drafts are not auto-regenerated.
+- **Alternate wording flag** is informational only — does not change ranking yet (Accept Risk).
+- **Parked:** full Inventory CRUD, AI-assisted merge of duplicates, bullet version history.
+
 ## Generate page (v0.9.12E)
 
 - **Company** and **Target role** are primary visible fields above the JD textarea (v0.9.12D). Auto-extracted values still populate when the user has not manually edited those fields.
