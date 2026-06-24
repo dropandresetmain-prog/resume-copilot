@@ -16,7 +16,10 @@ import {
   promptIncludesToneRules,
 } from "../../src/lib/cover-letter/prompt";
 import { buildCoverLetterRevisionPrompt } from "../../src/lib/cover-letter/revision-prompt";
-import { validateCoverLetterRevisionRequest } from "../../src/lib/cover-letter/revision-client";
+import {
+  coverLetterRevisionShouldPersist,
+  validateCoverLetterRevisionRequest,
+} from "../../src/lib/cover-letter/revision-client";
 import { countWords } from "../../src/lib/cover-letter/resume-evidence";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
@@ -65,7 +68,7 @@ function main() {
     "utf8",
   );
   const revisionPanel = readFileSync(
-    join(process.cwd(), "src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx"),
+    join(process.cwd(), "src/components/cover-letters/CoverLetterStagedRevisionPanel.tsx"),
     "utf8",
   );
   const revisionClient = readFileSync(
@@ -74,6 +77,10 @@ function main() {
   );
   const revisionRoute = readFileSync(
     join(process.cwd(), "src/app/api/ai/revise-cover-letter/route.ts"),
+    "utf8",
+  );
+  const resumePreview = readFileSync(
+    join(process.cwd(), "src/components/pages/ResumePreviewPageClient.tsx"),
     "utf8",
   );
   const pdfRoute = readFileSync(
@@ -185,14 +192,43 @@ function main() {
       revisionRoute.includes("getGeneratedCoverLetterDraftForUser"),
     ],
     [
-      "revision route updates draft scoped to user",
-      revisionRoute.includes("updateGeneratedCoverLetterDraftInCloudForUser"),
+      "revision route updates draft when persist true",
+      revisionRoute.includes("coverLetterRevisionShouldPersist") &&
+        revisionRoute.includes("updateGeneratedCoverLetterDraftInCloudForUser"),
+    ],
+    [
+      "revision route skips save when persist false",
+      revisionRoute.includes("shouldPersist") && revisionRoute.includes("persisted: shouldPersist"),
+    ],
+    [
+      "revision persist helper defaults true",
+      coverLetterRevisionShouldPersist({}) === true &&
+        coverLetterRevisionShouldPersist({ persist: false }) === false,
     ],
     ["revision route does not load resume generation", !revisionRoute.includes("requestResumeDraftGeneration")],
     ["revision route does not create resume draft", !revisionRoute.includes("createGeneratedResumeDraftInCloud")],
-    ["preview page has quick revision panel", previewPage.includes("CoverLetterQuickRevisionPanel")],
+    ["preview page has staged revision panel", previewPage.includes("CoverLetterStagedRevisionPanel")],
     ["preview page disables export when over limit", previewPage.includes("exportBlocked")],
-    ["quick revision panel has shorten action", revisionPanel.includes('"shorten"')],
+    ["staged revision panel has shorten chip", revisionPanel.includes('"shorten"')],
+    ["staged revision has revise button", revisionPanel.includes("Revise cover letter")],
+    ["staged revision requests candidate only", revisionPanel.includes("persist: false")],
+    ["staged revision accept persists via callback", revisionPanel.includes("await onAccepted")],
+    [
+      "preview page staged copy",
+      previewPage.includes("Accept saves it") && !previewPage.includes("save immediately"),
+    ],
+    [
+      "package cover letter state updates on accept only",
+      resumePreview.includes("onAccepted={async") &&
+        resumePreview.includes("setCoverLetter(updated)") &&
+        !resumePreview.includes("onRevised"),
+    ],
+    [
+      "chips toggle only revise calls revision client",
+      revisionPanel.includes("toggleChip") &&
+        revisionPanel.includes("requestCoverLetterRevision") &&
+        !revisionPanel.includes("onClick={() => void runRevision"),
+    ],
     ["pdf export validates word count", pdfRoute.includes("assertExportableCoverLetterBody")],
     ["shorten revision respects max", countWords(shortened.body) <= 420],
   ];

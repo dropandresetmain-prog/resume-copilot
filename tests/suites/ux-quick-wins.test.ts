@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.13B"')],
-    ["package json version", packageJson.includes('"version": "0.9.13B"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.13C"')],
+    ["package json version", packageJson.includes('"version": "0.9.13C"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -130,8 +130,10 @@ function main() {
     ["cover letter unsaved hint", coverLetterPreview.includes("hasUnsavedBodyChanges")],
     ["cover letter no mojibake in save button", !coverLetterPreview.includes("Savingâ€¦") && coverLetterPreview.includes("Saving\u2026")],
     ["cover letter save disabled when no unsaved changes", coverLetterPreview.includes("!hasUnsavedBodyChanges")],
-    ["cover letter save primary only in raw or with unsaved changes", coverLetterPreview.includes("bodyView === \"raw\" || hasUnsavedBodyChanges")],
-    ["cover letter pdf hint clarifies revisions are auto-saved", coverLetterPreview.includes("Quick revisions (below) are saved")],
+    [
+      "cover letter staged revision saves on accept",
+      coverLetterPreview.includes("Staged AI revision saves on Accept only"),
+    ],
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
     ["profile links dev tools", profile.includes('href="/dev-tools"')],
     ["uploads single column resume list", !cloudFileStoragePanel.includes("lg:grid-cols-2")],
@@ -215,6 +217,10 @@ function main() {
     [
       "v0.9.13B documented",
       handoff.includes("v0.9.13B") && roadmap.includes("v0.9.13B"),
+    ],
+    [
+      "v0.9.13C documented",
+      handoff.includes("v0.9.13C") && roadmap.includes("v0.9.13C"),
     ],
     [
       "mobile nav no horizontal scroll",

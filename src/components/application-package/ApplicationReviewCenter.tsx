@@ -10,6 +10,7 @@ import {
   secondaryActionGroupClassName,
   secondaryButtonClassName,
 } from "@/components/setup/ui";
+import { PackageDecisionTree } from "@/components/application-package/PackageDecisionTree";
 import type {
   ApplicationReviewOverallStatus,
   ApplicationReviewStatus,
@@ -158,7 +159,7 @@ export function ApplicationReviewCenter({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase text-cyan-800">
-            Application Review
+            Application package review
           </p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">{displayTitle}</h2>
         </div>
@@ -187,6 +188,12 @@ export function ApplicationReviewCenter({
         )}
       </div>
 
+      <PackageDecisionTree
+        resumeDraftId={resumeDraftId}
+        coverLetterId={coverLetterId}
+        exportReady={exportReady}
+      />
+
       {/* Fix paths — shown before approve/export when issues exist */}
       <div
         className={`mt-4 rounded-lg border px-4 py-3 ${
@@ -196,44 +203,38 @@ export function ApplicationReviewCenter({
         }`}
         data-testid="application-fix-actions"
       >
-        <p className="text-xs font-semibold uppercase text-slate-600">
-          {blockingCount > 0
-            ? "Fix before exporting"
-            : warningCount > 0
-              ? "Review fixes recommended"
-              : "Review and fix"}
-        </p>
+        <p className="text-xs font-semibold uppercase text-slate-600">Quick fix actions</p>
         <div className={`${secondaryActionGroupClassName} mt-3`}>
           <Link
-            href={`/resume-preview/${resumeDraftId}/edit`}
+            href={`/resume-preview/${resumeDraftId}#package-resume-edit`}
             className={secondaryButtonClassName}
           >
-            Fix resume text
+            Edit resume text
           </Link>
           <a
             href={`/resume-preview/${resumeDraftId}#package-edit`}
             className={secondaryButtonClassName}
           >
-            Fix evidence
+            Fix resume evidence
           </a>
-          {coverLetterId ? (
-            <Link
-              href={`/cover-letter-preview/${coverLetterId}`}
-              className={secondaryButtonClassName}
-            >
-              Fix cover letter
-            </Link>
-          ) : (
-            <a href="#package-cover-letter" className={secondaryButtonClassName}>
-              Fix cover letter
-            </a>
-          )}
           <a
             href={`/resume-preview/${resumeDraftId}#package-layout-controls`}
             className={secondaryButtonClassName}
           >
-            Adjust layout
+            Adjust resume layout
           </a>
+          {coverLetterId ? (
+            <a
+              href={`/resume-preview/${resumeDraftId}#package-cover-letter-revision`}
+              className={secondaryButtonClassName}
+            >
+              Revise cover letter
+            </a>
+          ) : (
+            <a href="#package-cover-letter" className={secondaryButtonClassName}>
+              Revise cover letter
+            </a>
+          )}
         </div>
         {reviewItemCount > 0 ? (
           <p className="mt-2 text-xs text-slate-600">
@@ -243,7 +244,11 @@ export function ApplicationReviewCenter({
       </div>
 
       {/* Approve → Export two-step sequence */}
-      <div className={`mt-4 ${actionBarClassName}`} data-section="resume-approve-export">
+      <div
+        id="package-approve"
+        className={`mt-4 scroll-mt-24 ${actionBarClassName}`}
+        data-section="resume-approve-export"
+      >
         {exportReady ? (
           /* Step 2 active: export is the primary action */
           <div className="space-y-3">
@@ -305,7 +310,7 @@ export function ApplicationReviewCenter({
         data-section="review-details-disclosure"
       >
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-700">
-          Review details
+          Readiness checklist
           <span className="ml-2 font-normal text-slate-500">— {reviewSummary}</span>
         </summary>
         <div className="space-y-3 border-t border-slate-100 p-3">

@@ -199,13 +199,13 @@ function main() {
         cleanupPanel.includes("Keep both"),
     ],
     [
-      "regeneration panel distinguishes rewrite vs full regenerate",
-      regenerationPanel.includes("Rewrite ${affectedRoleCount}") &&
-        regenerationPanel.includes("rebuilds the entire resume"),
+      "regeneration panel distinguishes apply vs full regenerate",
+      regenerationPanel.includes("Apply evidence changes") &&
+        regenerationPanel.includes("last resort"),
     ],
     [
-      "targeted rewrite is primary when available",
-      regenerationPanel.indexOf('data-action="rewrite-affected-roles"') <
+      "apply evidence is primary before full regenerate",
+      regenerationPanel.indexOf('data-action="apply-evidence-changes"') <
         regenerationPanel.indexOf('data-action="regenerate-full-resume"'),
     ],
   ];

@@ -12,6 +12,7 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { formatRiskFlagLabel, reviewStatusClassName, reviewStatusLabel } from "@/lib/resume-draft/preview-helpers";
+import { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evidence-changes";
 import { optimizeResumePreviewSettings } from "@/lib/resume-draft/preview-optimizer";
 import {
   buildFinalResumeLayout,
@@ -35,11 +36,14 @@ import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 type ResumeDraftReviewWorkspaceProps = {
   draft: GeneratedResumeDraftRecord;
   onDraftUpdated: (draft: GeneratedResumeDraftRecord) => void;
+  /** Package page mode: hide browser layout preview and rationale blocks. */
+  packageMode?: boolean;
 };
 
 export function ResumeDraftReviewWorkspace({
   draft,
   onDraftUpdated,
+  packageMode = false,
 }: ResumeDraftReviewWorkspaceProps) {
   const [reviewState, setReviewState] = useState<ResumeDraftReviewState>(() =>
     createInitialReviewState(draft.content),
@@ -49,17 +53,14 @@ export function ResumeDraftReviewWorkspace({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [summaryEditing, setSummaryEditing] = useState(false);
   const [summaryDraft, setSummaryDraft] = useState(draft.content.professionalSummary.text);
+  const [headerDraft, setHeaderDraft] = useState(draft.content.header);
 
-  useEffect(() => {
-    setReviewState(createInitialReviewState(draft.content));
-    setSummaryDraft(draft.content.professionalSummary.text);
-    setSummaryEditing(false);
-  }, [draft.id, draft.updatedAt]);
-
-  const hasUnsavedChanges = useMemo(
-    () => reviewStateDiffersFromSavedContent(draft.content, reviewState),
-    [draft.content, reviewState],
-  );
+  const hasUnsavedChanges = useMemo(() => {
+    if (reviewStateDiffersFromSavedContent(draft.content, reviewState)) {
+      return true;
+    }
+    return JSON.stringify(headerDraft) !== JSON.stringify(draft.content.header);
+  }, [draft.content, reviewState, headerDraft]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -103,10 +104,6 @@ export function ResumeDraftReviewWorkspace({
     if (!savedAt) {
       return null;
     }
-    const elapsedMs = Date.now() - savedAt.getTime();
-    if (elapsedMs < 60_000) {
-      return "Saved just now";
-    }
     return `Last saved ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
   }
 
@@ -118,9 +115,16 @@ export function ResumeDraftReviewWorkspace({
       const reviewedContent = applyReviewStateToContent(draft.content, reviewState, {
         includePending: true,
       });
+      reviewedContent.header = headerDraft;
+
+      const nextStatus = resolveDraftStatusAfterContentEdit(draft.status);
 
       const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: reviewedContent,
+        content: {
+          ...reviewedContent,
+          serverPdfValidation: undefined,
+        },
+        status: nextStatus,
       });
 
       onDraftUpdated(updated);
@@ -136,7 +140,8 @@ export function ResumeDraftReviewWorkspace({
   }
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-6 space-y-6" data-testid="resume-structured-editor">
+      {!packageMode ? (
       <SetupCard
         title="Edit resume details"
         description="Accept, edit, or omit generated bullets. Card-level edits update the preview below — click Save resume edits to persist to this draft."
@@ -196,12 +201,17 @@ export function ResumeDraftReviewWorkspace({
           </pre>
         </details>
       </SetupCard>
+      ) : null}
 
       <SetupCard
-        title="Review generated sections"
-        description="Accept, edit, or omit generated text. Changes stay in this draft until you mark it reviewed."
+        title={packageMode ? "Edit resume text" : "Review generated sections"}
+        description={
+          packageMode
+            ? "Structured fields mapped to the draft model. The A4 PDF preview stays read-only — save edits here."
+            : "Accept, edit, or omit generated text. Click Save resume edits to persist."
+        }
       >
-        {draft.rationale ? (
+        {!packageMode && draft.rationale ? (
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <p className="font-medium text-slate-900">Overall rationale</p>
             <p className="mt-2">{draft.rationale.overall}</p>
@@ -229,7 +239,84 @@ export function ResumeDraftReviewWorkspace({
           </div>
         ) : null}
 
-        {draft.content.globalRiskFlags.length > 0 ? (
+        {draft.content.header.includeHeader ? (
+          <ResumeDraftSectionCard title="Header / contact">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm text-slate-700">
+                Full name
+                <input
+                  type="text"
+                  value={headerDraft.fullName ?? ""}
+                  onChange={(event) =>
+                    setHeaderDraft((current) => ({
+                      ...current,
+                      fullName: event.target.value,
+                    }))
+                  }
+                  className={`${formFieldClassName} mt-1`}
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Location
+                <input
+                  type="text"
+                  value={headerDraft.location ?? ""}
+                  onChange={(event) =>
+                    setHeaderDraft((current) => ({
+                      ...current,
+                      location: event.target.value,
+                    }))
+                  }
+                  className={`${formFieldClassName} mt-1`}
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Email
+                <input
+                  type="email"
+                  value={headerDraft.email ?? ""}
+                  onChange={(event) =>
+                    setHeaderDraft((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
+                  className={`${formFieldClassName} mt-1`}
+                />
+              </label>
+              <label className="text-sm text-slate-700">
+                Phone
+                <input
+                  type="text"
+                  value={headerDraft.phone ?? ""}
+                  onChange={(event) =>
+                    setHeaderDraft((current) => ({
+                      ...current,
+                      phone: event.target.value,
+                    }))
+                  }
+                  className={`${formFieldClassName} mt-1`}
+                />
+              </label>
+              <label className="text-sm text-slate-700 sm:col-span-2">
+                LinkedIn
+                <input
+                  type="text"
+                  value={headerDraft.linkedin ?? ""}
+                  onChange={(event) =>
+                    setHeaderDraft((current) => ({
+                      ...current,
+                      linkedin: event.target.value,
+                    }))
+                  }
+                  className={`${formFieldClassName} mt-1`}
+                />
+              </label>
+            </div>
+          </ResumeDraftSectionCard>
+        ) : null}
+
+        {!packageMode && draft.content.globalRiskFlags.length > 0 ? (
           <ul className="mt-4 flex flex-wrap gap-2">
             {draft.content.globalRiskFlags.map((flag) => (
               <li
@@ -242,7 +329,7 @@ export function ResumeDraftReviewWorkspace({
           </ul>
         ) : null}
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6" data-testid="resume-structured-sections">
           {showProfessionalSummary ? (
           <ResumeDraftSectionCard title="Professional summary">
             <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -545,8 +632,8 @@ export function ResumeDraftReviewWorkspace({
             {isSaving ? "Saving…" : "Save resume edits"}
           </button>
           <p className="text-xs text-slate-500">
-            Saves text changes to this generated draft only. Export approval on the application
-            package is separate.
+            Saves text changes to this generated draft. Content edits downgrade export approval when
+            the draft was previously approved.
           </p>
         </div>
       </SetupCard>

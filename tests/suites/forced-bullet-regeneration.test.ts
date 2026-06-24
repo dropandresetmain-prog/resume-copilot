@@ -460,8 +460,8 @@ function main() {
       promptIncludesRoleRewriteScopeRules(roleRewritePrompt),
     ],
     [
-      "regeneration panel exposes targeted and full actions",
-      regenerationPanel.includes("Rewrite ${affectedRoleCount}") &&
+      "regeneration panel exposes apply and full actions",
+      regenerationPanel.includes("Apply evidence changes") &&
         regenerationPanel.includes("Regenerate full resume"),
     ],
     [

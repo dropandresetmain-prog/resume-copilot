@@ -19,6 +19,7 @@ export const RESUME_PDF_PREVIEW_PAGE_BREAK_TEST_ID = "resume-pdf-preview-page-br
 type ResumePdfPreviewProps = {
   documentModel: ResumeDocumentModel;
   className?: string;
+  onOverflowChange?: (measurement: PdfPreviewOverflowMeasurement) => void;
 };
 
 /** A4 width in CSS pixels at 96dpi — used for scale-to-fit. */
@@ -42,7 +43,11 @@ function defaultOverflowMeasurement(): PdfPreviewOverflowMeasurement {
  * Preserves A4 aspect ratio on mobile via scale-to-fit (content does not reflow).
  * Expands vertically when content exceeds one page so overflow is never silently clipped.
  */
-export function ResumePdfPreview({ documentModel, className = "" }: ResumePdfPreviewProps) {
+export function ResumePdfPreview({
+  documentModel,
+  className = "",
+  onOverflowChange,
+}: ResumePdfPreviewProps) {
   const html = useMemo(() => renderResumePdfHtml(documentModel), [documentModel]);
   const frameRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -85,6 +90,12 @@ export function ResumePdfPreview({ documentModel, className = "" }: ResumePdfPre
       overflow: measureResumePdfPreviewOverflow(doc),
     });
   }, [previewKey]);
+
+  useEffect(() => {
+    if (measurementState.key === previewKey) {
+      onOverflowChange?.(measurementState.overflow);
+    }
+  }, [measurementState, previewKey, onOverflowChange]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -138,7 +149,17 @@ export function ResumePdfPreview({ documentModel, className = "" }: ResumePdfPre
           overflow. Server export may paginate differently due to Linux fonts — use Approve
           for server one-page validation before export.
         </div>
-      ) : null}
+      ) : (
+        <div
+          data-testid="preview-export-fit-ok"
+          className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+          role="status"
+        >
+          Browser preview fits one page. Export still requires{" "}
+          <strong>Approve for export</strong> — server Puppeteer validation is the export gate and may
+          differ slightly from this preview.
+        </div>
+      )}
       <div className="flex min-w-0 justify-center rounded-lg bg-slate-100 p-3 ring-1 ring-slate-200 sm:p-5">
         <div
           ref={frameRef}

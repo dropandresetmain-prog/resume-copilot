@@ -50,6 +50,13 @@ export async function requestCoverLetterRevision(
   return payload;
 }
 
+/** True when the revision API should write the result to Supabase (default). */
+export function coverLetterRevisionShouldPersist(
+  request: Pick<CoverLetterRevisionRequest, "persist">,
+): boolean {
+  return request.persist !== false;
+}
+
 export function validateCoverLetterRevisionRequest(body: CoverLetterRevisionRequest): string | null {
   if (!body.draftId?.trim()) {
     return "draftId is required.";

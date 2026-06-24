@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.13B**
+**v0.9.13C**
 
 ## Completed capabilities
 
@@ -39,8 +39,17 @@
 | AI call cost guardrails (estimates, research skip, call logging) | v0.9.12E |
 | Inventory duplicate cleanup + bullet control baseline | v0.9.13A |
 | Post-generation save + edit workflow repair | v0.9.13B |
+| Package review workspace decision tree | v0.9.13C |
 
 ## Milestone log (recent)
+
+### v0.9.13C - Package Review Workspace Decision Tree
+
+- Application Package owns review → fix → approve/export workflow.
+- Structured resume editor on package (not on A4 preview); mobile Edit/Preview/Layout tabs.
+- Evidence pending queue with single apply; cover letter staged revision with accept/reject preview.
+- AI fit summary from saved generation output (no page-load AI).
+- Preview/export fit caveat copy + server mismatch banner.
 
 ### v0.9.13B - Post-Generation Save + Edit Workflow Repair
 

@@ -138,6 +138,11 @@ export type CoverLetterRevisionRequest = {
   action: CoverLetterRevisionAction;
   customInstruction?: string;
   coverLetterModelTier?: ModelTier;
+  /**
+   * When false, returns a candidate revision without saving to Supabase.
+   * Defaults to true (immediate persist) for backward compatibility.
+   */
+  persist?: boolean;
 };
 
 export type CoverLetterRevisionResponse = {
@@ -150,5 +155,7 @@ export type CoverLetterRevisionResponse = {
   modelName?: string;
   requestedModelTier?: ModelTier;
   modelFallbackApplied?: boolean;
+  /** Whether the revised body was written to the cover letter draft record. */
+  persisted: boolean;
   timestamp: string;
 };

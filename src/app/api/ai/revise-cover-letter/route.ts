@@ -4,7 +4,10 @@ import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import { reviseCoverLetterWithAI } from "@/lib/ai/revise-cover-letter-provider";
 import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
 import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
-import { validateCoverLetterRevisionRequest } from "@/lib/cover-letter/revision-client";
+import {
+  coverLetterRevisionShouldPersist,
+  validateCoverLetterRevisionRequest,
+} from "@/lib/cover-letter/revision-client";
 import {
   getGeneratedCoverLetterDraftForUser,
   updateGeneratedCoverLetterDraftInCloudForUser,
@@ -83,23 +86,32 @@ export async function POST(request: Request) {
       { modelTier: coverLetterModelTier },
     );
 
-    const updated = await updateGeneratedCoverLetterDraftInCloudForUser(supabase, draft.id, userId, {
-      body: revision.body,
-      modelName: revision.modelName,
-      rationale: draft.rationale
-        ? {
-            ...draft.rationale,
-            wordCount: revision.wordCount,
-            modelSelection: {
-              requestedTier: coverLetterModelTier,
-              fallbackApplied: revision.modelFallbackApplied,
-            },
-          }
-        : undefined,
-    });
+    const shouldPersist = coverLetterRevisionShouldPersist(body);
 
-    if (!updated) {
-      return NextResponse.json({ error: "Failed to save revised cover letter." }, { status: 500 });
+    if (shouldPersist) {
+      const updated = await updateGeneratedCoverLetterDraftInCloudForUser(
+        supabase,
+        draft.id,
+        userId,
+        {
+          body: revision.body,
+          modelName: revision.modelName,
+          rationale: draft.rationale
+            ? {
+                ...draft.rationale,
+                wordCount: revision.wordCount,
+                modelSelection: {
+                  requestedTier: coverLetterModelTier,
+                  fallbackApplied: revision.modelFallbackApplied,
+                },
+              }
+            : undefined,
+        },
+      );
+
+      if (!updated) {
+        return NextResponse.json({ error: "Failed to save revised cover letter." }, { status: 500 });
+      }
     }
 
     return NextResponse.json({
@@ -112,6 +124,7 @@ export async function POST(request: Request) {
       modelName: revision.modelName,
       requestedModelTier: coverLetterModelTier,
       modelFallbackApplied: revision.modelFallbackApplied,
+      persisted: shouldPersist,
       timestamp,
     });
   } catch (error) {

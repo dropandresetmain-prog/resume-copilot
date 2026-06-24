@@ -49,15 +49,21 @@ function main() {
     [
       "approve and export controls co-located",
       reviewCenter.includes("exportControls") &&
-        resumePreview.indexOf("exportControls={") < resumePreview.indexOf('title="Resume"') &&
-        resumePreview.indexOf("DownloadResumePdfButton") < resumePreview.indexOf('title="Resume"') &&
-        resumePreview.indexOf("DownloadResumeDocxButton") < resumePreview.indexOf('title="Resume"'),
+        resumePreview.indexOf("exportControls={") <
+          resumePreview.indexOf("Read-only A4 PDF preview") &&
+        resumePreview.indexOf("DownloadResumePdfButton") <
+          resumePreview.indexOf("Read-only A4 PDF preview") &&
+        resumePreview.indexOf("DownloadResumeDocxButton") <
+          resumePreview.indexOf("Read-only A4 PDF preview"),
     ],
-    ["evidence panel renamed edit resume content", evidencePanel.includes("Edit resume content")],
-    ["fix evidence toggle on package", resumePreview.includes("Fix evidence")],
+    ["evidence panel fix resume evidence title", evidencePanel.includes("Fix resume evidence")],
+    ["package structured editor on page", resumePreview.includes("ResumeDraftReviewWorkspace")],
+    ["package decision tree", reviewCenter.includes("PackageDecisionTree")],
+    ["package fit summary", resumePreview.includes("PackageFitSummaryPanel")],
+    ["fix evidence toggle on package", resumePreview.includes("Open evidence queue")],
     ["edit resume content hidden by default", resumePreview.includes("showEditResumeContent")],
     ["edit resume content toggle button", resumePreview.includes("edit-resume-content-toggle")],
-    ["edit resume content secondary surface", resumePreview.includes("Secondary editing")],
+    ["edit resume content secondary surface", resumePreview.includes("Open evidence queue")],
     ["company research collapsed by default", resumePreview.includes("defaultOpen={false}")],
     ["developer details wrapper", resumePreview.includes("Developer details")],
     ["debug json under developer details", developerIndex < indexOrInfinity(resumePreview, "Debug JSON")],
@@ -71,12 +77,12 @@ function main() {
     ["company research summary shows view edit", companyPanel.includes("View / edit")],
     ["company research summary preview visible when collapsed", companyPanel.includes("summaryPreview")],
     ["edit toggle before developer details", editToggleIndex < developerIndex],
-    ["review center shows fix cover letter action", reviewCenter.includes("Fix cover letter")],
+    ["review center shows revise cover letter action", reviewCenter.includes("Revise cover letter")],
     ["review center fix actions hub", reviewCenter.includes("application-fix-actions")],
     ["review center fix actions before approve", reviewCenter.indexOf("application-fix-actions") < reviewCenter.indexOf("resume-approve-export")],
     ["review center checklists behind disclosure", reviewCenter.includes("review-details-disclosure") && reviewCenter.includes("Review details")],
     ["draft ready status type defined", reviewCenter.includes("DRAFT_READY") || resumePreview.includes("DRAFT_READY") || reviewCenter.includes("exportReady")],
-    ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Review and approve")],
+    ["package page header compact", resumePreview.includes("compact") && resumePreview.includes("Central review workspace")],
     ["package page passes exportReady to review center", resumePreview.includes("exportReady={exportReady}")],
     ["research section conditional on companyContext", resumePreview.includes("companyContext ?") && resumePreview.includes('"application-package-company-research"')],
     ["research section not hardcoded unconditional", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],

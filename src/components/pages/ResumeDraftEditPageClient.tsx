@@ -97,7 +97,11 @@ export function ResumeDraftEditPageClient({ draftId }: ResumeDraftEditPageClient
         </Link>
       </div>
 
-      <ResumeDraftReviewWorkspace draft={draft} onDraftUpdated={setDraft} />
+      <ResumeDraftReviewWorkspace
+        key={`${draft.id}:${draft.updatedAt}`}
+        draft={draft}
+        onDraftUpdated={setDraft}
+      />
     </>
   );
 }

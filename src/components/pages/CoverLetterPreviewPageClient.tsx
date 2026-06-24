@@ -10,7 +10,7 @@ import {
   type CoverLetterBodyView,
 } from "@/components/cover-letters/CoverLetterBodyViewSwitch";
 import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdfPreview";
-import { CoverLetterQuickRevisionPanel } from "@/components/cover-letters/CoverLetterQuickRevisionPanel";
+import { CoverLetterStagedRevisionPanel } from "@/components/cover-letters/CoverLetterStagedRevisionPanel";
 import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -190,7 +190,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         eyebrow="Editor"
         milestone={pageMilestone("Cover Letter")}
         title="Cover letter editor"
-        description="Manual edits and AI revisions are separate — manual changes require Save changes. AI revisions save immediately."
+        description="Manual edits and staged AI revisions are separate — manual changes require Save changes. AI Revise previews a candidate; Accept saves it."
       />
 
       <div className="flex flex-wrap gap-3">
@@ -207,7 +207,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       {exportBlocked ? (
         <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {isOverWordLimit(wordCount)
-            ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use an AI revision shortcut or edit manually.`
+            ? `Export is disabled until the letter is ${FORMAL_COVER_LETTER_MAX_WORDS} words or fewer. Use staged AI revision or edit manually.`
             : `Export is disabled until banned phrasing is removed: ${bannedPhrases.join(", ")}.`}
         </p>
       ) : null}
@@ -281,7 +281,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
                 </button>
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Only needed for manual edits. AI revisions below save immediately.
+                Only needed for manual edits. Staged AI revision saves on Accept only.
               </p>
             </div>
           </div>
@@ -328,40 +328,40 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         />
       ) : null}
 
-      <CoverLetterQuickRevisionPanel
+      <CoverLetterStagedRevisionPanel
         draftId={draft.id}
         currentBody={bodyDraft}
         disabled={isSaving}
         draftModelTier={draft.rationale?.modelSelection?.requestedTier}
         actualModel={draft.modelName}
         fallbackApplied={draft.rationale?.modelSelection?.fallbackApplied}
-        onRevised={(body, warnings, modelSelection) => {
-          setBodyDraft(body);
+        onAccepted={async (body, warnings, modelSelection) => {
           const savedAt = new Date();
-          setLastSavedAt(savedAt);
-          setSaveFeedback(formatLastSavedLabel(savedAt));
-          setDraft((current) =>
-            current
-              ? {
-                  ...current,
-                  body,
-                  updatedAt: savedAt.toISOString(),
-                  modelName: modelSelection?.actualModel ?? current.modelName,
-                  rationale: current.rationale
-                    ? {
-                        ...current.rationale,
-                        wordCount: countWords(body),
-                        modelSelection: modelSelection
-                          ? {
-                              requestedTier: modelSelection.requestedTier,
-                              fallbackApplied: modelSelection.fallbackApplied,
-                            }
-                          : current.rationale.modelSelection,
-                      }
-                    : current.rationale,
-                }
-              : current,
-          );
+          try {
+            const updated = await updateGeneratedCoverLetterDraftInCloud(draft.id, {
+              body,
+              rationale: draft.rationale
+                ? {
+                    ...draft.rationale,
+                    wordCount: countWords(body),
+                    modelSelection: modelSelection
+                      ? {
+                          requestedTier: modelSelection.requestedTier,
+                          fallbackApplied: modelSelection.fallbackApplied,
+                        }
+                      : draft.rationale.modelSelection,
+                  }
+                : undefined,
+            });
+            setDraft(updated);
+            setBodyDraft(body);
+            setLastSavedAt(savedAt);
+            setSaveFeedback(formatLastSavedLabel(savedAt));
+          } catch (saveError) {
+            throw saveError instanceof Error
+              ? saveError
+              : new Error("Failed to save revised cover letter.");
+          }
           if (warnings.length > 0) {
             setError(null);
           }

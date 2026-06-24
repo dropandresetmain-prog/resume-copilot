@@ -14,11 +14,7 @@ import type {
   ResumeDraftExperienceBullet,
   ResumeDraftExperienceSection,
 } from "@/types/resume-draft";
-import {
-  isApprovedDraftStatus,
-  isLayoutChangedAfterApprovalStatus,
-  RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
-} from "@/lib/resume-draft/draft-status";
+import { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evidence-changes";
 
 export const TARGETED_REWRITE_BLOCKED_MESSAGE =
   "This bullet belongs to a role not currently in Work Experience. Use full regeneration to restructure the resume.";
@@ -282,14 +278,10 @@ export function applyTargetedRoleRewrites(
 }
 
 export function resolveDraftStatusAfterTargetedRewrite(currentStatus: string): string {
-  if (
-    isApprovedDraftStatus(currentStatus) ||
-    isLayoutChangedAfterApprovalStatus(currentStatus)
-  ) {
-    return RESUME_DRAFT_STATUS_LAYOUT_CHANGED;
-  }
-  return currentStatus;
+  return resolveDraftStatusAfterContentEdit(currentStatus);
 }
+
+export { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evidence-changes";
 
 export function buildTargetedRewriteOutcomeSummary(options: {
   priorContent: ResumeDraftContent;

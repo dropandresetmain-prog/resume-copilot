@@ -126,7 +126,17 @@
 - **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
-## Post-generation editing (v0.9.13B)
+## Post-generation editing (v0.9.13C)
+
+- **Application Package hub** — decision tree actions: Edit resume text, Fix resume evidence, Adjust resume layout, Revise cover letter, Approve for export. Readiness checklist (not "reviewed" status language).
+- **Structured editor** — on package page via `ResumeDraftReviewWorkspace` (`packageMode`); A4 PDF preview read-only. Save resume edits invalidates server PDF validation and downgrades approved drafts to `layout_changed`.
+- **Evidence queue** — stage remove/add/exclude; `Apply evidence changes` once. No Gemini on staging clicks.
+- **Cover letter revision** — chips stage instructions; `Revise cover letter` runs one AI step; Accept persists, Reject keeps current. No version history yet.
+- **AI fit summary** — derived locally from saved rationale + fit score (≤100 words). Not generated on package page load.
+- **Preview vs export gate** — browser iframe measurement can differ from Linux Puppeteer approve validation; UI states this explicitly.
+- **Parked:** cover letter version history, durable AI job ledger, full preview/export measurement unification.
+
+## Post-generation editing (v0.9.13B) — superseded details
 
 - **Resume text editor** — persistent save is "Save resume edits" (not "Mark as reviewed"). Draft `status` is shown separately; saving updates content only.
 - **Dirty state** — unsaved/saving/saved strip on resume editor; beforeunload warning when leaving with unsaved edits.

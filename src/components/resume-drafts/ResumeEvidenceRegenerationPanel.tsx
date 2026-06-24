@@ -18,26 +18,34 @@ import { listCollatedBulletsWithEditState } from "@/lib/inventory/edits";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
 import {
+  removeBulletsFromDraftBySourceKeys,
+  resolveDraftStatusAfterContentEdit,
+} from "@/lib/resume-draft/apply-evidence-changes";
+import {
   auditForcedBullets,
   buildRegenerationOutcomeSummary,
   collectPayloadBulletKeys,
-  explainUnavailableForcedKeys,
   findForcedKeysAlreadyInPayload,
   type RegenerationOutcomeSummary,
 } from "@/lib/resume-draft/forced-bullets";
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
 import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
-import { formatSourceRefLabel, hasSourceRefs } from "@/lib/resume-draft/preview-helpers";
 import { requestResumeRoleRewrite } from "@/lib/resume-draft/role-rewrite-client";
 import { assessRegenerationFeasibility } from "@/lib/resume-draft/regeneration";
 import {
   applyTargetedRoleRewrites,
   buildTargetedRewriteOutcomeSummary,
   planTargetedForcedBulletRewrite,
-  resolveDraftStatusAfterTargetedRewrite,
   TARGETED_REWRITE_BLOCKED_MESSAGE,
   type TargetedRewriteOutcomeSummary,
 } from "@/lib/resume-draft/targeted-role-rewrite";
+import {
+  buildEvidenceQueueSummary,
+  collectGeneratedBulletsWithKeys,
+  inventoryKeysAlreadyInDraft,
+  listingLabel,
+  type EvidencePendingAction,
+} from "@/lib/resume-draft/evidence-pending-queue";
 import { updateGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
 import type { StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
@@ -53,12 +61,8 @@ type ResumeEvidenceRegenerationPanelProps = {
   onDraftUpdated: (draft: GeneratedResumeDraftRecord) => void;
 };
 
-function collectSourceKeysFromBullet(
-  sourceRefs: Array<{ bulletKey?: string }>,
-): string[] {
-  return sourceRefs
-    .map((ref) => ref.bulletKey?.trim())
-    .filter((key): key is string => Boolean(key));
+function actionId(type: EvidencePendingAction["type"], bulletKey: string): string {
+  return `${type}:${bulletKey}`;
 }
 
 export function ResumeEvidenceRegenerationPanel({
@@ -75,14 +79,13 @@ export function ResumeEvidenceRegenerationPanel({
       ),
     [rawCollated, inventory.edits],
   );
+  const draftSourceKeys = useMemo(
+    () => inventoryKeysAlreadyInDraft(draft.content),
+    [draft.content],
+  );
 
-  const [excludedGeneratedKeys, setExcludedGeneratedKeys] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [forcedKeys, setForcedKeys] = useState<Set<string>>(
-    () => new Set(draft.inputSnapshot?.regenerationControls?.forcedBulletKeys ?? []),
-  );
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [pendingActions, setPendingActions] = useState<EvidencePendingAction[]>([]);
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [outcomeSummary, setOutcomeSummary] = useState<
@@ -98,201 +101,227 @@ export function ResumeEvidenceRegenerationPanel({
     draft.inputSnapshot?.modelFallbackApplied ?? false,
   );
 
-  const regenerationControls: ResumeDraftRegenerationControls = useMemo(
+  const savedControls = draft.inputSnapshot?.regenerationControls;
+  const pendingRemoveKeys = pendingActions
+    .filter((action) => action.type === "remove_from_draft")
+    .map((action) => action.bulletKey);
+  const pendingAddKeys = pendingActions
+    .filter((action) => action.type === "add_to_draft")
+    .map((action) => action.bulletKey);
+  const pendingExcludeKeys = pendingActions
+    .filter((action) => action.type === "exclude_from_generation")
+    .map((action) => action.bulletKey);
+
+  const mergedControls: ResumeDraftRegenerationControls = useMemo(
     () => ({
-      forcedBulletKeys: [...forcedKeys],
-      excludedBulletKeys: [...excludedGeneratedKeys],
+      forcedBulletKeys: [
+        ...new Set([
+          ...(savedControls?.forcedBulletKeys ?? []),
+          ...pendingAddKeys,
+        ]),
+      ],
+      excludedBulletKeys: [
+        ...new Set([
+          ...(savedControls?.excludedBulletKeys ?? []),
+          ...pendingExcludeKeys,
+        ]),
+      ],
     }),
-    [forcedKeys, excludedGeneratedKeys],
+    [savedControls, pendingAddKeys, pendingExcludeKeys],
   );
 
   const feasibility = useMemo(
-    () => assessRegenerationFeasibility({ regenerationControls }),
-    [regenerationControls],
+    () => assessRegenerationFeasibility({ regenerationControls: mergedControls }),
+    [mergedControls],
   );
 
-  const payloadPreview = useMemo(() => {
-    if (!jobDescription || !draft.referenceResumeId) {
-      return null;
-    }
+  const targetedPlan = useMemo(() => {
+    const contentAfterRemovals =
+      pendingRemoveKeys.length > 0
+        ? removeBulletsFromDraftBySourceKeys(draft.content, pendingRemoveKeys)
+        : draft.content;
 
-    try {
-      const baseline = buildResumeDraftPayloadFromInventory({
-        inventory,
-        jobDescription,
-        referenceResumeId: draft.referenceResumeId,
-        regenerationControls: {
-          forcedBulletKeys: [],
-          excludedBulletKeys: regenerationControls.excludedBulletKeys,
-        },
-      });
-      const withControls = buildResumeDraftPayloadFromInventory({
-        inventory,
-        jobDescription,
-        referenceResumeId: draft.referenceResumeId,
-        regenerationControls,
-      });
-      return { baseline, withControls };
-    } catch {
-      return null;
-    }
-  }, [inventory, jobDescription, draft.referenceResumeId, regenerationControls]);
-
-  const unavailableForcedEntries = useMemo(() => {
-    if (!payloadPreview || forcedKeys.size === 0) {
-      return [];
-    }
-
-    return explainUnavailableForcedKeys({
-      unavailableKeys:
-        payloadPreview.withControls.generationInput.auditHints?.unavailableForcedBulletKeys ??
-        [],
-      excludedBulletKeys: regenerationControls.excludedBulletKeys,
-      hiddenBulletKeys: inventory.edits?.hiddenBulletKeys,
+    return planTargetedForcedBulletRewrite({
+      content: contentAfterRemovals,
+      forcedBulletKeys: mergedControls.forcedBulletKeys,
+      inventoryListings: availableBullets,
     });
-  }, [payloadPreview, forcedKeys.size, regenerationControls.excludedBulletKeys, inventory.edits]);
-
-  const alreadyInPayloadKeys = useMemo(() => {
-    if (!payloadPreview || forcedKeys.size === 0) {
-      return [];
-    }
-
-    return findForcedKeysAlreadyInPayload({
-      forcedKeys: regenerationControls.forcedBulletKeys,
-      baselinePayloadKeys: collectPayloadBulletKeys(payloadPreview.baseline.generationInput),
-    });
-  }, [payloadPreview, forcedKeys.size, regenerationControls.forcedBulletKeys]);
-
-  function toggleExcluded(key: string) {
-    setExcludedGeneratedKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }
-
-  function toggleForced(key: string) {
-    setForcedKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }
-
-  const targetedPlan = useMemo(
-    () =>
-      planTargetedForcedBulletRewrite({
-        content: draft.content,
-        forcedBulletKeys: regenerationControls.forcedBulletKeys,
-        inventoryListings: availableBullets,
-      }),
-    [draft.content, regenerationControls.forcedBulletKeys, availableBullets],
-  );
-
-  const canRunTargetedUpdate =
-    forcedKeys.size > 0 && targetedPlan.mode === "targeted" && feasibility.ok;
+  }, [
+    draft.content,
+    pendingRemoveKeys,
+    mergedControls.forcedBulletKeys,
+    availableBullets,
+  ]);
 
   const affectedRoleCount =
-    targetedPlan.mode === "targeted" ? targetedPlan.roles.length : 0;
-  const rewriteButtonLabel =
-    affectedRoleCount > 0
-      ? `Rewrite ${affectedRoleCount} affected role${affectedRoleCount === 1 ? "" : "s"}`
-      : "Rewrite affected role(s)";
+    targetedPlan.mode === "targeted" && pendingAddKeys.length > 0
+      ? targetedPlan.roles.length
+      : 0;
 
-  async function handleTargetedUpdate() {
-    if (!jobDescription || !draft.referenceResumeId || !canRunTargetedUpdate) {
+  const queueSummary = buildEvidenceQueueSummary(pendingActions, affectedRoleCount);
+
+  function hasPendingAction(type: EvidencePendingAction["type"], bulletKey: string): boolean {
+    return pendingActions.some(
+      (action) => action.type === type && action.bulletKey === bulletKey,
+    );
+  }
+
+  function togglePendingAction(action: EvidencePendingAction) {
+    setPendingActions((current) => {
+      const id = actionId(action.type, action.bulletKey);
+      const exists = current.some((item) => actionId(item.type, item.bulletKey) === id);
+      if (exists) {
+        return current.filter((item) => actionId(item.type, item.bulletKey) !== id);
+      }
+      const withoutConflicts = current.filter((item) => item.bulletKey !== action.bulletKey);
+      return [...withoutConflicts, action];
+    });
+    setOutcomeSummary(null);
+    setError(null);
+  }
+
+  function clearPendingQueue() {
+    setPendingActions([]);
+    setOutcomeSummary(null);
+    setError(null);
+  }
+
+  async function handleApplyEvidenceChanges() {
+    if (pendingActions.length === 0 || isApplying) {
       return;
     }
-    if (targetedPlan.mode !== "targeted") {
+
+    if (!jobDescription || !draft.referenceResumeId) {
+      setError("Job description or base resume is missing for this draft.");
       return;
     }
 
-    setIsRegenerating(true);
+    setIsApplying(true);
     setError(null);
     setOutcomeSummary(null);
     setWarnings(feasibility.warnings);
 
     const priorContent = draft.content;
+    let workingContent = priorContent;
 
     try {
-      const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
-        inventory,
-        jobDescription,
-        referenceResumeId: draft.referenceResumeId,
-        regenerationControls,
-      });
+      if (pendingRemoveKeys.length > 0) {
+        workingContent = removeBulletsFromDraftBySourceKeys(workingContent, pendingRemoveKeys);
+      }
 
-      const response = await requestResumeRoleRewrite({
-        jobDescription: generationInput.jobDescription,
-        referenceResume: {
-          bulletStyle: generationInput.referenceResume.bulletStyle,
-        },
-        resumeModelTier,
-        roles: targetedPlan.roles.map((role) => ({
-          roleIndex: role.roleIndex,
-          currentRole: role.currentRole,
-          forcedBulletKeys: role.forcedBulletKeys,
-          allowedSourceBulletKeys: role.allowedSourceBulletKeys,
-          inventoryBullets: role.inventoryBullets,
-        })),
-      });
+      let nextStatus = resolveDraftStatusAfterContentEdit(draft.status);
+      let nextContent = workingContent;
+      const nextRationale = draft.rationale;
+      let nextInputSnapshot = draft.inputSnapshot;
+      let nextModelName = draft.modelName;
 
-      const mergedContent = applyTargetedRoleRewrites(priorContent, response.roles);
-      const nextStatus = resolveDraftStatusAfterTargetedRewrite(draft.status);
+      if (pendingAddKeys.length > 0) {
+        if (!feasibility.ok) {
+          setError(feasibility.errors.join(" "));
+          return;
+        }
+        if (targetedPlan.mode !== "targeted") {
+          setError(TARGETED_REWRITE_BLOCKED_MESSAGE);
+          return;
+        }
 
-      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: mergedContent,
-        rationale: draft.rationale
-          ? {
-              ...draft.rationale,
-              overall: `${draft.rationale.overall}\n\nTargeted forced-bullet role rewrite applied.`,
-            }
-          : undefined,
-        inputSnapshot: {
+        const { generationInput, inputSnapshot } = buildResumeDraftPayloadFromInventory({
+          inventory,
+          jobDescription,
+          referenceResumeId: draft.referenceResumeId,
+          regenerationControls: mergedControls,
+        });
+
+        const response = await requestResumeRoleRewrite({
+          jobDescription: generationInput.jobDescription,
+          referenceResume: {
+            bulletStyle: generationInput.referenceResume.bulletStyle,
+          },
+          resumeModelTier,
+          roles: targetedPlan.roles.map((role) => ({
+            roleIndex: role.roleIndex,
+            currentRole: role.currentRole,
+            forcedBulletKeys: role.forcedBulletKeys,
+            allowedSourceBulletKeys: role.allowedSourceBulletKeys,
+            inventoryBullets: role.inventoryBullets,
+          })),
+        });
+
+        nextContent = applyTargetedRoleRewrites(workingContent, response.roles);
+        nextStatus = resolveDraftStatusAfterContentEdit(draft.status);
+        nextInputSnapshot = {
           ...inputSnapshot,
-          regenerationControls,
+          regenerationControls: mergedControls,
           resumeModelTier,
           modelFallbackApplied: response.modelFallbackApplied,
+        };
+        nextModelName = response.modelName ?? draft.modelName;
+        if (response.modelName) {
+          setLastModelName(response.modelName);
+        }
+        setLastFallbackApplied(response.modelFallbackApplied ?? false);
+
+        setOutcomeSummary(
+          buildTargetedRewriteOutcomeSummary({
+            priorContent: workingContent,
+            newContent: nextContent,
+            plan: targetedPlan,
+          }),
+        );
+      } else if (pendingExcludeKeys.length > 0 || pendingRemoveKeys.length > 0) {
+        const { inputSnapshot } = buildResumeDraftPayloadFromInventory({
+          inventory,
+          jobDescription,
+          referenceResumeId: draft.referenceResumeId,
+          regenerationControls: mergedControls,
+        });
+        nextInputSnapshot = {
+          ...inputSnapshot,
+          regenerationControls: mergedControls,
+          resumeModelTier,
+        };
+        if (pendingRemoveKeys.length > 0) {
+          setOutcomeSummary({
+            lines: [
+              `Removed ${pendingRemoveKeys.length} bullet(s) from draft without AI rewrite.`,
+              pendingExcludeKeys.length > 0
+                ? `Excluded ${pendingExcludeKeys.length} item(s) from future generation.`
+                : "No generation exclusions staged.",
+            ],
+            affectedRoleLabels: [],
+            forcedIncludedCount: 0,
+            unchangedRoleCount: nextContent.experience.length,
+          });
+        }
+      }
+
+      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
+        content: {
+          ...nextContent,
+          serverPdfValidation: undefined,
         },
+        rationale: nextRationale
+          ? {
+              ...nextRationale,
+              overall:
+                pendingAddKeys.length > 0
+                  ? `${nextRationale.overall}\n\nEvidence queue: targeted role rewrite applied.`
+                  : nextRationale.overall,
+            }
+          : undefined,
+        inputSnapshot: nextInputSnapshot,
         status: nextStatus,
-        modelName: response.modelName,
+        modelName: nextModelName,
       });
 
-      if (response.modelName) {
-        setLastModelName(response.modelName);
-      }
-      setLastFallbackApplied(response.modelFallbackApplied ?? false);
-
-      setOutcomeSummary(
-        buildTargetedRewriteOutcomeSummary({
-          priorContent,
-          newContent: updated.content,
-          plan: targetedPlan,
-        }),
-      );
-
       onDraftUpdated(updated);
-      setExcludedGeneratedKeys(new Set());
-    } catch (targetedError) {
+      setPendingActions([]);
+    } catch (applyError) {
       const message =
-        targetedError instanceof Error
-          ? targetedError.message
-          : "Targeted forced-bullet update failed.";
-      setError(
-        message.includes("validation")
-          ? `${message} Try full regeneration if you need to restructure roles.`
-          : message,
-      );
+        applyError instanceof Error ? applyError.message : "Failed to apply evidence changes.";
+      setError(message);
     } finally {
-      setIsRegenerating(false);
+      setIsApplying(false);
     }
   }
 
@@ -308,7 +337,7 @@ export function ResumeEvidenceRegenerationPanel({
       return;
     }
 
-    setIsRegenerating(true);
+    setIsApplying(true);
     setError(null);
     setOutcomeSummary(null);
     setWarnings(feasibility.warnings);
@@ -320,7 +349,7 @@ export function ResumeEvidenceRegenerationPanel({
         inventory,
         jobDescription,
         referenceResumeId: draft.referenceResumeId,
-        regenerationControls,
+        regenerationControls: mergedControls,
       });
 
       const response = await requestResumeDraftGeneration({
@@ -342,10 +371,25 @@ export function ResumeEvidenceRegenerationPanel({
       }
       setLastFallbackApplied(response.inputSnapshot?.modelFallbackApplied ?? false);
 
+      const alreadyInPayloadKeys = findForcedKeysAlreadyInPayload({
+        forcedKeys: mergedControls.forcedBulletKeys,
+        baselinePayloadKeys: collectPayloadBulletKeys(
+          buildResumeDraftPayloadFromInventory({
+            inventory,
+            jobDescription,
+            referenceResumeId: draft.referenceResumeId,
+            regenerationControls: {
+              forcedBulletKeys: [],
+              excludedBulletKeys: mergedControls.excludedBulletKeys,
+            },
+          }).generationInput,
+        ),
+      });
+
       const audit = auditForcedBullets({
-        forcedKeys: regenerationControls.forcedBulletKeys,
+        forcedKeys: mergedControls.forcedBulletKeys,
         unavailableKeys: generationInput.auditHints?.unavailableForcedBulletKeys,
-        excludedBulletKeys: regenerationControls.excludedBulletKeys,
+        excludedBulletKeys: mergedControls.excludedBulletKeys,
         hiddenBulletKeys: inventory.edits?.hiddenBulletKeys,
         alreadyInPayloadKeys,
         contentBeforeRepair: priorContent,
@@ -364,7 +408,7 @@ export function ResumeEvidenceRegenerationPanel({
       );
 
       onDraftUpdated(updated);
-      setExcludedGeneratedKeys(new Set());
+      setPendingActions([]);
       if (response.inputSnapshot?.resumeModelTier) {
         setResumeModelTier(response.inputSnapshot.resumeModelTier);
       }
@@ -375,18 +419,20 @@ export function ResumeEvidenceRegenerationPanel({
           : "Resume regeneration failed.",
       );
     } finally {
-      setIsRegenerating(false);
+      setIsApplying(false);
     }
   }
 
+  const generatedBullets = collectGeneratedBulletsWithKeys(draft.content);
+
   return (
     <SetupCard
-      title="Edit resume content"
-      description="Control which inventory evidence is included, then rewrite affected roles or regenerate the full resume. Does not change source inventory files."
+      title="Fix resume evidence"
+      description="Stage evidence changes, review the summary, then apply once. Checkbox clicks do not call AI."
     >
       <p className="mt-3 text-sm text-slate-600">
-        Prefer <span className="font-medium">Rewrite affected roles</span> when only forced bullets
-        changed — it uses fewer AI calls than a full regenerate. Active inventory bullets available:{" "}
+        Prefer targeted apply when adding evidence. Full regenerate is a last resort. Active
+        inventory bullets:{" "}
         {buildActiveCollatedInventory(inventory).experiences.reduce(
           (total, experience) => total + experience.bullets.length,
           0,
@@ -395,117 +441,136 @@ export function ResumeEvidenceRegenerationPanel({
 
       <div className="mt-4 space-y-4">
         <section>
-          <h3 className="text-sm font-semibold text-slate-900">Exclude this evidence</h3>
+          <h3 className="text-sm font-semibold text-slate-900">In draft — stage changes</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Uncheck to omit source evidence from the next regeneration run. This removes it from
-            the draft rebuild — it does not delete inventory.
+            Remove bullets locally without AI, or exclude source evidence from future regeneration.
           </p>
           <ul className="mt-3 space-y-3">
-            {draft.content.experience.flatMap((experience, experienceIndex) =>
-              experience.bullets.map((bullet, bulletIndex) => {
-                const sourceKeys = collectSourceKeysFromBullet(bullet.sourceRefs);
-                const primaryKey = sourceKeys[0];
+            {generatedBullets.map((item) => {
+              const primaryKey = item.sourceKeys[0];
+              if (!primaryKey) {
+                return null;
+              }
 
-                return (
-                  <li
-                    key={`${experienceIndex}-${bulletIndex}-${bullet.text}`}
-                    className="rounded-lg border border-slate-200 bg-white p-3"
-                  >
-                    <label className="flex items-start gap-3 text-sm text-slate-800">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={!primaryKey || !excludedGeneratedKeys.has(primaryKey)}
-                        disabled={!primaryKey}
-                        onChange={() => {
-                          if (primaryKey) {
-                            toggleExcluded(primaryKey);
-                          }
-                        }}
-                      />
-                      <span>
-                        <span className="font-medium text-slate-700">
-                          {experience.company} · {experience.role}
-                        </span>
-                        <span className="mt-1 block">{bullet.text}</span>
-                      </span>
-                    </label>
-                    {hasSourceRefs(bullet.sourceRefs) ? (
-                      <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                        {bullet.sourceRefs.map((ref) => (
-                          <li key={`${ref.bulletKey}-${ref.collatedBulletId}`}>
-                            Source: {formatSourceRefLabel(ref)}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-2 text-xs text-amber-700">No source references recorded.</p>
-                    )}
-                  </li>
-                );
-              }),
-            )}
+              return (
+                <li
+                  key={`${item.experienceIndex}-${item.bulletIndex}`}
+                  className="rounded-lg border border-slate-200 bg-white p-3"
+                >
+                  <span className="text-sm font-medium text-slate-700">
+                    {item.company} · {item.role}
+                  </span>
+                  <p className="mt-1 text-sm text-slate-800">{item.text}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={
+                        hasPendingAction("remove_from_draft", primaryKey)
+                          ? primaryButtonClassName
+                          : secondaryButtonClassName
+                      }
+                      onClick={() =>
+                        togglePendingAction({
+                          id: actionId("remove_from_draft", primaryKey),
+                          type: "remove_from_draft",
+                          bulletKey: primaryKey,
+                          label: item.text,
+                        })
+                      }
+                      data-action="stage-remove-from-draft"
+                    >
+                      {hasPendingAction("remove_from_draft", primaryKey)
+                        ? "Staged: remove from draft"
+                        : "Remove from draft"}
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        hasPendingAction("exclude_from_generation", primaryKey)
+                          ? primaryButtonClassName
+                          : secondaryButtonClassName
+                      }
+                      onClick={() =>
+                        togglePendingAction({
+                          id: actionId("exclude_from_generation", primaryKey),
+                          type: "exclude_from_generation",
+                          bulletKey: primaryKey,
+                          label: item.text,
+                        })
+                      }
+                      data-action="stage-exclude-from-generation"
+                    >
+                      {hasPendingAction("exclude_from_generation", primaryKey)
+                        ? "Staged: exclude from generation"
+                        : "Exclude from future generation"}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
         <section>
-          <h3 className="text-sm font-semibold text-slate-900">Include this evidence</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Add inventory evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Check inventory bullets to add or force them into the next run even if ranking would
-            skip them. Prefer targeted rewrite when only a few roles need updating.
+            Stage bullets to add. Apply runs one targeted rewrite for affected roles.
           </p>
 
-          {alreadyInPayloadKeys.length > 0 ? (
-            <ul className="mt-3 space-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-              {alreadyInPayloadKeys.map((key) => (
-                <li key={key}>
-                  Already in generation payload — forcing may not change bullet selection.
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {targetedPlan.mode === "blocked" && forcedKeys.size > 0 ? (
+          {targetedPlan.mode === "blocked" && pendingAddKeys.length > 0 ? (
             <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
               {TARGETED_REWRITE_BLOCKED_MESSAGE}
             </p>
           ) : null}
 
-          {unavailableForcedEntries.length > 0 ? (
-            <ul className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              {unavailableForcedEntries.map((entry) => (
-                <li key={entry.key}>
-                  <span className="font-medium">Unavailable forced bullet:</span> {entry.message}
+          <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+            {availableBullets
+              .filter((listing) => !draftSourceKeys.has(listing.bulletKey))
+              .map((listing) => (
+                <li
+                  key={listing.bulletKey}
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                >
+                  <span className="text-sm font-medium text-slate-700">
+                    {listingLabel(listing)}
+                  </span>
+                  <p className="mt-1 text-sm text-slate-800">{listing.effectiveDescription}</p>
+                  <button
+                    type="button"
+                    className={`mt-3 ${hasPendingAction("add_to_draft", listing.bulletKey) ? primaryButtonClassName : secondaryButtonClassName}`}
+                    onClick={() =>
+                      togglePendingAction({
+                        id: actionId("add_to_draft", listing.bulletKey),
+                        type: "add_to_draft",
+                        bulletKey: listing.bulletKey,
+                        label: listing.effectiveDescription,
+                      })
+                    }
+                    data-action="stage-add-to-draft"
+                  >
+                    {hasPendingAction("add_to_draft", listing.bulletKey)
+                      ? "Staged: add to draft"
+                      : "Add to draft"}
+                  </button>
                 </li>
               ))}
-            </ul>
-          ) : null}
-
-          <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-            {availableBullets.map((listing) => (
-              <li
-                key={listing.bulletKey}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-              >
-                <label className="flex items-start gap-3 text-sm text-slate-800">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={forcedKeys.has(listing.bulletKey)}
-                    onChange={() => toggleForced(listing.bulletKey)}
-                  />
-                  <span>
-                    <span className="font-medium text-slate-700">
-                      {listing.experience.company} · {listing.experience.role}
-                    </span>
-                    <span className="mt-1 block">{listing.effectiveDescription}</span>
-                  </span>
-                </label>
-              </li>
-            ))}
           </ul>
         </section>
       </div>
+
+      {pendingActions.length > 0 ? (
+        <div
+          className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-3 text-sm text-cyan-950"
+          data-testid="evidence-queue-summary"
+        >
+          <p className="font-semibold">Pending evidence changes</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {queueSummary.summaryLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {warnings.length > 0 ? (
         <ul className="mt-4 space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -537,7 +602,7 @@ export function ResumeEvidenceRegenerationPanel({
           id="regeneration-resume-model-tier"
           label="Resume model"
           value={resumeModelTier}
-          disabled={isRegenerating}
+          disabled={isApplying}
           onChange={(tier) => {
             setResumeModelTier(tier);
             writeStoredResumeModelTier(tier);
@@ -551,59 +616,46 @@ export function ResumeEvidenceRegenerationPanel({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3" data-testid="regeneration-action-buttons">
-        {canRunTargetedUpdate ? (
-          <div className="flex flex-col gap-1">
-            <button
-              type="button"
-              onClick={() => void handleTargetedUpdate()}
-              disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
-              className={primaryButtonClassName}
-              data-action="rewrite-affected-roles"
-              aria-busy={isRegenerating}
-            >
-              {isRegenerating ? "Rewriting…" : rewriteButtonLabel}
-            </button>
-            <p className="text-xs text-slate-500">
-              Targeted rewrite — updates{" "}
-              {affectedRoleCount > 0
-                ? `${affectedRoleCount} role${affectedRoleCount === 1 ? "" : "s"} tied to forced bullets`
-                : "affected role(s) tied to forced bullets"}{" "}
-              (1 AI step).
-            </p>
-          </div>
-        ) : null}
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => void handleApplyEvidenceChanges()}
+            disabled={isApplying || pendingActions.length === 0}
+            className={primaryButtonClassName}
+            data-action="apply-evidence-changes"
+            aria-busy={isApplying}
+          >
+            {isApplying ? "Applying…" : "Apply evidence changes"}
+          </button>
+          <p className="text-xs text-slate-500">
+            Applies staged removes locally; adds run one targeted rewrite when needed.
+          </p>
+        </div>
         <div className="flex flex-col gap-1">
           <button
             type="button"
             onClick={() => void handleFullRegenerate()}
-            disabled={isRegenerating || !jobDescription || !draft.referenceResumeId}
-            className={canRunTargetedUpdate ? secondaryButtonClassName : primaryButtonClassName}
+            disabled={isApplying || !jobDescription || !draft.referenceResumeId}
+            className={secondaryButtonClassName}
             data-action="regenerate-full-resume"
-            aria-busy={isRegenerating}
+            aria-busy={isApplying}
           >
-            {isRegenerating ? "Regenerating…" : "Regenerate full resume"}
+            {isApplying ? "Regenerating…" : "Regenerate full resume (last resort)"}
           </button>
-          <p className="text-xs text-slate-500">
-            Full regenerate — rebuilds the entire resume from inventory (1 AI step).
-          </p>
         </div>
         <button
           type="button"
-          onClick={() => {
-            setExcludedGeneratedKeys(new Set());
-            setForcedKeys(new Set());
-            setOutcomeSummary(null);
-          }}
-          disabled={isRegenerating}
+          onClick={clearPendingQueue}
+          disabled={isApplying || pendingActions.length === 0}
           className={secondaryButtonClassName}
         >
-          Reset controls
+          Clear staged changes
         </button>
       </div>
 
       {!jobDescription ? (
         <p className="mt-3 text-sm text-amber-800">
-          Saved job description not found — regeneration requires the original JD.
+          Saved job description not found — evidence apply requires the original JD.
         </p>
       ) : null}
     </SetupCard>

@@ -33,6 +33,7 @@ export async function reviseCoverLetterWithAI(
       requestedModelTier: result.requestedModelTier,
       modelFallbackApplied: result.modelFallbackApplied,
       timestamp,
+      persisted: false,
       providerId: provider,
     };
   }
@@ -53,6 +54,7 @@ export async function reviseCoverLetterWithAI(
     requestedModelTier: modelTier,
     modelFallbackApplied: false,
     timestamp,
+    persisted: false,
     providerId: provider,
   };
 }

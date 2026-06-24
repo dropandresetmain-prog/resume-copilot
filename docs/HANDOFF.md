@@ -2,7 +2,23 @@
 
 ## Current version
 
-**v0.9.13B** (code)
+**v0.9.13C** (code)
+
+## v0.9.13C implementation note
+
+Package Review Workspace Decision Tree: Application Package is the central post-generation hub with staged changes and deliberate apply actions.
+
+**Decision tree:** Review workflow panel with Edit resume text, Fix resume evidence, Adjust resume layout, Revise cover letter, Approve for export. Readiness checklist replaces ambiguous "reviewed" language.
+
+**Structured resume editor on package:** Form fields for header/contact, summary, experience, education, skills, additional experience. Desktop edit + live PDF preview; mobile Edit / Preview / Layout tabs. Save resume edits downgrades approval (`layout_changed`) when previously approved.
+
+**Evidence queue:** Stage remove / add / exclude; summary before apply; Apply evidence changes once. Local removes avoid Gemini; adds use targeted rewrite. Full regenerate is last resort.
+
+**Cover letter staged revision:** Instruction chips + custom notes; single Revise cover letter AI call; preview accept/reject before persist.
+
+**AI fit summary:** ≤100 words derived from saved `rationale.overall` + `calculateFitScore()` — no page-load AI. No schema change.
+
+**Preview/export trust:** Honest copy when browser preview fits one page but server validation blocks; mismatch banner after failed approve.
 
 ## v0.9.13B implementation note
 

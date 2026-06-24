@@ -11,13 +11,15 @@ import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
   actionBarClassName,
-  secondaryActionGroupClassName,
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
 import { ApplicationPackageCoverLetterPanel } from "@/components/application-package/ApplicationPackageCoverLetterPanel";
 import { ApplicationReviewCenter } from "@/components/application-package/ApplicationReviewCenter";
+import { PackageFitSummaryPanel } from "@/components/application-package/PackageFitSummaryPanel";
+import { CoverLetterStagedRevisionPanel } from "@/components/cover-letters/CoverLetterStagedRevisionPanel";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
+import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDraftReviewWorkspace";
 import { buildApplicationReviewStatus } from "@/lib/application-review/build-application-review-status";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
@@ -67,6 +69,7 @@ import {
   updateGeneratedResumeDraftInCloud,
 } from "@/lib/supabase/generated-resume-drafts";
 import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
+import { updateGeneratedCoverLetterDraftInCloud } from "@/lib/supabase/generated-cover-letter-drafts";
 import type { CompanyContext } from "@/types/company-context";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
@@ -75,6 +78,28 @@ type ResumePreviewPageClientProps = {
   draftId: string;
 };
 
+type PackageWorkspaceTab = "preview" | "edit" | "layout";
+
+function readPackageHashTab(): PackageWorkspaceTab {
+  if (typeof window === "undefined") {
+    return "preview";
+  }
+  if (window.location.hash === "#package-resume-edit") {
+    return "edit";
+  }
+  if (window.location.hash === "#package-layout-controls") {
+    return "layout";
+  }
+  return "preview";
+}
+
+function readPackageEditHash(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return window.location.hash === "#package-edit";
+}
+
 export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProps) {
   const { inventory, jobDescriptions } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedResumeDraftRecord | null>(null);
@@ -82,7 +107,10 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [coverLetterLoading, setCoverLetterLoading] = useState(true);
   const [coverLetterPdfOverflow, setCoverLetterPdfOverflow] = useState(false);
-  const [showEditResumeContent, setShowEditResumeContent] = useState(false);
+  const [showEditResumeContent, setShowEditResumeContent] = useState(readPackageEditHash);
+  const [packageWorkspaceTab, setPackageWorkspaceTab] =
+    useState<PackageWorkspaceTab>(readPackageHashTab);
+  const [previewOverflow, setPreviewOverflow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,14 +122,6 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   } | null>(null);
   const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (window.location.hash === "#package-edit") {
-      setShowEditResumeContent(true);
-    }
-  }, [draftId]);
   const [manualSettings, setManualSettings] = useState<{
     draftId: string;
     bodyFontPx: number;
@@ -454,7 +474,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         eyebrow="Package"
         milestone={pageMilestone("Application Package")}
         title="Application package"
-        description="Review and approve your tailored resume and cover letter, then export."
+        description="Central review workspace — fix resume or cover letter, then approve and export."
       />
 
       <div className="space-y-6">
@@ -517,22 +537,87 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 {exportWarning}
               </p>
             ) : null}
+
+            <PackageFitSummaryPanel
+              rationale={draft.rationale}
+              fitAssessment={assessment}
+            />
           </div>
 
-          {/* Right: resume PDF preview — dominant artifact in first viewport */}
-          <SetupCard
-            className="scroll-mt-24 mt-4 lg:mt-0"
-            title="Resume"
-            description="Preview the final PDF and tune layout if needed."
-            variant="primary"
-          >
-          <div id="package-resume" className="mt-4 space-y-4">
-            {documentModel ? <ResumePdfPreview documentModel={documentModel} /> : null}
-
-            <details
-              id="package-layout-controls"
-              className="scroll-mt-32 rounded-lg border border-slate-200 bg-slate-50 p-4"
+          {/* Right: resume workspace — edit + preview */}
+          <div className="mt-4 space-y-4 lg:mt-0">
+            <div
+              className="flex gap-2 border-b border-slate-200 lg:hidden"
+              data-testid="package-workspace-tabs"
             >
+              {(["edit", "preview", "layout"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setPackageWorkspaceTab(tab)}
+                  className={`px-3 py-2 text-sm font-medium capitalize ${
+                    packageWorkspaceTab === tab
+                      ? "border-b-2 border-cyan-700 text-cyan-900"
+                      : "text-slate-600"
+                  }`}
+                  data-tab={tab}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+              <div
+                id="package-resume-edit"
+                className={`scroll-mt-32 ${packageWorkspaceTab === "edit" ? "block" : "hidden lg:block"}`}
+              >
+                <ResumeDraftReviewWorkspace
+                  key={`${draft.id}:${draft.updatedAt}`}
+                  draft={draft}
+                  onDraftUpdated={setDraft}
+                  packageMode
+                />
+              </div>
+
+              <SetupCard
+                className="scroll-mt-24"
+                title="Resume preview"
+                description="Read-only A4 PDF preview — edit structured fields alongside on desktop."
+                variant="primary"
+              >
+                <div
+                  id="package-resume"
+                  className={`mt-4 space-y-4 ${packageWorkspaceTab === "preview" ? "block" : "hidden lg:block"}`}
+                >
+                  {documentModel ? (
+                    <ResumePdfPreview
+                      documentModel={documentModel}
+                      onOverflowChange={(measurement) =>
+                        setPreviewOverflow(measurement.exceedsOnePage)
+                      }
+                    />
+                  ) : null}
+
+                  {!previewOverflow && validationFailure ? (
+                    <p
+                      className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                      data-testid="preview-export-mismatch"
+                    >
+                      Browser preview fits one page, but server validation reported{" "}
+                      {validationFailure.pageCount} page(s). Trust the approve/export gate — adjust
+                      layout or content and re-approve.
+                    </p>
+                  ) : null}
+                </div>
+
+                <details
+                  id="package-layout-controls"
+                  className={`scroll-mt-32 rounded-lg border border-slate-200 bg-slate-50 p-4 ${
+                    packageWorkspaceTab === "layout" ? "block" : "hidden lg:block"
+                  }`}
+                  open={packageWorkspaceTab === "layout"}
+                >
               <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
                 Layout controls
               </summary>
@@ -645,9 +730,9 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 </label>
               </div>
             </details>
-
+              </SetupCard>
+            </div>
           </div>
-          </SetupCard>
         </div>{/* end two-column grid */}
 
         <div
@@ -662,6 +747,42 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
             onLoadingChange={setCoverLetterLoading}
             onPdfOverflowChange={setCoverLetterPdfOverflow}
           />
+          {coverLetter ? (
+            <div
+              id="package-cover-letter-revision"
+              className="scroll-mt-32"
+              data-testid="package-cover-letter-revision"
+            >
+              <CoverLetterStagedRevisionPanel
+                draftId={coverLetter.id}
+                currentBody={coverLetter.body}
+                draftModelTier={coverLetter.rationale?.modelSelection?.requestedTier}
+                actualModel={coverLetter.modelName}
+                fallbackApplied={coverLetter.rationale?.modelSelection?.fallbackApplied}
+                onAccepted={async (body, warnings, modelSelection) => {
+                  const updated = await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, {
+                    body,
+                    rationale: coverLetter.rationale
+                      ? {
+                          ...coverLetter.rationale,
+                          wordCount: body.split(/\s+/).filter(Boolean).length,
+                          modelSelection: modelSelection
+                            ? {
+                                requestedTier: modelSelection.requestedTier,
+                                fallbackApplied: modelSelection.fallbackApplied,
+                              }
+                            : coverLetter.rationale.modelSelection,
+                        }
+                      : undefined,
+                  });
+                  setCoverLetter(updated);
+                  if (warnings.length > 0) {
+                    setExportWarning(warnings.join(" "));
+                  }
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         {companyContext ? (
@@ -681,45 +802,17 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
 
         <div id="package-edit" className="scroll-mt-32">
           {showEditResumeContent ? (
-            <div className={`${actionBarClassName} space-y-3`}>
-              <div>
-                <p className="text-xs font-semibold uppercase text-slate-500">
-                  Fix evidence
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Include or exclude inventory evidence, then rewrite affected roles or
-                  regenerate the full resume.
-                </p>
-              </div>
-              <ResumeEvidenceRegenerationPanel
-                draft={draft}
-                inventory={inventory}
-                jobDescription={linkedJob}
-                onDraftUpdated={setDraft}
-              />
-              <div className={secondaryActionGroupClassName}>
-                <Link
-                  href={`/resume-preview/${draftId}/edit`}
-                  className={secondaryButtonClassName}
-                >
-                  Open resume text editor
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowEditResumeContent(false)}
-                  className={secondaryButtonClassName}
-                >
-                  Hide edit resume content
-                </button>
-              </div>
-            </div>
+            <ResumeEvidenceRegenerationPanel
+              draft={draft}
+              inventory={inventory}
+              jobDescription={linkedJob}
+              onDraftUpdated={setDraft}
+            />
           ) : (
             <div className={actionBarClassName}>
-              <p className="text-xs font-semibold uppercase text-slate-500">
-                Secondary editing
-              </p>
+              <p className="text-xs font-semibold uppercase text-slate-500">Fix resume evidence</p>
               <p className="mt-1 text-sm text-slate-600">
-                Open only when the generated content needs targeted changes.
+                Stage include/exclude changes and apply once — no AI on checkbox clicks.
               </p>
               <button
                 type="button"
@@ -727,7 +820,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 className={`${secondaryButtonClassName} mt-3 w-full sm:w-auto`}
                 data-action="edit-resume-content-toggle"
               >
-                Fix evidence
+                Open evidence queue
               </button>
             </div>
           )}
