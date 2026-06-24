@@ -126,13 +126,14 @@
 - **Cover letter editor redesign** (Parked) — signed-in desktop and mobile captures needed before further restructuring.
 - **Applications compact card quality** — not reviewable with unauthenticated screenshot pass. Accept Risk.
 
-## Generate page (v0.9.11I)
+## Generate page (v0.9.12D)
 
-- **Mobile sticky CTA bar**: a `fixed bottom-0` Generate button appears on mobile only when not generating. It mirrors the main action with the same `canGenerate` disabled guard. Both the sticky and inline CTAs are visible when the user scrolls to the inline CTA — minor duplication; Accept Risk.
-- **JD textarea height**: `h-[6.5rem]` on mobile (reduces from ~200px to ~104px); `sm:h-auto` restores rows-based height on desktop.
-- **Job details disclosure** starts closed. Auto-extracted company/role populates the hidden fields silently.
-- **Readiness strip** shows 4 readiness conditions (sign in, upload, paste JD, provider).
-- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) remains inside collapsed Job details — does not affect generation.
+- **Company** and **Target role** are primary visible fields above the JD textarea (v0.9.12D). Auto-extracted values still populate when the user has not manually edited those fields.
+- **Advanced options (optional)** collapse holds Job URL and Clear form only.
+- **Mobile sticky CTA bar**: a `fixed bottom-0` Generate button appears on mobile only when not generating. Both sticky and inline CTAs may be visible when scrolled — Accept Risk.
+- **JD textarea height**: `h-[6.5rem]` on mobile; `sm:h-auto` on desktop.
+- **Readiness strip** shows readiness conditions (sign in, upload, paste JD, provider).
+- **Recruitment firm / confidential client posting** checkbox (UI-only, disabled) sits near Company — does not affect generation.
 
 ## DOCX import (v0.9.12C)
 

@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.12C"')],
-    ["package json version", packageJson.includes('"version": "0.9.12C"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.12D"')],
+    ["package json version", packageJson.includes('"version": "0.9.12D"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -201,8 +201,8 @@ function main() {
       handoff.includes("v0.9.12B") && roadmap.includes("v0.9.12B"),
     ],
     [
-      "v0.9.12C documented",
-      handoff.includes("v0.9.12C") && roadmap.includes("v0.9.12C"),
+      "v0.9.12D documented",
+      handoff.includes("v0.9.12D") && roadmap.includes("v0.9.12D"),
     ],
     [
       "mobile nav no horizontal scroll",
@@ -217,12 +217,25 @@ function main() {
       generateSection.includes("generate-readiness-strip") && generateSection.includes("Readiness"),
     ],
     [
-      "generate job details collapsible",
-      jdPanel.includes("Job details (optional)") && jdPanel.includes("Company · Role · URL"),
+      "generate advanced options collapsible",
+      jdPanel.includes("Advanced options (optional)") && jdPanel.includes("Job URL"),
     ],
     [
-      "generate cta before job details in generate flow",
-      jdPanel.indexOf("GenerateTailoredResumeSection") < jdPanel.indexOf("Job details (optional)"),
+      "generate company role before jd textarea",
+      jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("jd-raw-text") &&
+        jdPanel.indexOf('id="jd-role"') < jdPanel.indexOf("jd-raw-text"),
+    ],
+    [
+      "generate cta after jd in generate flow",
+      (() => {
+        const afterJd = jdPanel.split('id="jd-raw-text"')[1] ?? "";
+        return (
+          afterJd.includes("GenerateTailoredResumeSection") &&
+          afterJd.includes("Advanced options (optional)") &&
+          afterJd.indexOf("GenerateTailoredResumeSection") <
+            afterJd.indexOf("Advanced options (optional)")
+        );
+      })(),
     ],
     [
       "application package draft ready status",

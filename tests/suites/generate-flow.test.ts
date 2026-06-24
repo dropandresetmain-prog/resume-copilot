@@ -146,6 +146,17 @@ async function main() {
     ["generate page removed coming later", !generatePage.includes("Coming later")],
     ["generate page uses single jd panel", generatePage.includes("generateFlow={{") && !generatePage.includes("ResumeDraftPanel")],
     ["generate cta inside jd panel", jdPanel.includes("GenerateTailoredResumeSection")],
+    [
+      "generate company role primary fields",
+      jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("jd-raw-text") &&
+        jdPanel.indexOf('id="jd-role"') < jdPanel.indexOf("jd-raw-text") &&
+        jdPanel.indexOf('id="jd-company"') < jdPanel.indexOf("Advanced options (optional)"),
+    ],
+    [
+      "generate job url in advanced options only",
+      jdPanel.includes("Advanced options (optional)") &&
+        !jdPanel.includes("Company · Role · URL"),
+    ],
     ["primary CTA copy", generateSection.includes("Generate Resume & Cover Letter")],
     [
       "generate centered cta layout",

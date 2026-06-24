@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12C**
+**v0.9.12D**
 
 ## Completed capabilities
 
@@ -35,8 +35,15 @@
 | Remove founder identity from AI/export pipeline | v0.9.12A |
 | General DOCX resume import baseline | v0.9.12B |
 | Import robustness + output polish defaults | v0.9.12C |
+| Generate company/role primary fields restored | v0.9.12D |
 
 ## Milestone log (recent)
+
+### v0.9.12D - Restore Generate Company and Role Primary Fields
+
+- Company and Target role fields visible in primary Generate composer (above JD textarea).
+- Recruitment checkbox remains near Company (UI-only, disabled).
+- Advanced options (optional) collapse holds Job URL only.
 
 ### v0.9.12C - Import Robustness + Output Polish Defaults
 

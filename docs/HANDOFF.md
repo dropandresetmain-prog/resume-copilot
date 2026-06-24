@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.12C** (code)
+**v0.9.12D** (code)
 
 ## v0.9.11G implementation note
 
@@ -48,6 +48,10 @@ Application Package Guided Review + Generate Composer Density: addresses post-ge
 
 Runtime constraints held: no Supabase schema/persistence changes, no generation semantics changes, no export/approval logic changes, no model ID changes, no route changes.
 
+## v0.9.12D implementation note
+
+Restore Generate Company and Role Primary Fields: bugfix restoring Company and Target role as visible primary composer fields on Generate (above JD textarea). Recruitment checkbox stays near Company (disabled/UI-only). Advanced options collapse contains only Job URL and Clear form. No generation/persistence/schema changes.
+
 ## v0.9.12C implementation note
 
 Import Robustness + Output Polish Defaults: parser follow-up to v0.9.12B demo blockers plus default output tuning.
@@ -72,18 +76,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.12C - Import Robustness + Output Polish Defaults**
+**v0.9.12D - Restore Generate Company and Role Primary Fields**
 
-Import: company-first comma disambiguation, date-first descriptor skip, title-case section preservation. Output: resume line spacing default 1.12, cover letter em-dash / AI-tone prompt rules.
+Company and Target role visible above JD textarea on Generate; Job URL only in Advanced options.
 
-## Latest milestone summary (v0.9.12A)
+## Latest milestone summary (v0.9.12C)
 
-Dynamic candidateName in all prompts/mocks/validation, generic filename fallback (Candidate), removed SBF boost, replaced founder employer examples, updated all test fixtures to generic names.
+Import robustness + output polish defaults: company-first comma disambiguation, title-case section preservation, resume line spacing 1.12, cover letter em-dash rules.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.12D | Restore Generate company/role primary fields |
 | v0.9.12C | Import robustness + output polish defaults (parser + line spacing + cover letter tone) |
 | v0.9.12B | General DOCX resume import baseline — inline experience profile, broader section aliases, plain skills parsing |
 | v0.9.12A | Remove founder identity from AI/export pipeline — dynamic candidate name, generic fallbacks |
