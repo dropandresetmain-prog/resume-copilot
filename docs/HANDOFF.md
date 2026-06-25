@@ -2,7 +2,17 @@
 
 ## Current version
 
-**v0.9.15B** (code)
+**v0.9.15C** (code)
+
+## v0.9.15C implementation note
+
+Post-Generation Custom Revision Reliability: fixes cover-letter revision leaking `[Candidate Name]` placeholders; adds staged resume custom revision (professional summary + selected role scopes).
+
+**Cover letter fix:** `revise-cover-letter` route derives `candidateName` from linked resume draft `header.fullName` and passes it through prompt, validation, and parse. Revision prompt no longer uses bracketed placeholder fallbacks — preserves existing closing signature when name unavailable. Validation rejects placeholder signatures in output.
+
+**Resume custom revision:** Staged panel on Application Package edit-resume mode — choose scope (summary or role), enter custom instruction, Revise once, preview, Accept persists scoped change only. New `POST /api/ai/revise-resume-scope` reuses targeted role rewrite infrastructure for role scope; summary scope uses dedicated prompt. Default `persist: false` (candidate-only until Accept).
+
+**Parked:** whole-resume custom rewrite, cover-letter version history, selected-bullet custom revision, unsaved resume header edits warning before cover-letter revision.
 
 ## v0.9.15B implementation note
 
@@ -188,18 +198,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.15B - Apply Extracted Work Experience + Bullet Suggestions**
+**v0.9.15C - Post-Generation Custom Revision Reliability**
 
-Overlay persistence for new experiences and bullets from Add from Text; classified apply UX.
+Cover-letter revision candidateName fix; staged resume custom revision (summary + role).
 
-## Latest milestone summary (v0.9.15B)
+## Latest milestone summary (v0.9.15C)
 
-Accepted work experience and bullet suggestions now apply to inventory overlay and flow into generation; education still preview-only.
+Revised cover letters no longer leak `[Candidate Name]` when resume header has a name. Resume edit mode adds scoped custom AI revision with accept/reject staging.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.15C | Post-generation custom revision reliability |
 | v0.9.15B | Apply extracted work experience + bullets |
 | v0.9.15A | Add experience from text |
 | v0.9.14B | Company website discovery + verification |
@@ -303,6 +314,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.15A+ candidates** (parked for approval): new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
+**v0.9.15A+ candidates** (parked for approval): whole-resume custom rewrite, cover-letter version history, selected-bullet custom revision, unsaved resume header edits warning before cover-letter revision, new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
 
 Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

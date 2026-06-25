@@ -770,6 +770,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                   draft={draft}
                   onDraftUpdated={setDraft}
                   packageMode
+                  jobDescription={linkedJob}
                 />
                 <SetupCard
                   title="Resume preview"

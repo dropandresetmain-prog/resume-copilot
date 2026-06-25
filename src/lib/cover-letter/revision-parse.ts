@@ -40,12 +40,14 @@ export function parseCoverLetterRevisionJson(rawText: string): {
 
 export function prepareCoverLetterRevisionResult(
   result: CoverLetterRevisionModelResult,
+  options: { candidateName?: string } = {},
 ): CoverLetterRevisionModelResult & {
   validationWarnings: CoverLetterValidationWarning[];
 } {
   const validation = validateFormalCoverLetterBody(result.body, {
     strictMax: true,
     checkBannedPhrases: true,
+    candidateName: options.candidateName,
   });
   if (!validation.ok) {
     throw new Error(validation.errors.map((entry) => entry.message).join(" "));

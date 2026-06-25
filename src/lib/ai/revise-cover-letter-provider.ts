@@ -42,7 +42,9 @@ export async function reviseCoverLetterWithAI(
     throw new Error("OpenAI cover letter revision is not implemented yet.");
   }
 
-  const result = prepareCoverLetterRevisionResult(reviseMockCoverLetter(input));
+  const result = prepareCoverLetterRevisionResult(reviseMockCoverLetter(input), {
+    candidateName: input.candidateName,
+  });
   return {
     body: result.body,
     wordCount: result.wordCount,

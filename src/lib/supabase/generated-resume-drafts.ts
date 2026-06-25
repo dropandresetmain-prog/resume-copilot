@@ -241,6 +241,47 @@ export async function updateGeneratedResumeDraftInCloud(
   return mapped;
 }
 
+export async function updateGeneratedResumeDraftInCloudForUser(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  id: string,
+  userId: string,
+  input: UpdateGeneratedResumeDraftInput,
+): Promise<GeneratedResumeDraftRecord | null> {
+  const updatePayload: Record<string, unknown> = {
+    content: input.content,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.status !== undefined) {
+    updatePayload.status = input.status;
+  }
+  if (input.rationale !== undefined) {
+    updatePayload.rationale = input.rationale;
+  }
+  if (input.inputSnapshot !== undefined) {
+    updatePayload.input_snapshot = input.inputSnapshot;
+  }
+  if (input.modelName !== undefined) {
+    updatePayload.model_name = input.modelName;
+  }
+
+  const { data, error } = await supabase
+    .from("generated_resume_drafts")
+    .update(updatePayload)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) {
+    return null;
+  }
+
+  return mapGeneratedResumeDraftRow(data as GeneratedResumeDraftRow);
+}
+
 /** Removes one generated draft row only — never touches `resume_inventories`. */
 export async function deleteGeneratedResumeDraftFromCloud(id: string): Promise<void> {
   const user = await getCurrentUser();

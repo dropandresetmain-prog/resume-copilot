@@ -56,6 +56,14 @@ function main() {
     join(process.cwd(), "src/app/api/ai/revise-cover-letter/route.ts"),
     "utf8",
   );
+  const resumeScopeGemini = readFileSync(
+    join(process.cwd(), "src/lib/ai/revise-resume-scope-gemini.ts"),
+    "utf8",
+  );
+  const resumeScopeRoute = readFileSync(
+    join(process.cwd(), "src/app/api/ai/revise-resume-scope/route.ts"),
+    "utf8",
+  );
 
   let invalidTierThrows = false;
   try {
@@ -185,6 +193,8 @@ function main() {
     ["cover letter generation uses resolveModelsForTier", coverGemini.includes("resolveModelsForTier")],
     ["cover letter revision uses resolveModelsForTier", reviseGemini.includes("resolveModelsForTier")],
     ["role rewrite uses resolveModelsForTier", roleRewriteGemini.includes("resolveModelsForTier")],
+    ["resume custom revision uses callGeminiWithRetry", resumeScopeGemini.includes("callGeminiWithRetry")],
+    ["resume custom revision uses resolveModelsForTier", resumeScopeGemini.includes("resolveModelsForTier")],
     ["call gemini logs metadata helper", typeof logGeminiCallMetadata === "function"],
     [
       "resume logical step name",
@@ -198,6 +208,10 @@ function main() {
     [
       "cover letter revision route parses coverLetterModelTier",
       reviseRoute.includes("parseModelTier(body.coverLetterModelTier)"),
+    ],
+    [
+      "resume custom revision route parses resumeModelTier",
+      resumeScopeRoute.includes("parseModelTier(body.resumeModelTier)"),
     ],
     [
       "resume API response stores actual model used",

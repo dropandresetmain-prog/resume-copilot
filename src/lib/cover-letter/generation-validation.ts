@@ -1,4 +1,5 @@
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import { containsCandidateNamePlaceholder } from "@/lib/cover-letter/signature";
 import {
   detectCompanyUrlInCoverLetterProse,
   proseContainsUrlLikeCompanyReference,
@@ -147,6 +148,14 @@ export function validateFormalCoverLetterBody(
         message: `Cover letter contains banned phrasing: ${banned.join(", ")}.`,
       });
     }
+  }
+
+  if (containsCandidateNamePlaceholder(body)) {
+    errors.push({
+      code: "candidate_name_placeholder",
+      message:
+        "Cover letter must not contain a bracketed candidate name placeholder — use the real name or preserve the existing closing signature.",
+    });
   }
 
   if (options.candidateName?.trim()) {

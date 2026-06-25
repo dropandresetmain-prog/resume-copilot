@@ -1,5 +1,6 @@
 import type { CoverLetterRevisionAction } from "@/types/cover-letter-draft";
 import { COVER_LETTER_BANNED_PHRASES } from "@/lib/cover-letter/banned-phrases";
+import { buildClosingSignatureInstruction } from "@/lib/cover-letter/signature";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
   FORMAL_COVER_LETTER_TARGET_MAX_WORDS,
@@ -66,7 +67,10 @@ function getActionInstruction(action: CoverLetterRevisionAction, customInstructi
 
 export function buildCoverLetterRevisionPrompt(input: CoverLetterRevisionPromptInput): string {
   const instruction = getActionInstruction(input.action, input.customInstruction);
-  const closingSignature = input.candidateName?.trim() || "[Candidate Name]";
+  const closingInstruction = buildClosingSignatureInstruction({
+    candidateName: input.candidateName,
+    currentBody: input.currentBody,
+  });
 
   return `You are revising a formal cover letter for the candidate.
 
@@ -82,7 +86,8 @@ ${instruction}
 
 ## Hard rules
 - Preserve factual claims supported by the resume evidence spine. Do not invent employers, titles, metrics, or achievements.
-- Preserve addressee and closing signature ("${closingSignature}").
+- ${closingInstruction}
+- Never use bracketed placeholder names such as [Candidate Name] in final copy.
 - HARD MAX ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}.
 - Conversational professional tone: warm, human, grounded, specific. Not corporate or AI-polished.
 - Avoid inflated phrases, generic enthusiasm, and overly polished corporate wording.

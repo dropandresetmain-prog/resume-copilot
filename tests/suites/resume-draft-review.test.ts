@@ -1,4 +1,5 @@
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
+import { reviseMockResumeRoleCustom, reviseMockResumeSummary } from "../../src/lib/ai/revise-resume-scope-mock";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -10,6 +11,16 @@ import {
   updateExperienceBulletReview,
   updateProfessionalSummaryReview,
 } from "../../src/lib/resume-draft/review-state";
+import {
+  applyResumeCustomRevision,
+  resumeCustomRevisionShouldPersist,
+} from "../../src/lib/resume-draft/custom-revision";
+import {
+  buildResumeRoleCustomRevisionPrompt,
+  buildResumeSummaryCustomRevisionPrompt,
+  promptIncludesRoleCustomRevisionScope,
+  promptIncludesSummaryCustomRevisionScope,
+} from "../../src/lib/resume-draft/custom-revision-prompt";
 import type { InventoryState } from "../../src/types/resume";
 import type { StoredJobDescription } from "../../src/types/jd";
 
@@ -118,6 +129,38 @@ function main() {
   const originalObjectUnchanged = originalFirstBullet === expectedFirstBullet;
   const riskLabel = formatRiskFlagLabel("needs review");
 
+  const summaryRevision = reviseMockResumeSummary({
+    currentSummary: "Operations leader with B2B experience.",
+    customInstruction: "Emphasize automation outcomes.",
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const summaryScopedContent = applyResumeCustomRevision(originalContent, {
+    scope: "professional_summary",
+    professionalSummaryText: summaryRevision.professionalSummaryText,
+  });
+  const roleRevision = reviseMockResumeRoleCustom({
+    currentRole: originalContent.experience[0]!,
+    customInstruction: "Tighten metrics.",
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const roleScopedContent = applyResumeCustomRevision(originalContent, {
+    scope: "selected_role",
+    roleIndex: 0,
+    roleBullets: roleRevision.roleBullets,
+  });
+  const summaryPrompt = buildResumeSummaryCustomRevisionPrompt({
+    currentSummary: "Summary text",
+    customInstruction: "Make it sharper.",
+    jobDescriptionText: sampleJd.rawText,
+  });
+  const rolePrompt = buildResumeRoleCustomRevisionPrompt({
+    currentRole: originalContent.experience[0]!,
+    customInstruction: "Focus on revenue.",
+    jobDescriptionText: sampleJd.rawText,
+  });
+
   const checks: [string, boolean][] = [
     ["initial review state pending summary", initialReview.professionalSummary.status === "pending"],
     ["edited bullet in preview", editedBullet.includes("Edited bullet")],
@@ -128,6 +171,33 @@ function main() {
     ["risk flag label readable", riskLabel === "Needs review"],
     ["original draft omits professional summary", originalContent.professionalSummary.text === ""],
     ["reviewed status constant", "reviewed".length > 0],
+    [
+      "summary scoped revision does not modify experience bullets",
+      summaryScopedContent.professionalSummary.text === summaryRevision.professionalSummaryText &&
+        summaryScopedContent.experience[0]?.bullets[0]?.text ===
+          originalContent.experience[0]?.bullets[0]?.text,
+    ],
+    [
+      "role scoped revision does not modify unrelated roles",
+      roleScopedContent.experience.length === originalContent.experience.length &&
+        (originalContent.experience[1]
+          ? roleScopedContent.experience[1]?.bullets[0]?.text ===
+            originalContent.experience[1]?.bullets[0]?.text
+          : true),
+    ],
+    [
+      "resume custom revision persist defaults false",
+      resumeCustomRevisionShouldPersist({}) === false &&
+        resumeCustomRevisionShouldPersist({ persist: true }) === true,
+    ],
+    [
+      "summary custom revision prompt scope",
+      promptIncludesSummaryCustomRevisionScope(summaryPrompt),
+    ],
+    [
+      "role custom revision prompt scope",
+      promptIncludesRoleCustomRevisionScope(rolePrompt),
+    ],
   ];
 
   for (const [name, ok] of checks) {

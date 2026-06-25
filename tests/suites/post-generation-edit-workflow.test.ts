@@ -75,6 +75,14 @@ function main() {
     join(process.cwd(), "src/app/api/ai/revise-cover-letter/route.ts"),
     "utf8",
   );
+  const resumeCustomRevisionPanel = readFileSync(
+    join(process.cwd(), "src/components/resume-drafts/ResumeStagedCustomRevisionPanel.tsx"),
+    "utf8",
+  );
+  const resumeCustomRevisionRoute = readFileSync(
+    join(process.cwd(), "src/app/api/ai/revise-resume-scope/route.ts"),
+    "utf8",
+  );
   const resumePreview = readFileSync(
     join(process.cwd(), "src/components/pages/ResumePreviewPageClient.tsx"),
     "utf8",
@@ -333,6 +341,41 @@ function main() {
       stagedRevision.includes("handleReviseCoverLetter") &&
         stagedRevision.includes("requestCoverLetterRevision") &&
         stagedRevision.includes("toggleChip"),
+    ],
+    [
+      "resume custom revision panel on package edit",
+      reviewWorkspace.includes("ResumeStagedCustomRevisionPanel") &&
+        reviewWorkspace.includes("packageMode"),
+    ],
+    [
+      "resume custom instruction does not call gemini before revise",
+      resumeCustomRevisionPanel.includes("Instructions stage only") &&
+        resumeCustomRevisionPanel.includes("requestResumeCustomRevision") &&
+        resumeCustomRevisionPanel.includes("persist: false"),
+    ],
+    [
+      "resume revise returns staged candidate only",
+      resumeCustomRevisionPanel.includes("response.persisted") &&
+        resumeCustomRevisionPanel.includes("applyResumeCustomRevision"),
+    ],
+    [
+      "resume accept persists via callback",
+      resumeCustomRevisionPanel.includes("await onAccepted") &&
+        reviewWorkspace.includes("updateGeneratedResumeDraftInCloud"),
+    ],
+    [
+      "resume reject discards preview only",
+      resumeCustomRevisionPanel.includes("handleRejectRevision") &&
+        !resumeCustomRevisionPanel.includes("updateGeneratedResumeDraftInCloud"),
+    ],
+    [
+      "resume custom revision route defaults to candidate mode",
+      resumeCustomRevisionRoute.includes("resumeCustomRevisionShouldPersist") &&
+        resumeCustomRevisionRoute.includes("persisted: shouldPersist"),
+    ],
+    [
+      "resume custom revision cost copy",
+      resumeCustomRevisionPanel.includes("Runs 1 AI step. Does not save until you accept."),
     ],
     [
       "fit summary panel on package",

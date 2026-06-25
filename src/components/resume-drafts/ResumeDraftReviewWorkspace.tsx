@@ -31,19 +31,23 @@ import {
   type ResumeDraftReviewState,
 } from "@/lib/resume-draft/review-state";
 import { updateGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
+import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
+import { ResumeStagedCustomRevisionPanel } from "@/components/resume-drafts/ResumeStagedCustomRevisionPanel";
 
 type ResumeDraftReviewWorkspaceProps = {
   draft: GeneratedResumeDraftRecord;
   onDraftUpdated: (draft: GeneratedResumeDraftRecord) => void;
   /** Package page mode: hide browser layout preview and rationale blocks. */
   packageMode?: boolean;
+  jobDescription?: StoredJobDescription | null;
 };
 
 export function ResumeDraftReviewWorkspace({
   draft,
   onDraftUpdated,
   packageMode = false,
+  jobDescription,
 }: ResumeDraftReviewWorkspaceProps) {
   const [reviewState, setReviewState] = useState<ResumeDraftReviewState>(() =>
     createInitialReviewState(draft.content),
@@ -637,6 +641,27 @@ export function ResumeDraftReviewWorkspace({
           </p>
         </div>
       </SetupCard>
+
+      {packageMode ? (
+        <ResumeStagedCustomRevisionPanel
+          draft={draft}
+          jobDescription={jobDescription}
+          onAccepted={async (content) => {
+            const nextStatus = resolveDraftStatusAfterContentEdit(draft.status);
+            const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
+              content: {
+                ...content,
+                serverPdfValidation: undefined,
+              },
+              status: nextStatus,
+            });
+            onDraftUpdated(updated);
+            setReviewState(createInitialReviewState(updated.content));
+            setHeaderDraft(updated.content.header);
+            setSummaryDraft(updated.content.professionalSummary.text);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

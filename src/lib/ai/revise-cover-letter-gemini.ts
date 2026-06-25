@@ -66,7 +66,9 @@ export async function reviseCoverLetterWithGemini(
   }
 
   try {
-    const prepared = prepareCoverLetterRevisionResult(parsed.value);
+    const prepared = prepareCoverLetterRevisionResult(parsed.value, {
+      candidateName: input.candidateName,
+    });
     const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
     return {
       body: prepared.body,
@@ -88,7 +90,9 @@ export async function reviseCoverLetterWithGemini(
     if (!retryParsed.ok || !retryParsed.value) {
       throw new Error(retryParsed.error ?? "Failed to parse compressed revision.");
     }
-    const prepared = prepareCoverLetterRevisionResult(retryParsed.value);
+    const prepared = prepareCoverLetterRevisionResult(retryParsed.value, {
+      candidateName: input.candidateName,
+    });
     const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
     return {
       body: prepared.body,

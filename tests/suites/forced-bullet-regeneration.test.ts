@@ -17,6 +17,13 @@ import {
   buildResumeRoleRewritePrompt,
 } from "../../src/lib/resume-draft/role-rewrite-prompt";
 import {
+  promptIncludesRoleCustomRevisionScope,
+  buildResumeRoleCustomRevisionPrompt,
+} from "../../src/lib/resume-draft/custom-revision-prompt";
+import {
+  validateCustomRevisedRoleBullets,
+} from "../../src/lib/resume-draft/custom-revision";
+import {
   applyTargetedRoleRewrites,
   planTargetedForcedBulletRewrite,
   resolveDraftStatusAfterTargetedRewrite,
@@ -371,6 +378,15 @@ function main() {
     join(process.cwd(), "src/app/api/ai/rewrite-resume-role/route.ts"),
     "utf8",
   );
+  const resumeCustomRevisionRoute = readFileSync(
+    join(process.cwd(), "src/app/api/ai/revise-resume-scope/route.ts"),
+    "utf8",
+  );
+  const customRolePrompt = buildResumeRoleCustomRevisionPrompt({
+    currentRole: targetedContent.experience[0]!,
+    customInstruction: "Sharpen revenue metrics.",
+    jobDescriptionText: "B2B sales role",
+  });
 
   const checks: [string, boolean][] = [
     [
@@ -467,6 +483,21 @@ function main() {
     [
       "dedicated role rewrite route exists",
       roleRewriteRoute.includes("rewriteResumeRoleWithAI"),
+    ],
+    [
+      "resume custom revision route exists",
+      resumeCustomRevisionRoute.includes("reviseResumeScopeWithAI"),
+    ],
+    [
+      "custom role revision prompt is scoped",
+      promptIncludesRoleCustomRevisionScope(customRolePrompt),
+    ],
+    [
+      "custom role revision validation rejects empty bullets",
+      validateCustomRevisedRoleBullets({
+        bullets: [],
+        priorRole: targetedContent.experience[0]!,
+      }).some((issue) => issue.includes("at least")),
     ],
   ];
 

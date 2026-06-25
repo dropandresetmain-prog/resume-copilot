@@ -365,6 +365,42 @@ export type ResumeRoleRewriteResponse = {
   timestamp: string;
 };
 
+export type ResumeCustomRevisionScope = "professional_summary" | "selected_role";
+
+export type ResumeCustomRevisionRequest = {
+  draftId: string;
+  scope: ResumeCustomRevisionScope;
+  roleIndex?: number;
+  customInstruction: string;
+  content: ResumeDraftContent;
+  jobDescription: {
+    id?: string;
+    rawText: string;
+    companyName?: string;
+    roleTitle?: string;
+  };
+  referenceResume?: Pick<ResumeDraftReferenceResumeExcerpt, "bulletStyle">;
+  resumeModelTier?: ModelTier;
+  /** When false (default), returns a staged candidate without saving. */
+  persist?: boolean;
+};
+
+export type ResumeCustomRevisionResponse = {
+  scope: ResumeCustomRevisionScope;
+  roleIndex?: number;
+  professionalSummaryText?: string;
+  roleBullets?: ResumeDraftExperienceBullet[];
+  warnings: string[];
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
+  persisted: boolean;
+  timestamp: string;
+};
+
 export type CreateGeneratedResumeDraftInput = {
   jobDescriptionId: string;
   referenceResumeId: string;

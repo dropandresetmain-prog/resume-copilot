@@ -217,6 +217,11 @@
 - **Education format** unchanged — still requires institution + date structure for structured parse.
 - **Remaining import risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no signals (Accept Risk).
 
+## Cover letter revision (v0.9.15C)
+
+- **`[Candidate Name]` placeholder bug fixed** — revision route now passes `candidateName` from linked resume draft `header.fullName`. Revision prompt preserves existing closing signature when name unavailable; validation rejects placeholder signatures in output.
+- **Generation prompt** may still use `[Candidate Name]` when no name at initial generate time — revision path is fixed; generation fallback unchanged this milestone.
+
 ## Cover letter output (v0.9.12C)
 
 - **Prompt rules** now discourage em dashes and inflated corporate/AI phrasing in generation and revision.
@@ -227,8 +232,8 @@
 
 - **Founder identity removed from production pipeline** — prompts, validation, mocks, filenames, and test fixtures no longer assume "Min Htet" as the candidate.
 - **Reference format generalization** — bullet format conventions (style, date patterns, two-column layout) were developed with the founder's resume as reference. v0.9.12B extended the parser to common non-founder formats; further improvement may be needed based on real-world testing.
-- **candidateName** is derived from `header.fullName` on the resume draft — if AI omits or misparses the name, prompts fall back to "the candidate" / "[Candidate Name]" closing.
-- **Cover letter validation signature check** is now opt-in (only fires when `candidateName` is provided to the validator). Validation callers that do not pass `candidateName` will not warn on missing signatures.
+- **candidateName** is derived from `header.fullName` on the resume draft. Revision prompts use the real name or preserve the existing closing signature — not bracketed placeholders.
+- **Cover letter validation signature check** is opt-in (only fires when `candidateName` is provided). Placeholder signatures (`[Candidate Name]` variants) are always rejected.
 
 ## Uploads page (Investigate Now — v0.9.11H)
 

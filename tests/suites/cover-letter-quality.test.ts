@@ -17,6 +17,10 @@ import {
 } from "../../src/lib/cover-letter/prompt";
 import { buildCoverLetterRevisionPrompt } from "../../src/lib/cover-letter/revision-prompt";
 import {
+  containsCandidateNamePlaceholder,
+  extractClosingSignatureFromBody,
+} from "../../src/lib/cover-letter/signature";
+import {
   coverLetterRevisionShouldPersist,
   validateCoverLetterRevisionRequest,
 } from "../../src/lib/cover-letter/revision-client";
@@ -63,6 +67,20 @@ function main() {
     action: "shorten",
     companyDisplayName: "Far East Facade",
   });
+  const revisionPromptWithCandidate = buildCoverLetterRevisionPrompt({
+    currentBody: `${mock.formalContent}\n\nRegards,\nAlex Tan`,
+    action: "shorten",
+    companyDisplayName: "Far East Facade",
+    candidateName: "Alex Tan",
+  });
+  const revisionPromptWithoutCandidate = buildCoverLetterRevisionPrompt({
+    currentBody: `${mock.formalContent}\n\nRegards,\nAlex Tan`,
+    action: "shorten",
+    companyDisplayName: "Far East Facade",
+  });
+  const placeholderBodyValidation = validateFormalCoverLetterBody(
+    `${mock.formalContent}\n\nRegards,\n[Candidate Name]`,
+  );
   const previewPage = readFileSync(
     join(process.cwd(), "src/components/pages/CoverLetterPreviewPageClient.tsx"),
     "utf8",
@@ -147,6 +165,35 @@ function main() {
     ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt includes banned phrase rules", promptIncludesBannedPhraseRules(prompt)],
     ["revision prompt avoids em dashes", revisionPrompt.includes("em dash")],
+    [
+      "revision prompt uses candidate name when provided",
+      revisionPromptWithCandidate.includes('closing signature ("Alex Tan")') &&
+        !revisionPromptWithCandidate.includes('closing signature ("[Candidate Name]")'),
+    ],
+    [
+      "revision prompt preserves existing signature without candidate name",
+      revisionPromptWithoutCandidate.includes('existing closing signature ("Alex Tan")') &&
+        !revisionPromptWithoutCandidate.includes('closing signature ("[Candidate Name]")'),
+    ],
+    [
+      "revision route passes candidateName from resume draft",
+      revisionRoute.includes("candidateName = resumeDraft?.content.header.fullName") &&
+        revisionRoute.includes("candidateName,"),
+    ],
+    [
+      "placeholder signature fails validation",
+      !placeholderBodyValidation.ok &&
+        placeholderBodyValidation.errors.some((entry) => entry.code === "candidate_name_placeholder"),
+    ],
+    [
+      "placeholder detection is case insensitive",
+      containsCandidateNamePlaceholder("[candidate name]") &&
+        containsCandidateNamePlaceholder("[Candidate name]"),
+    ],
+    [
+      "extract closing signature from body",
+      extractClosingSignatureFromBody("Hello\n\nRegards,\nAlex Tan") === "Alex Tan",
+    ],
     ["prompt includes 420 max", prompt.includes("420")],
     ["revision prompt includes current body", revisionPrompt.includes(mock.formalContent)],
     [

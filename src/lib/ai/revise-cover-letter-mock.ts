@@ -1,11 +1,23 @@
 import type { CoverLetterRevisionPromptInput } from "@/lib/cover-letter/revision-prompt";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import { extractClosingSignatureFromBody } from "@/lib/cover-letter/signature";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
 import { FORMAL_COVER_LETTER_MAX_WORDS } from "@/lib/cover-letter/word-limits";
 import type { CoverLetterRevisionModelResult } from "@/lib/cover-letter/revision-parse";
 
+function resolveMockClosingName(
+  body: string,
+  candidateName?: string,
+): string | undefined {
+  const name = candidateName?.trim();
+  if (name) {
+    return name;
+  }
+  return extractClosingSignatureFromBody(body);
+}
+
 function truncateToMaxWords(body: string, maxWords: number, closingName?: string): string {
-  const closing = `\n\nRegards,\n${closingName ?? "[Candidate Name]"}`;
+  const closing = closingName ? `\n\nRegards,\n${closingName}` : "\n\nRegards,";
   const closingWordCount = countWords(closing);
   const contentBudget = Math.max(1, maxWords - closingWordCount);
   const words = body.trim().split(/\s+/).filter(Boolean);
@@ -19,7 +31,7 @@ export function reviseMockCoverLetter(
   input: CoverLetterRevisionPromptInput,
 ): CoverLetterRevisionModelResult {
   let body = input.currentBody;
-  const closingName = input.candidateName?.trim() || undefined;
+  const closingName = resolveMockClosingName(body, input.candidateName);
 
   if (input.action === "shorten" || countWords(body) > FORMAL_COVER_LETTER_MAX_WORDS) {
     body = truncateToMaxWords(body, FORMAL_COVER_LETTER_MAX_WORDS, closingName);

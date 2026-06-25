@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.15B**
+**v0.9.15C**
 
 ## Completed capabilities
 
@@ -45,8 +45,17 @@
 | Company website discovery + verification | v0.9.14B |
 | Add experience from text (inventory paste → review → overlay apply) | v0.9.15A |
 | Apply extracted work experience + bullet suggestions | v0.9.15B |
+| Post-generation custom revision reliability | v0.9.15C |
 
 ## Milestone log (recent)
+
+### v0.9.15C - Post-Generation Custom Revision Reliability
+
+- Cover-letter revision: `candidateName` from linked resume `header.fullName`; no `[Candidate Name]` placeholder in revision prompt.
+- Validation rejects bracketed candidate name placeholders in revised output.
+- Staged resume custom revision: professional summary + selected role scopes on Application Package edit mode.
+- `POST /api/ai/revise-resume-scope` — candidate-only by default; Accept persists scoped change.
+- **Parked:** whole-resume custom rewrite, cover-letter version history, selected-bullet revision, unsaved header warning before cover-letter revision.
 
 ### v0.9.15B - Apply Extracted Work Experience + Bullet Suggestions
 

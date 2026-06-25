@@ -16,7 +16,7 @@ export function generateMockCoverLetter(
   const secondRoleRequirement =
     input.companyContext.likelyHiringPriorities[1] || "hands-on sales and stakeholder management";
 
-  const closingSignature = candidateName ?? "[Candidate Name]";
+  const closingSignature = candidateName;
   const formalContent = `Dear Hiring Manager,
 
 I am writing about the ${role} role at ${company}. What stood out to me was ${companyFact.toLowerCase()}. The role's emphasis on ${roleRequirement.toLowerCase()} lines up with work I have actually done across strategy, operations, and hands-on commercial execution.
@@ -25,8 +25,7 @@ In a prior role, I worked closely with stakeholders and business development par
 
 I would welcome a conversation about where I could be helpful at ${company}.
 
-Regards,
-${closingSignature}`;
+Regards,${closingSignature ? `\n${closingSignature}` : ""}`;
 
   return {
     formalContent,

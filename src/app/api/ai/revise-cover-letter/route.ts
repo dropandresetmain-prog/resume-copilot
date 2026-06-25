@@ -70,6 +70,8 @@ export async function POST(request: Request) {
       draft.companyName ?? job?.companyName ?? draft.companyContext?.companyName ?? "",
     );
 
+    const candidateName = resumeDraft?.content.header.fullName?.trim() || undefined;
+
     const revision = await reviseCoverLetterWithAI(
       {
         currentBody: body.currentBody,
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
         customInstruction: body.customInstruction,
         companyDisplayName,
         roleTitle: job?.roleTitle,
+        candidateName,
         resumeEvidenceSpine: resumeDraft ? buildResumeEvidenceSpine(resumeDraft) : undefined,
         communicationProfile:
           typeof profileRow?.content === "string" ? profileRow.content : undefined,
