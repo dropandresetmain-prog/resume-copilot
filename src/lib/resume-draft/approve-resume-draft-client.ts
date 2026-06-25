@@ -7,16 +7,25 @@ export type ResumePdfOnePageBlockedPayload = {
   pageCount: number;
   message?: string;
   suggestedActions?: string[];
+  contentHeightPx?: number;
+  overflowPx?: number;
+  overflowMm?: number;
 };
 
 export class ResumePdfOnePageBlockedError extends Error {
   readonly pageCount: number;
   readonly suggestedActions: string[];
+  readonly contentHeightPx?: number;
+  readonly overflowPx?: number;
+  readonly overflowMm?: number;
 
   constructor(payload: ResumePdfOnePageBlockedPayload) {
     super(payload.message ?? payload.error);
     this.pageCount = payload.pageCount;
     this.suggestedActions = payload.suggestedActions ?? [];
+    this.contentHeightPx = payload.contentHeightPx;
+    this.overflowPx = payload.overflowPx;
+    this.overflowMm = payload.overflowMm;
   }
 }
 
@@ -71,9 +80,13 @@ export async function approveResumeDraftForExport(options: {
 }
 
 export function formatOnePageBlockedMessage(error: ResumePdfOnePageBlockedError): string {
+  const overflow =
+    error.overflowMm && error.overflowMm > 0
+      ? ` Server overflow: ~${error.overflowMm.toFixed(1)} mm.`
+      : "";
   const actions =
     error.suggestedActions.length > 0
-      ? ` ${error.suggestedActions.join(" ")}`
+      ? ` Try: ${error.suggestedActions.slice(0, 2).join("; ")}.`
       : "";
-  return `${error.message}${actions}`;
+  return `${error.message}${overflow}${actions}`;
 }

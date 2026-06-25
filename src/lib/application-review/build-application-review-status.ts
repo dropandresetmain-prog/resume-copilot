@@ -98,7 +98,11 @@ export type BuildApplicationReviewStatusInput = {
   exportReady: boolean;
   layoutChangedAfterApproval: boolean;
   currentLayoutSettings: ResumeDraftExportLayoutSettings;
-  validationFailure?: { pageCount: number; message: string } | null;
+  validationFailure?: {
+    pageCount: number;
+    message: string;
+    overflowMm?: number;
+  } | null;
   pageFit?: PageFitEstimate | null;
   coverLetterPdfOverflow?: boolean;
 };
@@ -171,10 +175,14 @@ function buildResumeSection(
   }
 
   if (validationFailure) {
+    const overflowNote =
+      validationFailure.overflowMm && validationFailure.overflowMm > 0
+        ? ` (~${validationFailure.overflowMm.toFixed(1)} mm overflow)`
+        : "";
     items.push({
       id: "resume-pdf-validation-failed",
       severity: "blocking",
-      message: `Server PDF: ${validationFailure.pageCount} page(s) — ${validationFailure.message}`,
+      message: `Server PDF: ${validationFailure.pageCount} page(s)${overflowNote} — ${validationFailure.message}`,
     });
   } else if (
     isApprovedDraftStatus(resumeDraft.status) &&

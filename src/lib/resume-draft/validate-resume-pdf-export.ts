@@ -37,7 +37,12 @@ export async function validateResumePdfExport(
   );
 
   const generation = await generateResumePdfResult(documentModel);
-  const validation = buildOnePagePdfValidation(generation.pageCount);
+  const validation = buildOnePagePdfValidation({
+    pageCount: generation.pageCount,
+    fitMeasurement: generation.fitMeasurement,
+    layoutSettings: documentModel.layoutSettings,
+    hasAdditionalExperience: documentModel.layout.additionalExperienceEntries.length > 0,
+  });
 
   return {
     draft,

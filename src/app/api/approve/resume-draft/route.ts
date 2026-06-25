@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { RESUME_DRAFT_STATUS_APPROVED } from "@/lib/resume-draft/draft-status";
 import { parseResumeExportRequestBody } from "@/lib/resume-draft/export-request";
 import { sanitizeExportLayoutSettings } from "@/lib/resume-draft/export-layout-settings";
-import { buildOnePageExportBlockedJson } from "@/lib/resume-draft/pdf-export-validation";
+import { buildOnePageExportBlockedFromValidation } from "@/lib/resume-draft/pdf-export-validation";
 import { ExportRequestError } from "@/lib/resume-draft/resolve-export-request";
 import { validateResumePdfExport } from "@/lib/resume-draft/validate-resume-pdf-export";
 import { mapGeneratedResumeDraftRow } from "@/lib/supabase/generated-resume-drafts";
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     });
 
     if (!validation.valid) {
-      return NextResponse.json(buildOnePageExportBlockedJson(validation.pageCount), { status: 422 });
+      return NextResponse.json(buildOnePageExportBlockedFromValidation(validation), { status: 422 });
     }
 
     const validatedAt = new Date().toISOString();

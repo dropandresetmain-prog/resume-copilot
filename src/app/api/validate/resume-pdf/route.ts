@@ -35,6 +35,9 @@ export async function POST(request: Request) {
       valid: validation.valid,
       message: validation.message,
       suggestedActions: validation.suggestedActions,
+      contentHeightPx: validation.contentHeightPx,
+      overflowPx: validation.overflowPx,
+      overflowMm: validation.overflowMm,
     });
   } catch (error) {
     if (error instanceof ExportRequestError) {

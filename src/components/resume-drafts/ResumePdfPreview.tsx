@@ -145,21 +145,10 @@ export function ResumePdfPreview({
           className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
           role="status"
         >
-          <strong>PDF preview content extends beyond one page.</strong> Scroll the preview to see
-          overflow. Server export may paginate differently due to Linux fonts — use Approve
-          for server one-page validation before export.
+          <strong>Content extends beyond one page in this preview.</strong> Scroll to see the dashed
+          page break. Server validation below is the export gate.
         </div>
-      ) : (
-        <div
-          data-testid="preview-export-fit-ok"
-          className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
-          role="status"
-        >
-          Browser preview fits one page. Export still requires{" "}
-          <strong>Approve for export</strong> — server Puppeteer validation is the export gate and may
-          differ slightly from this preview.
-        </div>
-      )}
+      ) : null}
       <div className="flex min-w-0 justify-center rounded-lg bg-slate-100 p-3 ring-1 ring-slate-200 sm:p-5">
         <div
           ref={frameRef}

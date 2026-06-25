@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.16A**
+**v0.9.16B**
 
 ## Completed capabilities
 
@@ -49,8 +49,17 @@
 | Resume revision queue (batch scoped revision) | v0.9.15D |
 | E2E trust & workflow fix pack | v0.9.15E |
 | Resume tailoring quality upgrade | v0.9.16A |
+| Export trust & A4 fit accuracy | v0.9.16B |
 
 ## Milestone log (recent)
+
+### v0.9.16B - Export Trust & A4 Fit Accuracy
+
+- Shared scrollHeight measurement between browser PDF preview and server Puppeteer validation.
+- Server overflow amount (mm) in approve/validate/export failure responses.
+- `ExportFitStatusPanel`: browser vs server fit side by side, scenario-specific guidance, layout fix suggestions with Apply.
+- Prioritized slider-step suggestions via `buildLayoutFixSuggestions()`.
+- **Parked:** bundled web fonts, US Letter, auto-shrink.
 
 ### v0.9.16A - Tailoring Quality Upgrade
 

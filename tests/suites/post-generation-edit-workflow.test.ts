@@ -566,8 +566,15 @@ function main() {
       collectGeneratedBulletsWithKeys(content)[0]?.sourceKeys[0] === "acme-1",
     ],
     [
-      "preview export mismatch banner",
-      resumePreview.includes('data-testid="preview-export-mismatch"'),
+      "preview export fit status panel",
+      resumePreview.includes("ExportFitStatusPanel"),
+    ],
+    [
+      "preview export mismatch via fit panel",
+      readFileSync(
+        join(process.cwd(), "src/components/resume-drafts/ExportFitStatusPanel.tsx"),
+        "utf8",
+      ).includes("PREVIEW_EXPORT_MISMATCH_TEST_ID"),
     ],
   ];
 

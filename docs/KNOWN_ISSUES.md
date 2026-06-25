@@ -3,7 +3,8 @@
 ## Export strategy (v0.7.0+)
 
 - **Server PDF page count is export truth** — Puppeteer + `pdf-lib` validation on Approve and hard block on PDF export when `pageCount > 1`.
-- **PDF Preview** is the closest **local** approximation (browser fonts, screen layout). It can disagree with server PDF at the one-page boundary.
+- **Server content-height measurement** — Puppeteer measures the same `.resume-pdf-a4-page` scrollHeight as browser PDF preview; overflow mm reported in approve/validate failure responses (v0.9.16B).
+- **PDF Preview** is the closest **local** approximation (browser fonts, screen layout). It can disagree with server PDF at the one-page boundary — `ExportFitStatusPanel` explains which measurement to trust and suggests specific layout fixes.
 - **Heuristic `estimatePageFit()`** is non-authoritative — shown separately from server validation.
 - Approve runs server PDF generation (~3–15s cold on Vercel) — validating state shown in UI.
 - **Post-approval layout edits** set `layout_changed` and clear `serverPdfValidation`; re-approve required.

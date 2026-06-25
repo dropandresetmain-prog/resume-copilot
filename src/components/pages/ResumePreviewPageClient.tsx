@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { pageMilestone } from "@/lib/app-version";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { FinalResumeLayoutPreview } from "@/components/resume-drafts/FinalResumeLayoutPreview";
+import { ExportFitStatusPanel } from "@/components/resume-drafts/ExportFitStatusPanel";
 import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 import { ResumeAssessmentPanel } from "@/components/resume-drafts/ResumeAssessmentPanel";
 import {
@@ -44,6 +45,10 @@ import {
   areExportLayoutSettingsEqual,
 } from "@/lib/resume-draft/export-layout-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
+import {
+  a4PageHeightPx,
+  type PdfPreviewOverflowMeasurement,
+} from "@/lib/resume-draft/pdf-preview-overflow";
 import { calculateFitScore, FINAL_RESUME_SECTION_ORDER } from "@/lib/resume-draft/layout";
 import {
   clampPreviewBodyFontPx,
@@ -90,7 +95,12 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
   const [coverLetterLoading, setCoverLetterLoading] = useState(true);
   const [coverLetterPdfOverflow, setCoverLetterPdfOverflow] = useState(false);
   const [activeFixMode, setActiveFixMode] = useState<PackageFixMode | null>(readPackageFixModeFromHash);
-  const [previewOverflow, setPreviewOverflow] = useState(false);
+  const [previewOverflow, setPreviewOverflow] = useState<PdfPreviewOverflowMeasurement>(() => ({
+    contentHeightPx: a4PageHeightPx(),
+    pageHeightPx: a4PageHeightPx(),
+    exceedsOnePage: false,
+    overflowPx: 0,
+  }));
   const [error, setError] = useState<string | null>(null);
   const [exportWarning, setExportWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,6 +109,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     pageCount: number;
     message: string;
     suggestedActions: string[];
+    overflowPx?: number;
+    overflowMm?: number;
   } | null>(null);
   const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -409,6 +421,8 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
           pageCount: approveError.pageCount,
           message: approveError.message,
           suggestedActions: approveError.suggestedActions,
+          overflowPx: approveError.overflowPx,
+          overflowMm: approveError.overflowMm,
         });
         setError(formatOnePageBlockedMessage(approveError));
       } else {
@@ -573,23 +587,45 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     </div>
   );
 
+  function applyLayoutFixPatch(patch: Partial<{
+    bodyFontPx: number;
+    marginMm: number;
+    marginTopMm: number;
+    lineSpacing: number;
+    itemLineSpacing: number;
+    sectionSpacing: number;
+  }>) {
+    updateManualSettings({
+      bodyFontPx,
+      marginMm,
+      marginTopMm,
+      lineSpacing,
+      itemLineSpacing,
+      sectionSpacing,
+      ...patch,
+    });
+  }
+
+  const hasAdditionalExperience = (layout?.additionalExperienceEntries.length ?? 0) > 0;
+
   const resumePreviewBlock = (
     <div id="package-resume" className="mt-4 space-y-4" data-testid="package-default-preview">
       {documentModel ? (
         <ResumePdfPreview
           documentModel={documentModel}
-          onOverflowChange={(measurement) => setPreviewOverflow(measurement.exceedsOnePage)}
+          onOverflowChange={setPreviewOverflow}
         />
       ) : null}
-      {!previewOverflow && validationFailure ? (
-        <p
-          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-          data-testid="preview-export-mismatch"
-        >
-          Browser preview fits one page, but server validation reported {validationFailure.pageCount}{" "}
-          page(s). Trust the approve/export gate — adjust layout or content and re-approve.
-        </p>
-      ) : null}
+      <ExportFitStatusPanel
+        previewMeasurement={previewOverflow}
+        validationFailure={validationFailure}
+        serverValidated={exportReady}
+        isValidating={isApproving}
+        layoutSettings={currentLayoutSettings}
+        hasAdditionalExperience={hasAdditionalExperience}
+        onApplyLayoutFix={applyLayoutFixPatch}
+        onOpenLayoutControls={() => openFixMode("adjust-layout")}
+      />
     </div>
   );
 
@@ -732,8 +768,18 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                   <p className="font-medium">
                     Server PDF: {validationFailure.pageCount} page(s) — export blocked
+                    {validationFailure.overflowMm && validationFailure.overflowMm > 0
+                      ? ` (~${validationFailure.overflowMm.toFixed(1)} mm overflow)`
+                      : ""}
                   </p>
                   <p className="mt-1">{validationFailure.message}</p>
+                  {validationFailure.suggestedActions.length > 0 ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {validationFailure.suggestedActions.slice(0, 3).map((action) => (
+                        <li key={action}>{action}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               ) : isApproving ? (
                 <p className="text-sm text-slate-600">Validating server PDF layout…</p>

@@ -14,7 +14,9 @@ type ResumeAssessmentPanelProps = {
   validationFailure?: {
     pageCount: number;
     message: string;
-    suggestedActions: string[];
+    suggestedActions?: string[];
+    overflowPx?: number;
+    overflowMm?: number;
   } | null;
   isValidating?: boolean;
 };
@@ -71,10 +73,13 @@ export function ResumeAssessmentPanel({
           <div className="mt-2 space-y-2">
             <p className="text-sm font-semibold text-red-800">
               {validationFailure.pageCount} page(s) — export blocked
+              {validationFailure.overflowMm && validationFailure.overflowMm > 0
+                ? ` (~${validationFailure.overflowMm.toFixed(1)} mm overflow)`
+                : ""}
             </p>
             <p className="text-sm text-red-800">{validationFailure.message}</p>
             <ul className="list-disc space-y-1 pl-5 text-sm text-red-800">
-              {validationFailure.suggestedActions.map((action) => (
+              {(validationFailure.suggestedActions ?? []).map((action) => (
                 <li key={action}>{action}</li>
               ))}
             </ul>

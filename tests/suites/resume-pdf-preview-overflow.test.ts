@@ -54,6 +54,12 @@ function main() {
   const pdfExportPath = join(process.cwd(), "src/lib/resume-draft/pdf-export.ts");
   const pdfExportSource = readFileSync(pdfExportPath, "utf8");
 
+  const exportFitPanelPath = join(
+    process.cwd(),
+    "src/components/resume-drafts/ExportFitStatusPanel.tsx",
+  );
+  const exportFitPanelSource = readFileSync(exportFitPanelPath, "utf8");
+
   const checks: [string, boolean][] = [
     ["a4 page height uses 96dpi conversion", Math.abs(pageHeightPx - (A4_HEIGHT_MM / PX_TO_MM)) < 0.01],
     ["content at page height does not overflow", !fitsOnePage.exceedsOnePage],
@@ -95,6 +101,19 @@ function main() {
       "pdf preview copy does not claim perfect parity",
       pdfPreviewSource.includes("closest visual preview") &&
         pdfPreviewSource.includes("may differ slightly"),
+    ],
+    [
+      "export fit panel compares browser and server",
+      exportFitPanelSource.includes("Browser PDF preview") &&
+        exportFitPanelSource.includes("Server PDF validation"),
+    ],
+    [
+      "export fit panel exposes mismatch test id",
+      exportFitPanelSource.includes("PREVIEW_EXPORT_MISMATCH_TEST_ID"),
+    ],
+    [
+      "export fit panel layout fix suggestions",
+      exportFitPanelSource.includes("layout-fix-suggestions"),
     ],
     [
       "pdf export awaits document fonts ready",

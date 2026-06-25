@@ -64,8 +64,8 @@ function main() {
         previewSource.includes("Validating server PDF"),
     ],
     [
-      "preview tracks validation failure",
-      previewSource.includes("validationFailure") &&
+      "preview tracks validation overflow",
+      previewSource.includes("overflowMm") &&
         previewSource.includes("ResumePdfOnePageBlockedError"),
     ],
     [

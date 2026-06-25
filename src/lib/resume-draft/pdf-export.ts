@@ -3,15 +3,21 @@ import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
 
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
+import {
+  measureResumePdfFitFromContentHeight,
+  type PdfFitMeasurement,
+} from "@/lib/resume-draft/pdf-fit-measurement";
 import { countPdfPages } from "@/lib/resume-draft/pdf-page-count";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
+import { RESUME_PDF_HTML_A4_MARKER } from "@/lib/resume-draft/resume-layout-styles";
 
 export const RESUME_PDF_MIME = "application/pdf";
 
 export type ResumePdfGenerationResult = {
   buffer: Buffer;
   pageCount: number;
+  fitMeasurement: PdfFitMeasurement;
 };
 
 const LOCAL_CHROME_CANDIDATES = [
@@ -62,6 +68,19 @@ export async function waitForPdfDocumentFonts(
   });
 }
 
+/** Measure rendered content height in Puppeteer — same scrollHeight marker as browser preview. */
+export async function measureResumePdfFitInPage(
+  page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>["newPage"]>>,
+  pageMarkerClass: string = RESUME_PDF_HTML_A4_MARKER,
+): Promise<PdfFitMeasurement> {
+  const contentHeightPx = await page.evaluate((markerClass) => {
+    const el = document.querySelector(`.${markerClass}`);
+    return el ? el.scrollHeight : 0;
+  }, pageMarkerClass);
+
+  return measureResumePdfFitFromContentHeight(contentHeightPx);
+}
+
 /**
  * Generate a PDF buffer and page count from the canonical resume document model.
  * Uses HTML/CSS rendering — not DOCX conversion.
@@ -76,6 +95,7 @@ export async function generateResumePdfResult(
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
     await waitForPdfDocumentFonts(page);
+    const fitMeasurement = await measureResumePdfFitInPage(page);
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -84,7 +104,7 @@ export async function generateResumePdfResult(
     });
     const buffer = Buffer.from(pdf);
     const pageCount = await countPdfPages(buffer);
-    return { buffer, pageCount };
+    return { buffer, pageCount, fitMeasurement };
   } finally {
     await browser.close();
   }

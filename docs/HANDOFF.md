@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.16A** (code)
+**v0.9.16B** (code)
+
+## v0.9.16B implementation note
+
+Export Trust & A4 Fit Accuracy: makes preview vs server fit trustworthy and actionable without redesigning the Application Package or changing generation.
+
+**Measurement parity:** Server Puppeteer now measures the same `.resume-pdf-a4-page` scrollHeight as browser PDF preview before counting pages — overflow amount (mm) included in approve/validate/export 422 responses.
+
+**UI:** `ExportFitStatusPanel` shows browser preview vs server validation side by side, scenario-specific guidance (preview-fits/server-fails, both overflow, pending), and prioritized layout fix suggestions with one-click Apply.
+
+**Suggestions:** `buildLayoutFixSuggestions()` recommends specific slider steps (body font, section spacing, line spacing, margins) plus content trims when needed.
+
+**Limitations:** OS font differences can still cause boundary disagreements; server page count remains export truth. No bundled web fonts. No US Letter.
+
+**Next:** Parked v0.9.15A+ items (per-section accept, selected-bullet revision, education overlay, cover letter-only generate, full Inventory CRUD).
 
 ## v0.9.16A implementation note
 
@@ -240,7 +254,11 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.16A - Tailoring Quality Upgrade**
+**v0.9.16B - Export Trust & A4 Fit Accuracy**
+
+## Latest milestone summary (v0.9.16B)
+
+Preview/export fit trust: shared content-height measurement, server overflow reporting, scenario-specific mismatch guidance, and actionable layout fix suggestions with quick-apply on the Application Package.
 
 ## Latest milestone summary (v0.9.16A)
 
@@ -250,6 +268,7 @@ Resume generation tailoring: JD-specific reframing instructions, anti-generic la
 
 | Version | Theme |
 |---------|--------|
+| v0.9.16B | Export trust & A4 fit accuracy |
 | v0.9.16A | Tailoring quality upgrade |
 | v0.9.15E | E2E trust & workflow fix pack |
 | v0.9.15D | Resume revision queue (batch scoped revision) |
@@ -357,6 +376,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.16A Tailoring Quality** — resume/cover letter generation quality improvements after trust fixes.
+**v0.9.16B Export Trust** — completed in code.
 
 Parked after that: v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, cover letter-only generate path, full Inventory CRUD).

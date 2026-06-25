@@ -58,10 +58,18 @@ export async function POST(request: Request) {
       body.layoutSettings,
     );
 
-    const { buffer, pageCount } = await generateResumePdfResult(documentModel);
+    const { buffer, pageCount, fitMeasurement } = await generateResumePdfResult(documentModel);
 
     if (pageCount > 1) {
-      return NextResponse.json(buildOnePageExportBlockedJson(pageCount), { status: 422 });
+      return NextResponse.json(
+        buildOnePageExportBlockedJson({
+          pageCount,
+          fitMeasurement,
+          layoutSettings: documentModel.layoutSettings,
+          hasAdditionalExperience: documentModel.layout.additionalExperienceEntries.length > 0,
+        }),
+        { status: 422 },
+      );
     }
 
     let uploadResult: Awaited<ReturnType<typeof uploadResumePdfExport>> | null = null;
