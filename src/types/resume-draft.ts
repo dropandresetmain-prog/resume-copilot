@@ -401,6 +401,56 @@ export type ResumeCustomRevisionResponse = {
   timestamp: string;
 };
 
+export type ResumeRevisionQueueItem =
+  | {
+      id: string;
+      scope: "professional_summary";
+      customInstruction: string;
+    }
+  | {
+      id: string;
+      scope: "selected_role";
+      roleIndex: number;
+      customInstruction: string;
+    };
+
+export type ResumeBatchRevisionRequest = {
+  draftId: string;
+  content: ResumeDraftContent;
+  jobDescription: {
+    id?: string;
+    rawText: string;
+    companyName?: string;
+    roleTitle?: string;
+  };
+  queue: ResumeRevisionQueueItem[];
+  referenceResume?: Pick<ResumeDraftReferenceResumeExcerpt, "bulletStyle">;
+  resumeModelTier?: ModelTier;
+  /** When false (default), returns staged candidates without saving. */
+  persist?: boolean;
+};
+
+export type ResumeBatchRevisionRoleCandidate = {
+  roleIndex: number;
+  company: string;
+  role: string;
+  bullets: ResumeDraftExperienceBullet[];
+};
+
+export type ResumeBatchRevisionResponse = {
+  summaryCandidate?: { text: string };
+  roleCandidates: ResumeBatchRevisionRoleCandidate[];
+  warnings: string[];
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
+  persisted: boolean;
+  timestamp: string;
+};
+
 export type CreateGeneratedResumeDraftInput = {
   jobDescriptionId: string;
   referenceResumeId: string;

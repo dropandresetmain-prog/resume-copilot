@@ -217,6 +217,12 @@
 - **Education format** unchanged — still requires institution + date structure for structured parse.
 - **Remaining import risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no signals (Accept Risk).
 
+## Resume revision queue (v0.9.15D)
+
+- **Batch scoped revision** on Application Package → Edit resume text: queue professional summary + multiple roles, one Gemini call, Accept all / Reject all staging.
+- **Per-section accept** not implemented — Accept all only this milestone.
+- **Parked:** selected-bullet revision, skills/education revision, whole-resume custom rewrite.
+
 ## Cover letter revision (v0.9.15C)
 
 - **`[Candidate Name]` placeholder bug fixed** — revision route now passes `candidateName` from linked resume draft `header.fullName`. Revision prompt preserves existing closing signature when name unavailable; validation rejects placeholder signatures in output.

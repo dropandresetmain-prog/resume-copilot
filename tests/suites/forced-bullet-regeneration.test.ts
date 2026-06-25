@@ -489,6 +489,10 @@ function main() {
       resumeCustomRevisionRoute.includes("reviseResumeScopeWithAI"),
     ],
     [
+      "resume batch revision route exists",
+      resumeCustomRevisionRoute.includes("reviseResumeBatchWithAI"),
+    ],
+    [
       "custom role revision prompt is scoped",
       promptIncludesRoleCustomRevisionScope(customRolePrompt),
     ],

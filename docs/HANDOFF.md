@@ -2,7 +2,17 @@
 
 ## Current version
 
-**v0.9.15C** (code)
+**v0.9.15D** (code)
+
+## v0.9.15D implementation note
+
+Resume Revision Queue: stage multiple scoped custom revision instructions (professional summary + one or more roles), then run **one** Gemini call via `POST /api/ai/revise-resume-scope` batch mode (`queue[]`). Preview all proposed changes; Accept all persists; Reject all discards. Staging/typing never calls AI.
+
+**Batch output:** strict JSON with `summaryCandidate`, `roleCandidates[]`, `warnings[]`. Validation rejects unqueued roles, identity mismatches, and invalid bullets — partial failures warn and leave sections unchanged.
+
+**Single-scope API preserved** for backward compatibility (`scope` + `customInstruction` without `queue`).
+
+**Parked:** selected-bullet revision, per-section accept, skills/education revision, whole-resume rewrite.
 
 ## v0.9.15C implementation note
 
@@ -198,18 +208,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.15C - Post-Generation Custom Revision Reliability**
+**v0.9.15D - Resume Revision Queue**
 
-Cover-letter revision candidateName fix; staged resume custom revision (summary + role).
+Stage multiple scoped resume revisions; one Gemini call; accept/reject all before save.
 
-## Latest milestone summary (v0.9.15C)
+## Latest milestone summary (v0.9.15D)
 
-Revised cover letters no longer leak `[Candidate Name]` when resume header has a name. Resume edit mode adds scoped custom AI revision with accept/reject staging.
+Resume edit mode now supports a revision queue — add summary and role instructions, revise all queued sections in one AI step, preview grouped changes, then accept or reject before persisting.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.15D | Resume revision queue (batch scoped revision) |
 | v0.9.15C | Post-generation custom revision reliability |
 | v0.9.15B | Apply extracted work experience + bullets |
 | v0.9.15A | Add experience from text |
@@ -314,6 +325,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.15A+ candidates** (parked for approval): whole-resume custom rewrite, cover-letter version history, selected-bullet custom revision, unsaved resume header edits warning before cover-letter revision, new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
+**v0.9.15A+ candidates** (parked for approval): per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
 
 Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.

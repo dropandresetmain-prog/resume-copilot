@@ -4,15 +4,24 @@ import {
   resolveModelsForTier,
   type ModelTier,
 } from "@/lib/ai/model-tiers";
+import { buildResumeBatchRevisionPrompt } from "@/lib/resume-draft/custom-revision-batch-prompt";
 import {
   buildResumeRoleCustomRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
   type ResumeRoleCustomRevisionPromptInput,
   type ResumeSummaryCustomRevisionPromptInput,
 } from "@/lib/resume-draft/custom-revision-prompt";
+import { parseResumeBatchRevisionJson } from "@/lib/resume-draft/custom-revision-batch-parse";
+import {
+  sanitizeBatchRevisionOutput,
+  type ResumeBatchRevisionCandidates,
+} from "@/lib/resume-draft/custom-revision-batch";
 import { parseResumeSummaryCustomRevisionJson } from "@/lib/resume-draft/custom-revision-parse";
 import { parseResumeRoleRewriteJson } from "@/lib/resume-draft/role-rewrite-parse";
-import type { ResumeCustomRevisionModelResult } from "@/lib/ai/revise-resume-scope-mock";
+import type {
+  ResumeCustomRevisionModelResult,
+  ResumeBatchRevisionModelInput,
+} from "@/lib/ai/revise-resume-scope-mock";
 
 export type ResumeCustomRevisionGeminiResult = ResumeCustomRevisionModelResult & {
   modelName: string;
@@ -71,6 +80,51 @@ export async function reviseResumeRoleCustomWithGemini(
     scope: "selected_role",
     roleBullets: parsed.bullets,
     warnings: [],
+    modelName: selection.actualModelId,
+    requestedModelTier: selection.requestedTier,
+    modelFallbackApplied: geminiResult.fallbackApplied,
+  };
+}
+
+export type ResumeBatchRevisionGeminiResult = ResumeBatchRevisionCandidates & {
+  modelName: string;
+  requestedModelTier: ModelTier;
+  modelFallbackApplied: boolean;
+};
+
+export async function reviseResumeBatchWithGemini(
+  input: ResumeBatchRevisionModelInput,
+  apiKey: string,
+  modelTier: ModelTier = "standard",
+): Promise<ResumeBatchRevisionGeminiResult> {
+  const prompt = buildResumeBatchRevisionPrompt({
+    content: input.content,
+    queue: input.queue,
+    jobDescriptionText: input.jobDescriptionText,
+    targetRoleTitle: input.targetRoleTitle,
+    bulletStyle: input.bulletStyle,
+  });
+  const geminiResult = await callGeminiWithRetry({
+    apiKey,
+    prompt,
+    temperature: 0.25,
+    responseMimeType: "application/json",
+    models: resolveModelsForTier(modelTier),
+    logicalStep: "revise_resume_batch",
+    modelTier,
+  });
+  const parsed = parseResumeBatchRevisionJson(geminiResult.text);
+  if (!parsed.ok || !parsed.value) {
+    throw new Error(parsed.error ?? "Failed to parse batch revision.");
+  }
+  const sanitized = sanitizeBatchRevisionOutput({
+    content: input.content,
+    queue: input.queue,
+    parsed: parsed.value,
+  });
+  const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
+  return {
+    ...sanitized,
     modelName: selection.actualModelId,
     requestedModelTier: selection.requestedTier,
     modelFallbackApplied: geminiResult.fallbackApplied,

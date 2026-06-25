@@ -1,5 +1,5 @@
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
-import { reviseMockResumeRoleCustom, reviseMockResumeSummary } from "../../src/lib/ai/revise-resume-scope-mock";
+import { reviseMockResumeRoleCustom, reviseMockResumeSummary, reviseMockResumeBatch } from "../../src/lib/ai/revise-resume-scope-mock";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -15,6 +15,14 @@ import {
   applyResumeCustomRevision,
   resumeCustomRevisionShouldPersist,
 } from "../../src/lib/resume-draft/custom-revision";
+import {
+  applyResumeBatchRevision,
+  sanitizeBatchRevisionOutput,
+} from "../../src/lib/resume-draft/custom-revision-batch";
+import {
+  buildResumeBatchRevisionPrompt,
+  promptIncludesBatchRevisionScope,
+} from "../../src/lib/resume-draft/custom-revision-batch-prompt";
 import {
   buildResumeRoleCustomRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
@@ -160,6 +168,111 @@ function main() {
     customInstruction: "Focus on revenue.",
     jobDescriptionText: sampleJd.rawText,
   });
+  const batchPrompt = buildResumeBatchRevisionPrompt({
+    content: {
+      ...originalContent,
+      professionalSummary: {
+        text: "Operations leader with B2B experience.",
+        jdAlignment: [],
+        riskFlags: [],
+      },
+    },
+    queue: [
+      {
+        id: "summary-1",
+        scope: "professional_summary",
+        customInstruction: "Emphasize automation outcomes.",
+      },
+      {
+        id: "role-0",
+        scope: "selected_role",
+        roleIndex: 0,
+        customInstruction: "Tighten metrics.",
+      },
+    ],
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const batchRevision = reviseMockResumeBatch({
+    content: {
+      ...originalContent,
+      professionalSummary: {
+        text: "Operations leader with B2B experience.",
+        jdAlignment: [],
+        riskFlags: [],
+      },
+    },
+    queue: [
+      {
+        id: "summary-1",
+        scope: "professional_summary",
+        customInstruction: "Emphasize automation outcomes.",
+      },
+      {
+        id: "role-0",
+        scope: "selected_role",
+        roleIndex: 0,
+        customInstruction: "Tighten metrics.",
+      },
+    ],
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const batchContent = applyResumeBatchRevision(
+    {
+      ...originalContent,
+      professionalSummary: {
+        text: "Operations leader with B2B experience.",
+        jdAlignment: [],
+        riskFlags: [],
+      },
+    },
+    batchRevision,
+  );
+  const unqueuedRoleSanitized = sanitizeBatchRevisionOutput({
+    content: originalContent,
+    queue: [
+      {
+        id: "role-0",
+        scope: "selected_role",
+        roleIndex: 0,
+        customInstruction: "Tighten metrics.",
+      },
+    ],
+    parsed: {
+      roleCandidates: [
+        {
+          roleIndex: 1,
+          company: originalContent.experience[1]?.company ?? "Other Co",
+          role: originalContent.experience[1]?.role ?? "Other Role",
+          bullets: originalContent.experience[1]?.bullets ?? [],
+        },
+      ],
+      warnings: [],
+    },
+  });
+  const malformedSanitized = sanitizeBatchRevisionOutput({
+    content: originalContent,
+    queue: [
+      {
+        id: "role-0",
+        scope: "selected_role",
+        roleIndex: 0,
+        customInstruction: "Tighten metrics.",
+      },
+    ],
+    parsed: {
+      roleCandidates: [
+        {
+          roleIndex: 0,
+          company: originalContent.experience[0]!.company,
+          role: originalContent.experience[0]!.role,
+          bullets: [],
+        },
+      ],
+      warnings: ["Model noted a formatting issue."],
+    },
+  });
 
   const checks: [string, boolean][] = [
     ["initial review state pending summary", initialReview.professionalSummary.status === "pending"],
@@ -197,6 +310,32 @@ function main() {
     [
       "role custom revision prompt scope",
       promptIncludesRoleCustomRevisionScope(rolePrompt),
+    ],
+    [
+      "batch revision prompt scope",
+      promptIncludesBatchRevisionScope(batchPrompt),
+    ],
+    [
+      "batch revision applies summary and role",
+      batchContent.professionalSummary.text === batchRevision.summaryText &&
+        batchContent.experience[0]?.bullets !== originalContent.experience[0]?.bullets,
+    ],
+    [
+      "batch revision leaves unqueued roles unchanged",
+      originalContent.experience[1]
+        ? batchContent.experience[1]?.bullets[0]?.text ===
+          originalContent.experience[1]?.bullets[0]?.text
+        : true,
+    ],
+    [
+      "unqueued role candidate ignored",
+      unqueuedRoleSanitized.roleUpdates.length === 0 &&
+        unqueuedRoleSanitized.warnings.some((warning) => warning.includes("unqueued")),
+    ],
+    [
+      "malformed role candidate left unchanged with warning",
+      malformedSanitized.roleUpdates.length === 0 &&
+        malformedSanitized.warnings.some((warning) => warning.includes("Skipped role 0")),
     ],
   ];
 

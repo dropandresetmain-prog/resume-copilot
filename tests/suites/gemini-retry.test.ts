@@ -195,6 +195,7 @@ function main() {
     ["role rewrite uses resolveModelsForTier", roleRewriteGemini.includes("resolveModelsForTier")],
     ["resume custom revision uses callGeminiWithRetry", resumeScopeGemini.includes("callGeminiWithRetry")],
     ["resume custom revision uses resolveModelsForTier", resumeScopeGemini.includes("resolveModelsForTier")],
+    ["resume batch revision uses callGeminiWithRetry", resumeScopeGemini.includes('logicalStep: "revise_resume_batch"')],
     ["call gemini logs metadata helper", typeof logGeminiCallMetadata === "function"],
     [
       "resume logical step name",

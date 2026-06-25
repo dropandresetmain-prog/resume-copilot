@@ -1,15 +1,19 @@
 import {
   reviseMockResumeRoleCustom,
   reviseMockResumeSummary,
+  reviseMockResumeBatch,
   type ResumeCustomRevisionModelResult,
+  type ResumeBatchRevisionModelInput,
 } from "@/lib/ai/revise-resume-scope-mock";
 import {
+  reviseResumeBatchWithGemini,
   reviseResumeRoleCustomWithGemini,
   reviseResumeSummaryWithGemini,
 } from "@/lib/ai/revise-resume-scope-gemini";
 import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
 import type { AIProviderId } from "@/lib/ai/types";
+import type { ResumeBatchRevisionCandidates } from "@/lib/resume-draft/custom-revision-batch";
 import type {
   ResumeRoleCustomRevisionPromptInput,
   ResumeSummaryCustomRevisionPromptInput,
@@ -62,6 +66,50 @@ export async function reviseResumeScopeWithAI(
       ? reviseMockResumeSummary(input)
       : reviseMockResumeRoleCustom(input);
 
+  return {
+    ...result,
+    providerId: "mock",
+    modelName: undefined,
+    requestedModelTier: modelTier,
+    modelFallbackApplied: false,
+  };
+}
+
+export async function reviseResumeBatchWithAI(
+  input: ResumeBatchRevisionModelInput,
+  providerId?: string | null,
+  options?: { modelTier?: ModelTier },
+): Promise<
+  ResumeBatchRevisionCandidates & {
+    providerId: AIProviderId;
+    modelName?: string;
+    requestedModelTier: ModelTier;
+    modelFallbackApplied: boolean;
+  }
+> {
+  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const modelTier = options?.modelTier ?? "standard";
+
+  if (provider === "gemini") {
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
+    }
+    const result = await reviseResumeBatchWithGemini(input, apiKey, modelTier);
+    return {
+      ...result,
+      providerId: "gemini",
+      modelName: result.modelName,
+      requestedModelTier: result.requestedModelTier,
+      modelFallbackApplied: result.modelFallbackApplied,
+    };
+  }
+
+  if (provider === "openai") {
+    throw new Error("OpenAI resume batch revision is not implemented yet.");
+  }
+
+  const result = reviseMockResumeBatch(input);
   return {
     ...result,
     providerId: "mock",

@@ -350,17 +350,29 @@ function main() {
     [
       "resume custom instruction does not call gemini before revise",
       resumeCustomRevisionPanel.includes("Instructions stage only") &&
-        resumeCustomRevisionPanel.includes("requestResumeCustomRevision") &&
-        resumeCustomRevisionPanel.includes("persist: false"),
+        resumeCustomRevisionPanel.includes("requestResumeBatchRevision") &&
+        resumeCustomRevisionPanel.includes("persist: false") &&
+        resumeCustomRevisionPanel.includes("Add to revision queue"),
     ],
     [
-      "resume revise returns staged candidate only",
+      "resume queue staging does not call gemini",
+      resumeCustomRevisionPanel.includes("handleAddToQueue") &&
+        !resumeCustomRevisionPanel.includes("onChange={() => void handleRevise"),
+    ],
+    [
+      "resume batch revise returns staged candidate only",
       resumeCustomRevisionPanel.includes("response.persisted") &&
-        resumeCustomRevisionPanel.includes("applyResumeCustomRevision"),
+        resumeCustomRevisionPanel.includes("applyResumeBatchRevision"),
+    ],
+    [
+      "resume batch uses one revise action",
+      resumeCustomRevisionPanel.includes("Revise selected sections") &&
+        resumeCustomRevisionPanel.includes("handleReviseSelectedSections"),
     ],
     [
       "resume accept persists via callback",
-      resumeCustomRevisionPanel.includes("await onAccepted") &&
+      resumeCustomRevisionPanel.includes("Accept all") &&
+        resumeCustomRevisionPanel.includes("await onAccepted") &&
         reviewWorkspace.includes("updateGeneratedResumeDraftInCloud"),
     ],
     [
@@ -371,7 +383,13 @@ function main() {
     [
       "resume custom revision route defaults to candidate mode",
       resumeCustomRevisionRoute.includes("resumeCustomRevisionShouldPersist") &&
-        resumeCustomRevisionRoute.includes("persisted: shouldPersist"),
+        resumeCustomRevisionRoute.includes("persisted: shouldPersist") &&
+        resumeCustomRevisionRoute.includes("handleBatchRevision"),
+    ],
+    [
+      "single scope revision route preserved",
+      resumeCustomRevisionRoute.includes("handleSingleRevision") &&
+        resumeCustomRevisionRoute.includes("reviseResumeScopeWithAI"),
     ],
     [
       "resume custom revision cost copy",

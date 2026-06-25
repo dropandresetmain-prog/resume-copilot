@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.15C**
+**v0.9.15D**
 
 ## Completed capabilities
 
@@ -46,8 +46,16 @@
 | Add experience from text (inventory paste → review → overlay apply) | v0.9.15A |
 | Apply extracted work experience + bullet suggestions | v0.9.15B |
 | Post-generation custom revision reliability | v0.9.15C |
+| Resume revision queue (batch scoped revision) | v0.9.15D |
 
 ## Milestone log (recent)
+
+### v0.9.15D - Resume Revision Queue
+
+- Queue UX: add summary/role instructions → Revise selected sections (1 AI step) → preview → Accept all / Reject all.
+- Batch mode on `POST /api/ai/revise-resume-scope` with `queue[]`; single-scope path unchanged.
+- Structured output: `summaryCandidate`, `roleCandidates[]`, `warnings[]`; sanitize rejects unqueued/invalid candidates.
+- **Parked:** per-section accept, selected-bullet revision, skills/education scopes, whole-resume rewrite.
 
 ### v0.9.15C - Post-Generation Custom Revision Reliability
 
