@@ -2,7 +2,19 @@
 
 ## Current version
 
-**v0.9.15A** (code)
+**v0.9.15B** (code)
+
+## v0.9.15B implementation note
+
+Apply Extracted Work Experience + Bullet Suggestions: extends v0.9.15A so accepted work experience and bullet suggestions persist through the inventory overlay.
+
+**Applyable:** new work experiences (`addedExperiences`), bullets to existing or new roles (`addedBulletsByExperienceKey` + auto-create overlay experience when needed), skills, additional experience, keywords.
+
+**UX:** Suggestions classified as Will be added / Needs manual placement / Preview only before apply. Skipped items listed with reasons after apply. Duplicate bullets not re-added.
+
+**Generation:** `buildActiveCollatedInventory` includes overlay experiences and imported bullets for resume generation.
+
+**Still preview-only:** education entries. Full Inventory CRUD remains parked.
 
 ## v0.9.15A implementation note
 
@@ -176,18 +188,19 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.15A - Add Experience From Text**
+**v0.9.15B - Apply Extracted Work Experience + Bullet Suggestions**
 
-Paste career text → Gemini structured suggestions → review → apply to inventory overlay.
+Overlay persistence for new experiences and bullets from Add from Text; classified apply UX.
 
-## Latest milestone summary (v0.9.15A)
+## Latest milestone summary (v0.9.15B)
 
-Baseline text-import flow for inventory evidence; overlay apply for bullets/skills/additional/keywords; new experience and education preview-only.
+Accepted work experience and bullet suggestions now apply to inventory overlay and flow into generation; education still preview-only.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.15B | Apply extracted work experience + bullets |
 | v0.9.15A | Add experience from text |
 | v0.9.14B | Company website discovery + verification |
 | v0.9.14A | Generate decision tree & context policy |

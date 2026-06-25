@@ -34,13 +34,13 @@
 - DOCX uses Gill Sans MT; Word may substitute.
 - Not pixel-identical to PDF.
 
-## Inventory text import (v0.9.15A)
+## Inventory text import (v0.9.15B)
 
-- **Add from text** on Inventory: paste career notes → **Extract suggestions** → review accept/reject/edit → **Apply accepted suggestions**.
-- **Applyable:** bullets to existing roles (overlay), skills, additional experience lines, approved keywords.
-- **Preview only:** new work experience blocks, education entries, bullets without a matching role — not persisted until a future milestone.
+- **Applyable:** new work experiences (overlay), bullets to existing or new roles, skills, additional experience lines, keywords.
+- **Needs manual placement:** accepted suggestions missing company/role, or new experience when that role already exists (add bullets instead).
+- **Preview only:** education entries — not persisted yet.
+- **Duplicate bullets** are flagged in review and not re-added on apply.
 - **No auto-save** on extract; apply is explicit; source uploaded resumes are never mutated.
-- **Extraction quality** depends on pasted text richness; thin paste returns “not enough information.”
 - **Not full Inventory CRUD** — overlay fields in `InventoryEdits` + enrichment keyword bank only.
 
 ## Generate flow (v0.9.14B+)

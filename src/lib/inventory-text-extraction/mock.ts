@@ -65,9 +65,9 @@ export function extractInventoryTextWithMock(
           category: "bullets",
           text,
           matchLabel: "new_experience",
-          warnings: ["No matching experience in inventory."],
-          applyability: "preview_only",
-          sourceNote: "Parsed from bullet line — new experience bullets are preview-only.",
+          warnings: ["Add company and role in the pasted text to place this bullet."],
+          applyability: "needs_manual_placement",
+          sourceNote: "Parsed from bullet line without a matching experience.",
         });
       }
       continue;
@@ -124,12 +124,10 @@ export function extractInventoryTextWithMock(
         dateRange,
         matchLabel: existing ? "add_to_existing" : "new_experience",
         mappedExperienceKey: existing?.experienceKey,
-        warnings: [
-          existing
-            ? "Matches existing company/role — review as context, not a new role."
-            : "New work experience persistence is preview-only in v0.9.15A.",
-        ],
-        applyability: "preview_only",
+        warnings: existing
+          ? ["Matches existing company/role — add bullets instead of a new experience row."]
+          : [],
+        applyability: existing ? "needs_manual_placement" : "applyable",
         sourceNote: "Parsed from role-at-company line.",
       });
     }
@@ -157,8 +155,8 @@ export function extractInventoryTextWithMock(
         category: "work_experience",
         text: pasted.slice(0, 280),
         matchLabel: "new_experience",
-        warnings: ["New work experience persistence is preview-only in v0.9.15A."],
-        applyability: "preview_only",
+        warnings: ["Add company and role in the pasted text to create a new experience."],
+        applyability: "needs_manual_placement",
       });
     }
   }

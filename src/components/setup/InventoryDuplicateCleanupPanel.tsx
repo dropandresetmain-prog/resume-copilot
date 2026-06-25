@@ -7,6 +7,7 @@ import {
   secondaryButtonClassName,
   SetupCard,
 } from "@/components/setup/ui";
+import { applyInventoryEditsToCollated } from "@/lib/inventory/edits";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
 import {
   clearInventoryAlternateWording,
@@ -36,7 +37,11 @@ export function InventoryDuplicateCleanupPanel({
 }: InventoryDuplicateCleanupPanelProps) {
   const rawCollated = useMemo(() => buildCollatedInventory(inventory), [inventory]);
   const duplicateGroups = useMemo(
-    () => listActiveInventoryDuplicateGroups(rawCollated, draftEdits),
+    () =>
+      listActiveInventoryDuplicateGroups(
+        applyInventoryEditsToCollated(rawCollated, draftEdits),
+        draftEdits,
+      ),
     [rawCollated, draftEdits],
   );
 

@@ -6,6 +6,7 @@ import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { buildActiveCollatedInventory } from "../../src/lib/inventory/active-collated";
 import { buildTextImportBulletKey } from "../../src/lib/inventory/edits";
 import { applyAcceptedInventoryTextSuggestions } from "../../src/lib/inventory-text-extraction/apply";
+import { classifyInventoryTextSuggestionApplyability } from "../../src/lib/inventory-text-extraction/classify";
 import { flagDuplicateInventoryTextSuggestions } from "../../src/lib/inventory-text-extraction/duplicate-preview";
 import { extractInventoryTextWithMock } from "../../src/lib/inventory-text-extraction/mock";
 import {
@@ -194,6 +195,82 @@ function main() {
     collated,
   );
 
+  const newExperience = reviewed({
+    id: "exp-new",
+    kind: "new_work_experience",
+    category: "work_experience",
+    text: "Growth Lead at Socius — 2022-2024",
+    company: "Socius",
+    role: "Growth Lead",
+    dateRange: "2022 - 2024",
+    matchLabel: "new_experience",
+    warnings: [],
+    applyability: "applyable",
+  });
+
+  const newExperienceBullet = reviewed({
+    id: "bullet-new",
+    kind: "bullet_new_experience",
+    category: "bullets",
+    text: "Scaled partner channel revenue 2x in 18 months",
+    company: "Socius",
+    role: "Growth Lead",
+    matchLabel: "new_experience",
+    warnings: [],
+    applyability: "applyable",
+  });
+
+  const duplicateAcceptedBullet = reviewed({
+    id: "dup-apply",
+    kind: "bullet_existing_experience",
+    category: "bullets",
+    text: "Grew annual revenue 40% through enterprise partnerships",
+    company: "Acme Corp",
+    role: "Product Manager",
+    matchLabel: "add_to_existing",
+    mappedExperienceKey: experienceKey,
+    warnings: [],
+    applyability: "applyable",
+    duplicateOfBulletKey: "existing-dup-key",
+  });
+
+  const newExperienceApply = applyAcceptedInventoryTextSuggestions(
+    [newExperience, newExperienceBullet],
+    createEmptyInventoryEdits(),
+    inventory.enrichment,
+    collated,
+  );
+
+  const inventoryWithNewExperience = {
+    ...inventory,
+    edits: newExperienceApply.edits,
+  };
+  const activeWithNewExperience = buildActiveCollatedInventory(inventoryWithNewExperience);
+  const sociusExperience = activeWithNewExperience.experiences.find(
+    (item) => item.company === "Socius",
+  );
+
+  const duplicateApply = applyAcceptedInventoryTextSuggestions(
+    [acceptedBullet, duplicateAcceptedBullet],
+    createEmptyInventoryEdits(),
+    inventory.enrichment,
+    collated,
+  );
+
+  const needsManual = classifyInventoryTextSuggestionApplyability(
+    {
+      id: "manual-1",
+      kind: "bullet_new_experience",
+      category: "bullets",
+      text: "Built dashboards",
+      matchLabel: "new_experience",
+      warnings: [],
+      applyability: "applyable",
+    },
+    collated,
+    createEmptyInventoryEdits(),
+  );
+
   const inventoryWithApplied = {
     ...inventory,
     edits: applyResult.edits,
@@ -239,6 +316,14 @@ function main() {
       ),
     ],
     ["keyword lands in enrichment bank", applyResult.enrichment.keywordBank.some((item) => item.approved && item.keyword === "Product Operations")],
+    ["new work experience applied to overlay", (newExperienceApply.edits.addedExperiences?.length ?? 0) === 1],
+    ["new experience appears in active collated", Boolean(sociusExperience)],
+    ["bullet for new experience appears in active collated", sociusExperience?.bullets.some((bullet) => bullet.description.includes("partner channel")) ?? false],
+    ["duplicate accepted bullet skipped with reason", duplicateApply.skippedCount >= 1 && duplicateApply.skippedItems.some((item) => item.reason.includes("Duplicate"))],
+    ["missing company/role classified needs manual placement", needsManual === "needs_manual_placement"],
+    ["skipped items include user-facing reason", duplicateApply.skippedItems.every((item) => item.reason.length > 0)],
+    ["panel shows applyability label", extractionPanel.includes("applyabilityLabel")],
+    ["panel shows skipped suggestions list", extractionPanel.includes('data-testid="inventory-text-skipped-suggestions"')],
     ["inventory page wires Add from text", inventoryPage.includes("InventoryTextExtractionPanel")],
     ["panel exposes Add from text CTA", extractionPanel.includes('data-testid="inventory-add-from-text"')],
     ["panel exposes Extract suggestions", extractionPanel.includes('data-testid="inventory-extract-suggestions"')],

@@ -1,10 +1,11 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
-import { experienceKey } from "@/lib/inventory/normalize";
+import { bulletsAreSimilar, experienceKey } from "@/lib/inventory/normalize";
 import type { CollatedBullet, CollatedExperience, CollatedInventory } from "@/types/collated";
 import type { SourceCitation } from "@/types/collated";
 import {
   createEmptyInventoryEdits,
   type InventoryAddedBullet,
+  type InventoryAddedExperience,
   type InventoryAddedSkillItem,
   type InventoryAddedTextItem,
   type InventoryEdits,
@@ -119,6 +120,27 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
       addedAt: item.addedAt || new Date().toISOString(),
     }));
 
+  const addedExperiences = (edits.addedExperiences ?? [])
+    .filter(
+      (item): item is InventoryAddedExperience =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof item.id === "string" &&
+        typeof item.company === "string" &&
+        item.company.trim().length > 0 &&
+        typeof item.role === "string" &&
+        item.role.trim().length > 0,
+    )
+    .map((item) => ({
+      ...item,
+      company: item.company.trim(),
+      role: item.role.trim(),
+      location: item.location?.trim() || undefined,
+      dateRange: item.dateRange?.trim() || undefined,
+      descriptor: item.descriptor?.trim() || undefined,
+      addedAt: item.addedAt || new Date().toISOString(),
+    }));
+
   return {
     hiddenBulletKeys,
     editedBulletTextByBulletKey,
@@ -127,6 +149,7 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
     addedBulletsByExperienceKey,
     addedSkillItems,
     addedAdditionalExperienceItems,
+    addedExperiences,
   };
 }
 
@@ -194,7 +217,24 @@ export function applyInventoryEditsToCollated(
   const hidden = new Set(edits.hiddenBulletKeys);
   const includeHidden = options?.includeHidden ?? false;
 
-  const experiences = collated.experiences.map((experience) => {
+  const existingExperienceKeys = new Set(
+    collated.experiences.map((item) => experienceKey(item.company, item.role)),
+  );
+
+  const overlayExperiences: CollatedExperience[] = (edits.addedExperiences ?? [])
+    .filter((added) => !existingExperienceKeys.has(experienceKey(added.company, added.role)))
+    .map((added) => ({
+      id: added.id,
+      company: added.company,
+      role: added.role,
+      descriptor: added.descriptor,
+      location: added.location,
+      dateRange: added.dateRange,
+      sourceCitations: [TEXT_IMPORT_CITATION],
+      bullets: [],
+    }));
+
+  const mapExperienceBullets = (experience: CollatedExperience): CollatedExperience => {
     const key = experienceKey(experience.company, experience.role);
     const addedBullets = edits.addedBulletsByExperienceKey?.[key] ?? [];
 
@@ -216,27 +256,39 @@ export function applyInventoryEditsToCollated(
       ];
     });
 
-    const importedBullets: CollatedBullet[] = addedBullets.map((added) => {
-      const inventoryBulletKey = buildTextImportBulletKey(
-        experience.company,
-        experience.role,
-        added.id,
-      );
-      return {
-        id: added.id,
-        keyword: added.keyword,
-        description: added.description,
-        rawTexts: [added.description],
-        sourceCitations: [TEXT_IMPORT_CITATION],
-        inventoryBulletKey,
-      };
-    });
+    const importedBullets: CollatedBullet[] = addedBullets
+      .filter(
+        (added) =>
+          !baseBullets.some((bullet) =>
+            bulletsAreSimilar(bullet.description, added.description),
+          ),
+      )
+      .map((added) => {
+        const inventoryBulletKey = buildTextImportBulletKey(
+          experience.company,
+          experience.role,
+          added.id,
+        );
+        return {
+          id: added.id,
+          keyword: added.keyword,
+          description: added.description,
+          rawTexts: [added.description],
+          sourceCitations: [TEXT_IMPORT_CITATION],
+          inventoryBulletKey,
+        };
+      });
 
     return {
       ...experience,
       bullets: [...baseBullets, ...importedBullets],
     };
-  });
+  };
+
+  const experiences = [
+    ...collated.experiences.map(mapExperienceBullets),
+    ...overlayExperiences.map(mapExperienceBullets),
+  ];
 
   const addedSkills = (edits.addedSkillItems ?? []).map((item) => ({
     id: item.id,
@@ -278,11 +330,13 @@ export function listCollatedBulletsWithEditState(
   editsInput: InventoryEdits | undefined,
 ): CollatedBulletListing[] {
   const edits = normalizeInventoryEdits(editsInput);
+  const activeCollated = applyInventoryEditsToCollated(collated, edits, { includeHidden: true });
   const listings: CollatedBulletListing[] = [];
 
-  for (const experience of collated.experiences) {
+  for (const experience of activeCollated.experiences) {
     for (const bullet of experience.bullets) {
-      const bulletKey = buildCollatedBulletKey(experience, bullet);
+      const bulletKey =
+        bullet.inventoryBulletKey ?? buildCollatedBulletKey(experience, bullet);
       const editedText = edits.editedBulletTextByBulletKey[bulletKey];
       const isHidden = edits.hiddenBulletKeys.includes(bulletKey);
       listings.push({
@@ -436,6 +490,9 @@ function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
     addedAdditionalExperienceItems: [
       ...(edits.addedAdditionalExperienceItems ?? []),
     ].sort((left, right) => left.id.localeCompare(right.id)),
+    addedExperiences: [...(edits.addedExperiences ?? [])].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    ),
   });
 }
 
@@ -515,4 +572,122 @@ export function addInventoryTextImportAdditionalExperience(
       nextItem,
     ],
   };
+}
+
+export function hasInventoryExperience(
+  collated: CollatedInventory,
+  edits: InventoryEdits,
+  company: string,
+  role: string,
+): boolean {
+  const key = experienceKey(company, role);
+  if (collated.experiences.some((item) => experienceKey(item.company, item.role) === key)) {
+    return true;
+  }
+  return (normalizeInventoryEdits(edits).addedExperiences ?? []).some(
+    (item) => experienceKey(item.company, item.role) === key,
+  );
+}
+
+export function listInventoryExperienceBulletDescriptions(
+  collated: CollatedInventory,
+  edits: InventoryEdits,
+  company: string,
+  role: string,
+): string[] {
+  const active = applyInventoryEditsToCollated(collated, edits);
+  const key = experienceKey(company, role);
+  const experience = active.experiences.find(
+    (item) => experienceKey(item.company, item.role) === key,
+  );
+  return experience?.bullets.map((bullet) => bullet.description) ?? [];
+}
+
+export function inventoryBulletDescriptionExists(
+  collated: CollatedInventory,
+  edits: InventoryEdits,
+  company: string,
+  role: string,
+  description: string,
+): boolean {
+  return listInventoryExperienceBulletDescriptions(collated, edits, company, role).some(
+    (existing) => bulletsAreSimilar(existing, description),
+  );
+}
+
+export function addInventoryTextImportExperience(
+  edits: InventoryEdits,
+  experience: {
+    company: string;
+    role: string;
+    location?: string;
+    dateRange?: string;
+    descriptor?: string;
+  },
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  const key = experienceKey(experience.company, experience.role);
+  const alreadyOverlay = (normalized.addedExperiences ?? []).some(
+    (item) => experienceKey(item.company, item.role) === key,
+  );
+  if (alreadyOverlay) {
+    return normalized;
+  }
+
+  const nextExperience: InventoryAddedExperience = {
+    id: createOverlayId(),
+    company: experience.company.trim(),
+    role: experience.role.trim(),
+    location: experience.location?.trim() || undefined,
+    dateRange: experience.dateRange?.trim() || undefined,
+    descriptor: experience.descriptor?.trim() || undefined,
+    addedAt: new Date().toISOString(),
+  };
+
+  return {
+    ...normalized,
+    addedExperiences: [...(normalized.addedExperiences ?? []), nextExperience],
+  };
+}
+
+export function addInventoryTextImportBulletIfNotDuplicate(
+  edits: InventoryEdits,
+  collated: CollatedInventory,
+  experienceCompany: string,
+  experienceRole: string,
+  bullet: { description: string; keyword?: string },
+): { edits: InventoryEdits; added: boolean } {
+  if (
+    inventoryBulletDescriptionExists(
+      collated,
+      edits,
+      experienceCompany,
+      experienceRole,
+      bullet.description,
+    )
+  ) {
+    return { edits: normalizeInventoryEdits(edits), added: false };
+  }
+
+  return {
+    edits: addInventoryTextImportBullet(edits, experienceCompany, experienceRole, bullet),
+    added: true,
+  };
+}
+
+export function ensureInventoryTextImportExperience(
+  edits: InventoryEdits,
+  collated: CollatedInventory,
+  experience: {
+    company: string;
+    role: string;
+    location?: string;
+    dateRange?: string;
+    descriptor?: string;
+  },
+): InventoryEdits {
+  if (hasInventoryExperience(collated, edits, experience.company, experience.role)) {
+    return normalizeInventoryEdits(edits);
+  }
+  return addInventoryTextImportExperience(edits, experience);
 }

@@ -20,6 +20,17 @@ export type InventoryAddedTextItem = {
   addedAt: string;
 };
 
+/** Work experience added from pasted text import — overlay only (v0.9.15B). */
+export type InventoryAddedExperience = {
+  id: string;
+  company: string;
+  role: string;
+  location?: string;
+  dateRange?: string;
+  descriptor?: string;
+  addedAt: string;
+};
+
 /**
  * Non-destructive overlay on collated inventory.
  * Does not mutate parsed resume bullets in uploaded source files.
@@ -39,6 +50,8 @@ export type InventoryEdits = {
   addedSkillItems?: InventoryAddedSkillItem[];
   /** Additional experience lines added from text import (v0.9.15A). */
   addedAdditionalExperienceItems?: InventoryAddedTextItem[];
+  /** Work experiences added from text import (v0.9.15B). */
+  addedExperiences?: InventoryAddedExperience[];
 };
 
 export function createEmptyInventoryEdits(): InventoryEdits {
@@ -50,5 +63,6 @@ export function createEmptyInventoryEdits(): InventoryEdits {
     addedBulletsByExperienceKey: {},
     addedSkillItems: [],
     addedAdditionalExperienceItems: [],
+    addedExperiences: [],
   };
 }

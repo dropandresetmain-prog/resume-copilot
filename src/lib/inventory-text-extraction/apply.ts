@@ -1,18 +1,36 @@
 import { upsertKeywordBankItem } from "@/lib/enrichment/state";
 import {
   addInventoryTextImportAdditionalExperience,
-  addInventoryTextImportBullet,
+  addInventoryTextImportBulletIfNotDuplicate,
+  addInventoryTextImportExperience,
   addInventoryTextImportSkill,
+  ensureInventoryTextImportExperience,
+  hasInventoryExperience,
   normalizeInventoryEdits,
 } from "@/lib/inventory/edits";
 import { experienceKey } from "@/lib/inventory/normalize";
+import { isBulletSuggestionKind } from "@/lib/inventory-text-extraction/classify";
 import type { EnrichmentState } from "@/types/enrichment";
 import type { InventoryEdits } from "@/types/inventory-edits";
 import type {
   InventoryTextExtractionSuggestion,
+  InventoryTextSuggestionKind,
   ReviewedInventoryTextSuggestion,
 } from "@/types/inventory-text-extraction";
 import type { CollatedInventory } from "@/types/collated";
+
+export type SkippedInventoryTextSuggestion = {
+  suggestionId: string;
+  kind: InventoryTextSuggestionKind;
+  summary: string;
+  reason: string;
+};
+
+export type AppliedInventoryTextSuggestion = {
+  suggestionId: string;
+  kind: InventoryTextSuggestionKind;
+  summary: string;
+};
 
 export type ApplyInventoryTextExtractionResult = {
   edits: InventoryEdits;
@@ -20,15 +38,26 @@ export type ApplyInventoryTextExtractionResult = {
   appliedCount: number;
   skippedCount: number;
   skippedReasons: string[];
+  appliedItems: AppliedInventoryTextSuggestion[];
+  skippedItems: SkippedInventoryTextSuggestion[];
 };
 
 function effectiveSuggestionText(suggestion: ReviewedInventoryTextSuggestion): string {
   return suggestion.editedText?.trim() || suggestion.text.trim();
 }
 
+function suggestionSummary(suggestion: ReviewedInventoryTextSuggestion): string {
+  const text = effectiveSuggestionText(suggestion);
+  if (suggestion.company && suggestion.role) {
+    return `${suggestion.company} · ${suggestion.role}: ${text.slice(0, 80)}`;
+  }
+  return text.slice(0, 120);
+}
+
 function resolveExperienceForBullet(
   suggestion: InventoryTextExtractionSuggestion,
   collated: CollatedInventory,
+  edits: InventoryEdits,
 ): { company: string; role: string } | null {
   if (suggestion.mappedExperienceKey) {
     const match = collated.experiences.find(
@@ -37,20 +66,57 @@ function resolveExperienceForBullet(
     if (match) {
       return { company: match.company, role: match.role };
     }
+
+    const overlay = (edits.addedExperiences ?? []).find(
+      (item) => experienceKey(item.company, item.role) === suggestion.mappedExperienceKey,
+    );
+    if (overlay) {
+      return { company: overlay.company, role: overlay.role };
+    }
   }
 
   const company = suggestion.company?.trim();
   const role = suggestion.role?.trim();
   if (!company || !role) return null;
 
-  const match = collated.experiences.find(
+  const collatedMatch = collated.experiences.find(
     (item) => experienceKey(item.company, item.role) === experienceKey(company, role),
   );
-  if (match) {
-    return { company: match.company, role: match.role };
+  if (collatedMatch) {
+    return { company: collatedMatch.company, role: collatedMatch.role };
+  }
+
+  if (hasInventoryExperience(collated, edits, company, role)) {
+    return { company, role };
   }
 
   return { company, role };
+}
+
+function recordSkip(
+  skippedItems: SkippedInventoryTextSuggestion[],
+  skippedReasons: string[],
+  suggestion: ReviewedInventoryTextSuggestion,
+  reason: string,
+) {
+  skippedItems.push({
+    suggestionId: suggestion.id,
+    kind: suggestion.kind,
+    summary: suggestionSummary(suggestion),
+    reason,
+  });
+  skippedReasons.push(reason);
+}
+
+function recordApplied(
+  appliedItems: AppliedInventoryTextSuggestion[],
+  suggestion: ReviewedInventoryTextSuggestion,
+) {
+  appliedItems.push({
+    suggestionId: suggestion.id,
+    kind: suggestion.kind,
+    summary: suggestionSummary(suggestion),
+  });
 }
 
 export function applyAcceptedInventoryTextSuggestions(
@@ -64,48 +130,208 @@ export function applyAcceptedInventoryTextSuggestions(
   let appliedCount = 0;
   let skippedCount = 0;
   const skippedReasons: string[] = [];
+  const appliedItems: AppliedInventoryTextSuggestion[] = [];
+  const skippedItems: SkippedInventoryTextSuggestion[] = [];
 
-  for (const suggestion of accepted) {
-    if (suggestion.reviewStatus !== "accepted") continue;
+  const acceptedOnly = accepted.filter((item) => item.reviewStatus === "accepted");
 
+  const workExperiences = acceptedOnly.filter((item) => item.kind === "new_work_experience");
+  const bullets = acceptedOnly.filter((item) => isBulletSuggestionKind(item.kind));
+  const others = acceptedOnly.filter(
+    (item) =>
+      !isBulletSuggestionKind(item.kind) &&
+      item.kind !== "new_work_experience",
+  );
+
+  for (const suggestion of workExperiences) {
     const text = effectiveSuggestionText(suggestion);
     if (!text) {
       skippedCount += 1;
-      skippedReasons.push(`Skipped empty suggestion (${suggestion.kind}).`);
+      recordSkip(skippedItems, skippedReasons, suggestion, "Skipped empty work experience suggestion.");
       continue;
     }
 
-    if (suggestion.applyability !== "applyable") {
+    if (suggestion.applyability === "preview_only") {
       skippedCount += 1;
-      skippedReasons.push(
-        `Preview only: ${suggestion.kind} is not persisted in v0.9.15A.`,
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Preview only — education and unsupported kinds cannot be applied yet.",
+      );
+      continue;
+    }
+
+    if (suggestion.applyability === "needs_manual_placement") {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Needs manual placement — add company and role, or use bullets for an existing role.",
+      );
+      continue;
+    }
+
+    const company = suggestion.company?.trim();
+    const role = suggestion.role?.trim();
+    if (!company || !role) {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Needs manual placement — company and role are required for new work experience.",
+      );
+      continue;
+    }
+
+    if (hasInventoryExperience(collated, edits, company, role)) {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        `Experience already in inventory: ${company} · ${role}. Add bullets instead.`,
+      );
+      continue;
+    }
+
+    edits = addInventoryTextImportExperience(edits, {
+      company,
+      role,
+      location: suggestion.keyword,
+      dateRange: suggestion.dateRange,
+      descriptor: text,
+    });
+    appliedCount += 1;
+    recordApplied(appliedItems, suggestion);
+  }
+
+  for (const suggestion of bullets) {
+    const text = effectiveSuggestionText(suggestion);
+    if (!text) {
+      skippedCount += 1;
+      recordSkip(skippedItems, skippedReasons, suggestion, "Skipped empty bullet suggestion.");
+      continue;
+    }
+
+    if (suggestion.applyability === "preview_only") {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Preview only — this bullet kind is not supported yet.",
+      );
+      continue;
+    }
+
+    if (suggestion.applyability === "needs_manual_placement") {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Needs manual placement — specify company and role so the bullet can be placed.",
+      );
+      continue;
+    }
+
+    if (suggestion.duplicateOfBulletKey) {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Duplicate of an existing inventory bullet — not added.",
+      );
+      continue;
+    }
+
+    const target = resolveExperienceForBullet(suggestion, collated, edits);
+    if (!target) {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Could not map bullet to a company/role.",
+      );
+      continue;
+    }
+
+    edits = ensureInventoryTextImportExperience(edits, collated, {
+      company: target.company,
+      role: target.role,
+      dateRange: suggestion.dateRange,
+    });
+
+    const bulletResult = addInventoryTextImportBulletIfNotDuplicate(
+      edits,
+      collated,
+      target.company,
+      target.role,
+      {
+        description: text,
+        keyword: suggestion.keyword,
+      },
+    );
+    edits = bulletResult.edits;
+
+    if (!bulletResult.added) {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        `Duplicate bullet not added for ${target.company} · ${target.role}.`,
+      );
+      continue;
+    }
+
+    appliedCount += 1;
+    recordApplied(appliedItems, suggestion);
+  }
+
+  for (const suggestion of others) {
+    const text = effectiveSuggestionText(suggestion);
+    if (!text) {
+      skippedCount += 1;
+      recordSkip(skippedItems, skippedReasons, suggestion, `Skipped empty ${suggestion.kind} suggestion.`);
+      continue;
+    }
+
+    if (suggestion.applyability === "preview_only") {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        `Preview only: ${suggestion.kind} is not persisted yet.`,
+      );
+      continue;
+    }
+
+    if (suggestion.applyability === "needs_manual_placement") {
+      skippedCount += 1;
+      recordSkip(
+        skippedItems,
+        skippedReasons,
+        suggestion,
+        "Needs manual placement before this suggestion can be applied.",
       );
       continue;
     }
 
     switch (suggestion.kind) {
-      case "bullet_existing_experience": {
-        const target = resolveExperienceForBullet(suggestion, collated);
-        if (!target) {
-          skippedCount += 1;
-          skippedReasons.push(
-            `Could not map bullet to an existing experience: "${text.slice(0, 60)}…"`,
-          );
-          break;
-        }
-        edits = addInventoryTextImportBullet(edits, target.company, target.role, {
-          description: text,
-          keyword: suggestion.keyword,
-        });
-        appliedCount += 1;
-        break;
-      }
       case "skill": {
         edits = addInventoryTextImportSkill(edits, {
           text,
           category: "Technical Skills",
         });
         appliedCount += 1;
+        recordApplied(appliedItems, suggestion);
         break;
       }
       case "additional_experience": {
@@ -114,16 +340,23 @@ export function applyAcceptedInventoryTextSuggestions(
           category: suggestion.keyword,
         });
         appliedCount += 1;
+        recordApplied(appliedItems, suggestion);
         break;
       }
       case "keyword": {
         keywordBank = upsertKeywordBankItem(keywordBank, text, "ai_suggested", true);
         appliedCount += 1;
+        recordApplied(appliedItems, suggestion);
         break;
       }
       default:
         skippedCount += 1;
-        skippedReasons.push(`Unsupported apply kind: ${suggestion.kind}`);
+        recordSkip(
+          skippedItems,
+          skippedReasons,
+          suggestion,
+          `Unsupported apply kind: ${suggestion.kind}`,
+        );
     }
   }
 
@@ -136,5 +369,7 @@ export function applyAcceptedInventoryTextSuggestions(
     appliedCount,
     skippedCount,
     skippedReasons,
+    appliedItems,
+    skippedItems,
   };
 }

@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.15A**
+**v0.9.15B**
 
 ## Completed capabilities
 
@@ -44,8 +44,17 @@
 | Generate decision tree & context policy | v0.9.14A |
 | Company website discovery + verification | v0.9.14B |
 | Add experience from text (inventory paste → review → overlay apply) | v0.9.15A |
+| Apply extracted work experience + bullet suggestions | v0.9.15B |
 
 ## Milestone log (recent)
+
+### v0.9.15B - Apply Extracted Work Experience + Bullet Suggestions
+
+- `addedExperiences` overlay for new work experience rows from pasted text.
+- Bullets apply to existing or new roles; auto-create overlay experience when needed.
+- Applyability labels: Will be added / Needs manual placement / Preview only.
+- Duplicate bullets skipped; post-apply skipped list with reasons.
+- Overlay experiences and bullets included in active collated inventory for generation.
 
 ### v0.9.15A - Add Experience From Text
 

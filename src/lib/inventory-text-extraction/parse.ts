@@ -53,18 +53,25 @@ function categoryForKind(kind: InventoryTextSuggestionKind): InventoryTextSugges
   }
 }
 
-function applyabilityForKind(kind: InventoryTextSuggestionKind): InventoryTextApplyability {
-  switch (kind) {
-    case "bullet_existing_experience":
-    case "skill":
-    case "additional_experience":
-    case "keyword":
-      return "applyable";
-    case "new_work_experience":
-    case "bullet_new_experience":
-    case "education":
-      return "preview_only";
+function applyabilityForKind(
+  kind: InventoryTextSuggestionKind,
+  suggestion: {
+    company?: string;
+    role?: string;
+  },
+): InventoryTextApplyability {
+  if (kind === "education") {
+    return "preview_only";
   }
+  if (
+    (kind === "new_work_experience" ||
+      kind === "bullet_existing_experience" ||
+      kind === "bullet_new_experience") &&
+    (!suggestion.company?.trim() || !suggestion.role?.trim())
+  ) {
+    return "needs_manual_placement";
+  }
+  return "applyable";
 }
 
 function asString(value: unknown): string | undefined {
@@ -116,7 +123,10 @@ function normalizeSuggestion(raw: unknown): InventoryTextExtractionSuggestion | 
     matchLabel: normalizeMatchLabel(value.matchLabel),
     mappedExperienceKey: asString(value.mappedExperienceKey),
     warnings: asStringArray(value.warnings),
-    applyability: applyabilityForKind(kind),
+    applyability: applyabilityForKind(kind, {
+      company: asString(value.company),
+      role: asString(value.role),
+    }),
     sourceNote: asString(value.sourceNote),
   };
 }

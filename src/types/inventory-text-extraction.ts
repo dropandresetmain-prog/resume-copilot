@@ -23,7 +23,10 @@ export type InventoryTextMatchLabel =
   | "standalone";
 
 /** Whether the user can apply this suggestion through inventory overlay mechanisms. */
-export type InventoryTextApplyability = "applyable" | "preview_only";
+export type InventoryTextApplyability =
+  | "applyable"
+  | "needs_manual_placement"
+  | "preview_only";
 
 export type InventoryTextExtractionSuggestion = {
   id: string;

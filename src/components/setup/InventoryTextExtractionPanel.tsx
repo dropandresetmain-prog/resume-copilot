@@ -8,6 +8,10 @@ import {
   SetupCard,
 } from "@/components/setup/ui";
 import { applyAcceptedInventoryTextSuggestions } from "@/lib/inventory-text-extraction/apply";
+import {
+  applyabilityLabel,
+  enrichInventoryTextSuggestions,
+} from "@/lib/inventory-text-extraction/classify";
 import { buildInventoryTextExtractionRequest } from "@/lib/inventory-text-extraction/context";
 import {
   extractInventoryTextFromApi,
@@ -18,10 +22,12 @@ import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState } from "@/types/enrichment";
 import type { InventoryEdits } from "@/types/inventory-edits";
 import type {
+  InventoryTextApplyability,
   InventoryTextExtractionSuggestion,
   InventoryTextSuggestionCategory,
   ReviewedInventoryTextSuggestion,
 } from "@/types/inventory-text-extraction";
+import type { SkippedInventoryTextSuggestion } from "@/lib/inventory-text-extraction/apply";
 
 const CATEGORY_LABELS: Record<InventoryTextSuggestionCategory, string> = {
   work_experience: "Work experience",
@@ -51,6 +57,16 @@ type InventoryTextExtractionPanelProps = {
   onSaveApplied: (edits: InventoryEdits, enrichment: EnrichmentState) => Promise<void>;
 };
 
+function applyabilityBadgeClass(applyability: InventoryTextApplyability): string {
+  switch (applyability) {
+    case "applyable":
+      return "text-emerald-800";
+    case "needs_manual_placement":
+      return "text-amber-800";
+    case "preview_only":
+      return "text-slate-500";
+  }
+}
 function matchLabelCopy(label: InventoryTextExtractionSuggestion["matchLabel"]): string {
   switch (label) {
     case "add_to_existing":
@@ -87,6 +103,7 @@ export function InventoryTextExtractionPanel({
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [reviewed, setReviewed] = useState<ReviewedInventoryTextSuggestion[]>([]);
   const [applyFeedback, setApplyFeedback] = useState<string | null>(null);
+  const [skippedAfterApply, setSkippedAfterApply] = useState<SkippedInventoryTextSuggestion[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
   const grouped = useMemo(() => {
@@ -105,10 +122,15 @@ export function InventoryTextExtractionPanel({
     (item) => item.reviewStatus === "accepted" && item.applyability === "applyable",
   ).length;
 
+  const acceptedButNotApplyableCount = reviewed.filter(
+    (item) => item.reviewStatus === "accepted" && item.applyability !== "applyable",
+  ).length;
+
   function openPanel() {
     setPhase("paste");
     setExtractError(null);
     setApplyFeedback(null);
+    setSkippedAfterApply([]);
   }
 
   function closePanel() {
@@ -120,6 +142,7 @@ export function InventoryTextExtractionPanel({
     setInsufficientReason(null);
     setExtractionWarnings([]);
     setApplyFeedback(null);
+    setSkippedAfterApply([]);
   }
 
   async function handleExtract() {
@@ -145,7 +168,11 @@ export function InventoryTextExtractionPanel({
         return;
       }
 
-      const flagged = flagDuplicateInventoryTextSuggestions(result.suggestions, collated);
+      const flagged = enrichInventoryTextSuggestions(
+        flagDuplicateInventoryTextSuggestions(result.suggestions, collated, draftEdits),
+        collated,
+        draftEdits,
+      );
       setReviewed(toReviewed(flagged));
       setExtractionWarnings(result.warnings);
       setPhase("review");
@@ -182,9 +209,11 @@ export function InventoryTextExtractionPanel({
       onDraftEditsChange(result.edits);
       await onSaveApplied(result.edits, result.enrichment);
 
+      setSkippedAfterApply(result.skippedItems);
+
       const skippedNote =
         result.skippedCount > 0
-          ? ` ${result.skippedCount} preview-only or unmappable suggestion(s) skipped.`
+          ? ` ${result.skippedCount} suggestion(s) skipped — see details below.`
           : "";
 
       setApplyFeedback(
@@ -309,9 +338,12 @@ export function InventoryTextExtractionPanel({
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-medium uppercase tracking-wide text-cyan-800">
                                 {matchLabelCopy(suggestion.matchLabel)}
-                                {suggestion.applyability === "preview_only"
-                                  ? " · Preview only"
-                                  : ""}
+                              </p>
+                              <p
+                                className={`mt-1 text-xs font-medium ${applyabilityBadgeClass(suggestion.applyability)}`}
+                                data-testid="inventory-text-suggestion-applyability"
+                              >
+                                {applyabilityLabel(suggestion.applyability)}
                               </p>
                               {suggestion.company || suggestion.role ? (
                                 <p className="mt-1 text-xs text-slate-500">
@@ -405,7 +437,10 @@ export function InventoryTextExtractionPanel({
                   Close
                 </button>
                 <p className="text-sm text-slate-600">
-                  {acceptedCount} accepted · preview-only items are not persisted
+                  {acceptedCount} accepted · {applyableAcceptedCount} will be added
+                  {acceptedButNotApplyableCount > 0
+                    ? ` · ${acceptedButNotApplyableCount} accepted but cannot be applied`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -418,6 +453,23 @@ export function InventoryTextExtractionPanel({
               data-testid="inventory-text-apply-feedback"
             >
               {applyFeedback}
+            </div>
+          ) : null}
+
+          {skippedAfterApply.length > 0 ? (
+            <div
+              className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+              data-testid="inventory-text-skipped-suggestions"
+            >
+              <p className="font-medium">Skipped or needs manual placement</p>
+              <ul className="mt-2 space-y-2">
+                {skippedAfterApply.map((item) => (
+                  <li key={item.suggestionId}>
+                    <span className="font-medium">{item.summary}</span>
+                    <span className="block text-xs text-amber-800">{item.reason}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </SetupCard>
