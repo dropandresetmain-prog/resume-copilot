@@ -27,12 +27,14 @@ import type { InventoryState } from "@/types/resume";
 type InventoryDuplicateCleanupPanelProps = {
   inventory: InventoryState;
   draftEdits: InventoryEdits;
+  hasUnsavedChanges?: boolean;
   onDraftEditsChange: (edits: InventoryEdits) => void;
 };
 
 export function InventoryDuplicateCleanupPanel({
   inventory,
   draftEdits,
+  hasUnsavedChanges = false,
   onDraftEditsChange,
 }: InventoryDuplicateCleanupPanelProps) {
   const rawCollated = useMemo(() => buildCollatedInventory(inventory), [inventory]);
@@ -58,6 +60,13 @@ export function InventoryDuplicateCleanupPanel({
       <p className="mt-3 text-sm text-slate-600">
         {duplicateGroups.length} group{duplicateGroups.length === 1 ? "" : "s"} need review.
         Save changes to inventory on the Edit Bullets tab when you are done.
+      </p>
+      <p
+        className={`mt-2 text-sm font-medium ${hasUnsavedChanges ? "text-amber-900" : "text-emerald-800"}`}
+        role="status"
+        data-testid="inventory-duplicate-cleanup-save-state"
+      >
+        {hasUnsavedChanges ? "Unsaved — save on Edit Bullets tab" : "All cleanup changes saved"}
       </p>
 
       <div className="mt-4 space-y-4">

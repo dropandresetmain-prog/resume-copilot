@@ -380,11 +380,14 @@ export function InventoryTextExtractionPanel({
                                     ? primaryButtonClassName
                                     : secondaryButtonClassName
                                 }
+                                disabled={suggestion.applyability === "preview_only"}
                                 onClick={() =>
                                   updateSuggestion(suggestion.id, { reviewStatus: "accepted" })
                                 }
                               >
-                                Accept
+                                {suggestion.applyability === "preview_only"
+                                  ? "Preview only"
+                                  : "Accept"}
                               </button>
                               <button
                                 type="button"

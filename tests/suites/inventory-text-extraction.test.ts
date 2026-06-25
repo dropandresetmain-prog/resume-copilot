@@ -328,6 +328,18 @@ function main() {
     ["panel exposes Add from text CTA", extractionPanel.includes('data-testid="inventory-add-from-text"')],
     ["panel exposes Extract suggestions", extractionPanel.includes('data-testid="inventory-extract-suggestions"')],
     ["panel exposes Apply accepted suggestions", extractionPanel.includes('data-testid="inventory-apply-accepted-suggestions"')],
+    [
+      "education preview only cannot be accepted",
+      extractionPanel.includes('suggestion.applyability === "preview_only"') &&
+        extractionPanel.includes("disabled={suggestion.applyability === \"preview_only\"}"),
+    ],
+    [
+      "preview only applyability label",
+      readFileSync(
+        join(process.cwd(), "src/lib/inventory-text-extraction/classify.ts"),
+        "utf8",
+      ).includes("Preview only — not saved yet"),
+    ],
     ["API route uses shared provider", apiRoute.includes("extractInventoryTextWithAI")],
   ];
 

@@ -664,6 +664,14 @@ export function GenerateTailoredResumeSection({
     }
   }
 
+  async function handleRegenerateResumeWithConfirm() {
+    const confirmed = window.confirm("This replaces your resume draft. Continue?");
+    if (!confirmed) {
+      return;
+    }
+    await handleGenerate();
+  }
+
   const failureKind = classifyCombinedGenerationFailure(
     buildArtifactSnapshot({
       resumeStatus,
@@ -689,6 +697,7 @@ export function GenerateTailoredResumeSection({
   }
 
   // Readiness strip: consolidates all pre-generation conditions into one compact strip.
+  const websiteDiscoveryPending = contextPolicy.discoveryState === "pending_confirmation";
   const readinessItems: { id: string; ready: boolean; label: string; href?: string }[] = [
     { id: "sign-in", ready: isSignedIn, label: "Sign in to generate" },
     {
@@ -703,9 +712,19 @@ export function GenerateTailoredResumeSection({
       ready: providerConfigured,
       label: providerStatus?.configurationError ?? "Configure resume provider",
     },
+    ...(websiteDiscoveryPending
+      ? [
+          {
+            id: "confirm-website",
+            ready: false,
+            label: "Confirm discovered website or choose JD-only",
+          },
+        ]
+      : []),
   ];
   const pendingItems = readinessItems.filter((item) => !item.ready);
-  const showReadinessStrip = !isGenerating && !canGenerate && providerStatus !== null;
+  const showReadinessStrip =
+    !isGenerating && (!canGenerate || websiteDiscoveryPending) && providerStatus !== null;
 
   return (
     <div className="border-t border-slate-200 pt-5">
@@ -1061,14 +1080,18 @@ export function GenerateTailoredResumeSection({
             >
               {isGenerating ? "Retrying cover letter…" : "Retry Cover Letter"}
             </button>
-            <button
-              type="button"
-              onClick={() => void handleGenerate()}
-              disabled={!canGenerate || isGenerating}
-              className={secondaryButtonClassName}
-            >
-              Regenerate Resume
-            </button>
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => void handleRegenerateResumeWithConfirm()}
+                disabled={!canGenerate || isGenerating}
+                className="text-sm font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                data-action="regenerate-resume-after-partial-failure"
+              >
+                Regenerate Resume
+              </button>
+              <p className="text-xs text-slate-500">This replaces your resume draft.</p>
+            </div>
           </div>
           {partialCoverLetterFailure.coverLetterDebugRaw ? (
             <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">

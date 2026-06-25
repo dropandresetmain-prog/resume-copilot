@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.15D**
+**v0.9.15E**
 
 ## Completed capabilities
 
@@ -47,8 +47,18 @@
 | Apply extracted work experience + bullet suggestions | v0.9.15B |
 | Post-generation custom revision reliability | v0.9.15C |
 | Resume revision queue (batch scoped revision) | v0.9.15D |
+| E2E trust & workflow fix pack | v0.9.15E |
 
 ## Milestone log (recent)
+
+### v0.9.15E - E2E Trust & Workflow Fix Pack
+
+- Professional summary revision scope hidden when not exported; JD-missing hint; re-approval warning on revision accept.
+- Inventory: beforeunload, duplicate cleanup save state, enrichment auto-save feedback, education preview-only accept guard.
+- Package decision tree: Custom resume revision queue discoverability copy.
+- Generate: partial-failure Regenerate Resume demoted with confirmation; website discovery readiness row; Firecrawl estimate footnote.
+- Cover letter initial generation: no `[Candidate Name]` placeholder in prompt; validation unchanged.
+- **Next:** v0.9.16A Tailoring Quality.
 
 ### v0.9.15D - Resume Revision Queue
 
@@ -288,6 +298,10 @@
 - Injected into cover letter (and generation metadata)
 
 ## Next (planned)
+
+### v0.9.16A — Tailoring Quality
+
+Resume and cover letter generation quality improvements after v0.9.15E trust fixes. **Not started.**
 
 ### v0.9.11C — IA Restructure Candidates
 

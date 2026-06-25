@@ -12,7 +12,9 @@ export function buildCoverLetterPrompt(input: CoverLetterGenerationInput): strin
     input.companyDisplayName?.trim() || input.companyName.trim() || "the company";
   const candidateName = input.candidateName?.trim() || null;
   const candidateRef = candidateName ? `${candidateName}` : "the candidate";
-  const closingSignature = candidateName ? candidateName : "[Candidate Name]";
+  const closingRule = candidateName
+    ? `Closing: default "Regards,\\n${candidateName}" unless JD tone suggests formal or casual startup.`
+    : 'Closing: end with a professional sign-off such as "Regards," alone — do not invent or use a bracketed placeholder name.';
 
   return `You are writing application communications for ${candidateRef}.
 
@@ -94,7 +96,8 @@ Company fact → Role requirement → Candidate evidence → Why relevant (expli
 9. Explain why the candidate is applying for this specific role at ${displayCompany}.
 10. Secondary formats must be shorter and copyable.
 11. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at ${displayCompany}.
-12. Closing: default "Regards,\\n${closingSignature}" unless JD tone suggests formal or casual startup.
+12. ${closingRule}
+13. Never use bracketed placeholder names in final copy.
 
 ## Company context usage (critical)
 - REQUIRED: weave at least 2 company-specific facts into the formal letter.
@@ -183,4 +186,11 @@ export function promptIncludesCoverLetterCompanyContextRules(prompt: string): bo
 
 export function promptRequiresExplicitBridges(prompt: string): boolean {
   return prompt.includes("Company fact → Role requirement → Candidate evidence");
+}
+
+export function promptExcludesCandidateNamePlaceholder(prompt: string): boolean {
+  return (
+    !prompt.includes("[Candidate Name]") &&
+    prompt.includes("Never use bracketed placeholder names")
+  );
 }

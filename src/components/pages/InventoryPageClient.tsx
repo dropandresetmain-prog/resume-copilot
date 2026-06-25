@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -51,6 +51,32 @@ export function InventoryPageClient() {
   }
 
   const hasUnsavedChanges = !inventoryEditsEqual(draftEdits, savedEdits);
+  const [enrichAutoSaveFeedback, setEnrichAutoSaveFeedback] = useState<string | null>(null);
+  const wasEnrichingRef = useRef(isEnriching);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (wasEnrichingRef.current && !isEnriching && !enrichError) {
+      setEnrichAutoSaveFeedback("Enrichment applied and saved automatically.");
+      const timer = window.setTimeout(() => setEnrichAutoSaveFeedback(null), 6000);
+      wasEnrichingRef.current = isEnriching;
+      return () => window.clearTimeout(timer);
+    }
+    wasEnrichingRef.current = isEnriching;
+  }, [isEnriching, enrichError]);
 
   async function handleSaveDraftEdits() {
     setIsSavingEdits(true);
@@ -133,11 +159,21 @@ export function InventoryPageClient() {
           onResolveSuggestion={handleResolveSuggestion}
           onDuplicateGroupStatus={handleDuplicateGroupStatus}
         />
+        {enrichAutoSaveFeedback ? (
+          <p
+            role="status"
+            className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+            data-testid="inventory-enrich-auto-save-feedback"
+          >
+            {enrichAutoSaveFeedback}
+          </p>
+        ) : null}
       </div>
 
       <InventoryDuplicateCleanupPanel
         inventory={inventory}
         draftEdits={draftEdits}
+        hasUnsavedChanges={hasUnsavedChanges}
         onDraftEditsChange={setDraftEdits}
       />
 
@@ -145,11 +181,11 @@ export function InventoryPageClient() {
         <div
           role="status"
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          data-testid="inventory-unsaved-changes-banner"
         >
           <p className="font-medium">Unsaved inventory changes</p>
           <p className="mt-1">
-            Changes are not saved until you click Save changes to inventory on the Edit Bullets
-            tab.
+            Changes are not saved until you click Save changes to inventory on the Edit Bullets tab.
           </p>
         </div>
       ) : null}

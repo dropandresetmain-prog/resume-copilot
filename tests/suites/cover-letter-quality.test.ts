@@ -11,6 +11,7 @@ import {
 } from "../../src/lib/cover-letter/generation-validation";
 import {
   buildCoverLetterPrompt,
+  promptExcludesCandidateNamePlaceholder,
   promptIncludesBannedPhraseRules,
   promptIncludesPunctuationRules,
   promptIncludesToneRules,
@@ -62,6 +63,10 @@ function main() {
   const input = buildSampleInput();
   const mock = generateMockCoverLetter(input);
   const prompt = buildCoverLetterPrompt(input);
+  const promptWithoutCandidate = buildCoverLetterPrompt({
+    ...input,
+    candidateName: undefined,
+  });
   const revisionPrompt = buildCoverLetterRevisionPrompt({
     currentBody: mock.formalContent,
     action: "shorten",
@@ -164,6 +169,16 @@ function main() {
     ["prompt includes tone rules", promptIncludesToneRules(prompt)],
     ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt includes banned phrase rules", promptIncludesBannedPhraseRules(prompt)],
+    [
+      "generation prompt excludes candidate name placeholder",
+      promptExcludesCandidateNamePlaceholder(prompt) &&
+        promptExcludesCandidateNamePlaceholder(promptWithoutCandidate),
+    ],
+    [
+      "generation prompt neutral closing without candidate name",
+      promptWithoutCandidate.includes("Regards,") &&
+        !promptWithoutCandidate.includes("[Candidate Name]"),
+    ],
     ["revision prompt avoids em dashes", revisionPrompt.includes("em dash")],
     [
       "revision prompt uses candidate name when provided",

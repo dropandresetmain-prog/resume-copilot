@@ -19,6 +19,11 @@ import {
 import type { ModelTier } from "@/lib/ai/model-tiers";
 import { applyResumeBatchRevision } from "@/lib/resume-draft/custom-revision-batch";
 import { requestResumeBatchRevision } from "@/lib/resume-draft/custom-revision-client";
+import {
+  isProfessionalSummaryRevisionScopeAvailable,
+  PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY,
+} from "@/lib/resume-draft/custom-revision-scopes";
+import { isApprovedDraftStatus } from "@/lib/resume-draft/draft-status";
 import type { StoredJobDescription } from "@/types/jd";
 import type {
   GeneratedResumeDraftRecord,
@@ -43,7 +48,6 @@ type ResumeStagedCustomRevisionPanelProps = {
 };
 
 const SCOPE_OPTIONS: { value: ResumeCustomRevisionScope; label: string }[] = [
-  { value: "professional_summary", label: "Professional summary" },
   { value: "selected_role", label: "Selected role" },
 ];
 
@@ -97,16 +101,26 @@ export function ResumeStagedCustomRevisionPanel({
     [draft.content.experience],
   );
 
+  const summaryRevisionAvailable = isProfessionalSummaryRevisionScopeAvailable(draft.content);
   const summaryAlreadyQueued = queue.some((item) => item.scope === "professional_summary");
+  const hasJobDescription = Boolean(jobDescription?.rawText?.trim());
+  const requiresReapprovalAfterAccept = isApprovedDraftStatus(draft.status);
+
+  const scopeOptions = summaryRevisionAvailable
+    ? [
+        { value: "professional_summary" as const, label: "Professional summary" },
+        ...SCOPE_OPTIONS,
+      ]
+    : SCOPE_OPTIONS;
 
   const canAddToQueue =
     customInstruction.trim().length > 0 &&
-    Boolean(jobDescription?.rawText?.trim()) &&
+    hasJobDescription &&
     (scope !== "selected_role" || roleOptions.length > 0) &&
     (scope !== "professional_summary" ||
-      (draft.content.professionalSummary.text.trim().length > 0 && !summaryAlreadyQueued));
+      (summaryRevisionAvailable && !summaryAlreadyQueued));
 
-  const canReviseQueue = queue.length > 0 && Boolean(jobDescription?.rawText?.trim());
+  const canReviseQueue = queue.length > 0 && hasJobDescription;
 
   function handleAddToQueue() {
     if (!canAddToQueue) {
@@ -292,12 +306,20 @@ export function ResumeStagedCustomRevisionPanel({
               className={formFieldClassName}
               data-testid="resume-revision-scope"
             >
-              {SCOPE_OPTIONS.map((option) => (
+              {scopeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
+            {!summaryRevisionAvailable ? (
+              <p
+                className="mt-2 text-xs text-amber-800"
+                data-testid="resume-revision-summary-unavailable"
+              >
+                {PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY}
+              </p>
+            ) : null}
           </div>
 
           {scope === "selected_role" ? (
@@ -394,6 +416,15 @@ export function ResumeStagedCustomRevisionPanel({
           </div>
         ) : null}
 
+        {!hasJobDescription ? (
+          <p
+            className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            data-testid="resume-revision-jd-required-hint"
+          >
+            Job description required for scoped revision.
+          </p>
+        ) : null}
+
         <button
           type="button"
           disabled={disabled || isRevising || !canReviseQueue}
@@ -441,6 +472,14 @@ export function ResumeStagedCustomRevisionPanel({
                 </div>
               ))}
             </div>
+            {requiresReapprovalAfterAccept ? (
+              <p
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                data-testid="resume-revision-reapproval-warning"
+              >
+                Saving this change requires re-approval before export.
+              </p>
+            ) : null}
             <div className={`${secondaryActionGroupClassName} mt-4`}>
               <button
                 type="button"

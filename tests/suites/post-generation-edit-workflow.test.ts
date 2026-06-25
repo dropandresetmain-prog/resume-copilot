@@ -396,6 +396,27 @@ function main() {
       resumeCustomRevisionPanel.includes("Runs 1 AI step. Does not save until you accept."),
     ],
     [
+      "revision queue discoverability in decision tree",
+      decisionTree.includes("Custom resume revision queue") &&
+        decisionTree.includes('data-testid="package-custom-revision-queue-copy"') &&
+        decisionTree.includes("Stage summary/role instructions and revise once"),
+    ],
+    [
+      "revision jd required hint",
+      resumeCustomRevisionPanel.includes('data-testid="resume-revision-jd-required-hint"') &&
+        resumeCustomRevisionPanel.includes("Job description required for scoped revision"),
+    ],
+    [
+      "revision accept reapproval warning",
+      resumeCustomRevisionPanel.includes('data-testid="resume-revision-reapproval-warning"') &&
+        resumeCustomRevisionPanel.includes("requires re-approval before export"),
+    ],
+    [
+      "professional summary revision scope hidden when not exported",
+      resumeCustomRevisionPanel.includes("isProfessionalSummaryRevisionScopeAvailable") &&
+        resumeCustomRevisionPanel.includes('data-testid="resume-revision-summary-unavailable"'),
+    ],
+    [
       "fit summary panel on package",
       resumePreview.includes("PackageFitSummaryPanel"),
     ],

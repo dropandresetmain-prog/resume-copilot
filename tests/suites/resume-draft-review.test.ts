@@ -30,7 +30,10 @@ import {
   promptIncludesSummaryCustomRevisionScope,
 } from "../../src/lib/resume-draft/custom-revision-prompt";
 import type { InventoryState } from "../../src/types/resume";
-import type { StoredJobDescription } from "../../src/types/jd";
+import {
+  isProfessionalSummaryRevisionScopeAvailable,
+  PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY,
+} from "../../src/lib/resume-draft/custom-revision-scopes";
 
 const sampleJd: StoredJobDescription = {
   id: "jd-1",
@@ -336,6 +339,14 @@ function main() {
       "malformed role candidate left unchanged with warning",
       malformedSanitized.roleUpdates.length === 0 &&
         malformedSanitized.warnings.some((warning) => warning.includes("Skipped role 0")),
+    ],
+    [
+      "professional summary revision scope unavailable on one-page format",
+      !isProfessionalSummaryRevisionScopeAvailable(originalContent),
+    ],
+    [
+      "professional summary revision unavailable copy",
+      PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY.includes("not exported"),
     ],
   ];
 

@@ -52,6 +52,20 @@ export function PackageDecisionTree({
         <button
           type="button"
           className={secondaryButtonClassName}
+          data-action="custom-resume-revision-queue"
+          onClick={() => onSelectMode("edit-resume")}
+        >
+          Custom resume revision queue
+        </button>
+        <p
+          className="w-full basis-full text-xs text-slate-600"
+          data-testid="package-custom-revision-queue-copy"
+        >
+          Stage summary/role instructions and revise once — opens resume text edit mode.
+        </p>
+        <button
+          type="button"
+          className={secondaryButtonClassName}
           data-action="fix-resume-evidence"
           onClick={() => onSelectMode("fix-evidence")}
         >

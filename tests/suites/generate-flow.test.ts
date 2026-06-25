@@ -593,6 +593,18 @@ async function main() {
         generateSection.includes("isGenerating || isDiscoveringWebsite"),
     ],
     ["generate buttons use aria-busy", generateSection.includes("aria-busy={isGenerating}")],
+    [
+      "medium confidence website discovery readiness row",
+      generateSection.includes("Confirm discovered website or choose JD-only") &&
+        generateSection.includes("pending_confirmation"),
+    ],
+    [
+      "firecrawl website fetch footnote in estimate",
+      estimateGenerateAiSteps({
+        mode: "resume_and_cover_letter",
+        policy: websitePolicy,
+      }).footnote.includes("Firecrawl"),
+    ],
   ];
 
   for (const [name, ok] of checks) {

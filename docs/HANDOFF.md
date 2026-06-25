@@ -2,7 +2,23 @@
 
 ## Current version
 
-**v0.9.15D** (code)
+**v0.9.15E** (code)
+
+## v0.9.15E implementation note
+
+E2E Trust & Workflow Fix Pack: addresses audit findings across Inventory save trust, revision queue discoverability, cover letter placeholder guard, Generate partial-failure action placement, and website discovery readiness.
+
+**Resume revision:** Professional summary scope hidden when not exported in one-page format; JD-missing amber hint; re-approval warning on Accept when draft was approved.
+
+**Inventory:** beforeunload on unsaved edits; duplicate cleanup save-state strip; enrichment auto-save feedback; education preview-only suggestions cannot be accepted.
+
+**Application Package:** Custom resume revision queue action + copy in decision tree (does not open by default).
+
+**Generate:** Partial failure demotes Regenerate Resume (confirm + link style); medium-confidence website discovery readiness row; Firecrawl footnote on AI estimate when website fetch enabled.
+
+**Cover letter:** Initial generation prompt removes `[Candidate Name]` placeholder; validation rejects placeholder signatures (unchanged).
+
+**Next:** v0.9.16A Tailoring Quality.
 
 ## v0.9.15D implementation note
 
@@ -208,18 +224,17 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.15D - Resume Revision Queue**
+**v0.9.15E - E2E Trust & Workflow Fix Pack**
 
-Stage multiple scoped resume revisions; one Gemini call; accept/reject all before save.
+## Latest milestone summary (v0.9.15E)
 
-## Latest milestone summary (v0.9.15D)
-
-Resume edit mode now supports a revision queue — add summary and role instructions, revise all queued sections in one AI step, preview grouped changes, then accept or reject before persisting.
+Trust and workflow fixes from E2E QA: inventory save clarity, revision queue discoverability, education preview-only guard, partial-failure action safety, cover letter placeholder guard, website discovery readiness.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.15E | E2E trust & workflow fix pack |
 | v0.9.15D | Resume revision queue (batch scoped revision) |
 | v0.9.15C | Post-generation custom revision reliability |
 | v0.9.15B | Apply extracted work experience + bullets |
@@ -325,6 +340,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.15A+ candidates** (parked for approval): per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, new work experience persistence from text import, education overlay, cover letter-only generate path, post-generation workflow consolidation, full Inventory CRUD.
+**v0.9.16A Tailoring Quality** — resume/cover letter generation quality improvements after trust fixes.
 
-Parked after that: v0.10.0 Inventory CRUD preparation/implementation, Edit Learning Log, v0.10.1 Cover Letter Version History.
+Parked after that: v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, cover letter-only generate path, full Inventory CRUD).

@@ -76,7 +76,7 @@ export function applyabilityLabel(applyability: InventoryTextApplyability): stri
     case "needs_manual_placement":
       return "Needs manual placement";
     case "preview_only":
-      return "Preview only / unsupported";
+      return "Preview only — not saved yet.";
   }
 }
 

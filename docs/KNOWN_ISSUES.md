@@ -38,7 +38,7 @@
 
 - **Applyable:** new work experiences (overlay), bullets to existing or new roles, skills, additional experience lines, keywords.
 - **Needs manual placement:** accepted suggestions missing company/role, or new experience when that role already exists (add bullets instead).
-- **Preview only:** education entries — not persisted yet.
+- **Preview only:** education entries — not persisted yet; Accept disabled in UI (v0.9.15E).
 - **Duplicate bullets** are flagged in review and not re-added on apply.
 - **No auto-save** on extract; apply is explicit; source uploaded resumes are never mutated.
 - **Not full Inventory CRUD** — overlay fields in `InventoryEdits` + enrichment keyword bank only.
@@ -217,16 +217,18 @@
 - **Education format** unchanged — still requires institution + date structure for structured parse.
 - **Remaining import risks**: Google Docs collapsed spacing (Investigate Now); Canva/table DOCX (Accept Risk); comma pairs with no signals (Accept Risk).
 
-## Resume revision queue (v0.9.15D)
+## Resume revision queue (v0.9.15D+)
 
-- **Batch scoped revision** on Application Package → Edit resume text: queue professional summary + multiple roles, one Gemini call, Accept all / Reject all staging.
-- **Per-section accept** not implemented — Accept all only this milestone.
+- **Batch scoped revision** on Application Package → Edit resume text: queue role instructions (and summary when exported), one Gemini call, Accept all / Reject all staging.
+- **Professional summary scope** hidden when not exported in one-page format (v0.9.15E).
+- **JD required** amber hint when job description missing for scoped revision (v0.9.15E).
+- **Per-section accept** not implemented — Accept all only.
 - **Parked:** selected-bullet revision, skills/education revision, whole-resume custom rewrite.
 
 ## Cover letter revision (v0.9.15C)
 
 - **`[Candidate Name]` placeholder bug fixed** — revision route now passes `candidateName` from linked resume draft `header.fullName`. Revision prompt preserves existing closing signature when name unavailable; validation rejects placeholder signatures in output.
-- **Generation prompt** may still use `[Candidate Name]` when no name at initial generate time — revision path is fixed; generation fallback unchanged this milestone.
+- **Initial generation prompt** no longer uses `[Candidate Name]` when no name at generate time (v0.9.15E); neutral closing without brackets.
 
 ## Cover letter output (v0.9.12C)
 

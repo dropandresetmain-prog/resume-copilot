@@ -53,8 +53,15 @@ export function estimateGenerateAiSteps(options: {
     headline = "2 AI steps (tailored resume + cover letter)";
   }
 
-  const footnote =
-    "Each step may retry on transient errors. Cover letter compression can add an extra call.";
+  const footnoteParts = [
+    "Each step may retry on transient errors. Cover letter compression can add an extra call.",
+  ];
+  if (includesWebsiteFetch) {
+    footnoteParts.push(
+      "Website fetch uses Firecrawl when company website research is enabled.",
+    );
+  }
+  const footnote = footnoteParts.join(" ");
 
   return {
     aiSteps,

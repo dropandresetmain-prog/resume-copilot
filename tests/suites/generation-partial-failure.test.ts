@@ -155,6 +155,16 @@ function main() {
         ),
       ) === "regenerate_resume",
     ],
+    [
+      "partial failure regenerate resume requires confirmation",
+      generateSection.includes("handleRegenerateResumeWithConfirm") &&
+        generateSection.includes("This replaces your resume draft"),
+    ],
+    [
+      "partial failure regenerate resume demoted to link style",
+      generateSection.includes('data-action="regenerate-resume-after-partial-failure"') &&
+        generateSection.includes("underline"),
+    ],
   ];
 
   for (const [name, ok] of checks) {
