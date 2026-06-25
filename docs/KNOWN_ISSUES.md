@@ -230,6 +230,15 @@
 - **`[Candidate Name]` placeholder bug fixed** — revision route now passes `candidateName` from linked resume draft `header.fullName`. Revision prompt preserves existing closing signature when name unavailable; validation rejects placeholder signatures in output.
 - **Initial generation prompt** no longer uses `[Candidate Name]` when no name at generate time (v0.9.15E); neutral closing without brackets.
 
+## Resume tailoring quality (v0.9.16A)
+
+- **Prompt-level upgrade** — JD-specific reframing, anti-generic language, and richer saved rationale fields. No new AI calls.
+- **Ranking heuristic** — payload bullet selection and structure repair rank experiences by JD relevance with early-career penalty; not ML — edge cases may still rank wrong role (Accept Risk).
+- **Tailoring validation** — near-duplicate bullets, keyword stuffing, invented metrics, and generic rationale emit **warnings only** (non-blocking).
+- **Output still inventory-bound** — thin or generic inventory produces thin drafts regardless of prompt (Accept Risk).
+- **No learning log** — user edit preferences are not extracted or fed back into generation (Park).
+- **No critique AI call** — no separate model pass to review draft quality before save (Park).
+
 ## Cover letter output (v0.9.12C)
 
 - **Prompt rules** now discourage em dashes and inflated corporate/AI phrasing in generation and revision.

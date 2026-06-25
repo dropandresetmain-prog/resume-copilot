@@ -11,7 +11,11 @@ import {
 import {
   buildResumeDraftPrompt,
   promptIncludesAcceptedWordingRules,
+  promptIncludesAntiGenericLanguageRules,
+  promptIncludesJdReframingRules,
   promptIncludesKeywordDistinctionRules,
+  promptIncludesRationaleQualityRules,
+  promptIncludesSeniorRoleSelectionRules,
 } from "../../src/lib/resume-draft/prompt";
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
 import { prepareGeneratedResumeContent } from "../../src/lib/resume-draft/generation-validation";
@@ -239,6 +243,49 @@ function main() {
     acceptedWordingByBulletKey: new Map(),
   });
 
+  const seniorJdText =
+    "VP Engineering with 10+ years software leadership, platform scaling, and team management.";
+  const seniorVsInternExperiences: CollatedExperience[] = [
+    {
+      id: "intern",
+      company: "Startup Labs",
+      role: "Software Engineering Intern",
+      dateRange: "Jun 2020 - Aug 2020",
+      sourceCitations: [],
+      bullets: [
+        {
+          id: "intern-1",
+          keyword: "Engineering",
+          description: "Assisted with software engineering tasks during internship",
+          rawTexts: ["Assisted with software engineering tasks during internship"],
+          sourceCitations: [],
+        },
+      ],
+    },
+    {
+      id: "senior",
+      company: "Platform Co",
+      role: "VP Engineering",
+      dateRange: "2018 - Present",
+      sourceCitations: [],
+      bullets: [
+        {
+          id: "senior-1",
+          keyword: "Platform",
+          description: "Led platform scaling and engineering leadership for 40+ engineers",
+          rawTexts: ["Led platform scaling and engineering leadership for 40+ engineers"],
+          sourceCitations: [{ resumeId: "r1", filename: "resume.docx" }],
+        },
+      ],
+    },
+  ];
+  const seniorVsInternRanked = selectGenerationBullets({
+    experiences: seniorVsInternExperiences,
+    maxBullets: 2,
+    jdText: seniorJdText,
+    acceptedWordingByBulletKey: new Map(),
+  });
+
   const checks: [string, boolean][] = [
     ["payload includes accepted wording", acmeBullet?.acceptedWording === "Led end-to-end product operations modernization"],
     ["payload preserves original description", acmeBullet?.description === "Led product operations improvements"],
@@ -253,11 +300,24 @@ function main() {
     ["legacy collation-order cap excludes recent role", !legacyOrderInput.experiences.some((experience) => experience.company === "Current Co")],
     ["ranked selection prioritizes recent jd-relevant bullet", rankedSelection.selected.some((item) => item.experience.company === "Current Co")],
     ["synthetic ranked cap keeps recent blockchain bullet", syntheticRanked.selected.some((item) => item.bullet.description.includes("Blockchain market entry"))],
+    [
+      "internship does not displace senior role under ranked cap",
+      seniorVsInternRanked.selected[0]?.experience.company === "Platform Co",
+    ],
+    ["prompt includes JD reframing rules", promptIncludesJdReframingRules(prompt)],
+    ["prompt includes anti-generic language rules", promptIncludesAntiGenericLanguageRules(prompt)],
+    ["prompt includes rationale quality rules", promptIncludesRationaleQualityRules(prompt)],
+    ["prompt includes senior role selection rules", promptIncludesSeniorRoleSelectionRules(prompt)],
     ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
     ["prompt includes audit schema", prompt.includes("selectionAudit")],
     ["mock draft passes validation", mockValidation.validation.ok],
     ["mock rationale includes selection audit", Boolean(mockDraft.rationale.selectionAudit?.selectedBulletKeys?.length)],
+    [
+      "mock rationale includes strongest matches and positioning",
+      (mockDraft.rationale.selectionAudit?.strongestMatches?.length ?? 0) > 0 &&
+        Boolean(mockDraft.rationale.selectionAudit?.positioningAngle?.trim()),
+    ],
     ["mock uses accepted wording in output when present", mockDraft.content.experience.some((role) => role.bullets.some((bullet) => bullet.text.includes("modernization")))],
     ["default bullet cap remains 40", MAX_RESUME_DRAFT_BULLETS === 40],
   ];

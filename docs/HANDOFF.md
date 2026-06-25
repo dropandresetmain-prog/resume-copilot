@@ -2,7 +2,23 @@
 
 ## Current version
 
-**v0.9.15E** (code)
+**v0.9.16A** (code)
+
+## v0.9.16A implementation note
+
+Tailoring Quality Upgrade: improves first-draft resume positioning without new AI calls or schema changes.
+
+**Prompt:** JD-specific bullet reframing (reframe evidence for target responsibilities; preserve exact metrics); anti-generic language ban list; richer saved rationale (`strongestMatches`, `honestGaps`, `positioningAngle`, `roleSelectionRationale`); senior roles must not be displaced by internships by default.
+
+**Ranking:** `sortExperiencesForGeneration` / payload bullet selection now scores JD relevance + recency with early-career penalty; repair role drops use the same penalty.
+
+**Validation:** `tailoring-quality.ts` warns on near-duplicate bullets, keyword stuffing, unsupported invented metrics, generic rationale, thin rationale, and internal label leaks (warnings only — non-blocking).
+
+**Fit summary:** `buildPackageFitSummary` and `calculateFitScore` consume richer `selectionAudit` fields when present.
+
+**Limitations:** Output quality still depends on inventory evidence quality; no learning log; no separate critique AI call.
+
+**Next:** Parked v0.9.15A+ items (per-section accept, selected-bullet revision, education overlay, cover letter-only generate, full Inventory CRUD).
 
 ## v0.9.15E implementation note
 
@@ -18,7 +34,7 @@ E2E Trust & Workflow Fix Pack: addresses audit findings across Inventory save tr
 
 **Cover letter:** Initial generation prompt removes `[Candidate Name]` placeholder; validation rejects placeholder signatures (unchanged).
 
-**Next:** v0.9.16A Tailoring Quality.
+**Next:** Parked v0.9.15A+ follow-ups (per-section accept, learning log, critique AI call).
 
 ## v0.9.15D implementation note
 
@@ -224,16 +240,17 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.15E - E2E Trust & Workflow Fix Pack**
+**v0.9.16A - Tailoring Quality Upgrade**
 
-## Latest milestone summary (v0.9.15E)
+## Latest milestone summary (v0.9.16A)
 
-Trust and workflow fixes from E2E QA: inventory save clarity, revision queue discoverability, education preview-only guard, partial-failure action safety, cover letter placeholder guard, website discovery readiness.
+Resume generation tailoring: JD-specific reframing instructions, anti-generic language, richer saved rationale for fit summary, JD-relevance role ranking with early-career penalty, and non-blocking tailoring validation warnings.
 
 ## Milestone history (v0.9.x)
 
 | Version | Theme |
 |---------|--------|
+| v0.9.16A | Tailoring quality upgrade |
 | v0.9.15E | E2E trust & workflow fix pack |
 | v0.9.15D | Resume revision queue (batch scoped revision) |
 | v0.9.15C | Post-generation custom revision reliability |

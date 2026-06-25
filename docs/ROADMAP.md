@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.15E**
+**v0.9.16A**
 
 ## Completed capabilities
 
@@ -48,8 +48,18 @@
 | Post-generation custom revision reliability | v0.9.15C |
 | Resume revision queue (batch scoped revision) | v0.9.15D |
 | E2E trust & workflow fix pack | v0.9.15E |
+| Resume tailoring quality upgrade | v0.9.16A |
 
 ## Milestone log (recent)
+
+### v0.9.16A - Tailoring Quality Upgrade
+
+- Prompt: JD-specific bullet reframing, metric preservation, anti-generic language, richer rationale schema fields.
+- Ranking: JD-relevance experience ordering with early-career/internship penalty in payload selection and structure repair.
+- Validation: non-blocking warnings for duplicates, keyword stuffing, invented metrics, thin/generic rationale.
+- Fit summary: consumes `selectionAudit.strongestMatches`, `honestGaps`, `positioningAngle`.
+- **Limitations:** inventory evidence quality still caps output; no learning log; no critique AI call.
+- **Next:** parked v0.9.15A+ follow-ups.
 
 ### v0.9.15E - E2E Trust & Workflow Fix Pack
 
@@ -58,7 +68,7 @@
 - Package decision tree: Custom resume revision queue discoverability copy.
 - Generate: partial-failure Regenerate Resume demoted with confirmation; website discovery readiness row; Firecrawl estimate footnote.
 - Cover letter initial generation: no `[Candidate Name]` placeholder in prompt; validation unchanged.
-- **Next:** v0.9.16A Tailoring Quality.
+- **Next:** v0.9.15A+ parked items (per-section accept, learning log, critique call).
 
 ### v0.9.15D - Resume Revision Queue
 

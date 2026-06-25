@@ -15,8 +15,10 @@ import {
   type RepairGeneratedResumeContext,
   type ResumeRepairAction,
 } from "@/lib/resume-draft/repair-generated-content";
+import { extractJdMatchTerms } from "@/lib/resume-draft/bullet-payload";
+import { validateTailoringQuality } from "@/lib/resume-draft/tailoring-quality";
 import { RESUME_DRAFT_STATUS_NEEDS_REVIEW } from "@/lib/resume-draft/draft-status";
-import type { ResumeDraftContent } from "@/types/resume-draft";
+import type { ResumeDraftContent, ResumeDraftRationale } from "@/types/resume-draft";
 
 export const MAX_WORK_EXPERIENCE_ROLES = 4;
 export const MIN_BULLETS_PER_ROLE = 2;
@@ -222,6 +224,11 @@ export type PreparedGeneratedResumeContent = {
   forcedBulletAudit?: ForcedBulletAudit;
 };
 
+export type PrepareGeneratedResumeOptions = RepairGeneratedResumeContext & {
+  rationale?: ResumeDraftRationale | null;
+  sourceBulletTextsByKey?: ReadonlyMap<string, string>;
+};
+
 function downgradeSoftStructureErrors(
   validation: GenerationValidationResult,
 ): GenerationValidationResult {
@@ -249,7 +256,7 @@ function buildStructureRepairSummary(messages: string[]): string {
 
 export function prepareGeneratedResumeContent(
   content: ResumeDraftContent,
-  context?: RepairGeneratedResumeContext,
+  context: PrepareGeneratedResumeOptions = {},
 ): PreparedGeneratedResumeContent {
   const hadPlainAdditionalExperience = additionalExperienceNeedsNormalization(
     content.additionalExperience,
@@ -298,6 +305,17 @@ export function prepareGeneratedResumeContent(
 
   for (const warning of repaired.warnings) {
     validation.warnings.push(issue("structure_repair_warning", warning, "warning"));
+  }
+
+  const jdTerms = extractJdMatchTerms(
+    [context.jdText, context.targetRoleTitle].filter(Boolean).join(" "),
+  );
+  for (const tailoringIssue of validateTailoringQuality(repaired.content, {
+    jdTerms,
+    sourceBulletTextsByKey: context.sourceBulletTextsByKey,
+    rationale: context.rationale,
+  })) {
+    validation.warnings.push(tailoringIssue);
   }
 
   if (repairRan) {

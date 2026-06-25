@@ -75,6 +75,10 @@ function mapSelectionAudit(value: unknown) {
 
   return {
     jdThemes: asStringArray(value.jdThemes),
+    strongestMatches: asStringArray(value.strongestMatches),
+    honestGaps: asStringArray(value.honestGaps),
+    positioningAngle: asString(value.positioningAngle),
+    roleSelectionRationale: asString(value.roleSelectionRationale),
     selectedBulletKeys: asStringArray(value.selectedBulletKeys),
     acceptedWordingUsed: asStringArray(value.acceptedWordingUsed),
     approvedKeywordsUsed: asStringArray(value.approvedKeywordsUsed),
@@ -103,6 +107,10 @@ function mapRationale(value: unknown): ResumeDraftRationale {
     selectionAudit:
       selectionAudit &&
       (selectionAudit.jdThemes.length > 0 ||
+        (selectionAudit.strongestMatches?.length ?? 0) > 0 ||
+        (selectionAudit.honestGaps?.length ?? 0) > 0 ||
+        Boolean(selectionAudit.positioningAngle) ||
+        Boolean(selectionAudit.roleSelectionRationale) ||
         selectionAudit.selectedBulletKeys.length > 0 ||
         selectionAudit.acceptedWordingUsed.length > 0 ||
         selectionAudit.approvedKeywordsUsed.length > 0 ||

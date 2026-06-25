@@ -88,6 +88,8 @@ function hasEnoughFitSignal(
   return (
     Boolean(rationale.keywordUsage?.length) ||
     Boolean(rationale.omissions?.length) ||
+    Boolean(rationale.selectionAudit?.strongestMatches?.length) ||
+    Boolean(rationale.selectionAudit?.positioningAngle?.trim()) ||
     Boolean(rationale.toneNotes?.trim()) ||
     Boolean(rationale.overall?.trim())
   );
@@ -227,6 +229,13 @@ function pickStrengths(
 ): string[] {
   const candidates: string[] = [];
 
+  for (const match of rationale?.selectionAudit?.strongestMatches ?? []) {
+    const rewritten = rewriteStrengthAsYour(match);
+    if (rewritten) {
+      candidates.push(rewritten);
+    }
+  }
+
   for (const item of fitAssessment?.keyStrengths ?? []) {
     const rewritten = rewriteStrengthAsYour(item);
     if (rewritten) {
@@ -254,6 +263,13 @@ function pickGaps(
     const gap = humanizeGapPhrase(omission);
     if (gap) {
       candidates.push(gap);
+    }
+  }
+
+  for (const gap of rationale?.selectionAudit?.honestGaps ?? []) {
+    const humanized = humanizeGapPhrase(gap);
+    if (humanized) {
+      candidates.push(humanized);
     }
   }
 
@@ -287,6 +303,11 @@ function buildPositioningSentence(
   rationale?: ResumeDraftRationale | null,
   fitAssessment?: ResumeFitAssessment | null,
 ): string | null {
+  const positioningAngle = rationale?.selectionAudit?.positioningAngle?.trim();
+  if (positioningAngle && isUserFacingFitPhrase(positioningAngle)) {
+    return `Position yourself around ${sentenceCaseClause(toSecondPerson(positioningAngle))}.`;
+  }
+
   const toneNotes = rationale?.toneNotes?.trim();
   if (toneNotes) {
     const normalized = toSecondPerson(toneNotes).trim();

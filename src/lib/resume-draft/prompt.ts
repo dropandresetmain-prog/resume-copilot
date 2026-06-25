@@ -16,6 +16,19 @@ Job description analysis (do this first, in rationale.overall):
 - Do not hallucinate employers, titles, dates, metrics, tools, degrees, or achievements not supported by inventory or approved keywords.
 - Preserve source-backed claims — every Work Experience bullet must include sourceRefs when matching inventory bullets exist.
 
+JD-specific bullet reframing (critical):
+- Adapt each Work Experience bullet to the target role's responsibilities — not keyword mirroring or copy-paste from the JD.
+- Reframe supported evidence: lead with the JD outcome the bullet proves (scale, GTM, compliance, product delivery, etc.).
+- Preserve exact metrics, currencies, percentages, tools, employers, and outcomes from inventory — never invent, round up, or substitute unsupported numbers.
+- jdAlignmentReason must name the JD responsibility supported and how wording was reframed from inventory (not "keyword match").
+- Prefer a JD-specific angle when inventory supports it; do not paste JD requirement phrases as bullets without evidence.
+- Do not copy inventory description verbatim when a clearer JD-specific framing exists; do not stuff JD buzzwords without proof.
+
+Anti-generic language (critical):
+- Avoid weak filler in bullets and rationale: strong alignment, proven track record, leveraging, dynamic, passionate, extensive experience, results-driven professional.
+- Avoid generic "cross-functional stakeholder" phrasing unless tied to a concrete action you led with scope and outcome.
+- Write plain, specific language: verb + scope + outcome + metric when inventory provides one.
+
 Content rules:
 - Generated content must come from inventory experiences, education, skills, additional experience, approved keywords, and the job description.
 - The reference resume is formatting/template only. Do NOT copy bullet text or achievements from the reference resume.
@@ -56,7 +69,19 @@ Work Experience selection and bullet counts (critical):
 - More JD-relevant / recent roles: up to 4 bullets each.
 - Less relevant or older roles: 2 bullets each.
 - Do not pad with weak bullets to hit counts — drop a role before adding filler bullets.
-- Early-career, short-tenure, or less-relevant roles should generally go to Additional Experience unless the job description makes them highly relevant.
+- Early-career, internship, co-op, short-tenure, or less-relevant roles should generally go to Additional Experience unless the job description makes them highly relevant.
+- For senior-target JDs, do not displace stronger senior-relevant roles with internships or early-career roles in Work Experience by default.
+- Additional experience should support the application when included — not clutter Work Experience.
+
+Rationale quality (required — no separate AI call; populate saved rationale fields):
+- rationale.overall: 2–4 sentences on JD must-haves, how inventory maps, and honest limits. No internal labels (bulletKey, schemaVersion, Title: Detail, needs_review).
+- rationale.toneNotes: positioning angle — what to lead with and what to de-emphasize for this JD.
+- rationale.omissions: unsupported JD asks not backed by inventory (honest gaps).
+- rationale.selectionAudit.strongestMatches: 2–4 inventory-backed strengths for this JD.
+- rationale.selectionAudit.honestGaps: optional mirror of key omissions in gap language.
+- rationale.selectionAudit.positioningAngle: one sentence positioning recommendation.
+- rationale.selectionAudit.roleSelectionRationale: why these Work Experience roles were chosen (and why others went to Additional Experience).
+- rationale.selectionAudit.jdThemes: JD themes that drove bullet/role selection.
 
 Resume structure (exact order):
 1. Header — Name, then "Phone | Email" on the next line. No professional summary.
@@ -187,6 +212,10 @@ Generate a tailored resume draft and return JSON with this exact shape:
     "keywordUsage": ["string — approved keyword bank items actually used"],
     "selectionAudit": {
       "jdThemes": ["string — JD themes that drove bullet/role selection"],
+      "strongestMatches": ["string — inventory-backed strengths for this JD"],
+      "honestGaps": ["string — unsupported JD asks"],
+      "positioningAngle": "string — one-sentence positioning recommendation",
+      "roleSelectionRationale": "string — why Work Experience roles were chosen",
       "selectedBulletKeys": ["string — bulletKey values included in Work Experience"],
       "acceptedWordingUsed": ["string — bulletKey values where acceptedWording informed output"],
       "approvedKeywordsUsed": ["string"],
@@ -255,5 +284,38 @@ export function promptIncludesKeywordDistinctionRules(prompt: string): boolean {
     prompt.includes("advisory_keyword_bank") &&
     prompt.includes("Bullet-level keywords") &&
     prompt.includes("Do not force approved keywords")
+  );
+}
+
+export function promptIncludesJdReframingRules(prompt: string): boolean {
+  return (
+    prompt.includes("JD-specific bullet reframing") &&
+    prompt.includes("not keyword mirroring") &&
+    prompt.includes("Preserve exact metrics")
+  );
+}
+
+export function promptIncludesAntiGenericLanguageRules(prompt: string): boolean {
+  return (
+    prompt.includes("Anti-generic language") &&
+    prompt.includes("proven track record") &&
+    prompt.includes("cross-functional stakeholder")
+  );
+}
+
+export function promptIncludesRationaleQualityRules(prompt: string): boolean {
+  return (
+    prompt.includes("Rationale quality") &&
+    prompt.includes("strongestMatches") &&
+    prompt.includes("roleSelectionRationale") &&
+    prompt.includes("positioningAngle")
+  );
+}
+
+export function promptIncludesSeniorRoleSelectionRules(prompt: string): boolean {
+  return (
+    prompt.includes("senior-relevant roles") &&
+    prompt.includes("internships") &&
+    prompt.includes("Additional Experience")
   );
 }

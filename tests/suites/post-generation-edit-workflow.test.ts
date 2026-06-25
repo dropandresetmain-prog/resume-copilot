@@ -192,6 +192,30 @@ function main() {
     },
   });
 
+  const richAuditFitText = buildPackageFitSummary({
+    rationale: {
+      overall: "Operations leadership maps to the JD; inventory supports automation and payments proof.",
+      toneNotes: "Lead with automation outcomes.",
+      keywordUsage: ["workflow automation"],
+      omissions: ["regulated-banking depth"],
+      selectionAudit: {
+        strongestMatches: ["platform operations at scale", "workflow automation delivery"],
+        honestGaps: ["regulated-banking depth"],
+        positioningAngle: "automation outcomes and payments reliability",
+        roleSelectionRationale: "Senior operations roles chosen over internship history.",
+        selectedBulletKeys: ["ops-1"],
+      },
+    },
+    fitAssessment: {
+      fitScore: 86,
+      heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
+      optimizedFor: ["Highlighted workflow automation from approved keywords"],
+      scoreRationale: "Strong match",
+      keyStrengths: ["Operations leadership"],
+      riskFlags: ["Gap: regulated-banking depth"],
+    },
+  });
+
   const checks: [string, boolean][] = [
     ["decision tree component exists", decisionTree.includes('data-testid="package-decision-tree"')],
     [
@@ -499,8 +523,14 @@ function main() {
         isUserFacingFitPhrase("enterprise sales depth"),
     ],
     [
-      "fit summary thin data returns null",
-      thinFitText === null,
+      "fit summary uses selection audit strongest matches",
+      richAuditFitText !== null &&
+        richAuditFitText.includes("platform operations") &&
+        richAuditFitText.includes("automation outcomes"),
+    ],
+    [
+      "fit summary uses honest gaps from selection audit",
+      richAuditFitText !== null && richAuditFitText.includes("regulated banking"),
     ],
     [
       "fit summary unavailable copy in panel",

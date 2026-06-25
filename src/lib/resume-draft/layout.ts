@@ -458,7 +458,16 @@ export function calculateFitScore(
     .slice(0, 5);
 
   const keyStrengths: string[] = [];
-  if (content.experience.length > 0) {
+  const auditMatches = rationale?.selectionAudit?.strongestMatches ?? [];
+  if (auditMatches.length > 0) {
+    for (const match of auditMatches.slice(0, 3)) {
+      const trimmed = match.trim();
+      if (trimmed) {
+        keyStrengths.push(trimmed);
+      }
+    }
+  }
+  if (content.experience.length > 0 && keyStrengths.length === 0) {
     keyStrengths.push(`Strong ${content.experience[0]?.role ?? "role"} experience coverage`);
   }
   if (keywordUsage.length > 0) {
@@ -481,7 +490,8 @@ export function calculateFitScore(
     heuristicVersion: PREVIEW_FIT_HEURISTIC_VERSION,
     optimizedFor,
     scoreRationale:
-      rationale?.overall ??
+      rationale?.selectionAudit?.roleSelectionRationale?.trim() ||
+      rationale?.overall?.trim() ||
       "Score reflects job-description alignment, approved keyword usage, confidence levels, and stated omissions.",
     keyStrengths,
     riskFlags,

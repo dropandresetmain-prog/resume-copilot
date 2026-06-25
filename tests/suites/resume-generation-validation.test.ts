@@ -5,7 +5,10 @@ import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payl
 import {
   buildResumeDraftPrompt,
   promptIncludesAdditionalExperienceColonFormat,
+  promptIncludesAntiGenericLanguageRules,
   promptIncludesJdAnalysisGuardrails,
+  promptIncludesJdReframingRules,
+  promptIncludesRationaleQualityRules,
   promptIncludesSkillsInterestsStructure,
   promptIncludesAcceptedWordingRules,
   promptIncludesKeywordDistinctionRules,
@@ -24,6 +27,12 @@ import {
   validateGeneratedResumeContent,
 } from "../../src/lib/resume-draft/generation-validation";
 import { buildAdditionalExperienceEntries } from "../../src/lib/resume-draft/layout";
+import {
+  areNearDuplicateBullets,
+  extractMetrics,
+  findUnsupportedMetrics,
+  validateTailoringQuality,
+} from "../../src/lib/resume-draft/tailoring-quality";
 import { createGeneratedResumeDraftInCloud, updateGeneratedResumeDraftInCloud } from "../../src/lib/supabase/generated-resume-drafts";
 import type { ResumeDraftContent, ResumeDraftExperienceBullet } from "../../src/types/resume-draft";
 import type { InventoryState } from "../../src/types/resume";
@@ -259,7 +268,44 @@ function main() {
     "Other Past Roles: Acme Consulting – Enterprise Systems Integration",
   );
 
+  const metricSource = "Managed S$200k monthly cash reconciliation";
+  const metricPreserved = findUnsupportedMetrics(
+    "Cash Ops: Managed S$200k monthly cash reconciliation for APAC",
+    [metricSource],
+  );
+  const metricInvented = findUnsupportedMetrics(
+    "Cash Ops: Managed S$500k monthly cash reconciliation for APAC",
+    [metricSource],
+  );
+  const duplicateWarnings = validateTailoringQuality(
+    {
+      ...buildValidDraftSkeleton([]),
+      experience: [
+        {
+          company: "Acme",
+          role: "PM",
+          bullets: [
+            sampleBullet("Ops: Led product operations improvements across teams"),
+            sampleBullet("Operations: Led product operations improvements across teams"),
+            sampleBullet("Strategy: Drove quarterly planning"),
+          ],
+          riskFlags: [],
+        },
+      ],
+    },
+    {
+      rationale: {
+        overall: "Strong alignment with proven track record leveraging stakeholder management.",
+        omissions: [],
+        keywordUsage: [],
+      },
+    },
+  );
+
   const checks: [string, boolean][] = [
+    ["prompt includes JD reframing rules", promptIncludesJdReframingRules(prompt)],
+    ["prompt includes anti-generic language rules", promptIncludesAntiGenericLanguageRules(prompt)],
+    ["prompt includes rationale quality rules", promptIncludesRationaleQualityRules(prompt)],
     ["prompt includes JD analysis guardrails", promptIncludesJdAnalysisGuardrails(prompt)],
     ["prompt includes additional experience colon format", promptIncludesAdditionalExperienceColonFormat(prompt)],
     ["prompt includes skills interests structure", promptIncludesSkillsInterestsStructure(prompt)],
@@ -313,6 +359,21 @@ function main() {
     ["layout renders plain examples as Title: Detail", layoutEntries.length === 1 && layoutEntries[0]?.title === DEFAULT_ADDITIONAL_EXPERIENCE_TITLE],
     ["max roles constant is 4", MAX_WORK_EXPERIENCE_ROLES === 4],
     ["bullet bounds 2-4", MIN_BULLETS_PER_ROLE === 2 && MAX_BULLETS_PER_ROLE === 4],
+    ["metric preserved when unchanged in output", metricPreserved.length === 0],
+    ["invented metric detected against source", metricInvented.includes("s$500k")],
+    ["near duplicate bullets detected", areNearDuplicateBullets(
+      "Ops: Led product operations improvements across teams",
+      "Operations: Led product operations improvements across teams",
+    )],
+    [
+      "tailoring validation flags generic rationale and near duplicates",
+      duplicateWarnings.some((issue) => issue.code === "generic_rationale_phrase") &&
+        duplicateWarnings.some((issue) => issue.code === "near_duplicate_bullets"),
+    ],
+    [
+      "extract metrics from inventory text",
+      extractMetrics(metricSource).some((metric) => metric.includes("200k")),
+    ],
     [
       "draft cloud helpers use update not insert for layout edits",
       updateGeneratedResumeDraftInCloud.toString().includes(".update(") &&

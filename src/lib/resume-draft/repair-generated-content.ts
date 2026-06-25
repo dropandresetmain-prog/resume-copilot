@@ -4,6 +4,9 @@ import {
   extractJdMatchTerms,
 } from "@/lib/resume-draft/bullet-payload";
 import {
+  isEarlyCareerExperience,
+} from "@/lib/resume-draft/tailoring-quality";
+import {
   bulletReferencesForcedKey,
   collectForcedKeysFromBullets,
   collectForcedKeysPresentInOutput,
@@ -102,6 +105,16 @@ function scoreGeneratedRole(
   if (bulletScores.length > 0) {
     score += Math.max(...bulletScores) * 2;
     score += bulletScores.reduce((total, value) => total + value, 0) / bulletScores.length;
+  }
+
+  if (
+    isEarlyCareerExperience(
+      { role: role.role, descriptor: role.companyDescriptor ?? undefined, dateRange: role.dateRange },
+      referenceDate,
+    )
+  ) {
+    const jdRelevance = countJdTermOverlap(roleText, jdTerms);
+    score -= jdRelevance < 2 ? 45 : 18;
   }
 
   return score;

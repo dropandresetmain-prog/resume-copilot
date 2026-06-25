@@ -108,6 +108,14 @@ export type ResumeDraftServerPdfValidation = {
 
 export type ResumeDraftSelectionAudit = {
   jdThemes?: string[];
+  /** Inventory-backed strengths that best match this JD. */
+  strongestMatches?: string[];
+  /** Honest gaps — JD asks not supported by inventory (may mirror omissions). */
+  honestGaps?: string[];
+  /** One-sentence positioning recommendation for this application. */
+  positioningAngle?: string;
+  /** Why these Work Experience roles were chosen over others. */
+  roleSelectionRationale?: string;
   selectedBulletKeys?: string[];
   acceptedWordingUsed?: string[];
   approvedKeywordsUsed?: string[];

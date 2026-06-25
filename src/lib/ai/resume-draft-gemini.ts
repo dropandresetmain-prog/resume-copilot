@@ -14,6 +14,7 @@ import {
   parseResumeDraftJson,
 } from "@/lib/resume-draft/parse";
 import { buildResumeDraftPrompt } from "@/lib/resume-draft/prompt";
+import { buildSourceBulletTextsByKey } from "@/lib/resume-draft/payload";
 import type { ResumeDraftGenerationInput } from "@/types/resume-draft";
 import type { ResumeDraftGenerationResult } from "@/types/resume-draft";
 
@@ -50,6 +51,8 @@ export async function generateResumeDraftWithGemini(
     forcedBulletKeys: input.regenerationControls?.forcedBulletKeys,
     unavailableForcedKeys: input.auditHints?.unavailableForcedBulletKeys,
     excludedBulletKeys: input.regenerationControls?.excludedBulletKeys,
+    rationale: parsed.value.rationale,
+    sourceBulletTextsByKey: buildSourceBulletTextsByKey(input),
   });
 
   const hardBlockErrors = getHardBlockValidationErrors(prepared.validation);

@@ -28,6 +28,65 @@ function parseResumeDraftContent(value: unknown): ResumeDraftContent | null {
   return raw as unknown as ResumeDraftContent;
 }
 
+function parseSelectionAudit(value: unknown) {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const jdThemes = Array.isArray(value.jdThemes)
+    ? value.jdThemes.filter((item): item is string => typeof item === "string")
+    : [];
+  const strongestMatches = Array.isArray(value.strongestMatches)
+    ? value.strongestMatches.filter((item): item is string => typeof item === "string")
+    : [];
+  const honestGaps = Array.isArray(value.honestGaps)
+    ? value.honestGaps.filter((item): item is string => typeof item === "string")
+    : [];
+  const selectedBulletKeys = Array.isArray(value.selectedBulletKeys)
+    ? value.selectedBulletKeys.filter((item): item is string => typeof item === "string")
+    : [];
+  const acceptedWordingUsed = Array.isArray(value.acceptedWordingUsed)
+    ? value.acceptedWordingUsed.filter((item): item is string => typeof item === "string")
+    : [];
+  const approvedKeywordsUsed = Array.isArray(value.approvedKeywordsUsed)
+    ? value.approvedKeywordsUsed.filter((item): item is string => typeof item === "string")
+    : [];
+  const approvedKeywordsSkipped = Array.isArray(value.approvedKeywordsSkipped)
+    ? value.approvedKeywordsSkipped.filter((item): item is string => typeof item === "string")
+    : [];
+
+  const hasContent =
+    jdThemes.length > 0 ||
+    strongestMatches.length > 0 ||
+    honestGaps.length > 0 ||
+    typeof value.positioningAngle === "string" ||
+    typeof value.roleSelectionRationale === "string" ||
+    selectedBulletKeys.length > 0 ||
+    acceptedWordingUsed.length > 0 ||
+    approvedKeywordsUsed.length > 0 ||
+    approvedKeywordsSkipped.length > 0;
+
+  if (!hasContent) {
+    return undefined;
+  }
+
+  return {
+    jdThemes,
+    strongestMatches,
+    honestGaps,
+    positioningAngle:
+      typeof value.positioningAngle === "string" ? value.positioningAngle : undefined,
+    roleSelectionRationale:
+      typeof value.roleSelectionRationale === "string"
+        ? value.roleSelectionRationale
+        : undefined,
+    selectedBulletKeys,
+    acceptedWordingUsed,
+    approvedKeywordsUsed,
+    approvedKeywordsSkipped,
+  };
+}
+
 function parseResumeDraftRationale(value: unknown): ResumeDraftRationale | undefined {
   if (!isObject(value)) return undefined;
   if (typeof value.overall !== "string") return undefined;
@@ -53,6 +112,7 @@ function parseResumeDraftRationale(value: unknown): ResumeDraftRationale | undef
     keywordUsage: Array.isArray(value.keywordUsage)
       ? value.keywordUsage.filter((item): item is string => typeof item === "string")
       : [],
+    selectionAudit: parseSelectionAudit(value.selectionAudit),
     structureRepair,
   };
 }

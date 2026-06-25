@@ -1,5 +1,9 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { getDateRangeEndSortKey } from "@/lib/date/duration";
+import {
+  isEarlyCareerExperience,
+  scoreExperienceForGeneration,
+} from "@/lib/resume-draft/tailoring-quality";
 import type { CollatedBullet, CollatedExperience } from "@/types/collated";
 
 const JD_TERM_STOP_WORDS = new Set([
@@ -62,16 +66,23 @@ function isBulletExcluded(
 
 export function sortExperiencesForGeneration(
   experiences: readonly CollatedExperience[],
-  referenceDate: Date = new Date(),
+  options: { jdTerms?: readonly string[]; referenceDate?: Date } = {},
 ): CollatedExperience[] {
+  const jdTerms = options.jdTerms ?? [];
+  const referenceDate = options.referenceDate ?? new Date();
+
   const indexed = experiences.map((experience, index) => ({
     experience,
     index,
+    relevanceScore: scoreExperienceForGeneration(experience, jdTerms, referenceDate),
     ...getDateRangeEndSortKey(experience.dateRange, referenceDate),
   }));
 
   return [...indexed]
     .sort((a, b) => {
+      if (b.relevanceScore !== a.relevanceScore) {
+        return b.relevanceScore - a.relevanceScore;
+      }
       if (a.hasDate && b.hasDate) {
         return b.sortKey - a.sortKey;
       }
@@ -85,6 +96,8 @@ export function sortExperiencesForGeneration(
     })
     .map((entry) => entry.experience);
 }
+
+export { isEarlyCareerExperience, scoreExperienceForGeneration };
 
 function scoreBulletForGeneration(
   bullet: CollatedBullet,
@@ -148,7 +161,7 @@ export function selectGenerationBullets(options: {
   unavailableForcedKeys: string[];
 } {
   const jdTerms = extractJdMatchTerms(options.jdText);
-  const sortedExperiences = sortExperiencesForGeneration(options.experiences);
+  const sortedExperiences = sortExperiencesForGeneration(options.experiences, { jdTerms });
   const forcedSet = new Set(options.forcedBulletKeys ?? []);
   const excludedSet = new Set(options.excludedBulletKeys ?? []);
   const selected: GenerationBulletSelection[] = [];

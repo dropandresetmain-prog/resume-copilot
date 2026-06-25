@@ -23,6 +23,21 @@ import {
 
 export const MAX_RESUME_DRAFT_BULLETS = 40;
 
+export function buildSourceBulletTextsByKey(
+  input: ResumeDraftGenerationInput,
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const experience of input.experiences) {
+    for (const bullet of experience.bullets) {
+      const parts = [bullet.description, bullet.acceptedWording, bullet.rawTexts.join(" ")].filter(
+        Boolean,
+      );
+      map.set(bullet.bulletKey, parts.join(" "));
+    }
+  }
+  return map;
+}
+
 export function filterApprovedKeywords(
   enrichment: EnrichmentState,
 ): KeywordBankItem[] {

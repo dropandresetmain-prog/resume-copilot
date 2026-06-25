@@ -5,6 +5,7 @@ import {
   formatKeywordBullet,
 } from "@/lib/resume-draft/layout";
 import { repairBulletText } from "@/lib/resume-draft/keyword-repair";
+import { buildSourceBulletTextsByKey } from "@/lib/resume-draft/payload";
 import { isTechnicalSkillItem, normalizeTechnicalSkillLabel } from "@/lib/resume-draft/skills-section";
 import type {
   ResumeDraftGenerationInput,
@@ -180,35 +181,48 @@ export function generateMockResumeDraft(
         : [],
   };
 
-  const prepared = prepareGeneratedResumeContent(draftContent, {
-    jdText: input.jobDescription.rawText,
-    targetRoleTitle: input.jobDescription.roleTitle,
-    forcedBulletKeys: input.regenerationControls?.forcedBulletKeys,
-  });
   const acceptedWordingUsed = input.experiences
     .flatMap((experience) => experience.bullets)
     .filter((bullet) => bullet.acceptedWording)
     .map((bullet) => bullet.bulletKey);
 
   const rationale = {
-      overall: `Draft tailored for ${targetRole} using inventory content only. Reference resume (${input.referenceResume.filename}) informed layout and bullet style.`,
-      toneNotes: `One-page discipline: 2–3 bullets on primary roles, compact skills section.`,
-      omissions: [],
-      keywordUsage: input.approvedKeywords.slice(0, 5).map((item) => item.keyword),
-      selectionAudit: {
-        jdThemes: input.auditHints?.jdTermSample ?? [],
-        selectedBulletKeys: input.experiences.flatMap((experience) =>
-          experience.bullets.map((bullet) => bullet.bulletKey),
+    overall: `Draft tailored for ${targetRole}: prioritized JD-relevant inventory evidence with honest gap notes. Reference resume (${input.referenceResume.filename}) informed layout only.`,
+    toneNotes: `Lead with ${input.auditHints?.jdTermSample?.slice(0, 2).join(" and ") || "strongest role-relevant"} proof; keep one-page discipline.`,
+    omissions: [] as string[],
+    keywordUsage: input.approvedKeywords.slice(0, 5).map((item) => item.keyword),
+    selectionAudit: {
+      jdThemes: input.auditHints?.jdTermSample ?? [],
+      strongestMatches: input.experiences
+        .slice(0, 2)
+        .map(
+          (experience) =>
+            `${experience.role} at ${experience.company} with inventory-backed bullets`,
         ),
-        acceptedWordingUsed,
-        approvedKeywordsUsed: input.approvedKeywords
-          .filter((item) => item.overlapsJobDescription)
-          .map((item) => item.keyword),
-        approvedKeywordsSkipped: input.approvedKeywords
-          .filter((item) => !item.overlapsJobDescription)
-          .map((item) => item.keyword),
-      },
-    };
+      honestGaps: [] as string[],
+      positioningAngle: `Lead with ${targetRole}-relevant outcomes from recent roles.`,
+      roleSelectionRationale:
+        "Work Experience roles chosen for JD overlap and senior relevance; early-career or low-relevance roles deferred to Additional Experience when present.",
+      selectedBulletKeys: input.experiences.flatMap((experience) =>
+        experience.bullets.map((bullet) => bullet.bulletKey),
+      ),
+      acceptedWordingUsed,
+      approvedKeywordsUsed: input.approvedKeywords
+        .filter((item) => item.overlapsJobDescription)
+        .map((item) => item.keyword),
+      approvedKeywordsSkipped: input.approvedKeywords
+        .filter((item) => !item.overlapsJobDescription)
+        .map((item) => item.keyword),
+    },
+  };
+
+  const prepared = prepareGeneratedResumeContent(draftContent, {
+    jdText: input.jobDescription.rawText,
+    targetRoleTitle: input.jobDescription.roleTitle,
+    forcedBulletKeys: input.regenerationControls?.forcedBulletKeys,
+    rationale,
+    sourceBulletTextsByKey: buildSourceBulletTextsByKey(input),
+  });
 
   return {
     content: prepared.content,
