@@ -35,13 +35,20 @@ import {
   formatWordCountLabel,
   isOverWordLimit,
 } from "@/lib/cover-letter/word-limits";
+import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
+import {
+  generateAndSaveCoverLetterDraft,
+  REGENERATE_COVER_LETTER_CONFIRM,
+} from "@/lib/generate/cover-letter-generation";
 import {
   getGeneratedCoverLetterDraftFromCloud,
   updateGeneratedCoverLetterDraftInCloud,
 } from "@/lib/supabase/generated-cover-letter-drafts";
+import { getGeneratedResumeDraftFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
 import type { CompanyContext } from "@/types/company-context";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
+import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 type CoverLetterPreviewPageClientProps = {
   draftId: string;
@@ -59,14 +66,17 @@ function formatLastSavedLabel(savedAt: Date | null): string | null {
 }
 
 export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPageClientProps) {
-  const { jobDescriptions } = useWorkspace();
+  const { jobDescriptions, inventory } = useWorkspace();
   const [draft, setDraft] = useState<GeneratedCoverLetterDraftRecord | null>(null);
+  const [resumeDraft, setResumeDraft] = useState<GeneratedResumeDraftRecord | null>(null);
   const [bodyDraft, setBodyDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
   const [bodyView, setBodyView] = useState<CoverLetterBodyView>("pdf");
 
@@ -96,6 +106,14 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
               }
             }
             setCompanyContext(resolvedContext);
+            if (record.resumeDraftId) {
+              const linkedResume = await getGeneratedResumeDraftFromCloud(record.resumeDraftId);
+              if (!cancelled) {
+                setResumeDraft(linkedResume);
+              }
+            } else {
+              setResumeDraft(null);
+            }
           }
         }
       } catch (loadError) {
@@ -173,6 +191,49 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleRegenerateCoverLetter() {
+    if (!draft || !job || !resumeDraft) {
+      setRegenerateError("Saved job and resume draft are required to regenerate the cover letter.");
+      return;
+    }
+    if (!window.confirm(REGENERATE_COVER_LETTER_CONFIRM)) {
+      return;
+    }
+
+    setIsRegenerating(true);
+    setRegenerateError(null);
+    setError(null);
+    try {
+      const updated = await generateAndSaveCoverLetterDraft({
+        ...buildCoverLetterGenerationOptions({
+          job,
+          resumeDraft,
+          inventory,
+          applicationId: draft.applicationId,
+          fields: {
+            country: draft.country,
+            companyWebsite: draft.companyWebsite,
+            additionalInstructions: draft.additionalInstructions,
+          },
+          savedCompanyContext: companyContext ?? draft.companyContext,
+        }),
+        existingCoverLetterId: draft.id,
+      });
+      setDraft(updated);
+      setBodyDraft(updated.body);
+      setLastSavedAt(new Date(updated.updatedAt));
+      setSaveFeedback(null);
+    } catch (regenerateFailure) {
+      setRegenerateError(
+        regenerateFailure instanceof Error
+          ? regenerateFailure.message
+          : "Cover letter regeneration failed.",
+      );
+    } finally {
+      setIsRegenerating(false);
     }
   }
 
@@ -366,6 +427,10 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
             setError(null);
           }
         }}
+        onRegenerate={() => void handleRegenerateCoverLetter()}
+        isRegenerating={isRegenerating}
+        regenerateDisabled={!job || !resumeDraft}
+        regenerateError={regenerateError}
       />
 
       {draft.rationale ? (

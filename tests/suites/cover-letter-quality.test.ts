@@ -345,6 +345,22 @@ function main() {
     ["staged revision requests candidate only", revisionPanel.includes("persist: false")],
     ["staged revision accept persists via callback", revisionPanel.includes("await onAccepted")],
     [
+      "staged revision panel shows regenerate cover letter",
+      revisionPanel.includes("Regenerate cover letter") &&
+        revisionPanel.includes("data-action=\"regenerate-cover-letter\""),
+    ],
+    [
+      "staged revision chips still stage only until revise",
+      revisionPanel.includes("Chips stage instructions only") &&
+        revisionPanel.includes("toggleChip") &&
+        revisionPanel.includes("persist: false"),
+    ],
+    [
+      "cover letter preview wires regenerate handler",
+      previewPage.includes("onRegenerate={() => void handleRegenerateCoverLetter()}") &&
+        previewPage.includes("existingCoverLetterId: draft.id"),
+    ],
+    [
       "preview page staged copy",
       previewPage.includes("Accept saves it") && !previewPage.includes("save immediately"),
     ],

@@ -17,6 +17,10 @@ import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft
 import type { InventoryState } from "@/types/resume";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
+export const REGENERATE_COVER_LETTER_CONFIRM =
+  "Regenerate the cover letter using your current Communication Profile and inventory evidence?\n\n" +
+  "This is 1 AI step. Your resume draft will not change. The current cover letter will be replaced.";
+
 export type CoverLetterGenerationOptions = {
   job: StoredJobDescription;
   resumeDraft: GeneratedResumeDraftRecord;

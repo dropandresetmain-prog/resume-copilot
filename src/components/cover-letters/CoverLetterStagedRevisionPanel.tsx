@@ -6,6 +6,7 @@ import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import {
   actionBarClassName,
+  destructiveButtonClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
@@ -54,6 +55,10 @@ type CoverLetterStagedRevisionPanelProps = {
       fallbackApplied?: boolean;
     },
   ) => void | Promise<void>;
+  onRegenerate?: () => void | Promise<void>;
+  isRegenerating?: boolean;
+  regenerateDisabled?: boolean;
+  regenerateError?: string | null;
 };
 
 function buildStagedRevisionInstruction(
@@ -87,6 +92,10 @@ export function CoverLetterStagedRevisionPanel({
   actualModel,
   fallbackApplied = false,
   onAccepted,
+  onRegenerate,
+  isRegenerating = false,
+  regenerateDisabled = false,
+  regenerateError = null,
 }: CoverLetterStagedRevisionPanelProps) {
   const [selectedChips, setSelectedChips] = useState<Set<CoverLetterRevisionAction>>(
     () => new Set(),
@@ -348,6 +357,31 @@ export function CoverLetterStagedRevisionPanel({
           </ul>
         ) : null}
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+
+        {onRegenerate ? (
+          <div
+            className="mt-6 border-t border-slate-200 pt-6"
+            data-testid="cover-letter-regenerate-section"
+          >
+            <p className="text-xs font-semibold uppercase text-slate-500">Full regeneration</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Regenerates cover letter only · 1 AI step · resume unchanged.
+            </p>
+            <button
+              type="button"
+              onClick={() => void onRegenerate()}
+              disabled={disabled || isRevising || isRegenerating || regenerateDisabled}
+              className={`mt-3 w-full sm:w-auto ${destructiveButtonClassName}`}
+              data-action="regenerate-cover-letter"
+              aria-busy={isRegenerating}
+            >
+              {isRegenerating ? "Regenerating cover letter…" : "Regenerate cover letter"}
+            </button>
+            {regenerateError ? (
+              <p className="mt-2 text-sm text-red-700">{regenerateError}</p>
+            ) : null}
+          </div>
+        ) : null}
       </SetupCard>
     </div>
   );

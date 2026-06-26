@@ -138,6 +138,14 @@ function main() {
     join(process.cwd(), "src/components/application-package/ApplicationPackageCoverLetterPanel.tsx"),
     "utf8",
   );
+  const coverLetterPreviewPage = readFileSync(
+    join(process.cwd(), "src/components/pages/CoverLetterPreviewPageClient.tsx"),
+    "utf8",
+  );
+  const stagedRevisionPanel = readFileSync(
+    join(process.cwd(), "src/components/cover-letters/CoverLetterStagedRevisionPanel.tsx"),
+    "utf8",
+  );
   const coverLetterGeneration = readFileSync(
     join(process.cwd(), "src/lib/generate/cover-letter-generation.ts"),
     "utf8",
@@ -251,24 +259,31 @@ function main() {
       !buildCoverLetterPrompt(input).includes("Min Htet"),
     ],
     [
-      "application package shows regenerate cover letter when cover letter exists",
-      applicationPackageCoverLetterPanel.includes("Regenerate cover letter") &&
-        applicationPackageCoverLetterPanel.includes("handleRegenerate"),
+      "application package does not show regenerate cover letter",
+      !applicationPackageCoverLetterPanel.includes("Regenerate cover letter") &&
+        !applicationPackageCoverLetterPanel.includes("handleRegenerate"),
+    ],
+    [
+      "cover letter edit page shows regenerate cover letter",
+      coverLetterPreviewPage.includes("handleRegenerateCoverLetter") &&
+        stagedRevisionPanel.includes("Regenerate cover letter") &&
+        stagedRevisionPanel.includes("data-action=\"regenerate-cover-letter\""),
     ],
     [
       "regenerate cover letter passes inventory and existing draft id",
-      applicationPackageCoverLetterPanel.includes("inventory,") &&
-        applicationPackageCoverLetterPanel.includes("existingCoverLetterId"),
+      coverLetterPreviewPage.includes("inventory,") &&
+        coverLetterPreviewPage.includes("existingCoverLetterId: draft.id"),
     ],
     [
       "regenerate cover letter confirms resume unchanged",
-      applicationPackageCoverLetterPanel.includes("resume unchanged") &&
-        applicationPackageCoverLetterPanel.includes("window.confirm"),
+      coverLetterPreviewPage.includes("REGENERATE_COVER_LETTER_CONFIRM") &&
+        coverLetterPreviewPage.includes("window.confirm") &&
+        stagedRevisionPanel.includes("resume unchanged"),
     ],
     [
       "regenerate cover letter does not call resume generation",
-      !applicationPackageCoverLetterPanel.includes("requestResumeDraftGeneration") &&
-        !applicationPackageCoverLetterPanel.includes("createGeneratedResumeDraftInCloud"),
+      !coverLetterPreviewPage.includes("requestResumeDraftGeneration") &&
+        !coverLetterPreviewPage.includes("createGeneratedResumeDraftInCloud"),
     ],
     [
       "cover letter generation replaces existing draft in place",
