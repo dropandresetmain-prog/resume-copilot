@@ -45,6 +45,7 @@ uploads/
 data/uploads/
 generated/
 dist/
+design-ref/
 
 # local manual QA artifacts (screenshots, notes — not for CI)
 /local-tests/

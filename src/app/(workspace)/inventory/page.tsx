@@ -1,5 +1,5 @@
-import { InventoryPageClient } from "@/components/pages/InventoryPageClient";
+import { CareerVaultPageClient } from "@/components/pages/CareerVaultPageClient";
 
 export default function InventoryPage() {
-  return <InventoryPageClient />;
+  return <CareerVaultPageClient />;
 }
