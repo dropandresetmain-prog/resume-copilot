@@ -1,62 +1,78 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/* Light theme only — do not follow OS dark mode until a real theme system exists. */
-:root {
-  --app-bg: #f8fafc;
-  --app-text: #0f172a;
-  --app-muted: #475569;
-  --app-card: #ffffff;
-  --app-border: #cbd5e1;
-  --app-input-bg: #ffffff;
-  --app-input-text: #0f172a;
-  --app-placeholder: #94a3b8;
-  --font-geist-sans: Arial, Helvetica, sans-serif;
-  --font-geist-mono: "Courier New", Consolas, monospace;
-  color-scheme: light only;
-}
-
+/* ── Folio design tokens ─────────────────────────────────────────────────── */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Colors */
+  --color-folio-primary:                  #016147;
+  --color-folio-primary-container:        #2a7a5e;
+  --color-folio-sidebar:                  #085041;
+  --color-folio-secondary:                #9a4523;
+  --color-folio-secondary-container:      #ff946c;
+  --color-folio-tertiary:                 #1f5f4f;
+  --color-folio-surface:                  #fcf9f5;
+  --color-folio-surface-dim:              #dcdad6;
+  --color-folio-surface-container-low:    #f6f3ef;
+  --color-folio-surface-container:        #f0edea;
+  --color-folio-surface-container-high:   #ebe8e4;
+  --color-folio-on-surface:              #1c1c1a;
+  --color-folio-on-surface-variant:      #3f4944;
+  --color-folio-outline:                 #6f7973;
+  --color-folio-outline-variant:         #bec9c2;
+  --color-folio-error:                   #ba1a1a;
+  --color-folio-background:              #fafdf7;
+  --color-folio-cta:                     #b85c38;
+
+  /* Typography scale */
+  --font-sans: Inter, Arial, Helvetica, sans-serif;
+
+  /* Spacing */
+  --spacing-sidebar: 220px;
+  --spacing-content-max: 860px;
+  --spacing-container: 40px;
+
+  /* Radius */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.75rem;
+  --radius-lg:  1rem;
+  --radius-xl:  1.5rem;
+  --radius-full: 9999px;
 }
 
-html {
-  background-color: var(--app-bg);
-  color: var(--app-text);
+/* ── Base ────────────────────────────────────────────────────────────────── */
+:root {
   color-scheme: light only;
 }
 
+html,
 body {
   min-height: 100%;
-  background-color: var(--app-bg);
-  color: var(--app-text);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-color: #fafdf7;
+  color: #1c1c1a;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  color-scheme: light only;
 }
 
-/* Keep light theme even when the OS prefers dark mode. */
+/* Keep light theme even when OS prefers dark mode. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: light only;
-  }
-
-  html,
-  body {
-    background-color: var(--app-bg) !important;
-    color: var(--app-text) !important;
+  :root { color-scheme: light only; }
+  html, body {
+    background-color: #fafdf7 !important;
+    color: #1c1c1a !important;
   }
 }
 
 input,
 textarea,
 select {
-  background-color: var(--app-input-bg);
-  color: var(--app-input-text);
-  border-color: var(--app-border);
+  background-color: #ffffff;
+  color: #1c1c1a;
+  border-color: #bec9c2;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--app-placeholder);
+  color: #6f7973;
   opacity: 1;
 }
 
@@ -66,23 +82,8 @@ input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--app-input-text);
-  -webkit-box-shadow: 0 0 0 1000px var(--app-input-bg) inset;
-  box-shadow: 0 0 0 1000px var(--app-input-bg) inset;
-  caret-color: var(--app-input-text);
-}
-
-@media (prefers-color-scheme: dark) {
-  input,
-  textarea,
-  select {
-    background-color: var(--app-input-bg) !important;
-    color: var(--app-input-text) !important;
-    border-color: var(--app-border) !important;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--app-placeholder) !important;
-  }
+  -webkit-text-fill-color: #1c1c1a;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  caret-color: #1c1c1a;
 }

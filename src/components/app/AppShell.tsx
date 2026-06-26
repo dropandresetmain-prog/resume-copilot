@@ -1,14 +1,20 @@
 import type { ReactNode } from "react";
 
 import { AppNav } from "@/components/app/AppNav";
+import { TopBar } from "@/components/app/TopBar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-full bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-950">
+    <div className="min-h-screen bg-[#FAFDF7]">
       <AppNav />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {children}
-      </main>
+
+      {/* Content area — offset by sidebar width */}
+      <div className="ml-[220px] flex min-h-screen flex-col">
+        <TopBar />
+        <main className="flex-1 px-10 py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
