@@ -1,4 +1,7 @@
 import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
+import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
+import { buildEvidenceSpine } from "../../src/lib/evidence/spine";
+import { buildAddEvidenceList } from "../../src/lib/resume-draft/add-evidence-list";
 import { rewriteMockResumeRole } from "../../src/lib/ai/resume-role-rewrite-mock";
 import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-payload";
 import {
@@ -43,7 +46,7 @@ import type {
   ResumeDraftExperienceBullet,
   ResumeDraftGenerationInput,
 } from "../../src/types/resume-draft";
-import type { CollatedExperience } from "../../src/types/collated";
+import type { CollatedExperience, CollatedInventory } from "../../src/types/collated";
 import type { CollatedBulletListing } from "../../src/lib/inventory/edits";
 
 const forcedKey = buildBulletEnrichmentKey(
@@ -221,6 +224,56 @@ function makeListing(
   };
 }
 
+function buildCrossCategoryCollated(): CollatedInventory {
+  return {
+    experiences: [
+      {
+        id: "exp-low",
+        company: "Legacy Corp",
+        role: "Analyst",
+        sourceCitations: [],
+        bullets: [
+          {
+            id: "low-bullet",
+            keyword: "Blockchain",
+            description: "Prepared internal reporting packs",
+            rawTexts: ["Prepared internal reporting packs"],
+            sourceCitations: [],
+          },
+        ],
+      },
+    ],
+    educationItems: [
+      {
+        id: "edu-1",
+        institution: "Business School",
+        programmes: ["MBA Fintech and Blockchain"],
+        bullets: [],
+        rawTexts: [],
+        sourceCitations: [],
+        parseWarnings: [],
+      },
+    ],
+    additionalExperienceItems: [
+      {
+        id: "add-line-1",
+        category: "Projects",
+        text: "Led blockchain fintech market entry pilot across APAC partners",
+        rawTexts: ["Led blockchain fintech market entry pilot across APAC partners"],
+        sourceCitations: [],
+      },
+    ],
+    skillItems: [
+      {
+        id: "skill-1",
+        category: "Technical Skills",
+        text: "Blockchain platform operations",
+        sourceCitations: [],
+      },
+    ],
+  };
+}
+
 function main() {
   const jdText = "B2B sales CRM pipeline revenue growth stakeholder management";
 
@@ -392,6 +445,66 @@ function main() {
     jobDescriptionText: "B2B sales role",
   });
 
+  const categoryJdText =
+    "Product leader with blockchain fintech market entry, platform operations, and stakeholder leadership.";
+  const categoryCollated = buildCrossCategoryCollated();
+  const categoryEnrichment = {
+    ...createEmptyEnrichmentState(),
+    keywordBank: [
+      {
+        id: "kw-1",
+        keyword: "Blockchain",
+        category: "market",
+        approved: true,
+        source: "manual" as const,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
+    ],
+  };
+  const categorySpine = buildEvidenceSpine({
+    collated: categoryCollated,
+    enrichment: categoryEnrichment,
+    jdText: categoryJdText,
+    roleTitle: "Product Lead",
+    maxWorkBullets: 5,
+  });
+  const emptyDraftContent = buildValidSkeleton();
+  const categoryAddList = buildAddEvidenceList(categorySpine, emptyDraftContent);
+  const categoryLabels = new Set(categoryAddList.map((row) => row.categoryLabel));
+  const listMatchesRelevanceSort = categoryAddList.every(
+    (row, index, array) =>
+      index === 0 || row.relevanceScore <= array[index - 1]!.relevanceScore,
+  );
+
+  const workBulletKey = buildBulletEnrichmentKey(
+    "Legacy Corp",
+    "Analyst",
+    "Prepared internal reporting packs",
+  );
+  const excludedSpine = buildEvidenceSpine({
+    collated: categoryCollated,
+    enrichment: categoryEnrichment,
+    jdText: categoryJdText,
+    maxWorkBullets: 5,
+    regenerationControls: { forcedBulletKeys: [], excludedBulletKeys: [workBulletKey] },
+  });
+  const excludedAddList = buildAddEvidenceList(excludedSpine, emptyDraftContent, {
+    forcedBulletKeys: [],
+    excludedBulletKeys: [workBulletKey],
+  });
+  const hiddenAddList = buildAddEvidenceList(categorySpine, emptyDraftContent, undefined, {
+    hiddenBulletKeys: [workBulletKey],
+  });
+
+  const nonWorkRows = categoryAddList.filter((row) => row.sourceType !== "work_bullet");
+  const keywordRows = categoryAddList.filter((row) => row.sourceType === "keyword_tied");
+  const workAddableRows = categoryAddList.filter((row) => row.actionState === "addable");
+  const nonWorkTargetedPlan = planTargetedForcedBulletRewrite({
+    content: emptyDraftContent,
+    forcedBulletKeys: nonWorkRows.map((row) => row.id),
+    inventoryListings: [],
+  });
+
   const checks: [string, boolean][] = [
     [
       "Case A: forced bullet outside top rank enters payload with force",
@@ -506,6 +619,43 @@ function main() {
         bullets: [],
         priorRole: targetedContent.experience[0]!,
       }).some((issue) => issue.includes("at least")),
+    ],
+    [
+      "add evidence list includes work additional education skill keyword categories",
+      categoryLabels.has("Work") &&
+        categoryLabels.has("Additional") &&
+        categoryLabels.has("Education") &&
+        categoryLabels.has("Skill") &&
+        categoryLabels.has("Keyword"),
+    ],
+    [
+      "add evidence list sorted by relevance score descending",
+      listMatchesRelevanceSort,
+    ],
+    [
+      "excluded work bullet omitted from add evidence list",
+      !excludedAddList.some((row) => row.bulletKey === workBulletKey),
+    ],
+    [
+      "hidden work bullet omitted from add evidence list",
+      !hiddenAddList.some((row) => row.bulletKey === workBulletKey),
+    ],
+    [
+      "work bullets remain addable in category-aware list",
+      workAddableRows.some((row) => row.bulletKey === workBulletKey),
+    ],
+    [
+      "keywords are advisory only in add evidence list",
+      keywordRows.length > 0 && keywordRows.every((row) => row.actionState === "advisory_only"),
+    ],
+    [
+      "non-work evidence ids do not produce targeted rewrite plan",
+      nonWorkTargetedPlan.mode === "blocked" || nonWorkTargetedPlan.mode === "none",
+    ],
+    [
+      "regeneration panel uses ranked add evidence list",
+      regenerationPanel.includes("add-evidence-ranked-list") &&
+        regenerationPanel.includes("buildAddEvidenceList"),
     ],
   ];
 

@@ -1,4 +1,6 @@
 import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
+import { buildEvidenceSpine } from "../../src/lib/evidence/spine";
+import { buildAddEvidenceList } from "../../src/lib/resume-draft/add-evidence-list";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { applyInventoryEditsToCollated } from "../../src/lib/inventory/edits";
@@ -389,6 +391,31 @@ function main() {
 
   checks.push(
     ["hidden inventory bullet excluded from payload", !hiddenPayloadBullets.some((bullet) => bullet.bulletKey === hideKey)],
+  );
+
+  const hiddenSpine = buildEvidenceSpine({
+    collated: hiddenActive,
+    enrichment: hiddenInventory.enrichment,
+    jdText: sampleJd.rawText,
+    maxWorkBullets: MAX_RESUME_DRAFT_BULLETS,
+  });
+  const hiddenAddList = buildAddEvidenceList(
+    hiddenSpine,
+    {
+      schemaVersion: 1,
+      header: { includeHeader: false },
+      professionalSummary: { text: "", jdAlignment: [], riskFlags: [] },
+      skills: { groups: [], jdAlignment: [], riskFlags: [] },
+      experience: [],
+      education: [],
+      additionalExperience: [],
+      globalRiskFlags: [],
+    },
+    undefined,
+    { hiddenBulletKeys: [hideKey] },
+  );
+  checks.push(
+    ["hidden inventory bullet omitted from add evidence list", !hiddenAddList.some((row) => row.bulletKey === hideKey)],
   );
 
   for (const [name, ok] of checks) {

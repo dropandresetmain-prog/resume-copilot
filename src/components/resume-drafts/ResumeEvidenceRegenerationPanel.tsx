@@ -14,9 +14,14 @@ import {
   resolveResumeModelTierForDraft,
   writeStoredResumeModelTier,
 } from "@/lib/ai/model-tier-storage";
+import { buildEvidenceSpine } from "@/lib/evidence/spine";
 import { listCollatedBulletsWithEditState } from "@/lib/inventory/edits";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { buildCollatedInventory } from "@/lib/inventory/collation";
+import {
+  actionStateHint,
+  buildAddEvidenceList,
+} from "@/lib/resume-draft/add-evidence-list";
 import {
   removeBulletsFromDraftBySourceKeys,
   resolveDraftStatusAfterContentEdit,
@@ -29,7 +34,10 @@ import {
   type RegenerationOutcomeSummary,
 } from "@/lib/resume-draft/forced-bullets";
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
-import { buildResumeDraftPayloadFromInventory } from "@/lib/resume-draft/payload";
+import {
+  buildResumeDraftPayloadFromInventory,
+  MAX_RESUME_DRAFT_BULLETS,
+} from "@/lib/resume-draft/payload";
 import { requestResumeRoleRewrite } from "@/lib/resume-draft/role-rewrite-client";
 import { assessRegenerationFeasibility } from "@/lib/resume-draft/regeneration";
 import {
@@ -42,8 +50,6 @@ import {
 import {
   buildEvidenceQueueSummary,
   collectGeneratedBulletsWithKeys,
-  inventoryKeysAlreadyInDraft,
-  listingLabel,
   type EvidencePendingAction,
 } from "@/lib/resume-draft/evidence-pending-queue";
 import { updateGeneratedResumeDraftInCloud } from "@/lib/supabase/generated-resume-drafts";
@@ -79,9 +85,9 @@ export function ResumeEvidenceRegenerationPanel({
       ),
     [rawCollated, inventory.edits],
   );
-  const draftSourceKeys = useMemo(
-    () => inventoryKeysAlreadyInDraft(draft.content),
-    [draft.content],
+  const activeCollated = useMemo(
+    () => buildActiveCollatedInventory(inventory),
+    [inventory],
   );
 
   const [pendingActions, setPendingActions] = useState<EvidencePendingAction[]>([]);
@@ -129,6 +135,29 @@ export function ResumeEvidenceRegenerationPanel({
     }),
     [savedControls, pendingAddKeys, pendingExcludeKeys],
   );
+
+  const evidenceSpine = useMemo(() => {
+    if (!jobDescription) {
+      return null;
+    }
+    return buildEvidenceSpine({
+      collated: activeCollated,
+      enrichment: inventory.enrichment,
+      jdText: jobDescription.rawText,
+      roleTitle: jobDescription.roleTitle,
+      maxWorkBullets: MAX_RESUME_DRAFT_BULLETS,
+      regenerationControls: mergedControls,
+    });
+  }, [activeCollated, inventory.enrichment, jobDescription, mergedControls]);
+
+  const addEvidenceRows = useMemo(() => {
+    if (!evidenceSpine) {
+      return [];
+    }
+    return buildAddEvidenceList(evidenceSpine, draft.content, mergedControls, {
+      hiddenBulletKeys: inventory.edits?.hiddenBulletKeys,
+    });
+  }, [evidenceSpine, draft.content, mergedControls, inventory.edits?.hiddenBulletKeys]);
 
   const feasibility = useMemo(
     () => assessRegenerationFeasibility({ regenerationControls: mergedControls }),
@@ -514,7 +543,9 @@ export function ResumeEvidenceRegenerationPanel({
         <section>
           <h3 className="text-sm font-semibold text-slate-900">Add inventory evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Stage bullets to add. Apply runs one targeted rewrite for affected roles.
+            Ranked by job relevance across work, additional experience, education, skills, and
+            evidence-tied keywords. Stage work bullets to add; other categories are advisory or
+            full-regenerate only.
           </p>
 
           {targetedPlan.mode === "blocked" && pendingAddKeys.length > 0 ? (
@@ -523,37 +554,59 @@ export function ResumeEvidenceRegenerationPanel({
             </p>
           ) : null}
 
-          <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-            {availableBullets
-              .filter((listing) => !draftSourceKeys.has(listing.bulletKey))
-              .map((listing) => (
+          <ul
+            className="mt-3 max-h-64 space-y-2 overflow-y-auto"
+            data-testid="add-evidence-ranked-list"
+          >
+            {addEvidenceRows.map((row) => {
+              const hint = actionStateHint(row.actionState);
+              const canStageAdd =
+                row.actionState === "addable" && row.bulletKey !== undefined;
+
+              return (
                 <li
-                  key={listing.bulletKey}
+                  key={row.id}
                   className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                  data-evidence-category={row.categoryLabel}
+                  data-evidence-action-state={row.actionState}
                 >
-                  <span className="text-sm font-medium text-slate-700">
-                    {listingLabel(listing)}
-                  </span>
-                  <p className="mt-1 text-sm text-slate-800">{listing.effectiveDescription}</p>
-                  <button
-                    type="button"
-                    className={`mt-3 ${hasPendingAction("add_to_draft", listing.bulletKey) ? primaryButtonClassName : secondaryButtonClassName}`}
-                    onClick={() =>
-                      togglePendingAction({
-                        id: actionId("add_to_draft", listing.bulletKey),
-                        type: "add_to_draft",
-                        bulletKey: listing.bulletKey,
-                        label: listing.effectiveDescription,
-                      })
-                    }
-                    data-action="stage-add-to-draft"
-                  >
-                    {hasPendingAction("add_to_draft", listing.bulletKey)
-                      ? "Staged: add to draft"
-                      : "Add to draft"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      {row.categoryLabel}
+                    </span>
+                    <span className="text-sm font-medium text-slate-700">{row.displayLabel}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-800">{row.evidenceText}</p>
+                  <p className="mt-1 text-xs text-slate-500">{row.rationale}</p>
+                  {row.acceptedWording ? (
+                    <p className="mt-1 text-xs text-cyan-800">
+                      Preferred wording: {row.acceptedWording}
+                    </p>
+                  ) : null}
+                  {canStageAdd ? (
+                    <button
+                      type="button"
+                      className={`mt-3 ${hasPendingAction("add_to_draft", row.bulletKey!) ? primaryButtonClassName : secondaryButtonClassName}`}
+                      onClick={() =>
+                        togglePendingAction({
+                          id: actionId("add_to_draft", row.bulletKey!),
+                          type: "add_to_draft",
+                          bulletKey: row.bulletKey!,
+                          label: row.evidenceText,
+                        })
+                      }
+                      data-action="stage-add-to-draft"
+                    >
+                      {hasPendingAction("add_to_draft", row.bulletKey!)
+                        ? "Staged: add to draft"
+                        : "Add to draft"}
+                    </button>
+                  ) : hint ? (
+                    <p className="mt-2 text-xs text-slate-600">{hint}</p>
+                  ) : null}
                 </li>
-              ))}
+              );
+            })}
           </ul>
         </section>
       </div>
