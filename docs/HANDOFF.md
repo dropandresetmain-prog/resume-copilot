@@ -2,7 +2,41 @@
 
 ## Current version
 
-**v0.9.17C** (code)
+**v0.9.19B** (code)
+
+## v0.9.19B implementation note
+
+Evidence tailoring diagnostics — actionability: advisory framing for omitted strong evidence; section empty/fallback states (legacy drafts, missing inventory); next actions wired to real destinations (Fix resume evidence → package fix mode; Edit cover letter evidence → cover letter editor; Accept risk → scroll to Approve).
+
+**Safety:** no new AI calls; no generation/ranking changes.
+
+**Next:** Live end-to-end QA (see `docs/TEST_CHECKLIST.md`).
+
+## v0.9.19A implementation note
+
+Deterministic **Evidence tailoring** panel on Application Package (`buildPackageTailoringDiagnostics`, `PackageTailoringDiagnosticsPanel`) — below AI fit summary, above review rail.
+
+**Shows:** strongest JD-aligned evidence selected (from saved `evidenceSpine` snapshot); strong evidence omitted (advisory); cover letter proof stories (including off-resume inventory when inventory + company context available); tailoring warnings from `validateTailoringQuality` / rationale checks.
+
+**No page-load AI.** Legacy drafts without spine snapshot get thinner reads (rationale fallback).
+
+## v0.9.18C implementation note
+
+Evidence controls UX closure — copy only: resume vs cover-letter evidence controls are separate; staging semantics and AI cost explicit (targeted resume add vs full regenerate vs cover-letter regenerate).
+
+**Package path:** Edit cover letter for cover-letter proof staging; package Revise cover letter is instruction chips only.
+
+## v0.9.18B implementation note
+
+Cover-letter evidence controls — **pending-only** on cover letter editor (`CoverLetterEvidenceRegenerationPanel`). Stage use/avoid proof for next **Regenerate cover letter** only (1 AI step). Staging does **not** save and does **not** call AI. Not persisted after regeneration.
+
+**Scope:** Work, Additional Experience, Education proof stories. Skills/keywords advisory only.
+
+## v0.9.18A implementation note
+
+Resume Add Evidence — **Additional Experience inclusion** on full resume regeneration (`include_on_full_regenerate`, `forcedEvidenceIds` / `excludedEvidenceIds` on regeneration controls). Saved on Apply; takes effect on **Regenerate full resume** (not targeted rewrite).
+
+**Parked:** education/skill/keyword resume controls.
 
 ## v0.9.17C implementation note
 
@@ -338,7 +372,27 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.16E - Application Record Delete / Archive**
+**v0.9.19B - Evidence tailoring diagnostics actionability**
+
+## Latest milestone summary (v0.9.19B)
+
+Evidence tailoring panel on Application Package is advisory and action-oriented: omitted strong evidence is not treated as a defect; next actions link to Fix resume evidence, Edit cover letter evidence, or Accept risk (approve). No new AI calls.
+
+## Latest milestone summary (v0.9.19A)
+
+Deterministic evidence tailoring diagnostics on Application Package from saved spine snapshot + inventory story spine — selected/omitted/proof/warnings without page-load AI.
+
+## Latest milestone summary (v0.9.18C)
+
+UX copy distinguishes resume vs cover-letter evidence controls, pending/saved semantics, and AI step cost.
+
+## Latest milestone summary (v0.9.18B)
+
+Pending-only cover-letter evidence staging for cover-letter regeneration; not persisted.
+
+## Latest milestone summary (v0.9.18A)
+
+Additional Experience inclusion controls for full resume regeneration.
 
 ## Latest milestone summary (v0.9.16E)
 
@@ -364,6 +418,14 @@ Resume generation tailoring: JD-specific reframing instructions, anti-generic la
 
 | Version | Theme |
 |---------|--------|
+| v0.9.19B | Evidence tailoring diagnostics — advisory + action links |
+| v0.9.19A | Deterministic evidence tailoring diagnostics on package |
+| v0.9.18C | Evidence controls UX copy (resume vs cover letter, AI cost) |
+| v0.9.18B | Pending-only cover-letter evidence staging |
+| v0.9.18A | Additional Experience inclusion on full resume regenerate |
+| v0.9.17C | M2 cover letter story spine |
+| v0.9.17B | M1 unified evidence spine |
+| v0.9.17A | Phase 0 prompt & payload hygiene |
 | v0.9.16E | Application record archive / safe cleanup |
 | v0.9.16D | Inventory project overlay cleanup audit & repair |
 | v0.9.16C | Keep projects out of work experience |
@@ -431,12 +493,12 @@ Inventory (Supabase) + JD
 
 ## Application package page order
 
-1. Application Review — company, role, readiness, Approve for Export + resume PDF/DOCX downloads
-2. Structure repair banner (when auto-repair ran)
-3. Resume — PDF preview and collapsed layout sliders
-4. Cover letter — **inline body**, Edit / PDF / DOCX
+1. AI fit summary + **Evidence tailoring** diagnostics (deterministic, no page-load AI)
+2. Application Review — company, role, readiness, Approve for Export + resume PDF/DOCX downloads
+3. Resume — PDF preview (prominent in review-first layout)
+4. Cover letter — **inline body**, Edit cover letter (evidence staging + regenerate on editor)
 5. Company research — collapsed by default; summary visible in header
-6. Edit resume content — hidden until toggled (evidence + regenerate)
+6. Fix modes (hidden until opened) — edit resume text, **fix resume evidence**, adjust layout, revise cover letter
 7. Developer details — collapsed by default; assessment, browser layout estimate, PDF HTML, JSON
 
 ## Post-generation navigation
@@ -475,6 +537,6 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**v0.9.16B Export Trust** — completed in code.
+**Live end-to-end QA** — evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`). No code milestone queued until QA feedback.
 
-Parked after that: v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, cover letter-only generate path, full Inventory CRUD).
+Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, cover letter-only generate path, full Inventory CRUD).

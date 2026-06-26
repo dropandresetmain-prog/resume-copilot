@@ -168,11 +168,28 @@
 
 - **Application Package hub** — decision tree actions: Edit resume text, Fix resume evidence, Adjust resume layout, Revise cover letter, Approve for export. Readiness checklist (not "reviewed" status language).
 - **Structured editor** — on package page via `ResumeDraftReviewWorkspace` (`packageMode`); A4 PDF preview read-only. Save resume edits invalidates server PDF validation and downgrades approved drafts to `layout_changed`.
-- **Evidence queue** — stage remove/add/exclude; `Apply evidence changes` once. No Gemini on staging clicks.
+- **Evidence queue** — stage remove/add/exclude; work-bullet adds may run targeted rewrite on Apply; Additional Experience inclusion saved on Apply for full regeneration only. Staging clicks do not call AI.
 - **Cover letter revision** — chips stage instructions; `Revise cover letter` runs one AI step; Accept persists, Reject keeps current. No version history yet.
 - **AI fit summary** — derived locally from saved rationale + fit score (≤100 words). Not generated on package page load.
 - **Preview vs export gate** — browser iframe measurement can differ from Linux Puppeteer approve validation; UI states this explicitly.
 - **Parked:** cover letter version history, durable AI job ledger, full preview/export measurement unification.
+
+## Evidence controls (v0.9.18)
+
+- **Resume and cover-letter evidence controls are separate** — resume: Fix resume evidence on Application Package; cover letter: Edit cover letter → Stage cover letter evidence.
+- **Resume Additional Experience** — inclusion stages for **full resume regeneration only** (`Regenerate full resume`, 1 AI step). Saved in regeneration controls on Apply; not targeted rewrite.
+- **Cover-letter evidence** — pending-only staging (use/avoid proof). Applied on **Regenerate cover letter** only (1 AI step). Staging does **not** save and does **not** call AI.
+- **Cover-letter evidence is not persisted** after regeneration — choices reset when leaving the editor (Park).
+- **Package Revise cover letter** — instruction chips only; proof staging is on the cover letter editor, not inline on the package page (Park: package-side staging).
+- **Parked:** education / skill / keyword resume evidence controls.
+
+## Evidence tailoring diagnostics (v0.9.19)
+
+- **Deterministic panel** on Application Package (`PackageTailoringDiagnosticsPanel`) — no page-load AI.
+- **Omitted strong evidence is advisory** — one-page fit and JD focus often leave high-score inventory unused; not automatically a defect.
+- **Legacy drafts** without `inputSnapshot.evidenceSpine` get thinner diagnostics (rationale fallback + empty-state copy).
+- **Cover-letter proof comparison** needs inventory + company context in workspace; otherwise saved `storySpinePrompt` hint only (Accept Risk).
+- **Live end-to-end QA** for evidence controls + tailoring actions still pending (see `docs/TEST_CHECKLIST.md`).
 
 ## Post-generation editing (v0.9.13B) — superseded details
 

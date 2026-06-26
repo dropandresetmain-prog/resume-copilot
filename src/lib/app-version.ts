@@ -1,5 +1,5 @@
 /** Product version label — keep in sync with package.json. */
-export const APP_VERSION = "0.9.17B";
+export const APP_VERSION = "0.9.19B";
 
 export function pageMilestone(section: string): string {
   return `v${APP_VERSION} · ${section}`;

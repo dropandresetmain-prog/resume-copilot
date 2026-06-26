@@ -1,4 +1,4 @@
-# Test Checklist — v0.9.17B
+# Test Checklist — v0.9.19B
 
 Run `npm run test`, `npm run lint`, and `npm run build` before manual QA.
 
@@ -8,24 +8,37 @@ Older milestone checklists were removed during repo cleanup. Completed phase doc
 
 ## Automated gate
 
-- [ ] `npm run test` — 50 verification suites pass
+- [ ] `npm run test` — verification suites pass
 - [ ] `npm run lint` — no errors
 - [ ] `npm run build` — succeeds
 
 ---
 
-## Evidence spine + cover letter story (M1)
+## Evidence controls + tailoring (live QA — v0.9.18 / v0.9.19)
+
+- [ ] **Additional Experience on full regenerate** — stage include on full regeneration in Fix resume evidence → Apply saves controls → Regenerate full resume adds item (not targeted rewrite)
+- [ ] **Cover-letter Use/Avoid staging** — Edit cover letter → stage proof evidence → Regenerate cover letter applies choices (1 AI step); staging does not save until regenerate
+- [ ] **Resume vs cover letter separation** — resume evidence changes do not alter cover letter body until cover-letter regenerate; cover-letter staging does not change resume draft
+- [ ] **Evidence tailoring panel** — selected / omitted / cover-letter proof sections render; omitted copy is advisory
+- [ ] **Tailoring next actions** — Fix resume evidence opens package fix mode; Edit cover letter evidence opens editor; Accept risk scrolls to Approve
+- [ ] **Legacy draft fallback** — older draft without `evidenceSpine` shows thinner diagnostics + legacy empty-state copy (no crash)
+- [ ] **Export after evidence changes** — re-approve if layout unchanged but content regenerated; export resume PDF + cover letter after intentional accept-risk path
+
+---
+
+## Evidence spine + cover letter story (M1 / M2)
 
 - [ ] Combined generate uses inventory-ranked evidence (not resume-draft-only) for cover letter
 - [ ] Cover letter cites company-specific facts from research when website provided
 - [ ] Resume draft `selectionAudit` includes spine snapshot when present
-- [ ] Add Evidence panel can queue inventory bullets beyond work experience
+- [ ] Add Evidence ranked list includes Work + Additional categories; Additional is full-regenerate-only
 
 ---
 
 ## Application package
 
 - [ ] Post-generate lands on `/resume-preview/{id}`
+- [ ] Evidence tailoring panel below AI fit summary
 - [ ] Review-first layout: fit summary and review rail before prominent preview
 - [ ] Approve → export sequence in review center (no duplicate approve on resume card)
 - [ ] Cover letter inline on package; staged revision saves on Accept only

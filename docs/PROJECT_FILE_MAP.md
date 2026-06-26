@@ -169,7 +169,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/ai/resume-draft-gemini.ts` | Gemini resume draft provider |
 | `src/lib/resume-draft/payload.ts` | Inventory + JD + reference resume → AI input + snapshot (v0.7.7 edits + regen controls) |
 | `src/components/setup/InventoryEditPanel.tsx` | Edit/hide inventory bullets overlay (v0.7.7) |
-| `src/components/resume-drafts/ResumeEvidenceRegenerationPanel.tsx` | Evidence inspect + regenerate controls (v0.7.7) |
+| `src/components/resume-drafts/ResumeEvidenceRegenerationPanel.tsx` | Resume evidence queue + regenerate (v0.7.7; Additional Experience v0.9.18A) |
 | `src/lib/inventory/edits.ts` | Inventory edit overlay helpers (v0.7.7) |
 | `src/lib/inventory/active-collated.ts` | Active collated view for generation (v0.7.7) |
 | `src/lib/resume-draft/regeneration.ts` | Regeneration feasibility + source key helpers (v0.7.7) |
@@ -250,6 +250,11 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/components/company-context/CompanyResearchCompactStatus.tsx` | Compact status on Generate (v0.9.6) |
 | `src/components/application-package/ApplicationPackageSummary.tsx` | Package status header (v0.9.8) |
 | `src/components/application-package/ApplicationPackageCoverLetterPanel.tsx` | Inline cover letter (v0.9.8) |
+| `src/components/application-package/PackageFitSummaryPanel.tsx` | AI fit summary on package (v0.9.13D) |
+| `src/components/application-package/PackageTailoringDiagnosticsPanel.tsx` | Evidence tailoring diagnostics UI (v0.9.19) |
+| `src/lib/package/tailoring-diagnostics.ts` | Deterministic tailoring diagnostics builder (v0.9.19) |
+| `src/lib/package/fit-summary.ts` | Package fit summary composition (v0.9.13D) |
+| `src/components/cover-letters/CoverLetterEvidenceRegenerationPanel.tsx` | Pending-only cover-letter proof staging (v0.9.18B) |
 | `src/components/pages/ResumePreviewPageClient.tsx` | Application package + repair banner (v0.9.8B) |
 | `src/components/pages/CoverLetterPreviewPageClient.tsx` | Cover letter editor page |
 | `src/lib/cover-letter/company-name.ts` | Display name + URL detection (v0.9.7 / v0.9.8A) |

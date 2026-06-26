@@ -2,12 +2,18 @@
 
 ## Current version
 
-**v0.9.17B**
+**v0.9.19B**
 
 ## Completed capabilities
 
 | Capability | Introduced |
 |------------|------------|
+| Evidence tailoring diagnostics (deterministic, package) | v0.9.19A |
+| Evidence tailoring diagnostics — advisory + action links | v0.9.19B |
+| Resume Additional Experience inclusion on full regenerate | v0.9.18A |
+| Cover-letter pending-only evidence staging | v0.9.18B |
+| Evidence controls UX copy (resume vs cover letter, AI cost) | v0.9.18C |
+| M2 cover letter story spine | v0.9.17C |
 | M1 unified evidence spine (deterministic cross-category rank) | v0.9.17B |
 | Phase 0 prompt & payload hygiene (pre–M1) | v0.9.17A |
 | Application record archive (hide from list, retain drafts) | v0.9.16E |
@@ -57,6 +63,41 @@
 | Inventory project overlay cleanup audit & repair | v0.9.16D |
 
 ## Milestone log (recent)
+
+### v0.9.19B - Evidence Tailoring Diagnostics Actionability
+
+- Omitted strong evidence framed as advisory (not a defect).
+- Section empty/fallback states for legacy drafts and missing inventory.
+- Next actions: Fix resume evidence (package fix mode), Edit cover letter evidence (editor), Accept risk (scroll to Approve).
+- **Next:** Live end-to-end QA.
+
+### v0.9.19A - Evidence Tailoring Diagnostics
+
+- `buildPackageTailoringDiagnostics` + panel below AI fit summary on Application Package.
+- Reads saved `evidenceSpine` snapshot, rationale, and deterministic cover-letter story spine when inventory available.
+- No page-load AI.
+
+### v0.9.18C - Evidence Controls UX Copy
+
+- Resume vs cover-letter evidence controls clearly separated.
+- Pending/saved semantics and AI step cost explicit in panel copy.
+- Package users directed to Edit cover letter for proof staging.
+
+### v0.9.18B - Cover-Letter Evidence Staging
+
+- `CoverLetterEvidenceRegenerationPanel` on cover letter editor — pending-only use/avoid proof.
+- Applied on Regenerate cover letter only (1 AI step); not persisted.
+
+### v0.9.18A - Additional Experience Resume Inclusion
+
+- Additional Experience rows stage for full resume regeneration only.
+- Saved in regeneration controls on Apply; not targeted rewrite.
+
+### v0.9.17C - M2 Cover Letter Story Spine
+
+- Deterministic inventory story spine before cover letter Gemini call; resume draft consistency reference only.
+- `storySpinePrompt` saved on cover letter rationale for revision.
+- **Next:** M3 category-aware Add Evidence (delivered in v0.9.18A+).
 
 ### v0.9.17B - M1 Unified Evidence Spine
 
@@ -361,9 +402,13 @@
 
 ## Next (planned)
 
+### Live end-to-end QA (v0.9.19 follow-up)
+
+Manual QA for evidence controls and tailoring diagnostics before next code milestone. See `docs/TEST_CHECKLIST.md`. **Not started.**
+
 ### v0.9.16A — Tailoring Quality
 
-Resume and cover letter generation quality improvements after v0.9.15E trust fixes. **Not started.**
+Resume and cover letter generation quality improvements after v0.9.15E trust fixes. **Completed (v0.9.16A).**
 
 ### v0.9.11C — IA Restructure Candidates
 
@@ -379,6 +424,9 @@ Versioned cover letter drafts per application and/or edit learning log. **Not st
 
 ## Parked (not scheduled)
 
+- Education / skill / keyword resume evidence controls (v0.9.18A scope)
+- Persisted cover-letter evidence controls (staging remains pending-only)
+- Package-side inline cover-letter evidence staging (use Edit cover letter)
 - Additional search providers (Tavily, Serper, Perplexity)
 - Reuse research across roles at same company
 - Application kanban / apply tracking UI
