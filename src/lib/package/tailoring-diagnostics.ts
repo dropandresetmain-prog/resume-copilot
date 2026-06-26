@@ -51,6 +51,21 @@ export type PackageTailoringDiagnostics = {
 
 const MAX_LINES = 3;
 
+function isDefinedSpineItem(
+  item: EvidenceSpineItemSnapshot | undefined,
+): item is EvidenceSpineItemSnapshot {
+  return item !== undefined;
+}
+
+function isStrongOmittedSpineItem(
+  item: EvidenceSpineItemSnapshot | undefined,
+): item is EvidenceSpineItemSnapshot {
+  if (!item) {
+    return false;
+  }
+  return item.relevanceScore >= OMITTED_BUT_RELEVANT_MIN_SCORE;
+}
+
 function itemById(
   spine: EvidenceSpineSnapshot,
   id: string,
@@ -87,7 +102,7 @@ function omissionChannelLabel(item: EvidenceSpineItemSnapshot): string {
 function buildSelectedLines(spine: EvidenceSpineSnapshot): TailoringDiagnosticLine[] {
   return spine.selectedIds
     .map((id) => itemById(spine, id))
-    .filter((item): item is EvidenceSpineItemSnapshot => Boolean(item))
+    .filter(isDefinedSpineItem)
     .sort((left, right) => right.relevanceScore - left.relevanceScore)
     .slice(0, MAX_LINES)
     .map((item) => ({
@@ -100,10 +115,7 @@ function buildSelectedLines(spine: EvidenceSpineSnapshot): TailoringDiagnosticLi
 function buildOmittedLines(spine: EvidenceSpineSnapshot): TailoringDiagnosticLine[] {
   return spine.omittedIds
     .map((id) => itemById(spine, id))
-    .filter(
-      (item): item is EvidenceSpineItemSnapshot =>
-        Boolean(item) && item.relevanceScore >= OMITTED_BUT_RELEVANT_MIN_SCORE,
-    )
+    .filter(isStrongOmittedSpineItem)
     .sort((left, right) => right.relevanceScore - left.relevanceScore)
     .slice(0, MAX_LINES)
     .map((item) => ({
@@ -151,11 +163,7 @@ function hasStrongResumeOmission(spine: EvidenceSpineSnapshot | undefined): bool
   }
   return spine.omittedIds.some((id) => {
     const item = itemById(spine, id);
-    return (
-      Boolean(item) &&
-      item!.relevanceScore >= OMITTED_BUT_RELEVANT_MIN_SCORE &&
-      isResumeActionableOmission(item!)
-    );
+    return isStrongOmittedSpineItem(item) && isResumeActionableOmission(item);
   });
 }
 
@@ -166,10 +174,9 @@ function hasCoverLetterChannelOmission(spine: EvidenceSpineSnapshot | undefined)
   return spine.omittedIds.some((id) => {
     const item = itemById(spine, id);
     return (
-      Boolean(item) &&
-      item!.relevanceScore >= OMITTED_BUT_RELEVANT_MIN_SCORE &&
-      isCoverLetterUsefulOmission(item!) &&
-      !isResumeActionableOmission(item!)
+      isStrongOmittedSpineItem(item) &&
+      isCoverLetterUsefulOmission(item) &&
+      !isResumeActionableOmission(item)
     );
   });
 }
