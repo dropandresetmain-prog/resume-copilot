@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.17B** (code)
+**v0.9.17C** (code)
+
+## v0.9.17C implementation note
+
+M2 Cover Letter Story Spine: deterministic inventory-based story spine before the single cover letter Gemini call; resume draft is consistency reference only.
+
+**Story spine:** `src/lib/evidence/story-spine.ts` builds positioning, why role/company, proof stories (including inventory not on resume), supporting signals, honest gaps, avoid-overclaim, resume consistency notes, and evidence-not-to-use from M1 `buildEvidenceSpine`.
+
+**Cover letter generation:** `buildCoverLetterEvidencePrompt` wires inventory + JD + company context + resume draft; prompt consumes compact story spine + resume consistency section. `storySpinePrompt` saved on cover letter rationale for revision.
+
+**Revision:** `revise-cover-letter` uses saved `storySpinePrompt` when present; falls back to resume consistency context only (no inventory reload).
+
+**Safety:** no new Gemini calls; no schema migration; `MAX_RESUME_DRAFT_BULLETS` unchanged; Add Evidence UI unchanged.
+
+**Next:** M3 Category-Aware Add Evidence.
 
 ## v0.9.17B implementation note
 

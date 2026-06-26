@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import {
   CoverLetterBodyViewSwitch,
   type CoverLetterBodyView,
@@ -12,6 +13,7 @@ import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/Downlo
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
 import {
   actionBarClassName,
+  destructiveButtonClassName,
   primaryButtonClassName,
   primaryActionGroupClassName,
   secondaryActionGroupClassName,
@@ -26,6 +28,10 @@ import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-co
 import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
+
+const REGENERATE_COVER_LETTER_CONFIRM =
+  "Regenerate the cover letter using your current Communication Profile and inventory evidence?\n\n" +
+  "This is 1 AI step. Your resume draft will not change. The current cover letter will be replaced.";
 
 type ApplicationPackageCoverLetterPanelProps = {
   draft: GeneratedResumeDraftRecord;
@@ -42,6 +48,7 @@ export function ApplicationPackageCoverLetterPanel({
   onLoadingChange,
   onPdfOverflowChange,
 }: ApplicationPackageCoverLetterPanelProps) {
+  const { inventory } = useWorkspace();
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -78,7 +85,7 @@ export function ApplicationPackageCoverLetterPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.id]);
 
-  async function handleGenerate() {
+  async function runCoverLetterGeneration(existingCoverLetterId?: string) {
     if (!job) {
       setError("Saved job description is required to generate a cover letter.");
       return;
@@ -87,14 +94,16 @@ export function ApplicationPackageCoverLetterPanel({
     setError(null);
     setHasAttemptedGeneration(true);
     try {
-      const record = await generateAndSaveCoverLetterDraft(
-        buildCoverLetterGenerationOptions({
+      const record = await generateAndSaveCoverLetterDraft({
+        ...buildCoverLetterGenerationOptions({
           job,
           resumeDraft: draft,
+          inventory,
           applicationId: draft.applicationId,
           fields: {},
         }),
-      );
+        existingCoverLetterId,
+      });
       setCoverLetter(record);
       onCoverLetterChange?.(record);
     } catch (generationError) {
@@ -106,6 +115,20 @@ export function ApplicationPackageCoverLetterPanel({
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function handleGenerate() {
+    await runCoverLetterGeneration();
+  }
+
+  async function handleRegenerate() {
+    if (!coverLetter) {
+      return;
+    }
+    if (!window.confirm(REGENERATE_COVER_LETTER_CONFIRM)) {
+      return;
+    }
+    await runCoverLetterGeneration(coverLetter.id);
   }
 
   const coverLetterExport = coverLetter
@@ -142,6 +165,22 @@ export function ApplicationPackageCoverLetterPanel({
               </p>
               <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={exportBlocked} />
               <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={exportBlocked} />
+            </div>
+            <div className={`mt-3 ${secondaryActionGroupClassName}`}>
+              <p className="text-xs font-semibold uppercase text-slate-500 sm:w-full">
+                Refresh cover letter
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleRegenerate()}
+                disabled={isGenerating || !job}
+                className={`${destructiveButtonClassName} w-full sm:w-auto`}
+              >
+                {isGenerating ? "Regenerating cover letter…" : "Regenerate cover letter"}
+              </button>
+              <p className="text-xs text-slate-600 sm:w-full">
+                Regenerates cover letter only · 1 AI step · resume unchanged.
+              </p>
             </div>
           </div>
 

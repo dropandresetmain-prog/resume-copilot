@@ -4,6 +4,7 @@ import type { ModelTier } from "@/lib/ai/model-tiers";
 import type { CompanyContext } from "@/types/company-context";
 import type { CoverLetterGenerationOptions } from "@/lib/generate/cover-letter-generation";
 import type { JobDescriptionInput, StoredJobDescription } from "@/types/jd";
+import type { InventoryState } from "@/types/resume";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 export type CoverLetterFieldInput = {
@@ -15,6 +16,7 @@ export type CoverLetterFieldInput = {
 export function buildCoverLetterGenerationOptions(input: {
   job: StoredJobDescription;
   resumeDraft: GeneratedResumeDraftRecord;
+  inventory?: InventoryState;
   applicationId?: string;
   fields: CoverLetterFieldInput;
   savedCompanyContext?: CompanyContext | null;
@@ -29,6 +31,7 @@ export function buildCoverLetterGenerationOptions(input: {
   return {
     job: input.job,
     resumeDraft: input.resumeDraft,
+    inventory: input.inventory,
     applicationId: input.applicationId,
     savedCompanyContext: input.savedCompanyContext,
     companyName: resolveCompanyNameForGeneration({

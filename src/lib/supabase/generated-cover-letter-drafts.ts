@@ -61,6 +61,8 @@ function parseCoverLetterRationale(value: unknown): CoverLetterRationale | undef
     companyRoleStoryBridges: Array.isArray(value.companyRoleStoryBridges)
       ? value.companyRoleStoryBridges.filter((item): item is string => typeof item === "string")
       : undefined,
+    storySpinePrompt:
+      typeof value.storySpinePrompt === "string" ? value.storySpinePrompt : undefined,
   };
 }
 
@@ -179,6 +181,43 @@ export async function getGeneratedCoverLetterDraftForUser(
   }
   if (!data) {
     return null;
+  }
+
+  return mapGeneratedCoverLetterDraftRow(data as GeneratedCoverLetterDraftRow);
+}
+
+/** Full in-place replacement after cover letter regeneration — preserves draft id and links. */
+export async function replaceGeneratedCoverLetterDraftInCloud(
+  id: string,
+  input: CreateGeneratedCoverLetterDraftInput,
+): Promise<GeneratedCoverLetterDraftRecord> {
+  const user = await getCurrentUser();
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("generated_cover_letter_drafts")
+    .update({
+      application_id: input.applicationId ?? null,
+      job_description_id: input.jobDescriptionId,
+      resume_draft_id: input.resumeDraftId,
+      company_name: input.companyName ?? null,
+      country: input.country ?? null,
+      company_website: input.companyWebsite ?? null,
+      additional_instructions: input.additionalInstructions ?? null,
+      company_context: input.companyContext ?? null,
+      body: input.body,
+      rationale: input.rationale,
+      provider: input.provider,
+      model_name: input.modelName ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to replace cover letter draft.");
   }
 
   return mapGeneratedCoverLetterDraftRow(data as GeneratedCoverLetterDraftRow);

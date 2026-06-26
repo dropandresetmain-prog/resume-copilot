@@ -77,9 +77,9 @@ Record each in rationale.selectedCompanyFacts.
 From the job description, pick explicit responsibilities, skills, or outcomes the role needs.
 Record each in rationale.selectedRoleRequirements.
 
-### Step 3 — Select strongest stories (use ranked evidence)
-Use the ranked resume evidence (Story 1 = most relevant). Prefer 1–2 primary stories, optionally 1 supporting story.
-Do NOT include every story. Avoid founder soup.
+### Step 3 — Select strongest stories (use inventory story spine)
+Use the inventory story spine proof stories (Story 1 = highest relevance). Prefer 1–2 primary stories, optionally 1 supporting story.
+Strong inventory proof marked "NOT on resume draft" is valid cover letter evidence. Do NOT include every story. Avoid founder soup.
 
 ### Step 4 — Build company → role → story bridges (required: at least 2)
 For each major story paragraph, create an explicit bridge in rationale.companyRoleStoryBridges using this pattern:
@@ -91,25 +91,27 @@ Each major story paragraph MUST follow:
 Company fact → Role requirement → Candidate evidence → Why relevant (explicit connection sentence).
 
 ## Rules
-1. Use ranked resume evidence as the primary factual source.
-2. Use the Application Communication Profile for tone and supplementary stories only — do not copy internal positioning phrases into final wording.
-3. Company context is REQUIRED — do not write a generic letter that could go to any company.
-4. Do not invent facts, metrics, employers, or titles.
-5. Avoid generic excitement and empty enthusiasm.
-6. Use real industry terms. Do NOT invent unsupported positioning titles.
-7. Do NOT describe the candidate as a software engineer unless the resume/JD evidence clearly supports it.
-8. Do NOT overclaim technical, AI/ML, or senior authority beyond what the evidence supports.
-9. Explain why the candidate is applying for this specific role at ${displayCompany}.
-10. Secondary formats must be shorter and copyable.
-11. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at ${displayCompany}.
-12. ${closingRule}
-13. Never use bracketed placeholder names in final copy.
+1. Use the inventory story spine as the primary factual evidence universe — not the resume draft alone.
+2. Use the resume draft consistency section only to align wording with what already appears on the resume.
+3. Use the Application Communication Profile for tone and supplementary stories only — do not copy internal positioning phrases into final wording.
+4. Company context is REQUIRED — do not write a generic letter that could go to any company.
+5. Do not invent facts, metrics, employers, or titles.
+6. Avoid generic excitement and empty enthusiasm.
+7. Use real industry terms. Do NOT invent unsupported positioning titles.
+8. Do NOT describe the candidate as a software engineer unless inventory/JD evidence clearly supports it.
+9. Do NOT overclaim technical, AI/ML, or senior authority beyond what the evidence supports.
+10. Explain why the candidate is applying for this specific role at ${displayCompany}.
+11. Secondary formats must be shorter and copyable.
+12. Determine addressee from JD: named person > recruiter/poster > team > "Hiring Manager" at ${displayCompany}.
+13. ${closingRule}
+14. Never use bracketed placeholder names in final copy.
+15. Respect honest gaps and avoid-overclaim notes — do not claim unsupported JD requirements.
 
 ## Company context usage (critical)
 - REQUIRED: weave at least 2 company-specific facts into the formal letter (products, customers, industry, hiring priorities — not mission worship).
 - REQUIRED: reference at least 2 role-specific requirements from the JD.
 - REQUIRED: at least 2 explicit company-role-story bridges in rationale AND reflected in prose.
-- Prefer suggestedNarrativeAngles when supported by resume evidence.
+- Prefer suggestedNarrativeAngles only when supported by inventory evidence.
 - NEVER write generic admiration ("deeply resonate with your mission", "admire your vision", "inspired by your values").
 - Connect practical work to what ${displayCompany} appears to need — cite specific facts, not feelings about the brand.
 
@@ -128,7 +130,7 @@ Country: ${input.country}
 ${input.jobDescription.roleTitle ? `Role title: ${input.jobDescription.roleTitle}` : ""}
 ${input.companyWebsite ? `Website (metadata only — do NOT paste into prose): ${input.companyWebsite}` : ""}
 
-## Ranked resume evidence spine
+## Inventory story spine + resume consistency
 ${input.resumeEvidenceSpine}
 
 ## Application Communication Profile
@@ -160,7 +162,7 @@ export function promptIncludesCoverLetterRules(prompt: string): boolean {
   return (
     prompt.includes("formalCoverLetter") &&
     prompt.includes("Application Communication Profile") &&
-    prompt.includes("Ranked resume evidence") &&
+    prompt.includes("Inventory story spine") &&
     prompt.includes("conversational professional") &&
     prompt.includes(String(FORMAL_COVER_LETTER_MAX_WORDS))
   );
@@ -199,6 +201,15 @@ export function promptIncludesHiringArgumentRules(prompt: string): boolean {
     prompt.includes("hiring argument") &&
     prompt.includes("not a resume summary") &&
     prompt.includes("evidence-backed stories")
+  );
+}
+
+export function promptIncludesStorySpineRules(prompt: string): boolean {
+  return (
+    prompt.includes("inventory story spine") &&
+    prompt.includes("consistency reference only") &&
+    prompt.includes("Avoid overclaim") &&
+    prompt.includes("Honest gaps")
   );
 }
 

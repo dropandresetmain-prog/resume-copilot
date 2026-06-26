@@ -85,7 +85,7 @@ Return ONLY valid JSON:
 ${instruction}
 
 ## Hard rules
-- Preserve factual claims supported by the resume evidence spine. Do not invent employers, titles, metrics, or achievements.
+- Preserve factual claims supported by the inventory story spine. Do not invent employers, titles, metrics, or achievements.
 - ${closingInstruction}
 - Never use bracketed placeholder names such as [Candidate Name] in final copy.
 - HARD MAX ${FORMAL_COVER_LETTER_MAX_WORDS} words. Target ${FORMAL_COVER_LETTER_TARGET_MIN_WORDS}–${FORMAL_COVER_LETTER_TARGET_MAX_WORDS}.
@@ -96,7 +96,7 @@ ${instruction}
 ${input.companyDisplayName ? `- Use company display name in prose: "${input.companyDisplayName}"` : ""}
 ${input.roleTitle ? `- Role: ${input.roleTitle}` : ""}
 
-${input.resumeEvidenceSpine ? `## Resume evidence spine\n${input.resumeEvidenceSpine}` : ""}
+${input.resumeEvidenceSpine ? `## Inventory story spine + resume consistency\n${input.resumeEvidenceSpine}` : ""}
 ${input.communicationProfile ? `## Application Communication Profile (tone/stories only — do not copy jargon)\n${input.communicationProfile}` : ""}
 ${input.additionalInstructions ? `## Original additional instructions\n${input.additionalInstructions}` : ""}
 

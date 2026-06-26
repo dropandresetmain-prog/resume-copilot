@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { InvalidModelTierError, parseModelTier } from "@/lib/ai/model-tiers";
 import { reviseCoverLetterWithAI } from "@/lib/ai/revise-cover-letter-provider";
 import { normalizeCompanyDisplayName } from "@/lib/cover-letter/company-name";
-import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
+import { buildResumeConsistencyContext } from "@/lib/cover-letter/resume-evidence";
 import {
   coverLetterRevisionShouldPersist,
   validateCoverLetterRevisionRequest,
@@ -80,7 +80,9 @@ export async function POST(request: Request) {
         companyDisplayName,
         roleTitle: job?.roleTitle,
         candidateName,
-        resumeEvidenceSpine: resumeDraft ? buildResumeEvidenceSpine(resumeDraft) : undefined,
+        resumeEvidenceSpine:
+          draft.rationale?.storySpinePrompt ??
+          (resumeDraft ? buildResumeConsistencyContext(resumeDraft) : undefined),
         communicationProfile:
           typeof profileRow?.content === "string" ? profileRow.content : undefined,
         additionalInstructions: draft.additionalInstructions,

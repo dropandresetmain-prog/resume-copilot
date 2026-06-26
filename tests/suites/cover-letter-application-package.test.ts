@@ -134,6 +134,14 @@ function main() {
     join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
     "utf8",
   );
+  const applicationPackageCoverLetterPanel = readFileSync(
+    join(process.cwd(), "src/components/application-package/ApplicationPackageCoverLetterPanel.tsx"),
+    "utf8",
+  );
+  const coverLetterGeneration = readFileSync(
+    join(process.cwd(), "src/lib/generate/cover-letter-generation.ts"),
+    "utf8",
+  );
   const resumePreview = readFileSync(
     join(process.cwd(), "src/components/pages/ResumePreviewPageClient.tsx"),
     "utf8",
@@ -241,6 +249,45 @@ function main() {
     [
       "cover letter prompt does not hardcode founder name",
       !buildCoverLetterPrompt(input).includes("Min Htet"),
+    ],
+    [
+      "application package shows regenerate cover letter when cover letter exists",
+      applicationPackageCoverLetterPanel.includes("Regenerate cover letter") &&
+        applicationPackageCoverLetterPanel.includes("handleRegenerate"),
+    ],
+    [
+      "regenerate cover letter passes inventory and existing draft id",
+      applicationPackageCoverLetterPanel.includes("inventory,") &&
+        applicationPackageCoverLetterPanel.includes("existingCoverLetterId"),
+    ],
+    [
+      "regenerate cover letter confirms resume unchanged",
+      applicationPackageCoverLetterPanel.includes("resume unchanged") &&
+        applicationPackageCoverLetterPanel.includes("window.confirm"),
+    ],
+    [
+      "regenerate cover letter does not call resume generation",
+      !applicationPackageCoverLetterPanel.includes("requestResumeDraftGeneration") &&
+        !applicationPackageCoverLetterPanel.includes("createGeneratedResumeDraftInCloud"),
+    ],
+    [
+      "cover letter generation replaces existing draft in place",
+      coverLetterGeneration.includes("replaceGeneratedCoverLetterDraftInCloud") &&
+        coverLetterGeneration.includes("existingCoverLetterId"),
+    ],
+    [
+      "generate page cover letter only remains disabled",
+      generateSection.includes('value="cover_letter_only" disabled'),
+    ],
+    [
+      "application package keeps generate cover letter when none exists",
+      applicationPackageCoverLetterPanel.includes("Generate cover letter"),
+    ],
+    [
+      "application package keeps edit and export actions",
+      applicationPackageCoverLetterPanel.includes("Edit cover letter") &&
+        applicationPackageCoverLetterPanel.includes("DownloadCoverLetterPdfButton") &&
+        applicationPackageCoverLetterPanel.includes("DownloadCoverLetterDocxButton"),
     ],
   ];
 

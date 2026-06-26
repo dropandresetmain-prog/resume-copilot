@@ -21,6 +21,8 @@ export type CoverLetterRationale = {
     requestedTier: ModelTier;
     fallbackApplied?: boolean;
   };
+  /** Compact inventory story spine prompt saved at generation for revision consistency. */
+  storySpinePrompt?: string;
 };
 
 export type CoverLetterGenerationResult = {

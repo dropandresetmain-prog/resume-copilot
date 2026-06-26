@@ -4,18 +4,23 @@ import { resolveCompanyNameForGeneration } from "@/lib/company-context/build-com
 import { resolveCompanyContextForGeneration } from "@/lib/company-context/resolve-for-generation";
 import { resolveCompanyDisplayNameForProse } from "@/lib/cover-letter/company-name";
 import { requestCoverLetterGeneration } from "@/lib/cover-letter/client";
-import { buildResumeEvidenceSpine } from "@/lib/cover-letter/resume-evidence";
+import { buildCoverLetterEvidencePrompt } from "@/lib/cover-letter/evidence-prompt";
 import { resolveCompanyWebsiteForResearch } from "@/lib/firecrawl/url";
 import { getApplicationCommunicationProfileFromCloud } from "@/lib/supabase/application-communication-profiles";
-import { createGeneratedCoverLetterDraftInCloud } from "@/lib/supabase/generated-cover-letter-drafts";
+import {
+  createGeneratedCoverLetterDraftInCloud,
+  replaceGeneratedCoverLetterDraftInCloud,
+} from "@/lib/supabase/generated-cover-letter-drafts";
 import type { CompanyContext } from "@/types/company-context";
 import type { StoredJobDescription } from "@/types/jd";
 import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
+import type { InventoryState } from "@/types/resume";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 export type CoverLetterGenerationOptions = {
   job: StoredJobDescription;
   resumeDraft: GeneratedResumeDraftRecord;
+  inventory?: InventoryState;
   applicationId?: string;
   companyName?: string;
   country?: string;
@@ -23,6 +28,8 @@ export type CoverLetterGenerationOptions = {
   additionalInstructions?: string;
   savedCompanyContext?: CompanyContext | null;
   coverLetterModelTier?: ModelTier;
+  /** When set, replaces this cover letter draft in place instead of creating a new row. */
+  existingCoverLetterId?: string;
 };
 
 export function resolveCoverLetterCompanyNames(
@@ -92,6 +99,13 @@ export async function generateAndSaveCoverLetterDraft(
   };
 
   const candidateName = options.resumeDraft.content.header.fullName?.trim() || undefined;
+  const evidencePrompt = buildCoverLetterEvidencePrompt({
+    inventory: options.inventory,
+    resumeDraft: options.resumeDraft,
+    job: options.job,
+    companyContext: reconciledContext,
+    companyDisplayName,
+  });
 
   const response = await requestCoverLetterGeneration({
     jobDescription: {
@@ -102,11 +116,7 @@ export async function generateAndSaveCoverLetterDraft(
       jobUrl: options.job.jobUrl,
     },
     resumeDraftId: options.resumeDraft.id,
-    resumeEvidenceSpine: buildResumeEvidenceSpine(options.resumeDraft, {
-      jobDescriptionText: options.job.rawText,
-      roleTitle: options.job.roleTitle ?? options.resumeDraft.content.targetRoleTitle,
-      hiringPriorities: reconciledContext.likelyHiringPriorities,
-    }),
+    resumeEvidenceSpine: evidencePrompt.resumeEvidenceSpine,
     targetRoleTitle: options.resumeDraft.content.targetRoleTitle,
     candidateName,
     communicationProfile: profile?.content ?? "",
@@ -120,7 +130,7 @@ export async function generateAndSaveCoverLetterDraft(
     coverLetterModelTier,
   });
 
-  return createGeneratedCoverLetterDraftInCloud({
+  const saveInput = {
     applicationId: options.applicationId,
     jobDescriptionId: options.job.id,
     resumeDraftId: options.resumeDraft.id,
@@ -132,6 +142,7 @@ export async function generateAndSaveCoverLetterDraft(
     body: response.formalContent,
     rationale: {
       ...response.rationale,
+      storySpinePrompt: evidencePrompt.resumeEvidenceSpine,
       modelSelection: response.rationale.modelSelection ?? {
         requestedTier: coverLetterModelTier,
         fallbackApplied: response.modelFallbackApplied ?? false,
@@ -139,5 +150,11 @@ export async function generateAndSaveCoverLetterDraft(
     },
     provider: response.provider,
     modelName: response.modelName,
-  });
+  };
+
+  if (options.existingCoverLetterId?.trim()) {
+    return replaceGeneratedCoverLetterDraftInCloud(options.existingCoverLetterId.trim(), saveInput);
+  }
+
+  return createGeneratedCoverLetterDraftInCloud(saveInput);
 }

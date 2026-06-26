@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { SetupCard, primaryButtonClassName, secondaryButtonClassName } from "@/components/setup/ui";
 import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
 import { generateAndSaveCoverLetterDraft } from "@/lib/generate/cover-letter-generation";
@@ -17,6 +18,7 @@ type ResumeCoverLetterPanelProps = {
 };
 
 export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelProps) {
+  const { inventory } = useWorkspace();
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -59,6 +61,7 @@ export function ResumeCoverLetterPanel({ draft, job }: ResumeCoverLetterPanelPro
         buildCoverLetterGenerationOptions({
           job,
           resumeDraft: draft,
+          inventory,
           applicationId: draft.applicationId,
           fields: {},
         }),

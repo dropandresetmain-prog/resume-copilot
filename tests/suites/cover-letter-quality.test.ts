@@ -15,6 +15,7 @@ import {
   promptIncludesBannedPhraseRules,
   promptIncludesHiringArgumentRules,
   promptIncludesPunctuationRules,
+  promptIncludesStorySpineRules,
   promptIncludesToneRules,
 } from "../../src/lib/cover-letter/prompt";
 import { buildCoverLetterRevisionPrompt } from "../../src/lib/cover-letter/revision-prompt";
@@ -32,6 +33,9 @@ import {
   isOverWordLimit,
 } from "../../src/lib/cover-letter/word-limits";
 import { buildCompanyContext } from "../../src/lib/company-context/build-company-context";
+import { buildCoverLetterEvidencePrompt } from "../../src/lib/cover-letter/evidence-prompt";
+import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
+import { createEmptyInventoryEdits } from "../../src/types/inventory-edits";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "../../src/types/resume-draft";
 import type { GeneratedResumeDraftRecord } from "../../src/types/resume-draft";
 
@@ -144,7 +148,65 @@ function main() {
     updatedAt: "2025-01-01T00:00:00.000Z",
   };
 
-  void resumeDraft;
+  const storySpinePrompt = buildCoverLetterPrompt({
+    ...input,
+    resumeEvidenceSpine: buildCoverLetterEvidencePrompt({
+      inventory: {
+        resumes: [
+          {
+            id: "resume-1",
+            filename: "resume.docx",
+            uploadedAt: "2025-01-01T00:00:00.000Z",
+            workExperiences: [],
+            education: [],
+            additionalExperience: {
+              id: "add-1",
+              sourceResumeId: "resume-1",
+              title: "Additional",
+              lines: [],
+              rawText: "",
+              parseWarnings: [],
+            },
+            skills: {
+              id: "skills-1",
+              sourceResumeId: "resume-1",
+              languages: [],
+              technicalSkills: [],
+              interests: [],
+              other: [],
+              rawText: "",
+              parseWarnings: [],
+            },
+            unparsedSections: [],
+            parseWarnings: [],
+          },
+        ],
+        enrichment: createEmptyEnrichmentState(),
+        edits: {
+          ...createEmptyInventoryEdits(),
+          addedAdditionalExperienceItems: [
+            {
+              id: "add-1",
+              text: "Led workflow automation and payment operations for regional teams.",
+              category: "Projects",
+              addedAt: "2025-01-01T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+      resumeDraft,
+      job: {
+        id: input.jobDescription.id,
+        rawText: input.jobDescription.rawText,
+        companyName: input.jobDescription.companyName,
+        roleTitle: input.jobDescription.roleTitle,
+        createdAt: "2025-01-01T00:00:00.000Z",
+        updatedAt: "2025-01-01T00:00:00.000Z",
+      },
+      companyContext: input.companyContext,
+      companyDisplayName: input.companyDisplayName,
+    }).resumeEvidenceSpine,
+  });
 
   const checks: [string, boolean][] = [
     ["word count utility counts words", countWords("one two three") === 3],
@@ -169,6 +231,7 @@ function main() {
     ["banned phrase detection finds founder-operator", detectBannedPhrases("founder-operator").length > 0],
     ["prompt includes tone rules", promptIncludesToneRules(prompt)],
     ["prompt includes hiring argument rules", promptIncludesHiringArgumentRules(prompt)],
+    ["prompt includes story spine rules when inventory spine present", promptIncludesStorySpineRules(storySpinePrompt)],
     ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt includes banned phrase rules", promptIncludesBannedPhraseRules(prompt)],
     [
@@ -191,6 +254,10 @@ function main() {
       "revision prompt preserves existing signature without candidate name",
       revisionPromptWithoutCandidate.includes('existing closing signature ("Alex Tan")') &&
         !revisionPromptWithoutCandidate.includes('closing signature ("[Candidate Name]")'),
+    ],
+    [
+      "revision route uses saved story spine prompt when available",
+      revisionRoute.includes("storySpinePrompt"),
     ],
     [
       "revision route passes candidateName from resume draft",

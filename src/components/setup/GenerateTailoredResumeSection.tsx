@@ -520,6 +520,7 @@ export function GenerateTailoredResumeSection({
       buildCoverLetterGenerationOptions({
         job: context.savedJob,
         resumeDraft: context.resumeDraft,
+        inventory,
         applicationId: context.applicationId,
         fields: readCoverLetterFields(),
         savedCompanyContext: context.companyContext,
@@ -633,6 +634,7 @@ export function GenerateTailoredResumeSection({
         buildCoverLetterGenerationOptions({
           job: partialCoverLetterFailure.savedJob,
           resumeDraft: partialCoverLetterFailure.resumeDraft,
+          inventory,
           applicationId: partialCoverLetterFailure.applicationId,
           fields: readCoverLetterFields(),
           savedCompanyContext: application?.companyContext,
