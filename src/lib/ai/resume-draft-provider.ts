@@ -1,7 +1,13 @@
 import { GEMINI_MODEL_PRIMARY } from "@/lib/ai/config";
+import {
+  assertOpenAiFeatureNotImplemented,
+  buildFeatureProviderStatus,
+  requireGeminiApiKey,
+  resolveActiveProviderId,
+} from "@/lib/ai/feature-provider-helpers";
 import { generateMockResumeDraft } from "@/lib/ai/resume-draft-mock";
 import { generateResumeDraftWithGemini } from "@/lib/ai/resume-draft-gemini";
-import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
+import { type ModelTier } from "@/lib/ai/model-tiers";
 import {
   getProviderLabel,
   resolveProviderId,
@@ -22,30 +28,11 @@ export type ResumeDraftAIResult = ResumeDraftGenerationResult & {
 };
 
 export function getResumeDraftProviderStatus(): ResumeDraftProviderStatusResponse {
-  const provider = resolveProviderId(process.env.AI_PROVIDER);
-  const isMock = provider === "mock";
-  let configured = true;
-  let configurationError: string | undefined;
-
-  if (provider === "gemini" && !process.env.GEMINI_API_KEY?.trim()) {
-    configured = false;
-    configurationError = "GEMINI_API_KEY is required when AI_PROVIDER=gemini.";
-  }
-
-  if (provider === "openai") {
-    configured = false;
-    configurationError = "OpenAI resume draft generation is not implemented yet.";
-  }
-
-  return {
-    provider,
-    isMock,
-    providerLabel: getProviderLabel(provider),
-    modelName: provider === "gemini" ? GEMINI_MODEL_PRIMARY : undefined,
-    configured,
-    configurationError,
-    supportsResumeDraft: true,
-  };
+  return buildFeatureProviderStatus({
+    geminiModelName: GEMINI_MODEL_PRIMARY,
+    openAiFeatureName: "resume draft generation",
+    extra: { supportsResumeDraft: true as const },
+  });
 }
 
 export async function generateResumeDraftWithAI(
@@ -53,15 +40,11 @@ export async function generateResumeDraftWithAI(
   providerId?: string | null,
   options?: { modelTier?: ModelTier },
 ): Promise<ResumeDraftAIResult> {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const provider = resolveActiveProviderId(providerId);
   const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
-    const result = await generateResumeDraftWithGemini(input, apiKey, modelTier);
+    const result = await generateResumeDraftWithGemini(input, requireGeminiApiKey(), modelTier);
     return {
       content: result.content,
       rationale: result.rationale,
@@ -74,7 +57,7 @@ export async function generateResumeDraftWithAI(
   }
 
   if (provider === "openai") {
-    throw new Error("OpenAI resume draft generation is not implemented yet.");
+    assertOpenAiFeatureNotImplemented("resume draft generation");
   }
 
   return {
@@ -112,8 +95,4 @@ export function toResumeDraftApiResponse(
     modelFallbackApplied: context.modelFallbackApplied ?? result.modelFallbackApplied,
     timestamp,
   };
-}
-
-export function getResumeDraftDefaultModelLabel(tier: ModelTier = "standard"): string | undefined {
-  return getPrimaryModelIdForTier(tier);
 }

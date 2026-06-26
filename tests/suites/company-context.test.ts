@@ -3,7 +3,6 @@ import { join } from "node:path";
 
 import { generateMockCompanyContext } from "../../src/lib/ai/company-context-mock";
 import { buildFallbackCompanyContext } from "../../src/lib/company-context/build-company-context";
-import { GEMINI_END_TO_END_CALL_MAP } from "../../src/lib/company-context/gemini-call-map";
 import { hasUsableCompanyContext, formatCompanyContextForPrompt, formatCompanyContextForResumePrompt } from "../../src/lib/company-context/normalize";
 import {
   parseCompanyContextJson,
@@ -165,7 +164,6 @@ function main() {
     ["resume prompt includes company context positioning rules", promptIncludesResumeCompanyContextRules(resumePrompt)],
     ["resume prompt avoids light use only wording", !resumePrompt.includes("light use only")],
     ["cover prompt avoids generic admiration", promptIncludesCoverLetterCompanyContextRules(coverPrompt)],
-    ["gemini call map includes company context step", GEMINI_END_TO_END_CALL_MAP.some((step) => step.route === "/api/ai/generate-company-context")],
     ["schema has company_context column", schema.includes("company_context jsonb")],
     ["migration adds company_context", migration.includes("company_context")],
     ["application records save company context", applicationRecords.includes("saveApplicationCompanyContextInCloud")],

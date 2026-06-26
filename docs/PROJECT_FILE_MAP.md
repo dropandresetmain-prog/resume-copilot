@@ -277,7 +277,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `src/lib/generate/build-cover-letter-options.ts` | Cover letter generation input builder |
 | `src/lib/generate/cover-letter-generation.ts` | Orchestrate + save cover letter |
 | `src/lib/generate/generation-artifact-status.ts` | Application artifact summary labels |
-| `src/components/cover-letters/CoverLetterQuickRevisionPanel.tsx` | Quick revision buttons |
+| `src/components/cover-letters/CoverLetterStagedRevisionPanel.tsx` | Staged cover letter revision chips + Revise button |
 | `src/components/cover-letters/DownloadCoverLetterPdfButton.tsx` | Download PDF |
 | `src/components/cover-letters/DownloadCoverLetterDocxButton.tsx` | Download DOCX |
 | `src/components/cover-letters/SecondaryCommunicationsPanel.tsx` | Secondary outreach formats |

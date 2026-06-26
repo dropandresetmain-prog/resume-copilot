@@ -71,7 +71,7 @@
 - Resume company context appendix for positioning/framing via `formatCompanyContextForResumePrompt`.
 - Shortened resume system instructions; v0.9.16A guardrails preserved.
 - Cover letter: hiring-argument instruction; tighter anti-generic company language.
-- **Next:** M1 Unified Evidence Spine. Manual QA: `PHASE0_MANUAL_QA.md`.
+- **Next:** M1 Unified Evidence Spine. Manual QA: `docs/archive/PHASE0_MANUAL_QA.md`.
 
 ### v0.9.16E - Application Record Delete / Archive
 

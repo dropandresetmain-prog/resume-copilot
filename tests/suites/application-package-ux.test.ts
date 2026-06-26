@@ -82,6 +82,14 @@ function main() {
     ["research section not hardcoded unconditional", !resumePreview.match(/\["Research", "#package-research"\],\s*\["Edit"/)],
     ["package review-first default layout", resumePreview.includes("package-review-default-layout") && resumePreview.includes("package-prominent-preview")],
     ["package fix mode panel gated", resumePreview.includes("package-fix-mode-panel")],
+    [
+      "layout controls collapsed",
+      resumePreview.includes("<details") && resumePreview.includes("Layout controls"),
+    ],
+    [
+      "review center still approves",
+      resumePreview.includes("onApproveForExport={() => void handleApproveForExport()}"),
+    ],
   ];
 
   for (const [name, ok] of checks) {

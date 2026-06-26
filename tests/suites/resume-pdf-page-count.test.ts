@@ -10,7 +10,7 @@ import {
   measureResumePdfFitFromContentHeight,
   overflowPxToMm,
 } from "../../src/lib/resume-draft/pdf-fit-measurement";
-import { countPdfPages } from "../../src/lib/resume-draft/pdf-page-count";
+import { countPdfPages } from "../../src/lib/resume-draft/pdf-export";
 import { PREVIEW_ITEM_LINE_SPACING_DEFAULT } from "../../src/lib/resume-draft/preview-settings";
 import { a4PageHeightPx } from "../../src/lib/resume-draft/pdf-preview-overflow";
 import { readFileSync } from "node:fs";

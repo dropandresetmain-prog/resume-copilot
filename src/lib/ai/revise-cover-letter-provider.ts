@@ -1,7 +1,12 @@
 import { reviseMockCoverLetter } from "@/lib/ai/revise-cover-letter-mock";
 import { reviseCoverLetterWithGemini } from "@/lib/ai/revise-cover-letter-gemini";
-import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
-import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
+import {
+  assertOpenAiFeatureNotImplemented,
+  requireGeminiApiKey,
+  resolveActiveProviderId,
+} from "@/lib/ai/feature-provider-helpers";
+import { type ModelTier } from "@/lib/ai/model-tiers";
+import { getProviderLabel } from "@/lib/ai/provider";
 import type { AIProviderId } from "@/lib/ai/types";
 import { prepareCoverLetterRevisionResult } from "@/lib/cover-letter/revision-parse";
 import type { CoverLetterRevisionPromptInput } from "@/lib/cover-letter/revision-prompt";
@@ -12,16 +17,12 @@ export async function reviseCoverLetterWithAI(
   providerId?: string | null,
   options?: { modelTier?: ModelTier },
 ): Promise<CoverLetterRevisionResponse & { providerId: AIProviderId }> {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const provider = resolveActiveProviderId(providerId);
   const timestamp = new Date().toISOString();
   const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
-    const result = await reviseCoverLetterWithGemini(input, apiKey, modelTier);
+    const result = await reviseCoverLetterWithGemini(input, requireGeminiApiKey(), modelTier);
     return {
       body: result.body,
       wordCount: result.wordCount,
@@ -39,7 +40,7 @@ export async function reviseCoverLetterWithAI(
   }
 
   if (provider === "openai") {
-    throw new Error("OpenAI cover letter revision is not implemented yet.");
+    assertOpenAiFeatureNotImplemented("cover letter revision");
   }
 
   const result = prepareCoverLetterRevisionResult(reviseMockCoverLetter(input), {
@@ -59,12 +60,4 @@ export async function reviseCoverLetterWithAI(
     persisted: false,
     providerId: provider,
   };
-}
-
-export function getCoverLetterRevisionModelName(
-  providerId?: string | null,
-  modelTier: ModelTier = "standard",
-): string | undefined {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
-  return provider === "gemini" ? getPrimaryModelIdForTier(modelTier) : undefined;
 }

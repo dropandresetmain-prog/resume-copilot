@@ -3,7 +3,12 @@ import {
   type ResumeRoleRewriteResult,
 } from "@/lib/ai/resume-role-rewrite-mock";
 import { rewriteResumeRoleWithGemini } from "@/lib/ai/resume-role-rewrite-gemini";
-import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
+import {
+  assertOpenAiFeatureNotImplemented,
+  requireGeminiApiKey,
+  resolveActiveProviderId,
+} from "@/lib/ai/feature-provider-helpers";
+import { type ModelTier } from "@/lib/ai/model-tiers";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
 import type { AIProviderId } from "@/lib/ai/types";
 import type { ResumeRoleRewritePromptInput } from "@/lib/resume-draft/role-rewrite-prompt";
@@ -20,15 +25,11 @@ export async function rewriteResumeRoleWithAI(
   providerId?: string | null,
   options?: { modelTier?: ModelTier },
 ): Promise<ResumeRoleRewriteAIResult> {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const provider = resolveActiveProviderId(providerId);
   const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
-    const result = await rewriteResumeRoleWithGemini(input, apiKey, modelTier);
+    const result = await rewriteResumeRoleWithGemini(input, requireGeminiApiKey(), modelTier);
     return {
       bullets: result.bullets,
       notes: result.notes,
@@ -40,7 +41,7 @@ export async function rewriteResumeRoleWithAI(
   }
 
   if (provider === "openai") {
-    throw new Error("OpenAI resume role rewrite is not implemented yet.");
+    assertOpenAiFeatureNotImplemented("resume role rewrite");
   }
 
   return {
@@ -50,14 +51,6 @@ export async function rewriteResumeRoleWithAI(
     requestedModelTier: modelTier,
     modelFallbackApplied: false,
   };
-}
-
-export function getResumeRoleRewriteModelName(
-  providerId?: string | null,
-  modelTier: ModelTier = "standard",
-): string | undefined {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
-  return provider === "gemini" ? getPrimaryModelIdForTier(modelTier) : undefined;
 }
 
 export function getResumeRoleRewriteProviderLabel(providerId?: string | null): string {

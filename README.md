@@ -133,7 +133,7 @@ npm run build
 
 ## Testing
 
-`npm run test` runs 46 verification suites via `tests/run-all.ts` (parser, inventory, generation, export, cover letter, company research, application package). See [`docs/TESTING.md`](docs/TESTING.md) for suite layout and policy. Manual QA: [`docs/TEST_CHECKLIST.md`](docs/TEST_CHECKLIST.md).
+`npm run test` runs 50 verification suites via `tests/run-all.ts` (parser, inventory, generation, export, cover letter, company research, application package). See [`docs/TESTING.md`](docs/TESTING.md) for suite layout and policy. Manual QA: [`docs/TEST_CHECKLIST.md`](docs/TEST_CHECKLIST.md).
 
 ## Known limitations
 

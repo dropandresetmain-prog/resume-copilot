@@ -546,8 +546,8 @@ Pass **full story spine** (not resume-draft-only). Include trimmed company conte
 |-------|-------|
 | Compact payload omits redundant rawTexts | `generation-payload.test.ts` |
 | Prompt length budget (chars < threshold) | `resume-generation-validation.test.ts` |
-| Staged revision sends combined custom instruction | `cover-letter-quality.test.ts` (existing + chip combo) |
-| Revision evidence uses spine when M2 lands | `cover-letter-quality.test.ts` |
+| Staged revision sends combined custom instruction | `cover-letter.test.ts` (existing + chip combo) |
+| Revision evidence uses spine when M2 lands | `cover-letter.test.ts` |
 
 ---
 
@@ -582,6 +582,6 @@ Pass **full story spine** (not resume-draft-only). Include trimmed company conte
 ## References
 
 - Prompt sizes measured: `resume-draft/prompt.ts` ≈ 16,241 characters static template
-- Tests: `resume-generation-validation.test.ts`, `generation-payload.test.ts`, `cover-letter-quality.test.ts`, `company-context.test.ts`
+- Tests: `resume-generation-validation.test.ts`, `generation-payload.test.ts`, `cover-letter.test.ts`, `company-context.test.ts`
 - Revision UI: `CoverLetterStagedRevisionPanel.tsx` lines 59–74, 133–152
 - Reference resume: `reference-format.ts` (`formattingOnly: true`)

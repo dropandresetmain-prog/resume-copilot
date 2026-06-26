@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildActiveCollatedInventory } from "../../src/lib/inventory/active-collated";
@@ -5,6 +8,7 @@ import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import {
   applyInventoryEditsToCollated,
   hideInventoryBullet,
+  inventoryEditsEqual,
   setInventoryBulletEdit,
 } from "../../src/lib/inventory/edits";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -99,6 +103,15 @@ function buildInventory(): InventoryState {
 }
 
 function main() {
+  const inventoryPage = readFileSync(
+    join(process.cwd(), "src/components/pages/InventoryPageClient.tsx"),
+    "utf8",
+  );
+  const duplicatePanel = readFileSync(
+    join(process.cwd(), "src/components/setup/InventoryDuplicateCleanupPanel.tsx"),
+    "utf8",
+  );
+
   const inventory = buildInventory();
   const rawCollated = buildCollatedInventory(inventory);
   const key60 = buildBulletEnrichmentKey("Drop & Reset", "Founder", "Hosted 60+ community events");
@@ -150,6 +163,32 @@ function main() {
     ["excluded key not in ranked selection", !ranked.selected.some((item) => item.bulletKey === key60)],
     ["prompt prefers accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["includeHidden mode keeps hidden bullets for edit UI", (editUiCollated.experiences[0]?.bullets.length ?? 0) === 3],
+    ["inventoryEditsEqual detects no changes", inventoryEditsEqual(createEmptyInventoryEdits(), createEmptyInventoryEdits())],
+    [
+      "inventoryEditsEqual detects draft changes",
+      !inventoryEditsEqual(edits, createEmptyInventoryEdits()),
+    ],
+    [
+      "draft edits survive simulated tab switch",
+      inventoryEditsEqual({ ...edits }, edits),
+    ],
+    [
+      "inventory page warns before unload when unsaved",
+      inventoryPage.includes("beforeunload") && inventoryPage.includes("hasUnsavedChanges"),
+    ],
+    [
+      "inventory unsaved banner test id",
+      inventoryPage.includes('data-testid="inventory-unsaved-changes-banner"'),
+    ],
+    [
+      "duplicate cleanup exposes save state",
+      duplicatePanel.includes('data-testid="inventory-duplicate-cleanup-save-state"') &&
+        duplicatePanel.includes("hasUnsavedChanges"),
+    ],
+    [
+      "enrichment auto-save feedback",
+      inventoryPage.includes('data-testid="inventory-enrich-auto-save-feedback"'),
+    ],
   ];
 
   for (const [name, ok] of checks) {

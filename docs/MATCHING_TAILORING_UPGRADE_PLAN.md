@@ -213,7 +213,7 @@ Cover letter rationale: add optional `storySpine` mirror for explainability.
 | `src/app/api/ai/revise-cover-letter/route.ts` | Load inventory + build spine |
 | `src/types/cover-letter-draft.ts` | Optional `storySpine` in rationale |
 | `tests/suites/cover-letter.test.ts` | Spine-not-draft assertions |
-| `tests/suites/cover-letter-quality.test.ts` | Prompt wiring |
+| `tests/suites/cover-letter.test.ts` | Prompt wiring |
 
 ### No new AI call
 
@@ -279,8 +279,8 @@ Story assembly is 100% deterministic. Same single `generate_cover_letter` Gemini
 |-------|-------|-----------|
 | Cover letter input uses inventory spine | `cover-letter.test.ts` | Strong inventory item not on resume appears in prompt payload |
 | Resume draft consistency section | `cover-letter.test.ts` | Draft referenced for consistency, not sole evidence |
-| Story spine structure | `cover-letter-quality.test.ts` | Prompt includes why role/company + proof stories |
-| Revision route spine | `cover-letter-quality.test.ts` | Revise uses full spine |
+| Story spine structure | `cover-letter.test.ts` | Prompt includes why role/company + proof stories |
+| Revision route spine | `cover-letter.test.ts` | Revise uses full spine |
 
 ### Milestone 3
 
@@ -322,7 +322,7 @@ Story assembly is 100% deterministic. Same single `generate_cover_letter` Gemini
 
 ## Suggested implementation order
 
-0. **Phase 0 — Prompt & payload hygiene** — **done in v0.9.17A** (see [`PHASE0_PROMPT_HYGIENE.md`](PHASE0_PROMPT_HYGIENE.md)).
+0. **Phase 0 — Prompt & payload hygiene** — **done in v0.9.17A** (see [`docs/archive/PHASE0_PROMPT_HYGIENE.md`](archive/PHASE0_PROMPT_HYGIENE.md)).
 1. **M1 backend** — types, collect, score, rank, tests (no UI).
 2. **M1 wire** — payload + snapshot + fit summary.
 3. **M2** — story spine + cover letter prompt + tests.

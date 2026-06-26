@@ -22,7 +22,7 @@ import { requestResumeBatchRevision } from "@/lib/resume-draft/custom-revision-c
 import {
   isProfessionalSummaryRevisionScopeAvailable,
   PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY,
-} from "@/lib/resume-draft/custom-revision-scopes";
+} from "@/lib/resume-draft/custom-revision";
 import { isApprovedDraftStatus } from "@/lib/resume-draft/draft-status";
 import type { StoredJobDescription } from "@/types/jd";
 import type {

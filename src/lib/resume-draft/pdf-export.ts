@@ -1,18 +1,24 @@
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
+import { PDFDocument } from "pdf-lib";
 
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import {
   measureResumePdfFitFromContentHeight,
   type PdfFitMeasurement,
 } from "@/lib/resume-draft/pdf-fit-measurement";
-import { countPdfPages } from "@/lib/resume-draft/pdf-page-count";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 import { renderResumePdfHtml } from "@/lib/resume-draft/pdf-html";
 import { RESUME_PDF_HTML_A4_MARKER } from "@/lib/resume-draft/resume-layout-styles";
 
 export const RESUME_PDF_MIME = "application/pdf";
+
+/** Count pages in a generated PDF buffer (server export truth). */
+export async function countPdfPages(buffer: Buffer | Uint8Array): Promise<number> {
+  const doc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  return doc.getPageCount();
+}
 
 export type ResumePdfGenerationResult = {
   buffer: Buffer;

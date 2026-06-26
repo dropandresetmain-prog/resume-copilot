@@ -428,7 +428,7 @@ Pre-run estimate (`estimateGenerateAiSteps`) counts **logical** steps only — d
 
 ## References
 
-- End-to-end map (partial): `src/lib/company-context/gemini-call-map.ts`
+- End-to-end call inventory: summary tables in this document (runtime map file removed in cleanup).
 - Generate estimate: `src/lib/generate/ai-call-budget.ts`
 - Retry contract tests: `tests/suites/gemini-retry.test.ts`
 - Offline prompt bundle: `scripts/build-gemini-analysis-bundle.ts`

@@ -1,4 +1,4 @@
-import { formatKeywordBullet, parseKeywordBullet } from "@/lib/resume-draft/layout";
+import { formatKeywordBullet, parseKeywordBullet } from "@/lib/resume-draft/keyword-bullet";
 
 const GENERIC_KEYWORD_PATTERN =
   /^(experience|work experience|achievement|general|operations|responsibilities)$/i;

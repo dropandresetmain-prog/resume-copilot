@@ -10,7 +10,12 @@ import {
   reviseResumeRoleCustomWithGemini,
   reviseResumeSummaryWithGemini,
 } from "@/lib/ai/revise-resume-scope-gemini";
-import { getPrimaryModelIdForTier, type ModelTier } from "@/lib/ai/model-tiers";
+import {
+  assertOpenAiFeatureNotImplemented,
+  requireGeminiApiKey,
+  resolveActiveProviderId,
+} from "@/lib/ai/feature-provider-helpers";
+import { type ModelTier } from "@/lib/ai/model-tiers";
 import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
 import type { AIProviderId } from "@/lib/ai/types";
 import type { ResumeBatchRevisionCandidates } from "@/lib/resume-draft/custom-revision-batch";
@@ -36,14 +41,11 @@ export async function reviseResumeScopeWithAI(
     modelFallbackApplied: boolean;
   }
 > {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const provider = resolveActiveProviderId(providerId);
   const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
+    const apiKey = requireGeminiApiKey();
     const result =
       input.scope === "professional_summary"
         ? await reviseResumeSummaryWithGemini(input, apiKey, modelTier)
@@ -58,7 +60,7 @@ export async function reviseResumeScopeWithAI(
   }
 
   if (provider === "openai") {
-    throw new Error("OpenAI resume custom revision is not implemented yet.");
+    assertOpenAiFeatureNotImplemented("resume custom revision");
   }
 
   const result =
@@ -87,15 +89,11 @@ export async function reviseResumeBatchWithAI(
     modelFallbackApplied: boolean;
   }
 > {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
+  const provider = resolveActiveProviderId(providerId);
   const modelTier = options?.modelTier ?? "standard";
 
   if (provider === "gemini") {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-    }
-    const result = await reviseResumeBatchWithGemini(input, apiKey, modelTier);
+    const result = await reviseResumeBatchWithGemini(input, requireGeminiApiKey(), modelTier);
     return {
       ...result,
       providerId: "gemini",
@@ -106,7 +104,7 @@ export async function reviseResumeBatchWithAI(
   }
 
   if (provider === "openai") {
-    throw new Error("OpenAI resume batch revision is not implemented yet.");
+    assertOpenAiFeatureNotImplemented("resume batch revision");
   }
 
   const result = reviseMockResumeBatch(input);
@@ -117,14 +115,6 @@ export async function reviseResumeBatchWithAI(
     requestedModelTier: modelTier,
     modelFallbackApplied: false,
   };
-}
-
-export function getResumeCustomRevisionModelName(
-  providerId?: string | null,
-  modelTier: ModelTier = "standard",
-): string | undefined {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
-  return provider === "gemini" ? getPrimaryModelIdForTier(modelTier) : undefined;
 }
 
 export function getResumeCustomRevisionProviderLabel(providerId?: string | null): string {

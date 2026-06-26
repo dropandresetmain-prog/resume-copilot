@@ -58,7 +58,7 @@ Phase 0 prepares for M1 by narrowing prompts and compacting prompt-only payloads
 
 ### Manual quality QA
 
-See [`PHASE0_MANUAL_QA.md`](PHASE0_MANUAL_QA.md).
+See [`PHASE0_MANUAL_QA.md`](PHASE0_MANUAL_QA.md) in this folder.
 
 **Status:** Contract-tested in CI. Live Gemini before/after comparison is **pending** unless run manually per checklist.
 

@@ -150,6 +150,10 @@ async function main() {
     "utf8",
   );
   const ui = readFileSync(join(process.cwd(), "src/components/setup/ui.tsx"), "utf8");
+  const generationProgress = readFileSync(
+    join(process.cwd(), "src/components/setup/GenerationProgressPanel.tsx"),
+    "utf8",
+  );
 
   const prefersDraft = resolveDefaultBaseResumeId(sampleResumes, {
     recentDraftReferenceResumeId: "resume-new",
@@ -322,6 +326,35 @@ async function main() {
     ["last base resume storage key exported", LAST_BASE_RESUME_STORAGE_KEY.includes("lastBaseResumeId")],
     ["generate page hides save button", generatePage.includes("showSaveButton={false}")],
     ["generate page removed coming later", !generatePage.includes("Coming later")],
+    ["generate removes everything in one card banner", !generatePage.includes("Everything you need is in one card below")],
+    [
+      "generate secondary options hide cover letter model",
+      generateSection.includes("More options (optional)") &&
+        generateSection.includes('label="Cover letter model"') &&
+        generateSection.indexOf("More options (optional)") <
+          generateSection.indexOf('label="Cover letter model"') &&
+        generateSection.includes("Models · job URL · website · instructions"),
+    ],
+    [
+      "saved jobs default limit with show more",
+      jdPanel.includes("SAVED_JOBS_DEFAULT_LIMIT = 10") && jdPanel.includes("Show fewer saved jobs"),
+    ],
+    [
+      "generate readiness strip",
+      generateSection.includes("generate-readiness-strip") && generateSection.includes("Readiness"),
+    ],
+    [
+      "generate mobile sticky cta",
+      generateSection.includes("generate-mobile-sticky-cta") && generateSection.includes("fixed bottom-0"),
+    ],
+    [
+      "generate mobile textarea shorter",
+      jdPanel.includes("h-[6.5rem]") && jdPanel.includes("sm:h-auto"),
+    ],
+    [
+      "generation progress dynamic treatment",
+      generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
+    ],
     ["generate page uses single jd panel", generatePage.includes("generateFlow={{") && !generatePage.includes("ResumeDraftPanel")],
     ["generate cta inside jd panel", jdPanel.includes("GenerateTailoredResumeSection")],
     [

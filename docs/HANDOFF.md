@@ -42,7 +42,7 @@ Phase 0 Prompt & Payload Hygiene: reduces resume/cover letter Gemini input volum
 
 **Safety:** full generation input + validation unchanged; no schema/provider/export changes.
 
-**Next:** M1 Unified Evidence Spine. Manual live QA: [`PHASE0_MANUAL_QA.md`](PHASE0_MANUAL_QA.md).
+**Next:** M1 Unified Evidence Spine. Manual live QA: [`docs/archive/PHASE0_MANUAL_QA.md`](archive/PHASE0_MANUAL_QA.md).
 
 ## v0.9.16E implementation note
 

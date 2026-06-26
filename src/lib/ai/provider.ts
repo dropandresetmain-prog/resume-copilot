@@ -1,4 +1,9 @@
 import { GEMINI_MODEL } from "@/lib/ai/config";
+import {
+  buildFeatureProviderStatus,
+  requireGeminiApiKey,
+  resolveActiveProviderId,
+} from "@/lib/ai/feature-provider-helpers";
 import { createGeminiProvider } from "@/lib/ai/gemini";
 import { mockProvider } from "@/lib/ai/mock";
 import { openaiProvider } from "@/lib/ai/openai";
@@ -31,16 +36,11 @@ export function getProviderLabel(providerId: AIProviderId): string {
 }
 
 export function createAIProvider(providerId?: string | null): AIProvider {
-  const resolved = resolveProviderId(providerId);
+  const resolved = resolveActiveProviderId(providerId);
 
   switch (resolved) {
-    case "gemini": {
-      const apiKey = process.env.GEMINI_API_KEY?.trim();
-      if (!apiKey) {
-        throw new Error("GEMINI_API_KEY is required when AI_PROVIDER=gemini.");
-      }
-      return createGeminiProvider(apiKey);
-    }
+    case "gemini":
+      return createGeminiProvider(requireGeminiApiKey());
     case "openai":
       return openaiProvider;
     case "mock":
@@ -50,29 +50,10 @@ export function createAIProvider(providerId?: string | null): AIProvider {
 }
 
 export function getProviderStatus(): ProviderStatusResponse {
-  const provider = resolveProviderId(process.env.AI_PROVIDER);
-  const isMock = provider === "mock";
-  let configured = true;
-  let configurationError: string | undefined;
-
-  if (provider === "gemini" && !process.env.GEMINI_API_KEY?.trim()) {
-    configured = false;
-    configurationError = "GEMINI_API_KEY is required when AI_PROVIDER=gemini.";
-  }
-
-  if (provider === "openai") {
-    configured = false;
-    configurationError = "OpenAI enrichment is not implemented yet.";
-  }
-
-  return {
-    provider,
-    isMock,
-    providerLabel: getProviderLabel(provider),
-    modelName: provider === "gemini" ? GEMINI_MODEL : undefined,
-    configured,
-    configurationError,
-  };
+  return buildFeatureProviderStatus({
+    geminiModelName: GEMINI_MODEL,
+    openAiFeatureName: "enrichment",
+  });
 }
 
 export async function enrichInventoryWithAI(

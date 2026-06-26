@@ -33,7 +33,7 @@ import type { InventoryState } from "../../src/types/resume";
 import {
   isProfessionalSummaryRevisionScopeAvailable,
   PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY,
-} from "../../src/lib/resume-draft/custom-revision-scopes";
+} from "../../src/lib/resume-draft/custom-revision";
 
 const sampleJd: StoredJobDescription = {
   id: "jd-1",

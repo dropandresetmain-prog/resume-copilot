@@ -1,6 +1,7 @@
 import { GEMINI_MODEL } from "@/lib/ai/config";
+import { buildFeatureProviderStatus, requireGeminiApiKey, resolveActiveProviderId } from "@/lib/ai/feature-provider-helpers";
 import { generateCompanyResearchWithProvider } from "@/lib/company-context/research";
-import { getProviderLabel, resolveProviderId } from "@/lib/ai/provider";
+import { getProviderLabel } from "@/lib/ai/provider";
 import { isFirecrawlConfigured } from "@/lib/firecrawl/scrape-company-website";
 import type { AIProviderId } from "@/lib/ai/types";
 import type {
@@ -10,26 +11,13 @@ import type {
 } from "@/types/company-context";
 
 export function getCompanyContextProviderStatus() {
-  const provider = resolveProviderId(process.env.AI_PROVIDER);
-  const isMock = provider === "mock";
-  let configured = true;
-  let configurationError: string | undefined;
-
-  if (provider === "gemini" && !process.env.GEMINI_API_KEY?.trim()) {
-    configured = false;
-    configurationError = "GEMINI_API_KEY is required when AI_PROVIDER=gemini.";
-  }
-
-  return {
-    provider,
-    isMock,
-    providerLabel: getProviderLabel(provider),
-    modelName: provider === "gemini" ? GEMINI_MODEL : undefined,
-    configured,
-    configurationError,
-    supportsCompanyContext: true,
-    firecrawlConfigured: isFirecrawlConfigured(),
-  };
+  return buildFeatureProviderStatus({
+    geminiModelName: GEMINI_MODEL,
+    extra: {
+      supportsCompanyContext: true as const,
+      firecrawlConfigured: isFirecrawlConfigured(),
+    },
+  });
 }
 
 export async function generateCompanyContextWithAI(
@@ -42,8 +30,8 @@ export async function generateCompanyContextWithAI(
     researchWarning?: string;
   }
 > {
-  const provider = resolveProviderId(providerId ?? process.env.AI_PROVIDER);
-  const apiKey = provider === "gemini" ? process.env.GEMINI_API_KEY?.trim() : undefined;
+  const provider = resolveActiveProviderId(providerId);
+  const apiKey = provider === "gemini" ? requireGeminiApiKey() : undefined;
 
   return generateCompanyResearchWithProvider(input, provider, apiKey);
 }

@@ -3,7 +3,7 @@ import puppeteer from "puppeteer-core";
 import { existsSync } from "node:fs";
 
 import { renderCoverLetterPdfHtml } from "@/lib/cover-letter/pdf-html";
-import { countPdfPages } from "@/lib/resume-draft/pdf-page-count";
+import { countPdfPages } from "@/lib/resume-draft/pdf-export";
 import { waitForPdfDocumentFonts } from "@/lib/resume-draft/pdf-export";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 
