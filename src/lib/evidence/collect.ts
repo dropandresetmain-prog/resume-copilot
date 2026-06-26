@@ -6,7 +6,7 @@ import {
   scoreEvidenceText,
 } from "@/lib/evidence/scoring";
 import type { EvidenceItem, EvidenceItemState } from "@/lib/evidence/types";
-import type { CompanyContext } from "@/types/company-context";
+import type { CompanyContext, CompanyNarrativeAngle } from "@/types/company-context";
 import type { CollatedInventory } from "@/types/collated";
 import type { EnrichmentState } from "@/types/enrichment";
 import type { ResumeDraftRegenerationControls } from "@/types/resume-draft";
@@ -65,6 +65,10 @@ function isKeywordEvidenceTied(
     return false;
   }
   return evidenceText.toLowerCase().includes(normalized);
+}
+
+function narrativeAngleEvidenceText(angle: CompanyNarrativeAngle): string {
+  return [angle.angle, angle.relevance].filter(Boolean).join(" — ").trim();
 }
 
 export function collectEvidenceItems(options: CollectEvidenceOptions): EvidenceItem[] {
@@ -242,13 +246,17 @@ export function collectEvidenceItems(options: CollectEvidenceOptions): EvidenceI
       });
     }
     for (const angle of (context.suggestedNarrativeAngles ?? []).slice(0, 2)) {
-      const scored = scoreEvidenceText(angle, { jdTerms });
+      const angleText = narrativeAngleEvidenceText(angle);
+      if (!angleText) {
+        continue;
+      }
+      const scored = scoreEvidenceText(angleText, { jdTerms });
       items.push({
-        id: `company_context:angle:${angle.slice(0, 40)}`,
+        id: `company_context:angle:${angle.angle.slice(0, 40)}`,
         sourceType: "company_context",
-        sourceId: angle,
-        originalText: angle,
-        displayLabel: `Narrative angle: ${angle}`,
+        sourceId: angle.angle,
+        originalText: angleText,
+        displayLabel: `Narrative angle: ${angle.angle}`,
         state: "default",
         provenance: "context",
         confidence: context.confidence ?? "medium",
