@@ -134,6 +134,12 @@ export const COVER_LETTER_REVISION_ACTIONS = [
 
 export type CoverLetterRevisionAction = (typeof COVER_LETTER_REVISION_ACTIONS)[number];
 
+/** Pending-only evidence choices for the next cover-letter regeneration (not persisted). */
+export type CoverLetterEvidenceControls = {
+  forcedEvidenceIds: string[];
+  excludedEvidenceIds: string[];
+};
+
 export type CoverLetterRevisionRequest = {
   draftId: string;
   currentBody: string;

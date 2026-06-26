@@ -1,5 +1,7 @@
 import type { EvidenceItem, EvidenceSpineResult } from "@/lib/evidence/types";
+import { filterCoverLetterProofEvidenceIds } from "@/lib/cover-letter/evidence-controls";
 import type { CompanyContext } from "@/types/company-context";
+import type { CoverLetterEvidenceControls } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 const MAX_PROOF_STORIES = 3;
@@ -33,6 +35,7 @@ export type BuildCoverLetterStorySpineOptions = {
   jdText: string;
   roleTitle?: string;
   companyDisplayName?: string;
+  evidenceControls?: CoverLetterEvidenceControls;
 };
 
 function normalizeEvidenceText(text: string): string {
@@ -184,25 +187,76 @@ function buildResumeConsistencyNotes(
   return notes;
 }
 
+function isCoverLetterProofSourceType(item: EvidenceItem): boolean {
+  return (
+    item.sourceType === "work_bullet" ||
+    item.sourceType === "additional_experience" ||
+    item.sourceType === "education"
+  );
+}
+
+function findSpineEvidenceItem(
+  spine: EvidenceSpineResult,
+  evidenceId: string,
+): EvidenceItem | undefined {
+  return (
+    spine.ranked.find((item) => item.id === evidenceId) ??
+    spine.omitted.find((item) => item.id === evidenceId) ??
+    spine.selected.find((item) => item.id === evidenceId)
+  );
+}
+
 function selectProofStories(
   spine: EvidenceSpineResult,
   resumeTexts: ReadonlySet<string>,
+  evidenceControls?: CoverLetterEvidenceControls,
 ): CoverLetterProofStory[] {
+  const excludedIds = new Set(
+    filterCoverLetterProofEvidenceIds(evidenceControls?.excludedEvidenceIds),
+  );
+  const forcedIds = filterCoverLetterProofEvidenceIds(evidenceControls?.forcedEvidenceIds).filter(
+    (id) => !excludedIds.has(id),
+  );
+
   const proofStories: CoverLetterProofStory[] = [];
   const usedIds = new Set<string>();
 
-  const addStory = (item: EvidenceItem | undefined) => {
+  const addStory = (item: EvidenceItem | undefined, options?: { forced?: boolean }) => {
     if (!item || proofStories.length >= MAX_PROOF_STORIES || usedIds.has(item.id)) {
       return;
     }
-    if (!isProofEligible(item)) {
+    if (excludedIds.has(item.id)) {
+      return;
+    }
+    if (options?.forced) {
+      if (!isCoverLetterProofSourceType(item)) {
+        return;
+      }
+      if (
+        item.state === "excluded" ||
+        item.state === "hidden" ||
+        item.eligibility === "positioning_only"
+      ) {
+        return;
+      }
+    } else if (!isProofEligible(item)) {
       return;
     }
     proofStories.push(toProofStory(item, isOnResumeDraft(item, resumeTexts)));
     usedIds.add(item.id);
   };
 
+  for (const evidenceId of forcedIds) {
+    addStory(findSpineEvidenceItem(spine, evidenceId), { forced: true });
+    if (proofStories.length >= MAX_PROOF_STORIES) {
+      return proofStories;
+    }
+  }
+
   for (const snapshot of spine.storyInputs.omittedButRelevant) {
+    if (excludedIds.has(snapshot.id)) {
+      continue;
+    }
     addStory(spine.ranked.find((item) => item.id === snapshot.id));
     if (proofStories.length >= MAX_PROOF_STORIES) {
       return proofStories;
@@ -252,7 +306,7 @@ export function buildCoverLetterStorySpine(
   options: BuildCoverLetterStorySpineOptions,
 ): CoverLetterStorySpine {
   const resumeTexts = buildResumeDraftTextSet(options.resumeDraft);
-  const proofStories = selectProofStories(options.spine, resumeTexts);
+  const proofStories = selectProofStories(options.spine, resumeTexts, options.evidenceControls);
   const roleTitle =
     options.roleTitle?.trim() ||
     options.resumeDraft.content.targetRoleTitle?.trim() ||

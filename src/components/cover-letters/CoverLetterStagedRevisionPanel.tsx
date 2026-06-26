@@ -365,7 +365,8 @@ export function CoverLetterStagedRevisionPanel({
           >
             <p className="text-xs font-semibold uppercase text-slate-500">Full regeneration</p>
             <p className="mt-1 text-xs text-slate-600">
-              Regenerates cover letter only · 1 AI step · resume unchanged.
+              Regenerates cover letter only · 1 AI step · replaces the current cover letter · resume
+              unchanged · staged evidence choices apply here.
             </p>
             <button
               type="button"

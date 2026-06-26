@@ -7,6 +7,7 @@ import { buildCompanyContext, resolveCompanyNameForGeneration } from "../../src/
 import { detectBannedPhrases, hasBannedPhrases } from "../../src/lib/cover-letter/banned-phrases";
 import { normalizeCompanyDisplayName } from "../../src/lib/cover-letter/company-name";
 import { buildCoverLetterEvidencePrompt } from "../../src/lib/cover-letter/evidence-prompt";
+import { normalizeCoverLetterEvidenceControls } from "../../src/lib/cover-letter/evidence-controls";
 import { parseCoverLetterJson } from "../../src/lib/cover-letter/parse";
 import {
   assertExportableCoverLetterBody,
@@ -341,6 +342,179 @@ function main() {
     resumeDraft: storyResumeDraft,
     jdText: storyJob.rawText,
   });
+  const proofControlCollated: CollatedInventory = {
+    ...storyCollated,
+    educationItems: [
+      {
+        id: "edu-1",
+        institution: "Business School",
+        programmes: ["MBA Fintech and Blockchain"],
+        bullets: [],
+        rawTexts: [],
+        sourceCitations: [],
+        parseWarnings: [],
+      },
+    ],
+    skillItems: [
+      {
+        id: "skill-1",
+        category: "Technical Skills",
+        text: "Blockchain platform operations",
+        sourceCitations: [],
+      },
+    ],
+  };
+  const proofControlSpine = buildEvidenceSpine({
+    collated: proofControlCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jdText: storyJob.rawText,
+    roleTitle: storyJob.roleTitle,
+    maxWorkBullets: 5,
+    companyContext: storyCompanyContext,
+  });
+  const lowWorkEvidenceId = `work_bullet:${hiddenBulletKey}`;
+  const additionalEvidenceId = "additional:add-line-1";
+  const educationEvidenceId = "education:edu-1";
+  const forcedProofSpine = buildCoverLetterStorySpine({
+    spine: proofControlSpine,
+    companyContext: storyCompanyContext,
+    resumeDraft: storyResumeDraft,
+    jdText: storyJob.rawText,
+    roleTitle: storyJob.roleTitle,
+    evidenceControls: normalizeCoverLetterEvidenceControls({
+      forcedEvidenceIds: [lowWorkEvidenceId, additionalEvidenceId, educationEvidenceId],
+      excludedEvidenceIds: [],
+    }),
+  });
+  const excludedProofSpine = buildCoverLetterStorySpine({
+    spine: proofControlSpine,
+    companyContext: storyCompanyContext,
+    resumeDraft: storyResumeDraft,
+    jdText: storyJob.rawText,
+    roleTitle: storyJob.roleTitle,
+    evidenceControls: {
+      forcedEvidenceIds: [],
+      excludedEvidenceIds: [additionalEvidenceId],
+    },
+  });
+  const skillKeywordBaselineSpine = buildCoverLetterStorySpine({
+    spine: proofControlSpine,
+    companyContext: storyCompanyContext,
+    resumeDraft: storyResumeDraft,
+    jdText: storyJob.rawText,
+    roleTitle: storyJob.roleTitle,
+  });
+  const skillKeywordForcedSpine = buildCoverLetterStorySpine({
+    spine: proofControlSpine,
+    companyContext: storyCompanyContext,
+    resumeDraft: storyResumeDraft,
+    jdText: storyJob.rawText,
+    roleTitle: storyJob.roleTitle,
+    evidenceControls: {
+      forcedEvidenceIds: ["skill:skill-1", "keyword_tied:fake:Blockchain"],
+      excludedEvidenceIds: [],
+    },
+  });
+  const storyInventory = {
+    resumes: [
+      {
+        id: "resume-1",
+        filename: "resume.docx",
+        uploadedAt: "2025-01-01T00:00:00.000Z",
+        workExperiences: [
+          {
+            id: "exp-low",
+            company: "Legacy Corp",
+            role: "Analyst",
+            dateRange: "2020 - 2021",
+            bullets: [
+              {
+                id: "low-bullet",
+                description: "Prepared internal reporting packs",
+                rawTexts: ["Prepared internal reporting packs"],
+                sourceCitations: [],
+              },
+            ],
+            sourceCitations: [],
+            parseWarnings: [],
+          },
+        ],
+        education: [
+          {
+            id: "edu-1",
+            institution: "Business School",
+            programmes: ["MBA Fintech and Blockchain"],
+            bullets: [],
+            rawTexts: [],
+            sourceCitations: [],
+            parseWarnings: [],
+          },
+        ],
+        additionalExperience: {
+          id: "add-1",
+          sourceResumeId: "resume-1",
+          title: "Additional",
+          lines: [],
+          rawText: "",
+          parseWarnings: [],
+        },
+        skills: {
+          id: "skills-1",
+          sourceResumeId: "resume-1",
+          languages: [],
+          technicalSkills: [],
+          interests: [],
+          other: [],
+          rawText: "",
+          parseWarnings: [],
+        },
+        unparsedSections: [],
+        parseWarnings: [],
+      },
+    ],
+    enrichment: createEmptyEnrichmentState(),
+    edits: {
+      ...createEmptyInventoryEdits(),
+      addedAdditionalExperienceItems: [
+        {
+          id: "add-overlay-1",
+          text: "Led blockchain fintech market entry pilot across APAC partners",
+          category: "Projects",
+          addedAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+    },
+  } satisfies InventoryState;
+  const evidencePromptBaseline = buildCoverLetterEvidencePrompt({
+    inventory: storyInventory,
+    resumeDraft: storyResumeDraft,
+    job: storyJob,
+    companyContext: storyCompanyContext,
+    companyDisplayName: "FinCo",
+  });
+  const evidencePromptExcludedAdditional = buildCoverLetterEvidencePrompt({
+    inventory: storyInventory,
+    resumeDraft: storyResumeDraft,
+    job: storyJob,
+    companyContext: storyCompanyContext,
+    companyDisplayName: "FinCo",
+    evidenceControls: {
+      forcedEvidenceIds: [],
+      excludedEvidenceIds: ["additional:add-overlay-1"],
+    },
+  });
+  const baselineProofIds =
+    evidencePromptBaseline.storySpine?.proofStories.map((story) => story.evidenceId) ?? [];
+  const excludedAdditionalProofIds =
+    evidencePromptExcludedAdditional.storySpine?.proofStories.map((story) => story.evidenceId) ?? [];
+  const evidencePromptSource = readFileSync(
+    join(process.cwd(), "src/lib/cover-letter/evidence-prompt.ts"),
+    "utf8",
+  );
+  const coverLetterEvidencePanel = readFileSync(
+    join(process.cwd(), "src/components/cover-letters/CoverLetterEvidenceRegenerationPanel.tsx"),
+    "utf8",
+  );
   const coverLetterGenerationSource = readFileSync(
     join(process.cwd(), "src/lib/generate/cover-letter-generation.ts"),
     "utf8",
@@ -538,6 +712,50 @@ function main() {
     [
       "excluded inventory evidence omitted from story spine proof",
       !hiddenStorySpine.proofStories.some((story) => story.groundedText.includes("internal reporting packs")),
+    ],
+    [
+      "forced work additional education appear in cover letter proof stories",
+      forcedProofSpine.proofStories.some((story) => story.evidenceId === lowWorkEvidenceId) &&
+        forcedProofSpine.proofStories.some((story) => story.evidenceId === additionalEvidenceId) &&
+        forcedProofSpine.proofStories.some((story) => story.evidenceId === educationEvidenceId),
+    ],
+    [
+      "excluded cover letter evidence omitted from proof stories",
+      !excludedProofSpine.proofStories.some((story) => story.evidenceId === additionalEvidenceId),
+    ],
+    [
+      "skill and keyword forced ids do not become cover letter proof stories",
+      (() => {
+        const baselineIds = new Set(
+          skillKeywordBaselineSpine.proofStories.map((story) => story.evidenceId),
+        );
+        const invalidForced = ["skill:skill-1", "keyword_tied:fake:Blockchain"];
+        return !invalidForced.some(
+          (id) =>
+            skillKeywordForcedSpine.proofStories.some((story) => story.evidenceId === id) &&
+            !baselineIds.has(id),
+        );
+      })(),
+    ],
+    [
+      "cover letter evidence prompt passes pending controls to story spine",
+      evidencePromptSource.includes("evidenceControls: options.evidenceControls") &&
+        baselineProofIds.includes("additional:add-overlay-1") &&
+        !excludedAdditionalProofIds.includes("additional:add-overlay-1"),
+    ],
+    [
+      "cover letter generation threads evidence controls into evidence prompt",
+      coverLetterGenerationSource.includes("evidenceControls: options.evidenceControls"),
+    ],
+    [
+      "cover letter preview passes pending evidence controls on regenerate",
+      coverPreview.includes("evidenceControls") &&
+        coverPreview.includes("setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] })"),
+    ],
+    [
+      "cover letter evidence panel stages without ai",
+      coverLetterEvidencePanel.includes("Staging does not save and does not call AI") &&
+        coverLetterEvidencePanel.includes("data-action=\"stage-cover-letter-force-evidence\""),
     ],
     ["prompt includes story spine rules", promptIncludesStorySpineRules(storyPrompt)],
     [

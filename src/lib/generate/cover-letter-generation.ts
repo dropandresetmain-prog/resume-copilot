@@ -13,7 +13,10 @@ import {
 } from "@/lib/supabase/generated-cover-letter-drafts";
 import type { CompanyContext } from "@/types/company-context";
 import type { StoredJobDescription } from "@/types/jd";
-import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
+import type {
+  CoverLetterEvidenceControls,
+  GeneratedCoverLetterDraftRecord,
+} from "@/types/cover-letter-draft";
 import type { InventoryState } from "@/types/resume";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
@@ -34,6 +37,8 @@ export type CoverLetterGenerationOptions = {
   coverLetterModelTier?: ModelTier;
   /** When set, replaces this cover letter draft in place instead of creating a new row. */
   existingCoverLetterId?: string;
+  /** Pending-only proof evidence choices for regeneration (not persisted). */
+  evidenceControls?: CoverLetterEvidenceControls;
 };
 
 export function resolveCoverLetterCompanyNames(
@@ -109,6 +114,7 @@ export async function generateAndSaveCoverLetterDraft(
     job: options.job,
     companyContext: reconciledContext,
     companyDisplayName,
+    evidenceControls: options.evidenceControls,
   });
 
   const response = await requestCoverLetterGeneration({

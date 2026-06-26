@@ -11,6 +11,7 @@ import {
 } from "@/components/cover-letters/CoverLetterBodyViewSwitch";
 import { CoverLetterPdfPreview } from "@/components/cover-letters/CoverLetterPdfPreview";
 import { CoverLetterStagedRevisionPanel } from "@/components/cover-letters/CoverLetterStagedRevisionPanel";
+import { CoverLetterEvidenceRegenerationPanel } from "@/components/cover-letters/CoverLetterEvidenceRegenerationPanel";
 import { ModelSelectionDebug } from "@/components/ai/ModelSelectionDebug";
 import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -28,6 +29,7 @@ import {
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { normalizeCompanyContext } from "@/lib/company-context/normalize";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
+import { normalizeCoverLetterEvidenceControls } from "@/lib/cover-letter/evidence-controls";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
 import {
@@ -47,7 +49,7 @@ import {
 import { getGeneratedResumeDraftFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
 import type { CompanyContext } from "@/types/company-context";
-import type { GeneratedCoverLetterDraftRecord } from "@/types/cover-letter-draft";
+import type { GeneratedCoverLetterDraftRecord, CoverLetterEvidenceControls } from "@/types/cover-letter-draft";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 type CoverLetterPreviewPageClientProps = {
@@ -79,6 +81,11 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
   const [bodyView, setBodyView] = useState<CoverLetterBodyView>("pdf");
+  const [pendingEvidenceControls, setPendingEvidenceControls] =
+    useState<CoverLetterEvidenceControls>({
+      forcedEvidenceIds: [],
+      excludedEvidenceIds: [],
+    });
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +214,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
     setRegenerateError(null);
     setError(null);
     try {
+      const evidenceControls = normalizeCoverLetterEvidenceControls(pendingEvidenceControls);
       const updated = await generateAndSaveCoverLetterDraft({
         ...buildCoverLetterGenerationOptions({
           job,
@@ -221,11 +229,13 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           savedCompanyContext: companyContext ?? draft.companyContext,
         }),
         existingCoverLetterId: draft.id,
+        evidenceControls,
       });
       setDraft(updated);
       setBodyDraft(updated.body);
       setLastSavedAt(new Date(updated.updatedAt));
       setSaveFeedback(null);
+      setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] });
     } catch (regenerateFailure) {
       setRegenerateError(
         regenerateFailure instanceof Error
@@ -388,6 +398,15 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
           onSaved={setCompanyContext}
         />
       ) : null}
+
+      <CoverLetterEvidenceRegenerationPanel
+        inventory={inventory}
+        jobDescription={job ?? null}
+        resumeDraft={resumeDraft}
+        pendingControls={pendingEvidenceControls}
+        onPendingControlsChange={setPendingEvidenceControls}
+        disabled={isSaving || isRegenerating}
+      />
 
       <CoverLetterStagedRevisionPanel
         draftId={draft.id}

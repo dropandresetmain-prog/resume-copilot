@@ -12,6 +12,7 @@ import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { MAX_RESUME_DRAFT_BULLETS } from "@/lib/resume-draft/payload";
 import type { CompanyContext } from "@/types/company-context";
+import type { CoverLetterEvidenceControls } from "@/types/cover-letter-draft";
 import type { StoredJobDescription } from "@/types/jd";
 import type { InventoryState } from "@/types/resume";
 import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
@@ -27,6 +28,7 @@ export function buildCoverLetterEvidencePrompt(options: {
   job: StoredJobDescription;
   companyContext: CompanyContext;
   companyDisplayName?: string;
+  evidenceControls?: CoverLetterEvidenceControls;
 }): CoverLetterEvidencePromptResult {
   if (!options.inventory) {
     return {
@@ -57,6 +59,7 @@ export function buildCoverLetterEvidencePrompt(options: {
     jdText: options.job.rawText,
     roleTitle: options.job.roleTitle,
     companyDisplayName: options.companyDisplayName,
+    evidenceControls: options.evidenceControls,
   });
 
   return {
