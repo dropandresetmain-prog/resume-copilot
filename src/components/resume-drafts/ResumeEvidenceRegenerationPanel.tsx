@@ -37,6 +37,7 @@ import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
 import {
   buildResumeDraftPayloadFromInventory,
   MAX_RESUME_DRAFT_BULLETS,
+  normalizeRegenerationControls,
 } from "@/lib/resume-draft/payload";
 import { requestResumeRoleRewrite } from "@/lib/resume-draft/role-rewrite-client";
 import { assessRegenerationFeasibility } from "@/lib/resume-draft/regeneration";
@@ -67,8 +68,11 @@ type ResumeEvidenceRegenerationPanelProps = {
   onDraftUpdated: (draft: GeneratedResumeDraftRecord) => void;
 };
 
-function actionId(type: EvidencePendingAction["type"], bulletKey: string): string {
-  return `${type}:${bulletKey}`;
+function actionId(action: EvidencePendingAction): string {
+  if (action.evidenceId) {
+    return `${action.type}:${action.evidenceId}`;
+  }
+  return `${action.type}:${action.bulletKey ?? ""}`;
 }
 
 export function ResumeEvidenceRegenerationPanel({
@@ -110,30 +114,60 @@ export function ResumeEvidenceRegenerationPanel({
   const savedControls = draft.inputSnapshot?.regenerationControls;
   const pendingRemoveKeys = pendingActions
     .filter((action) => action.type === "remove_from_draft")
-    .map((action) => action.bulletKey);
+    .map((action) => action.bulletKey!)
+    .filter(Boolean);
   const pendingAddKeys = pendingActions
     .filter((action) => action.type === "add_to_draft")
-    .map((action) => action.bulletKey);
+    .map((action) => action.bulletKey!)
+    .filter(Boolean);
   const pendingExcludeKeys = pendingActions
     .filter((action) => action.type === "exclude_from_generation")
-    .map((action) => action.bulletKey);
+    .map((action) => action.bulletKey!)
+    .filter(Boolean);
+  const pendingIncludeEvidenceIds = pendingActions
+    .filter((action) => action.type === "include_on_full_regenerate")
+    .map((action) => action.evidenceId!)
+    .filter(Boolean);
+  const pendingExcludeEvidenceIds = pendingActions
+    .filter((action) => action.type === "exclude_additional_on_regenerate")
+    .map((action) => action.evidenceId!)
+    .filter(Boolean);
 
   const mergedControls: ResumeDraftRegenerationControls = useMemo(
-    () => ({
-      forcedBulletKeys: [
-        ...new Set([
-          ...(savedControls?.forcedBulletKeys ?? []),
-          ...pendingAddKeys,
-        ]),
-      ],
-      excludedBulletKeys: [
-        ...new Set([
-          ...(savedControls?.excludedBulletKeys ?? []),
-          ...pendingExcludeKeys,
-        ]),
-      ],
-    }),
-    [savedControls, pendingAddKeys, pendingExcludeKeys],
+    () =>
+      normalizeRegenerationControls({
+        forcedBulletKeys: [
+          ...new Set([
+            ...(savedControls?.forcedBulletKeys ?? []),
+            ...pendingAddKeys,
+          ]),
+        ],
+        excludedBulletKeys: [
+          ...new Set([
+            ...(savedControls?.excludedBulletKeys ?? []),
+            ...pendingExcludeKeys,
+          ]),
+        ],
+        forcedEvidenceIds: [
+          ...new Set([
+            ...(savedControls?.forcedEvidenceIds ?? []),
+            ...pendingIncludeEvidenceIds,
+          ]),
+        ],
+        excludedEvidenceIds: [
+          ...new Set([
+            ...(savedControls?.excludedEvidenceIds ?? []),
+            ...pendingExcludeEvidenceIds,
+          ]),
+        ],
+      }),
+    [
+      savedControls,
+      pendingAddKeys,
+      pendingExcludeKeys,
+      pendingIncludeEvidenceIds,
+      pendingExcludeEvidenceIds,
+    ],
   );
 
   const evidenceSpine = useMemo(() => {
@@ -189,20 +223,31 @@ export function ResumeEvidenceRegenerationPanel({
 
   const queueSummary = buildEvidenceQueueSummary(pendingActions, affectedRoleCount);
 
-  function hasPendingAction(type: EvidencePendingAction["type"], bulletKey: string): boolean {
-    return pendingActions.some(
-      (action) => action.type === type && action.bulletKey === bulletKey,
-    );
+  function hasPendingAction(
+    type: EvidencePendingAction["type"],
+    key: string,
+    keyKind: "bulletKey" | "evidenceId" = "bulletKey",
+  ): boolean {
+    return pendingActions.some((action) => {
+      if (action.type !== type) {
+        return false;
+      }
+      return keyKind === "evidenceId" ? action.evidenceId === key : action.bulletKey === key;
+    });
   }
 
   function togglePendingAction(action: EvidencePendingAction) {
     setPendingActions((current) => {
-      const id = actionId(action.type, action.bulletKey);
-      const exists = current.some((item) => actionId(item.type, item.bulletKey) === id);
+      const id = actionId(action);
+      const exists = current.some((item) => actionId(item) === id);
       if (exists) {
-        return current.filter((item) => actionId(item.type, item.bulletKey) !== id);
+        return current.filter((item) => actionId(item) !== id);
       }
-      const withoutConflicts = current.filter((item) => item.bulletKey !== action.bulletKey);
+      const conflictKey = action.bulletKey ?? action.evidenceId;
+      const withoutConflicts = current.filter((item) => {
+        const itemKey = item.bulletKey ?? item.evidenceId;
+        return itemKey !== conflictKey;
+      });
       return [...withoutConflicts, action];
     });
     setOutcomeSummary(null);
@@ -297,7 +342,12 @@ export function ResumeEvidenceRegenerationPanel({
             plan: targetedPlan,
           }),
         );
-      } else if (pendingExcludeKeys.length > 0 || pendingRemoveKeys.length > 0) {
+      } else if (
+        pendingExcludeKeys.length > 0 ||
+        pendingRemoveKeys.length > 0 ||
+        pendingIncludeEvidenceIds.length > 0 ||
+        pendingExcludeEvidenceIds.length > 0
+      ) {
         const { inputSnapshot } = buildResumeDraftPayloadFromInventory({
           inventory,
           jobDescription,
@@ -309,14 +359,30 @@ export function ResumeEvidenceRegenerationPanel({
           regenerationControls: mergedControls,
           resumeModelTier,
         };
+        const outcomeLines: string[] = [];
         if (pendingRemoveKeys.length > 0) {
+          outcomeLines.push(
+            `Removed ${pendingRemoveKeys.length} bullet(s) from draft without AI rewrite.`,
+          );
+        }
+        if (pendingExcludeKeys.length > 0) {
+          outcomeLines.push(
+            `Excluded ${pendingExcludeKeys.length} work bullet(s) from future generation.`,
+          );
+        }
+        if (pendingIncludeEvidenceIds.length > 0) {
+          outcomeLines.push(
+            `Staged ${pendingIncludeEvidenceIds.length} additional experience item(s) for full regeneration — run Regenerate full resume to apply.`,
+          );
+        }
+        if (pendingExcludeEvidenceIds.length > 0) {
+          outcomeLines.push(
+            `Excluded ${pendingExcludeEvidenceIds.length} additional experience item(s) from future generation.`,
+          );
+        }
+        if (outcomeLines.length > 0) {
           setOutcomeSummary({
-            lines: [
-              `Removed ${pendingRemoveKeys.length} bullet(s) from draft without AI rewrite.`,
-              pendingExcludeKeys.length > 0
-                ? `Excluded ${pendingExcludeKeys.length} item(s) from future generation.`
-                : "No generation exclusions staged.",
-            ],
+            lines: outcomeLines,
             affectedRoleLabels: [],
             forcedIncludedCount: 0,
             unchangedRoleCount: nextContent.experience.length,
@@ -410,6 +476,7 @@ export function ResumeEvidenceRegenerationPanel({
             regenerationControls: {
               forcedBulletKeys: [],
               excludedBulletKeys: mergedControls.excludedBulletKeys,
+              excludedEvidenceIds: mergedControls.excludedEvidenceIds,
             },
           }).generationInput,
         ),
@@ -500,7 +567,11 @@ export function ResumeEvidenceRegenerationPanel({
                       }
                       onClick={() =>
                         togglePendingAction({
-                          id: actionId("remove_from_draft", primaryKey),
+                          id: actionId({
+                            type: "remove_from_draft",
+                            bulletKey: primaryKey,
+                            label: item.text,
+                          }),
                           type: "remove_from_draft",
                           bulletKey: primaryKey,
                           label: item.text,
@@ -521,7 +592,11 @@ export function ResumeEvidenceRegenerationPanel({
                       }
                       onClick={() =>
                         togglePendingAction({
-                          id: actionId("exclude_from_generation", primaryKey),
+                          id: actionId({
+                            type: "exclude_from_generation",
+                            bulletKey: primaryKey,
+                            label: item.text,
+                          }),
                           type: "exclude_from_generation",
                           bulletKey: primaryKey,
                           label: item.text,
@@ -544,8 +619,8 @@ export function ResumeEvidenceRegenerationPanel({
           <h3 className="text-sm font-semibold text-slate-900">Add inventory evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
             Ranked by job relevance across work, additional experience, education, skills, and
-            evidence-tied keywords. Stage work bullets to add; other categories are advisory or
-            full-regenerate only.
+            evidence-tied keywords. Stage work bullets for targeted add; stage additional experience
+            for full regeneration only (no AI until you regenerate).
           </p>
 
           {targetedPlan.mode === "blocked" && pendingAddKeys.length > 0 ? (
@@ -560,8 +635,9 @@ export function ResumeEvidenceRegenerationPanel({
           >
             {addEvidenceRows.map((row) => {
               const hint = actionStateHint(row.actionState);
-              const canStageAdd =
+              const canStageWorkAdd =
                 row.actionState === "addable" && row.bulletKey !== undefined;
+              const canStageAdditionalInclude = row.actionState === "full_regenerate_only";
 
               return (
                 <li
@@ -583,13 +659,17 @@ export function ResumeEvidenceRegenerationPanel({
                       Preferred wording: {row.acceptedWording}
                     </p>
                   ) : null}
-                  {canStageAdd ? (
+                  {canStageWorkAdd ? (
                     <button
                       type="button"
                       className={`mt-3 ${hasPendingAction("add_to_draft", row.bulletKey!) ? primaryButtonClassName : secondaryButtonClassName}`}
                       onClick={() =>
                         togglePendingAction({
-                          id: actionId("add_to_draft", row.bulletKey!),
+                          id: actionId({
+                            type: "add_to_draft",
+                            bulletKey: row.bulletKey!,
+                            label: row.evidenceText,
+                          }),
                           type: "add_to_draft",
                           bulletKey: row.bulletKey!,
                           label: row.evidenceText,
@@ -601,6 +681,35 @@ export function ResumeEvidenceRegenerationPanel({
                         ? "Staged: add to draft"
                         : "Add to draft"}
                     </button>
+                  ) : canStageAdditionalInclude ? (
+                    <div className="mt-3 space-y-2">
+                      <button
+                        type="button"
+                        className={
+                          hasPendingAction("include_on_full_regenerate", row.id, "evidenceId")
+                            ? primaryButtonClassName
+                            : secondaryButtonClassName
+                        }
+                        onClick={() =>
+                          togglePendingAction({
+                            id: actionId({
+                              type: "include_on_full_regenerate",
+                              evidenceId: row.id,
+                              label: row.evidenceText,
+                            }),
+                            type: "include_on_full_regenerate",
+                            evidenceId: row.id,
+                            label: row.evidenceText,
+                          })
+                        }
+                        data-action="stage-include-additional-on-regenerate"
+                      >
+                        {hasPendingAction("include_on_full_regenerate", row.id, "evidenceId")
+                          ? "Staged: include on full regeneration"
+                          : "Include on full regeneration"}
+                      </button>
+                      {hint ? <p className="text-xs text-slate-600">{hint}</p> : null}
+                    </div>
                   ) : hint ? (
                     <p className="mt-2 text-xs text-slate-600">{hint}</p>
                   ) : null}
@@ -681,7 +790,8 @@ export function ResumeEvidenceRegenerationPanel({
             {isApplying ? "Applying…" : "Apply evidence changes"}
           </button>
           <p className="text-xs text-slate-500">
-            Applies staged removes locally; adds run one targeted rewrite when needed.
+            Applies staged removes locally; work adds run one targeted rewrite when needed.
+            Additional inclusion is saved and applied on full regeneration only.
           </p>
         </div>
         <div className="flex flex-col gap-1">

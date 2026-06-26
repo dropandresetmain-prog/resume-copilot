@@ -127,6 +127,10 @@ export type ResumeDraftSelectionAudit = {
 export type ResumeDraftRegenerationControls = {
   forcedBulletKeys: string[];
   excludedBulletKeys: string[];
+  /** v0.9.18A — Additional Experience spine IDs only (`additional:{item.id}`). */
+  forcedEvidenceIds?: string[];
+  /** v0.9.18A — Additional Experience spine IDs only (`additional:{item.id}`). */
+  excludedEvidenceIds?: string[];
 };
 
 export type ResumeDraftRationale = {

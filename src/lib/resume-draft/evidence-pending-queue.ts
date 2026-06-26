@@ -4,12 +4,16 @@ import type { ResumeDraftContent } from "@/types/resume-draft";
 export type EvidencePendingActionType =
   | "remove_from_draft"
   | "add_to_draft"
-  | "exclude_from_generation";
+  | "exclude_from_generation"
+  | "include_on_full_regenerate"
+  | "exclude_additional_on_regenerate";
 
 export type EvidencePendingAction = {
   id: string;
   type: EvidencePendingActionType;
-  bulletKey: string;
+  bulletKey?: string;
+  /** Additional Experience spine ID (`additional:{item.id}`). */
+  evidenceId?: string;
   label: string;
 };
 
@@ -17,6 +21,8 @@ export type EvidenceQueueSummary = {
   removeCount: number;
   addCount: number;
   excludeCount: number;
+  includeAdditionalCount: number;
+  excludeAdditionalCount: number;
   affectedRoleCount: number;
   summaryLines: string[];
   hasGeminiWork: boolean;
@@ -31,6 +37,12 @@ export function buildEvidenceQueueSummary(
   const excludeCount = actions.filter(
     (action) => action.type === "exclude_from_generation",
   ).length;
+  const includeAdditionalCount = actions.filter(
+    (action) => action.type === "include_on_full_regenerate",
+  ).length;
+  const excludeAdditionalCount = actions.filter(
+    (action) => action.type === "exclude_additional_on_regenerate",
+  ).length;
 
   const summaryLines: string[] = [];
   if (removeCount > 0) {
@@ -39,9 +51,19 @@ export function buildEvidenceQueueSummary(
   if (addCount > 0) {
     summaryLines.push(`Add ${addCount} evidence item${addCount === 1 ? "" : "s"} to draft`);
   }
+  if (includeAdditionalCount > 0) {
+    summaryLines.push(
+      `Include ${includeAdditionalCount} additional experience item${includeAdditionalCount === 1 ? "" : "s"} on full regeneration (no targeted rewrite)`,
+    );
+  }
   if (excludeCount > 0) {
     summaryLines.push(
       `Exclude ${excludeCount} item${excludeCount === 1 ? "" : "s"} from future generation`,
+    );
+  }
+  if (excludeAdditionalCount > 0) {
+    summaryLines.push(
+      `Exclude ${excludeAdditionalCount} additional experience item${excludeAdditionalCount === 1 ? "" : "s"} from future generation`,
     );
   }
   if (addCount > 0 && affectedRoleCount > 0) {
@@ -54,6 +76,8 @@ export function buildEvidenceQueueSummary(
     removeCount,
     addCount,
     excludeCount,
+    includeAdditionalCount,
+    excludeAdditionalCount,
     affectedRoleCount,
     summaryLines,
     hasGeminiWork: addCount > 0,

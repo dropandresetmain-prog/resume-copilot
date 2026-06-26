@@ -1,6 +1,6 @@
 import { extractJdMatchTerms } from "@/lib/resume-draft/bullet-payload";
 import { areNearDuplicateBullets } from "@/lib/resume-draft/tailoring-quality";
-import { collectEvidenceItems } from "@/lib/evidence/collect";
+import { collectEvidenceItems, filterAdditionalEvidenceIds } from "@/lib/evidence/collect";
 import {
   EVIDENCE_SCORE,
   MAX_RANKED_ADDITIONAL_ITEMS,
@@ -252,6 +252,41 @@ function selectSkillIds(ranked: readonly EvidenceItem[]): string[] {
   return selected.map((item) => item.sourceId);
 }
 
+function selectAdditionalIds(
+  ranked: readonly EvidenceItem[],
+  forcedEvidenceSet: ReadonlySet<string>,
+  excludedEvidenceSet: ReadonlySet<string>,
+  additionalByEvidenceId: ReadonlyMap<string, EvidenceItem>,
+): string[] {
+  const additionalSlice = ranked
+    .filter((item) => item.sourceType === "additional_experience")
+    .slice(0, MAX_RANKED_ADDITIONAL_ITEMS);
+
+  const selectedSourceIds = new Set<string>();
+  const result: string[] = [];
+
+  for (const item of additionalSlice) {
+    if (excludedEvidenceSet.has(item.id)) {
+      continue;
+    }
+    if (!selectedSourceIds.has(item.sourceId)) {
+      selectedSourceIds.add(item.sourceId);
+      result.push(item.sourceId);
+    }
+  }
+
+  for (const evidenceId of forcedEvidenceSet) {
+    const item = additionalByEvidenceId.get(evidenceId);
+    if (!item || excludedEvidenceSet.has(evidenceId) || selectedSourceIds.has(item.sourceId)) {
+      continue;
+    }
+    selectedSourceIds.add(item.sourceId);
+    result.push(item.sourceId);
+  }
+
+  return result;
+}
+
 function selectedBulletKeysFromSnapshot(snapshot: EvidenceSpineSnapshot): string[] {
   return snapshot.items
     .filter(
@@ -280,6 +315,14 @@ export function buildEvidenceSpine(options: BuildEvidenceSpineOptions): Evidence
   const excludedSet = new Set(options.regenerationControls?.excludedBulletKeys ?? []);
   const forcedSet = new Set(
     (options.regenerationControls?.forcedBulletKeys ?? []).filter((key) => !excludedSet.has(key)),
+  );
+  const excludedEvidenceSet = new Set(
+    filterAdditionalEvidenceIds(options.regenerationControls?.excludedEvidenceIds),
+  );
+  const forcedEvidenceSet = new Set(
+    filterAdditionalEvidenceIds(options.regenerationControls?.forcedEvidenceIds).filter(
+      (id) => !excludedEvidenceSet.has(id),
+    ),
   );
   const rawItems = collectEvidenceItems({
     collated: options.collated,
@@ -318,9 +361,22 @@ export function buildEvidenceSpine(options: BuildEvidenceSpineOptions): Evidence
   const educationSlice = ranked
     .filter((item) => item.sourceType === "education")
     .slice(0, MAX_RANKED_EDUCATION_ITEMS);
+  const additionalByEvidenceId = new Map(
+    rawItems
+      .filter((item) => item.sourceType === "additional_experience")
+      .map((item) => [item.id, item]),
+  );
+  const additionalIds = selectAdditionalIds(
+    ranked,
+    forcedEvidenceSet,
+    excludedEvidenceSet,
+    additionalByEvidenceId,
+  );
   const additionalSlice = ranked
-    .filter((item) => item.sourceType === "additional_experience")
-    .slice(0, MAX_RANKED_ADDITIONAL_ITEMS);
+    .filter(
+      (item) =>
+        item.sourceType === "additional_experience" && additionalIds.includes(item.sourceId),
+    );
   const skillIds = selectSkillIds(ranked);
 
   const selectedIds = new Set<string>([
@@ -400,7 +456,7 @@ export function buildEvidenceSpine(options: BuildEvidenceSpineOptions): Evidence
     omitted,
     workBulletSelections,
     educationIds: educationSlice.map((item) => item.sourceId),
-    additionalIds: additionalSlice.map((item) => item.sourceId),
+    additionalIds,
     skillIds,
     positioningNotes,
     honestGaps,

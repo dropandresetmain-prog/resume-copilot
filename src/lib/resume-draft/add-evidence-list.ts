@@ -1,5 +1,6 @@
 import type { EvidenceItem, EvidenceSourceType } from "@/lib/evidence/types";
 import type { EvidenceSpineResult } from "@/lib/evidence/types";
+import { filterAdditionalEvidenceIds } from "@/lib/evidence/collect";
 import { inventoryKeysAlreadyInDraft } from "@/lib/resume-draft/evidence-pending-queue";
 import type {
   ResumeDraftContent,
@@ -106,7 +107,11 @@ function resolveActionState(
   }
 
   const excludedSet = new Set(controls?.excludedBulletKeys ?? []);
+  const excludedEvidenceSet = new Set(filterAdditionalEvidenceIds(controls?.excludedEvidenceIds));
   if (item.state === "excluded" || (item.bulletKey && excludedSet.has(item.bulletKey))) {
+    return null;
+  }
+  if (excludedEvidenceSet.has(item.id)) {
     return null;
   }
 
@@ -202,7 +207,7 @@ export function buildAddEvidenceList(
 export function actionStateHint(actionState: AddEvidenceActionState): string | null {
   switch (actionState) {
     case "full_regenerate_only":
-      return "Use full regenerate to include in Additional Experience — targeted add does not apply.";
+      return "Requires full resume regeneration — staged inclusion does not run targeted rewrite or call AI.";
     case "cover_letter_useful":
       return "Supporting evidence for cover letter and positioning — not added as a work bullet.";
     case "advisory_only":

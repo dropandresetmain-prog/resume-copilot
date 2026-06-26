@@ -2,6 +2,9 @@ import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildEvidenceSpine } from "../../src/lib/evidence/spine";
 import { buildAddEvidenceList } from "../../src/lib/resume-draft/add-evidence-list";
+import { additionalEvidenceId } from "../../src/lib/evidence/collect";
+import { buildEvidenceQueueSummary } from "../../src/lib/resume-draft/evidence-pending-queue";
+import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
 import { rewriteMockResumeRole } from "../../src/lib/ai/resume-role-rewrite-mock";
 import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-payload";
 import {
@@ -274,6 +277,23 @@ function buildCrossCategoryCollated(): CollatedInventory {
   };
 }
 
+function buildManyAdditionalItems(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `add-${index}`,
+    category: index === count - 1 ? "Volunteer" : "Projects",
+    text:
+      index === count - 1
+        ? "Routine community outreach coordination"
+        : `Blockchain fintech pilot initiative ${index}`,
+    rawTexts: [
+      index === count - 1
+        ? "Routine community outreach coordination"
+        : `Blockchain fintech pilot initiative ${index}`,
+    ],
+    sourceCitations: [],
+  }));
+}
+
 function main() {
   const jdText = "B2B sales CRM pipeline revenue growth stakeholder management";
 
@@ -505,6 +525,188 @@ function main() {
     inventoryListings: [],
   });
 
+  const manyAdditionalCollated: CollatedInventory = {
+    ...categoryCollated,
+    additionalExperienceItems: buildManyAdditionalItems(8),
+  };
+  const lowRankAdditionalId = additionalEvidenceId("add-7");
+  const baselineAdditionalSpine = buildEvidenceSpine({
+    collated: manyAdditionalCollated,
+    enrichment: categoryEnrichment,
+    jdText: categoryJdText,
+    maxWorkBullets: 5,
+  });
+  const forcedAdditionalSpine = buildEvidenceSpine({
+    collated: manyAdditionalCollated,
+    enrichment: categoryEnrichment,
+    jdText: categoryJdText,
+    maxWorkBullets: 5,
+    regenerationControls: {
+      forcedBulletKeys: [],
+      excludedBulletKeys: [],
+      forcedEvidenceIds: [lowRankAdditionalId],
+    },
+  });
+  const excludedAdditionalSpine = buildEvidenceSpine({
+    collated: manyAdditionalCollated,
+    enrichment: categoryEnrichment,
+    jdText: categoryJdText,
+    maxWorkBullets: 5,
+    regenerationControls: {
+      forcedBulletKeys: [],
+      excludedBulletKeys: [],
+      excludedEvidenceIds: [additionalEvidenceId("add-0")],
+    },
+  });
+  const forcedAdditionalPayload = buildResumeDraftGenerationInput({
+    collated: manyAdditionalCollated,
+    enrichment: categoryEnrichment,
+    jobDescription: {
+      id: "jd-cat",
+      rawText: categoryJdText,
+      roleTitle: "Product Lead",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    referenceResume: {
+      id: "resume-1",
+      filename: "resume.docx",
+      uploadedAt: "2025-01-01T00:00:00.000Z",
+      workExperiences: [],
+      education: [],
+      additionalExperience: {
+        id: "add-section",
+        sourceResumeId: "resume-1",
+        title: "Additional",
+        lines: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      skills: {
+        id: "skills-1",
+        sourceResumeId: "resume-1",
+        languages: [],
+        technicalSkills: [],
+        interests: [],
+        other: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      unparsedSections: [],
+      parseWarnings: [],
+    },
+    maxBullets: 5,
+    regenerationControls: {
+      forcedBulletKeys: [],
+      excludedBulletKeys: [],
+      forcedEvidenceIds: [lowRankAdditionalId],
+    },
+  });
+  const excludedAdditionalPayload = buildResumeDraftGenerationInput({
+    collated: manyAdditionalCollated,
+    enrichment: categoryEnrichment,
+    jobDescription: {
+      id: "jd-cat",
+      rawText: categoryJdText,
+      roleTitle: "Product Lead",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    referenceResume: {
+      id: "resume-1",
+      filename: "resume.docx",
+      uploadedAt: "2025-01-01T00:00:00.000Z",
+      workExperiences: [],
+      education: [],
+      additionalExperience: {
+        id: "add-section",
+        sourceResumeId: "resume-1",
+        title: "Additional",
+        lines: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      skills: {
+        id: "skills-1",
+        sourceResumeId: "resume-1",
+        languages: [],
+        technicalSkills: [],
+        interests: [],
+        other: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      unparsedSections: [],
+      parseWarnings: [],
+    },
+    maxBullets: 5,
+    regenerationControls: {
+      forcedBulletKeys: [],
+      excludedBulletKeys: [],
+      excludedEvidenceIds: [additionalEvidenceId("add-0")],
+    },
+  });
+  const additionalAddList = buildAddEvidenceList(
+    categorySpine,
+    emptyDraftContent,
+    undefined,
+  );
+  const additionalRow = additionalAddList.find((row) => row.sourceType === "additional_experience");
+  const additionalQueueSummary = buildEvidenceQueueSummary(
+    [
+      {
+        id: "include:add-line-1",
+        type: "include_on_full_regenerate",
+        evidenceId: additionalEvidenceId("add-line-1"),
+        label: "Pilot project",
+      },
+    ],
+    0,
+  );
+  const legacyControlsSnapshot = buildResumeDraftGenerationInput({
+    collated: categoryCollated,
+    enrichment: categoryEnrichment,
+    jobDescription: {
+      id: "jd-cat",
+      rawText: categoryJdText,
+      roleTitle: "Product Lead",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    referenceResume: {
+      id: "resume-1",
+      filename: "resume.docx",
+      uploadedAt: "2025-01-01T00:00:00.000Z",
+      workExperiences: [],
+      education: [],
+      additionalExperience: {
+        id: "add-section",
+        sourceResumeId: "resume-1",
+        title: "Additional",
+        lines: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      skills: {
+        id: "skills-1",
+        sourceResumeId: "resume-1",
+        languages: [],
+        technicalSkills: [],
+        interests: [],
+        other: [],
+        rawText: "",
+        parseWarnings: [],
+      },
+      unparsedSections: [],
+      parseWarnings: [],
+    },
+    maxBullets: 5,
+    regenerationControls: {
+      forcedBulletKeys: [workBulletKey],
+      excludedBulletKeys: [],
+    },
+  });
+
   const checks: [string, boolean][] = [
     [
       "Case A: forced bullet outside top rank enters payload with force",
@@ -656,6 +858,41 @@ function main() {
       "regeneration panel uses ranked add evidence list",
       regenerationPanel.includes("add-evidence-ranked-list") &&
         regenerationPanel.includes("buildAddEvidenceList"),
+    ],
+    [
+      "forced additional outside ranked slice enters generation payload",
+      !baselineAdditionalSpine.additionalIds.includes("add-7") &&
+        forcedAdditionalSpine.additionalIds.includes("add-7") &&
+        forcedAdditionalPayload.additionalExperience.some((item) =>
+          item.text.includes("Routine community outreach"),
+        ),
+    ],
+    [
+      "excluded additional omitted from generation payload",
+      excludedAdditionalSpine.additionalIds.includes("add-0") === false &&
+        !excludedAdditionalPayload.additionalExperience.some((item) =>
+          item.text.includes("Blockchain fintech pilot initiative 0"),
+        ),
+    ],
+    [
+      "additional rows are full regenerate only in add evidence list",
+      Boolean(additionalRow) && additionalRow?.actionState === "full_regenerate_only",
+    ],
+    [
+      "pending queue states additional inclusion requires full regeneration",
+      additionalQueueSummary.summaryLines.some((line) =>
+        line.includes("full regeneration"),
+      ) && additionalQueueSummary.hasGeminiWork === false,
+    ],
+    [
+      "regeneration panel stages additional inclusion without targeted rewrite",
+      regenerationPanel.includes("stage-include-additional-on-regenerate") &&
+        regenerationPanel.includes("Include on full regeneration"),
+    ],
+    [
+      "legacy regeneration controls without evidence ids still build payload",
+      legacyControlsSnapshot.regenerationControls?.forcedBulletKeys.includes(workBulletKey) &&
+        !legacyControlsSnapshot.regenerationControls?.forcedEvidenceIds,
     ],
   ];
 

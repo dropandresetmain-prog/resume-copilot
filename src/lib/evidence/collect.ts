@@ -21,14 +21,23 @@ export type CollectEvidenceOptions = {
   acceptedWordingByBulletKey?: ReadonlyMap<string, string>;
 };
 
-function resolveInventoryBulletKey(
-  experience: { company: string; role: string },
-  bullet: { description: string; inventoryBulletKey?: string },
-): string {
-  return (
-    bullet.inventoryBulletKey ??
-    buildBulletEnrichmentKey(experience.company, experience.role, bullet.description)
-  );
+export function additionalEvidenceId(sourceId: string): string {
+  return `additional:${sourceId}`;
+}
+
+export function isAdditionalEvidenceId(id: string): boolean {
+  return id.startsWith("additional:");
+}
+
+/** Keeps only Additional Experience spine IDs — ignores work/education/skill IDs in this milestone. */
+export function filterAdditionalEvidenceIds(ids: readonly string[] | undefined): string[] {
+  return [
+    ...new Set(
+      (ids ?? [])
+        .map((id) => id.trim())
+        .filter((id) => isAdditionalEvidenceId(id)),
+    ),
+  ];
 }
 
 function resolveItemState(
@@ -44,6 +53,30 @@ function resolveItemState(
     return "forced";
   }
   return "default";
+}
+
+function resolveAdditionalItemState(
+  evidenceId: string,
+  forcedEvidenceSet: ReadonlySet<string>,
+  excludedEvidenceSet: ReadonlySet<string>,
+): EvidenceItemState {
+  if (excludedEvidenceSet.has(evidenceId)) {
+    return "excluded";
+  }
+  if (forcedEvidenceSet.has(evidenceId)) {
+    return "forced";
+  }
+  return "default";
+}
+
+function resolveInventoryBulletKey(
+  experience: { company: string; role: string },
+  bullet: { description: string; inventoryBulletKey?: string },
+): string {
+  return (
+    bullet.inventoryBulletKey ??
+    buildBulletEnrichmentKey(experience.company, experience.role, bullet.description)
+  );
 }
 
 function approvedKeywordSet(enrichment: EnrichmentState): Set<string> {
@@ -76,6 +109,14 @@ export function collectEvidenceItems(options: CollectEvidenceOptions): EvidenceI
   const referenceDate = options.referenceDate ?? new Date();
   const forcedSet = new Set(options.regenerationControls?.forcedBulletKeys ?? []);
   const excludedSet = new Set(options.regenerationControls?.excludedBulletKeys ?? []);
+  const excludedEvidenceSet = new Set(
+    filterAdditionalEvidenceIds(options.regenerationControls?.excludedEvidenceIds),
+  );
+  const forcedEvidenceSet = new Set(
+    filterAdditionalEvidenceIds(options.regenerationControls?.forcedEvidenceIds).filter(
+      (id) => !excludedEvidenceSet.has(id),
+    ),
+  );
   const acceptedWordingByBulletKey =
     options.acceptedWordingByBulletKey ??
     buildAcceptedWordingByBulletKey(options.enrichment);
@@ -152,17 +193,23 @@ export function collectEvidenceItems(options: CollectEvidenceOptions): EvidenceI
   }
 
   for (const item of options.collated.additionalExperienceItems) {
+    const evidenceId = additionalEvidenceId(item.id);
+    const state = resolveAdditionalItemState(evidenceId, forcedEvidenceSet, excludedEvidenceSet);
+    if (state === "excluded") {
+      continue;
+    }
+
     const scored = scoreEvidenceText(item.text, { jdTerms });
     const displayLabel = item.category
       ? `${item.category}: ${item.text.slice(0, 60)}`
       : item.text.slice(0, 80);
     items.push({
-      id: `additional:${item.id}`,
+      id: evidenceId,
       sourceType: "additional_experience",
       sourceId: item.id,
       originalText: item.text,
       displayLabel,
-      state: "default",
+      state,
       provenance: "inventory",
       confidence: scored.hasMetrics ? "high" : item.sourceCitations.length > 0 ? "medium" : "low",
       relevanceScore: scored.score,

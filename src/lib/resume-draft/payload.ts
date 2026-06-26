@@ -1,6 +1,7 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
 import { buildEvidenceSpine } from "@/lib/evidence/spine";
+import { filterAdditionalEvidenceIds } from "@/lib/evidence/collect";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import {
   groupGenerationBulletsByExperience,
@@ -182,21 +183,36 @@ export function buildResumeDraftGenerationInput(options: {
   };
 }
 
-function normalizeRegenerationControls(
+export function normalizeRegenerationControls(
   controls: ResumeDraftRegenerationControls | undefined,
 ): ResumeDraftRegenerationControls {
   if (!controls) {
     return { forcedBulletKeys: [], excludedBulletKeys: [] };
   }
 
-  return {
+  const excludedBulletKeys = [
+    ...new Set(controls.excludedBulletKeys.filter((key) => key.trim())),
+  ];
+  const excludedEvidenceIds = filterAdditionalEvidenceIds(controls.excludedEvidenceIds);
+  const excludedEvidenceSet = new Set(excludedEvidenceIds);
+
+  const forcedEvidenceIds = filterAdditionalEvidenceIds(controls.forcedEvidenceIds).filter(
+    (id) => !excludedEvidenceSet.has(id),
+  );
+
+  const normalized: ResumeDraftRegenerationControls = {
     forcedBulletKeys: [
       ...new Set(controls.forcedBulletKeys.filter((key) => key.trim())),
-    ],
-    excludedBulletKeys: [
-      ...new Set(controls.excludedBulletKeys.filter((key) => key.trim())),
-    ],
+    ].filter((key) => !excludedBulletKeys.includes(key)),
+    excludedBulletKeys,
   };
+  if (forcedEvidenceIds.length > 0) {
+    normalized.forcedEvidenceIds = forcedEvidenceIds;
+  }
+  if (excludedEvidenceIds.length > 0) {
+    normalized.excludedEvidenceIds = excludedEvidenceIds;
+  }
+  return normalized;
 }
 
 export function buildResumeDraftInputSnapshot(options: {
