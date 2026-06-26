@@ -252,9 +252,35 @@ function selectSkillIds(ranked: readonly EvidenceItem[]): string[] {
   return selected.map((item) => item.sourceId);
 }
 
+function selectedBulletKeysFromSnapshot(snapshot: EvidenceSpineSnapshot): string[] {
+  return snapshot.items
+    .filter(
+      (item) =>
+        item.sourceType === "work_bullet" && snapshot.selectedIds.includes(item.id),
+    )
+    .map((item) => item.id.replace(/^work_bullet:/, ""));
+}
+
+function shouldPreferSpineSelectedBulletKeys(
+  existing: string[] | undefined,
+  spineKeys: readonly string[],
+): boolean {
+  if (!existing || existing.length === 0) {
+    return true;
+  }
+  if (spineKeys.length === 0) {
+    return false;
+  }
+  const existingSet = new Set(existing);
+  return spineKeys.some((key) => !existingSet.has(key));
+}
+
 export function buildEvidenceSpine(options: BuildEvidenceSpineOptions): EvidenceSpineResult {
   const generatedAt = options.generatedAt ?? new Date().toISOString();
-  const forcedSet = new Set(options.regenerationControls?.forcedBulletKeys ?? []);
+  const excludedSet = new Set(options.regenerationControls?.excludedBulletKeys ?? []);
+  const forcedSet = new Set(
+    (options.regenerationControls?.forcedBulletKeys ?? []).filter((key) => !excludedSet.has(key)),
+  );
   const rawItems = collectEvidenceItems({
     collated: options.collated,
     enrichment: options.enrichment,
@@ -393,6 +419,7 @@ export function mergeSpineSnapshotIntoSelectionAudit(
   snapshot: EvidenceSpineSnapshot,
   existing?: ResumeDraftRationale["selectionAudit"],
 ): NonNullable<ResumeDraftRationale["selectionAudit"]> {
+  const spineSelectedBulletKeys = selectedBulletKeysFromSnapshot(snapshot);
   return {
     jdThemes: snapshot.items
       .flatMap((item) => item.matchedJdSignals)
@@ -402,14 +429,12 @@ export function mergeSpineSnapshotIntoSelectionAudit(
     honestGaps: snapshot.honestGaps,
     positioningAngle: snapshot.positioningAngle,
     roleSelectionRationale: snapshot.roleSelectionRationale,
-    selectedBulletKeys:
-      existing?.selectedBulletKeys ??
-      snapshot.items
-        .filter(
-          (item) =>
-            item.sourceType === "work_bullet" && snapshot.selectedIds.includes(item.id),
-        )
-        .map((item) => item.id.replace(/^work_bullet:/, "")),
+    selectedBulletKeys: shouldPreferSpineSelectedBulletKeys(
+      existing?.selectedBulletKeys,
+      spineSelectedBulletKeys,
+    )
+      ? spineSelectedBulletKeys
+      : existing!.selectedBulletKeys!,
     acceptedWordingUsed: existing?.acceptedWordingUsed ?? [],
     approvedKeywordsUsed: existing?.approvedKeywordsUsed ?? [],
     approvedKeywordsSkipped: existing?.approvedKeywordsSkipped ?? [],
@@ -420,13 +445,19 @@ export function mergeSpineIntoSelectionAudit(
   spine: EvidenceSpineResult,
   existing?: ResumeDraftRationale["selectionAudit"],
 ): NonNullable<ResumeDraftRationale["selectionAudit"]> {
+  const spineSelectedBulletKeys = spine.workBulletSelections.map((item) => item.bulletKey);
   return {
     jdThemes: spine.jdTerms.slice(0, 12),
     strongestMatches: spine.strongestMatches,
     honestGaps: spine.honestGaps,
     positioningAngle: spine.positioningAngle,
     roleSelectionRationale: spine.roleSelectionRationale,
-    selectedBulletKeys: spine.workBulletSelections.map((item) => item.bulletKey),
+    selectedBulletKeys: shouldPreferSpineSelectedBulletKeys(
+      existing?.selectedBulletKeys,
+      spineSelectedBulletKeys,
+    )
+      ? spineSelectedBulletKeys
+      : existing!.selectedBulletKeys!,
     acceptedWordingUsed: existing?.acceptedWordingUsed ?? [],
     approvedKeywordsUsed: existing?.approvedKeywordsUsed ?? [],
     approvedKeywordsSkipped: existing?.approvedKeywordsSkipped ?? [],

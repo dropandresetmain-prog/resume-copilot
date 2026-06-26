@@ -2,7 +2,7 @@ import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { applyInventoryEditsToCollated } from "../../src/lib/inventory/edits";
-import { buildEvidenceSpine } from "../../src/lib/evidence/spine";
+import { buildEvidenceSpine, mergeSpineSnapshotIntoSelectionAudit } from "../../src/lib/evidence/spine";
 import { collectEvidenceItems } from "../../src/lib/evidence/collect";
 import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-payload";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -197,6 +197,19 @@ function main() {
     regenerationControls: { forcedBulletKeys: [], excludedBulletKeys: [excludedKey] },
   });
 
+  const conflictSpine = buildEvidenceSpine({
+    collated,
+    enrichment,
+    jdText: blockchainJd.rawText,
+    maxWorkBullets: 5,
+    regenerationControls: { forcedBulletKeys: [forcedKey], excludedBulletKeys: [forcedKey] },
+  });
+
+  const modelWeakenedAudit = mergeSpineSnapshotIntoSelectionAudit(forcedSpine.snapshot, {
+    strongestMatches: ["Model-provided match that should not win"],
+    selectedBulletKeys: [],
+  });
+
   const duplicateCollated: CollatedInventory = {
     experiences: [
       {
@@ -277,6 +290,23 @@ function main() {
     [
       "excluded bullet omitted from work selections",
       !excludedSpine.workBulletSelections.some((item) => item.bulletKey === excludedKey),
+    ],
+    [
+      "excluded beats forced when same bullet key is in both lists",
+      !conflictSpine.workBulletSelections.some((item) => item.bulletKey === forcedKey) &&
+        !conflictSpine.ranked.some(
+          (item) => item.sourceType === "work_bullet" && item.bulletKey === forcedKey,
+        ),
+    ],
+    [
+      "merge restores spine selectedBulletKeys when model audit is incomplete",
+      modelWeakenedAudit.selectedBulletKeys.includes(forcedKey) &&
+        modelWeakenedAudit.selectedBulletKeys.length > 0,
+    ],
+    [
+      "merge keeps spine strongestMatches over model selectionAudit",
+      modelWeakenedAudit.strongestMatches.join("|") ===
+        forcedSpine.snapshot.strongestMatches.join("|"),
     ],
     [
       "redundant bullet demoted below near-duplicate",

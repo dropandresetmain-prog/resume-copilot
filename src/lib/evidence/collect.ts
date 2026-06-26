@@ -36,11 +36,12 @@ function resolveItemState(
   forcedSet: ReadonlySet<string>,
   excludedSet: ReadonlySet<string>,
 ): EvidenceItemState {
-  if (bulletKey && forcedSet.has(bulletKey)) {
-    return "forced";
-  }
+  // Excluded beats forced when the same bullet key appears in both control lists.
   if (bulletKey && excludedSet.has(bulletKey)) {
     return "excluded";
+  }
+  if (bulletKey && forcedSet.has(bulletKey)) {
+    return "forced";
   }
   return "default";
 }
