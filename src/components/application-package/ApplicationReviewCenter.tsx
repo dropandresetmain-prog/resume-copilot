@@ -242,6 +242,10 @@ export function ApplicationReviewCenter({
             Revise cover letter
           </button>
         </div>
+        <p className="mt-2 text-xs text-slate-600">
+          Resume evidence (Fix resume evidence) affects resume regeneration only. Cover letter proof
+          evidence is staged on Edit cover letter — pending until you regenerate the letter.
+        </p>
         {reviewItemCount > 0 ? (
           <p className="mt-2 text-xs text-slate-600">
             Resolve blocking or warning items before approving for export when possible.

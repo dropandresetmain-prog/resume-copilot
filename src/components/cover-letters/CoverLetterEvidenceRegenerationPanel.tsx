@@ -120,12 +120,13 @@ export function CoverLetterEvidenceRegenerationPanel({
   return (
     <SetupCard
       title="Stage cover letter evidence"
-      description="Choose inventory proof to use or avoid on the next regeneration only. Staging does not save and does not call AI."
+      description="Cover letter regeneration only — resume evidence controls are separate. Choose proof to use or avoid on the next regeneration. Staging does not save and does not call AI."
       className="mt-4"
     >
       <p className="mt-3 text-sm text-slate-600">
-        Work, Additional Experience, and Education only. Skills and keywords stay advisory for
-        cover letters in this milestone.
+        Work, Additional Experience, and Education only. Skills and keywords stay advisory for cover
+        letters in this milestone. To change resume bullets or Additional Experience inclusion, use
+        Fix resume evidence on the application package.
       </p>
 
       <ul
@@ -192,7 +193,8 @@ export function CoverLetterEvidenceRegenerationPanel({
             ))}
           </ul>
           <p className="mt-2 text-xs text-cyan-900">
-            Applied on Regenerate cover letter only (1 AI step). Resume draft is unchanged.
+            Pending until Regenerate cover letter — 1 AI step, replaces the letter. Resume draft
+            unchanged. Choices are not saved after regeneration.
           </p>
         </div>
       ) : null}

@@ -36,8 +36,9 @@ export function PackageDecisionTree({
           re-approve.
         </li>
         <li>
-          <span className="font-medium">Cover letter needs work?</span> Stage revision instructions,
-          revise once, preview, then accept or reject.
+          <span className="font-medium">Cover letter needs work?</span> Edit cover letter to stage
+          proof evidence or regenerate (1 AI step). Revise cover letter here for instruction chips
+          only.
         </li>
       </ol>
       <div className={`${secondaryActionGroupClassName} mt-3`} data-testid="package-decision-actions">

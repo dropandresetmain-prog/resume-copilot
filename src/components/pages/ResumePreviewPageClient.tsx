@@ -633,9 +633,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     coverLetter && activeFixMode === "revise-cover-letter" ? (
       <div
         id="package-cover-letter-revision"
-        className="scroll-mt-32"
+        className="scroll-mt-32 space-y-4"
         data-testid="package-fix-mode-revise-cover-letter"
       >
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          Cover letter proof evidence is not staged here.{" "}
+          <Link
+            href={`/cover-letter-preview/${coverLetter.id}`}
+            className="font-medium text-cyan-800 underline"
+          >
+            Edit cover letter
+          </Link>{" "}
+          to stage use/avoid proof choices before regenerating (pending-only, 1 AI step).
+        </p>
         <CoverLetterStagedRevisionPanel
           draftId={coverLetter.id}
           currentBody={coverLetter.body}
@@ -708,7 +718,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               {activeFixMode === "edit-resume"
                 ? "Editing resume text"
                 : activeFixMode === "fix-evidence"
-                  ? "Fixing resume evidence"
+                  ? "Fixing resume evidence (resume regeneration only)"
                   : activeFixMode === "adjust-layout"
                     ? "Adjusting resume layout"
                     : "Revising cover letter"}

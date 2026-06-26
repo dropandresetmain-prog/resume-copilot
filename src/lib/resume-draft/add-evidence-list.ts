@@ -207,9 +207,9 @@ export function buildAddEvidenceList(
 export function actionStateHint(actionState: AddEvidenceActionState): string | null {
   switch (actionState) {
     case "full_regenerate_only":
-      return "Requires full resume regeneration — staged inclusion does not run targeted rewrite or call AI.";
+      return "Additional Experience — requires full resume regeneration (1 AI step). Staged inclusion does not run targeted rewrite or call AI on apply.";
     case "cover_letter_useful":
-      return "Supporting evidence for cover letter and positioning — not added as a work bullet.";
+      return "Supporting evidence for cover letter proof stories — stage on Edit cover letter, not here.";
     case "advisory_only":
       return "Evidence-tied keyword highlight — advisory only, not standalone proof.";
     case "unsupported":

@@ -535,11 +535,12 @@ export function ResumeEvidenceRegenerationPanel({
   return (
     <SetupCard
       title="Fix resume evidence"
-      description="Stage evidence changes, review the summary, then apply once. Checkbox clicks do not call AI."
+      description="Resume regeneration only — cover letter proof choices are separate. Stage changes, review the summary, then apply once. Staging buttons do not call AI."
     >
       <p className="mt-3 text-sm text-slate-600">
-        Prefer targeted apply when adding evidence. Full regenerate is a last resort. Active
-        inventory bullets:{" "}
+        Prefer targeted apply when adding work bullets. Additional Experience requires full resume
+        regeneration, not targeted rewrite. Full regenerate is a last resort. Active inventory
+        bullets:{" "}
         {buildActiveCollatedInventory(inventory).experiences.reduce(
           (total, experience) => total + experience.bullets.length,
           0,
@@ -550,7 +551,8 @@ export function ResumeEvidenceRegenerationPanel({
         <section>
           <h3 className="text-sm font-semibold text-slate-900">In draft — stage changes</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Remove bullets locally without AI, or exclude source evidence from future regeneration.
+            Remove bullets locally without AI, or exclude source evidence from future resume
+            regeneration. Not saved until you apply.
           </p>
           <ul className="mt-3 space-y-3">
             {generatedBullets.map((item) => {
@@ -624,8 +626,9 @@ export function ResumeEvidenceRegenerationPanel({
           <h3 className="text-sm font-semibold text-slate-900">Add inventory evidence</h3>
           <p className="mt-1 text-xs text-slate-500">
             Ranked by job relevance across work, additional experience, education, skills, and
-            evidence-tied keywords. Stage work bullets for targeted add; stage additional experience
-            for full regeneration only (no AI until you regenerate).
+            evidence-tied keywords. Work bullets: stage for targeted add (1 AI step on apply).
+            Additional Experience: stage for full regeneration only — not targeted rewrite, no AI
+            until Regenerate full resume.
           </p>
 
           {targetedPlan.mode === "blocked" && pendingAddKeys.length > 0 ? (
@@ -724,12 +727,17 @@ export function ResumeEvidenceRegenerationPanel({
           className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-3 text-sm text-cyan-950"
           data-testid="evidence-queue-summary"
         >
-          <p className="font-semibold">Pending evidence changes</p>
+          <p className="font-semibold">Pending resume evidence changes</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {queueSummary.summaryLines.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
+          <p className="mt-2 text-xs text-cyan-900">
+            Not saved until you apply or regenerate. Work-bullet adds may run 1 targeted rewrite on
+            apply. Additional Experience inclusion is saved on apply and takes effect on full
+            regeneration (1 AI step).
+          </p>
         </div>
       ) : null}
 
@@ -789,8 +797,8 @@ export function ResumeEvidenceRegenerationPanel({
             {isApplying ? "Applying…" : "Apply evidence changes"}
           </button>
           <p className="text-xs text-slate-500">
-            Applies staged removes locally; work adds run one targeted rewrite when needed.
-            Additional inclusion is saved and applied on full regeneration only.
+            Removes and exclusions: no AI. Work-bullet adds: 1 AI step (targeted rewrite). Additional
+            Experience inclusion: saved on apply — run full regeneration (1 AI step) to apply.
           </p>
         </div>
         <div className="flex flex-col gap-1">
@@ -804,6 +812,10 @@ export function ResumeEvidenceRegenerationPanel({
           >
             {isApplying ? "Regenerating…" : "Regenerate full resume (last resort)"}
           </button>
+          <p className="text-xs text-slate-500">
+            1 AI step · replaces entire resume draft · applies saved controls including staged
+            Additional Experience.
+          </p>
         </div>
         <button
           type="button"

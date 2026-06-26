@@ -124,7 +124,7 @@ export function ApplicationPackageCoverLetterPanel({
   return (
     <SetupCard
       title="Cover letter"
-      description="Formal cover letter for this application. Use Edit Cover Letter for revisions and quick actions."
+      description="Formal cover letter for this application. Open Edit cover letter to stage proof evidence, revise, or regenerate — separate from resume evidence controls."
       variant="secondary"
     >
       {isLoading ? (
@@ -135,12 +135,17 @@ export function ApplicationPackageCoverLetterPanel({
             <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
               <CoverLetterBodyViewSwitch view={bodyView} onChange={setBodyView} />
               <div className={primaryActionGroupClassName}>
-              <Link
-                href={`/cover-letter-preview/${coverLetter.id}`}
-                className={`${primaryButtonClassName} w-full sm:w-auto`}
-              >
-                Edit cover letter
-              </Link>
+              <div className="space-y-1">
+                <Link
+                  href={`/cover-letter-preview/${coverLetter.id}`}
+                  className={`${primaryButtonClassName} w-full sm:w-auto`}
+                >
+                  Edit cover letter
+                </Link>
+                <p className="text-xs text-slate-500">
+                  Stage pending-only proof evidence, revise with chips, or regenerate (1 AI step).
+                </p>
+              </div>
               </div>
             </div>
             <div className={`mt-3 ${secondaryActionGroupClassName}`}>

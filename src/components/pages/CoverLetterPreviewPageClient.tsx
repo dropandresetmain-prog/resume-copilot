@@ -261,7 +261,7 @@ export function CoverLetterPreviewPageClient({ draftId }: CoverLetterPreviewPage
         eyebrow="Editor"
         milestone={pageMilestone("Cover Letter")}
         title="Cover letter editor"
-        description="Manual edits and staged AI revisions are separate — manual changes require Save changes. AI Revise previews a candidate; Accept saves it."
+        description="Cover letter only — resume evidence controls live on the application package. Manual edits require Save changes. AI Revise previews a candidate; Accept saves it."
       />
 
       <div className="flex flex-wrap gap-3">
