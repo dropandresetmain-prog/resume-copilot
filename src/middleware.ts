@@ -1,22 +1,41 @@
+import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-// Routes that require authentication
 const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/records", "/inventory", "/generate", "/output", "/settings", "/profile", "/resume-preview", "/cover-letter-preview"];
-// Auth routes — redirect away if already signed in
 const AUTH_PREFIXES = ["/auth"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // Detect Supabase session cookie (set by Supabase JS when using cookie storage)
-  // The cookie name follows the pattern: sb-<project-ref>-auth-token
-  const cookies = request.cookies;
-  const hasSession = [...cookies.getAll()].some(
-    c => c.name.startsWith("sb-") && c.name.endsWith("-auth-token") && c.value,
-  );
 
   const isProtected = PROTECTED_PREFIXES.some(p => pathname.startsWith(p));
   const isAuthRoute = AUTH_PREFIXES.some(p => pathname.startsWith(p));
+
+  // Fast exit — no auth check needed for unrelated routes
+  if (!isProtected && !isAuthRoute) return NextResponse.next();
+
+  const response = NextResponse.next({ request });
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anonKey) return response;
+
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        // Refresh the session cookie on the outgoing response
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
+
+  // getUser() validates the JWT and refreshes the session if needed
+  const { data: { user } } = await supabase.auth.getUser();
+  const hasSession = Boolean(user);
 
   if (isProtected && !hasSession) {
     const loginUrl = new URL("/auth/login", request.url);
@@ -28,11 +47,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
 };
