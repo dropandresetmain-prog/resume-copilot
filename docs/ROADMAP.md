@@ -2,7 +2,7 @@
 
 ## Current version
 
-**v0.9.16B**
+**v0.9.16D**
 
 ## Completed capabilities
 
@@ -50,8 +50,26 @@
 | E2E trust & workflow fix pack | v0.9.15E |
 | Resume tailoring quality upgrade | v0.9.16A |
 | Export trust & A4 fit accuracy | v0.9.16B |
+| Keep projects out of work experience (Add from Text) | v0.9.16C |
+| Inventory project overlay cleanup audit & repair | v0.9.16D |
 
 ## Milestone log (recent)
+
+### v0.9.16D - Inventory Cleanup Audit & Repair
+
+- Audit helper detects project-like overlay work experiences still in `addedExperiences`.
+- Inventory cleanup panel: review, move to Additional Experience, keep, or dismiss.
+- Removed silent auto-migration from `normalizeInventoryEdits()` — cleanup is user-visible.
+- Regeneration warning after cleanup — existing drafts may still use old placement.
+- **Parked:** Full Inventory CRUD; education overlay.
+
+### v0.9.16C - Keep Projects Out of Work Experience
+
+- Project-like Add-from-Text suggestions route to `additional_experience` / `addedAdditionalExperienceItems`.
+- Apply-time `project-guard` coerces misclassified project work/bullet suggestions.
+- User-reviewed cleanup panel (v0.9.16D) migrates project-like `addedExperiences` overlay rows to Additional Experience.
+- Format: `Project Name: one concise description` per project.
+- Freelance/client engagements with real company names remain Work Experience.
 
 ### v0.9.16B - Export Trust & A4 Fit Accuracy
 

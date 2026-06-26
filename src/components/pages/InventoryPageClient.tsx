@@ -8,6 +8,7 @@ import { CollatedInventoryView } from "@/components/setup/CollatedInventoryView"
 import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
 import { InventoryEditPanel } from "@/components/setup/InventoryEditPanel";
 import { InventoryDuplicateCleanupPanel } from "@/components/setup/InventoryDuplicateCleanupPanel";
+import { InventoryProjectCleanupPanel } from "@/components/setup/InventoryProjectCleanupPanel";
 import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
@@ -175,6 +176,14 @@ export function InventoryPageClient() {
         draftEdits={draftEdits}
         hasUnsavedChanges={hasUnsavedChanges}
         onDraftEditsChange={setDraftEdits}
+      />
+
+      <InventoryProjectCleanupPanel
+        draftEdits={draftEdits}
+        savedEdits={savedEdits}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onDraftEditsChange={setDraftEdits}
+        onSaveCleanup={handleSaveInventoryEdits}
       />
 
       {hasUnsavedChanges ? (

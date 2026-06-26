@@ -35,13 +35,15 @@
 - DOCX uses Gill Sans MT; Word may substitute.
 - Not pixel-identical to PDF.
 
-## Inventory text import (v0.9.15B)
+## Inventory text import (v0.9.16D)
 
-- **Applyable:** new work experiences (overlay), bullets to existing or new roles, skills, additional experience lines, keywords.
-- **Needs manual placement:** accepted suggestions missing company/role, or new experience when that role already exists (add bullets instead).
-- **Preview only:** education entries — not persisted yet; Accept disabled in UI (v0.9.15E).
-- **Duplicate bullets** are flagged in review and not re-added on apply.
-- **No auto-save** on extract; apply is explicit; source uploaded resumes are never mutated.
+- **Projects default to Additional Experience** — personal/side/portfolio/GitHub/AI demo projects from Add from Text are stored in `addedAdditionalExperienceItems` (`Project Name: description`), not `addedExperiences`.
+- **Work Experience** is for proper jobs, internships, and freelance/client engagements with a real company name.
+- **Existing pollution:** If projects were previously stored as overlay Work Experience, the Inventory **Project placement cleanup** panel lists them for review. Move to Additional Experience, keep as Work Experience, or hide for now.
+- **No silent migration:** `normalizeInventoryEdits()` does not auto-move project overlay rows — cleanup is user-reviewed (v0.9.16D).
+- **After cleanup:** Regenerate tailored resumes — existing drafts may still reflect old Work Experience placement.
+- **Applyable (unchanged):** skills, keywords, proper jobs, bullets to real roles.
+- **Preview only:** education entries.
 - **Not full Inventory CRUD** — overlay fields in `InventoryEdits` + enrichment keyword bank only.
 
 ## Generate flow (v0.9.14B+)

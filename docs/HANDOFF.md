@@ -2,7 +2,37 @@
 
 ## Current version
 
-**v0.9.16B** (code)
+**v0.9.16D** (code)
+
+## v0.9.16D implementation note
+
+Inventory Cleanup Audit & Repair: existing polluted inventory where Add-from-Text projects landed in Work Experience is now inspectable and repairable on the Inventory page.
+
+**Audit:** `auditProjectLikeOverlayPollution()` detects project-like rows in `addedExperiences` + related `addedBulletsByExperienceKey` buckets; reuses v0.9.16C `project-guard`.
+
+**UI:** `InventoryProjectCleanupPanel` — per-item review with Move to Additional Experience, Keep as Work Experience, or Hide for now. Cleanup saves immediately.
+
+**Normalization change:** `normalizeInventoryEdits()` no longer auto-migrates project overlay rows — migration is user-reviewed via the cleanup panel (v0.9.16C silent migration removed).
+
+**Regeneration:** After cleanup, UI warns that existing generated drafts may still reflect old Work Experience placement — user must regenerate manually.
+
+**Storage paths:** `addedExperiences` + `addedBulletsByExperienceKey` → `addedAdditionalExperienceItems` (category Projects); optional `keptProjectLikeWorkExperienceIds`, `dismissedProjectOverlayCleanupIds`, `projectInventoryCleanupAt`.
+
+**Parked:** Full Inventory CRUD; education overlay.
+
+## v0.9.16C implementation note
+
+Keep Projects Out of Work Experience: Add-from-Text project notes route to Additional Experience, not Work Experience.
+
+**Classification:** Extraction prompt + parse normalization + apply-time `project-guard` coerce personal/side/portfolio/GitHub/AI demo projects to `additional_experience`.
+
+**Storage:** One project per `addedAdditionalExperienceItems` line (`Project Name: description`); freelance/client engagements with real company names remain `addedExperiences`.
+
+**Migration (superseded by v0.9.16D):** was automatic in `normalizeInventoryEdits()` — now user-reviewed cleanup panel.
+
+**Generation:** Projects flow via `collated.additionalExperienceItems` → payload `additionalExperience` — not `experiences`.
+
+**Parked:** Full Inventory CRUD; education overlay.
 
 ## v0.9.16B implementation note
 
@@ -254,7 +284,15 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.16B - Export Trust & A4 Fit Accuracy**
+**v0.9.16D - Inventory Cleanup Audit & Repair**
+
+## Latest milestone summary (v0.9.16D)
+
+Project-like overlay Work Experience rows are auditable on Inventory; user-reviewed move/keep/dismiss; regeneration warning after cleanup; silent normalize migration removed.
+
+## Latest milestone summary (v0.9.16C)
+
+Add-from-Text project notes route to Additional Experience overlay (not Work Experience); freelance/client roles unchanged.
 
 ## Latest milestone summary (v0.9.16B)
 
@@ -268,6 +306,8 @@ Resume generation tailoring: JD-specific reframing instructions, anti-generic la
 
 | Version | Theme |
 |---------|--------|
+| v0.9.16D | Inventory project overlay cleanup audit & repair |
+| v0.9.16C | Keep projects out of work experience |
 | v0.9.16B | Export trust & A4 fit accuracy |
 | v0.9.16A | Tailoring quality upgrade |
 | v0.9.15E | E2E trust & workflow fix pack |

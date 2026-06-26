@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { buildActiveCollatedInventory } from "../../src/lib/inventory/active-collated";
-import { buildTextImportBulletKey } from "../../src/lib/inventory/edits";
+import { buildTextImportBulletKey, normalizeInventoryEdits } from "../../src/lib/inventory/edits";
+import {
+  auditProjectLikeOverlayPollution,
+  moveProjectOverlayToAdditionalExperience,
+} from "../../src/lib/inventory/project-overlay-audit";
+import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
 import { applyAcceptedInventoryTextSuggestions } from "../../src/lib/inventory-text-extraction/apply";
 import { classifyInventoryTextSuggestionApplyability } from "../../src/lib/inventory-text-extraction/classify";
 import { flagDuplicateInventoryTextSuggestions } from "../../src/lib/inventory-text-extraction/duplicate-preview";
@@ -16,6 +21,7 @@ import {
 import {
   buildInventoryTextExtractionPrompt,
   promptForbidsFabrication,
+  promptKeepsProjectsOutOfWorkExperience,
 } from "../../src/lib/inventory-text-extraction/prompt";
 import { createEmptyInventoryEdits } from "../../src/types/inventory-edits";
 import type { InventoryState } from "../../src/types/resume";
@@ -271,6 +277,142 @@ function main() {
     createEmptyInventoryEdits(),
   );
 
+  const parsedProject = parseInventoryTextExtractionJson(
+    JSON.stringify({
+      sufficient: true,
+      suggestions: [
+        {
+          kind: "new_work_experience",
+          text: "Built Resume Copilot AI demo with Gemini",
+          company: "Projects",
+          role: "Resume Copilot",
+          matchLabel: "new_experience",
+          warnings: [],
+        },
+      ],
+    }),
+    "mock",
+  ).suggestions[0];
+
+  const projectWorkSuggestion = reviewed({
+    id: "project-work",
+    kind: "new_work_experience",
+    category: "work_experience",
+    text: "Built Resume Copilot AI demo with Gemini",
+    company: "Projects",
+    role: "Resume Copilot",
+    matchLabel: "new_experience",
+    warnings: [],
+    applyability: "applyable",
+  });
+
+  const projectBulletSuggestion = reviewed({
+    id: "project-bullet",
+    kind: "bullet_new_experience",
+    category: "bullets",
+    text: "Shipped portfolio analytics dashboard",
+    company: "Personal Projects",
+    role: "Analytics Dashboard",
+    matchLabel: "new_experience",
+    warnings: [],
+    applyability: "applyable",
+  });
+
+  const projectApply = applyAcceptedInventoryTextSuggestions(
+    [projectWorkSuggestion, projectBulletSuggestion],
+    createEmptyInventoryEdits(),
+    inventory.enrichment,
+    collated,
+  );
+
+  const inventoryWithProject = {
+    ...inventory,
+    edits: projectApply.edits,
+  };
+  const activeWithProject = buildActiveCollatedInventory(inventoryWithProject);
+  const projectExperience = activeWithProject.experiences.find(
+    (item) => item.company === "Projects" || item.role === "Resume Copilot",
+  );
+  const projectAdditional = activeWithProject.additionalExperienceItems.filter((item) =>
+    item.text.toLowerCase().includes("resume copilot"),
+  );
+
+  const freelanceSuggestion = reviewed({
+    id: "freelance-1",
+    kind: "new_work_experience",
+    category: "work_experience",
+    text: "Led product discovery and delivery for ClientCo",
+    company: "ClientCo",
+    role: "Freelance Product Consultant",
+    matchLabel: "new_experience",
+    warnings: [],
+    applyability: "applyable",
+  });
+
+  const freelanceApply = applyAcceptedInventoryTextSuggestions(
+    [freelanceSuggestion],
+    createEmptyInventoryEdits(),
+    inventory.enrichment,
+    collated,
+  );
+
+  const inventoryWithFreelance = {
+    ...inventory,
+    edits: freelanceApply.edits,
+  };
+  const activeWithFreelance = buildActiveCollatedInventory(inventoryWithFreelance);
+  const freelanceExperience = activeWithFreelance.experiences.find(
+    (item) => item.company === "ClientCo",
+  );
+
+  const projectPayloadInput = buildResumeDraftGenerationInput({
+    collated: activeWithProject,
+    enrichment: inventory.enrichment,
+    jobDescription: {
+      id: "jd-project",
+      rawText: "Need product and project delivery experience.",
+      companyName: "Hiring Co",
+      roleTitle: "PM",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    referenceResume: inventory.resumes[0]!,
+    maxBullets: 40,
+  });
+
+  const pollutedEdits = normalizeInventoryEdits({
+    ...createEmptyInventoryEdits(),
+    addedExperiences: [
+      {
+        id: "overlay-project-exp",
+        company: "Projects",
+        role: "Personal Projects",
+        descriptor: "Resume Copilot: built an AI resume tailoring demo",
+        addedAt: "2025-01-01T00:00:00.000Z",
+      },
+    ],
+    addedBulletsByExperienceKey: {
+      "projects::personal projects": [
+        {
+          id: "overlay-project-bullet",
+          description: "Integrated Gemini extraction for pasted career notes",
+          addedAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+    },
+  });
+
+  const auditItems = auditProjectLikeOverlayPollution(pollutedEdits);
+  const migratedEdits = moveProjectOverlayToAdditionalExperience(
+    pollutedEdits,
+    "overlay-project-exp",
+  );
+
+  const migratedActive = buildActiveCollatedInventory({
+    ...inventory,
+    edits: migratedEdits,
+  });
+
   const inventoryWithApplied = {
     ...inventory,
     edits: applyResult.edits,
@@ -297,8 +439,34 @@ function main() {
     "utf8",
   );
 
+  const cleanupPanel = readFileSync(
+    join(process.cwd(), "src/components/setup/InventoryProjectCleanupPanel.tsx"),
+    "utf8",
+  );
+
   const checks: [string, boolean][] = [
     ["prompt forbids fabrication", promptForbidsFabrication(prompt)],
+    ["prompt keeps projects out of work experience", promptKeepsProjectsOutOfWorkExperience(prompt)],
+    ["parsed project suggestion becomes additional_experience", parsedProject?.kind === "additional_experience"],
+    ["project-like work suggestion coerced on apply", projectApply.edits.addedExperiences?.length === 0],
+    ["project additional items stored not in experiences", projectAdditional.length >= 1 && !projectExperience],
+    ["project bullet does not create work experience", !activeWithProject.experiences.some((item) => item.company === "Personal Projects")],
+    ["freelance client still applies as work experience", Boolean(freelanceExperience)],
+    ["audit detects project-like overlay experience", auditItems.length === 1],
+    ["audit proposes additional experience line", auditItems[0]?.proposedAdditionalExperienceLine.includes("Resume Copilot") ?? false],
+    ["normalize does not auto-migrate project overlay", pollutedEdits.addedExperiences?.length === 1],
+    ["cleanup move removes addedExperiences row", migratedEdits.addedExperiences?.length === 0],
+    ["cleanup move removes bullet bucket", !migratedEdits.addedBulletsByExperienceKey?.["projects::personal projects"]],
+    ["cleanup move creates addedAdditionalExperienceItems", (migratedEdits.addedAdditionalExperienceItems?.length ?? 0) >= 1],
+    ["freelance overlay not flagged by audit", auditProjectLikeOverlayPollution(freelanceApply.edits).length === 0],
+    ["migrated project in additional not work experience", !migratedActive.experiences.some((item) => item.company === "Projects") && migratedActive.additionalExperienceItems.some((item) => item.category === "Projects")],
+    ["inventory page wires project cleanup panel", inventoryPage.includes("InventoryProjectCleanupPanel")],
+    ["cleanup panel visible when polluted", cleanupPanel.includes('data-testid="inventory-project-cleanup-panel"')],
+    ["cleanup panel shows regenerate warning", cleanupPanel.includes("inventory-project-cleanup-regenerate-warning")],
+    ["overlay project experience migrates to additional", migratedEdits.addedExperiences?.length === 0],
+    ["migrated project appears in additionalExperienceItems", migratedActive.additionalExperienceItems.some((item) => item.category === "Projects")],
+    ["generation payload sends projects under additionalExperience", projectPayloadInput.additionalExperience.some((item) => item.text.includes("Resume Copilot"))],
+    ["generation payload keeps projects out of experiences", !projectPayloadInput.experiences.some((item) => item.company === "Projects")],
     ["prompt references existing experience index only", prompt.includes("matching index only")],
     ["malformed JSON throws parse error", parseError instanceof InventoryTextExtractionParseError],
     ["empty sufficient=false handled safely", !emptyParse.sufficient && emptyParse.suggestions.length === 0],

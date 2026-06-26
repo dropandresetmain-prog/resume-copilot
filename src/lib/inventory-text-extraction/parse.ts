@@ -1,4 +1,5 @@
 import { extractJsonCandidate } from "@/lib/ai/parse-enrichment-response";
+import { coerceProjectLikeSuggestionToAdditional } from "@/lib/inventory-text-extraction/project-guard";
 import type {
   InventoryTextApplyability,
   InventoryTextExtractionResult,
@@ -110,7 +111,7 @@ function normalizeSuggestion(raw: unknown): InventoryTextExtractionSuggestion | 
   const text = asString(value.text);
   if (!kind || !text) return null;
 
-  return {
+  return coerceProjectLikeSuggestionToAdditional({
     id: createSuggestionId(),
     kind,
     category: categoryForKind(kind),
@@ -128,7 +129,7 @@ function normalizeSuggestion(raw: unknown): InventoryTextExtractionSuggestion | 
       role: asString(value.role),
     }),
     sourceNote: asString(value.sourceNote),
-  };
+  });
 }
 
 export function parseInventoryTextExtractionJson(

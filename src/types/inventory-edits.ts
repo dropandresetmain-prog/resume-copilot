@@ -52,6 +52,12 @@ export type InventoryEdits = {
   addedAdditionalExperienceItems?: InventoryAddedTextItem[];
   /** Work experiences added from text import (v0.9.15B). */
   addedExperiences?: InventoryAddedExperience[];
+  /** Overlay experience IDs hidden from project cleanup review (v0.9.16D). */
+  dismissedProjectOverlayCleanupIds?: string[];
+  /** Overlay experience IDs user chose to keep in Work Experience (v0.9.16D). */
+  keptProjectLikeWorkExperienceIds?: string[];
+  /** Set when project overlay cleanup is applied — prompts draft regeneration (v0.9.16D). */
+  projectInventoryCleanupAt?: string;
 };
 
 export function createEmptyInventoryEdits(): InventoryEdits {
@@ -64,5 +70,7 @@ export function createEmptyInventoryEdits(): InventoryEdits {
     addedSkillItems: [],
     addedAdditionalExperienceItems: [],
     addedExperiences: [],
+    dismissedProjectOverlayCleanupIds: [],
+    keptProjectLikeWorkExperienceIds: [],
   };
 }

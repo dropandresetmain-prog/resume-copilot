@@ -141,6 +141,28 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
       addedAt: item.addedAt || new Date().toISOString(),
     }));
 
+  const dismissedProjectOverlayCleanupIds = [
+    ...new Set(
+      (edits.dismissedProjectOverlayCleanupIds ?? []).filter(
+        (id) => typeof id === "string" && id.trim(),
+      ),
+    ),
+  ];
+
+  const keptProjectLikeWorkExperienceIds = [
+    ...new Set(
+      (edits.keptProjectLikeWorkExperienceIds ?? []).filter(
+        (id) => typeof id === "string" && id.trim(),
+      ),
+    ),
+  ];
+
+  const projectInventoryCleanupAt =
+    typeof edits.projectInventoryCleanupAt === "string" &&
+    edits.projectInventoryCleanupAt.trim()
+      ? edits.projectInventoryCleanupAt.trim()
+      : undefined;
+
   return {
     hiddenBulletKeys,
     editedBulletTextByBulletKey,
@@ -150,6 +172,9 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
     addedSkillItems,
     addedAdditionalExperienceItems,
     addedExperiences,
+    dismissedProjectOverlayCleanupIds,
+    keptProjectLikeWorkExperienceIds,
+    projectInventoryCleanupAt,
   };
 }
 
@@ -493,6 +518,11 @@ function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
     addedExperiences: [...(edits.addedExperiences ?? [])].sort((left, right) =>
       left.id.localeCompare(right.id),
     ),
+    dismissedProjectOverlayCleanupIds: [
+      ...(edits.dismissedProjectOverlayCleanupIds ?? []),
+    ].sort(),
+    keptProjectLikeWorkExperienceIds: [...(edits.keptProjectLikeWorkExperienceIds ?? [])].sort(),
+    projectInventoryCleanupAt: edits.projectInventoryCleanupAt ?? null,
   });
 }
 

@@ -1,3 +1,4 @@
+import { coerceProjectLikeSuggestionToAdditional } from "@/lib/inventory-text-extraction/project-guard";
 import { experienceKey } from "@/lib/inventory/normalize";
 import { hasInventoryExperience } from "@/lib/inventory/edits";
 import type { CollatedInventory } from "@/types/collated";
@@ -86,27 +87,28 @@ export function enrichInventoryTextSuggestions(
   edits: InventoryEdits,
 ): InventoryTextExtractionSuggestion[] {
   return suggestions.map((suggestion) => {
+    const coerced = coerceProjectLikeSuggestionToAdditional(suggestion);
     const applyability = classifyInventoryTextSuggestionApplyability(
-      suggestion,
+      coerced,
       collated,
       edits,
     );
-    const warnings = [...suggestion.warnings];
+    const warnings = [...coerced.warnings];
 
     if (applyability === "needs_manual_placement") {
-      if (suggestion.kind === "new_work_experience" && mapsToKnownExperience(suggestion, collated, edits)) {
+      if (coerced.kind === "new_work_experience" && mapsToKnownExperience(coerced, collated, edits)) {
         warnings.push("This company/role already exists in inventory — add bullets instead.");
       } else {
         warnings.push("Needs manual placement — add company and role before applying.");
       }
     }
 
-    if (applyability === "preview_only" && suggestion.kind === "education") {
+    if (applyability === "preview_only" && coerced.kind === "education") {
       warnings.push("Education overlay persistence is not supported yet.");
     }
 
     return {
-      ...suggestion,
+      ...coerced,
       applyability,
       warnings: [...new Set(warnings)],
     };

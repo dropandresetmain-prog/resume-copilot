@@ -8,6 +8,10 @@ import {
   hasInventoryExperience,
   normalizeInventoryEdits,
 } from "@/lib/inventory/edits";
+import {
+  coerceProjectLikeSuggestionToAdditional,
+  isProjectLikeTextImportSuggestion,
+} from "@/lib/inventory-text-extraction/project-guard";
 import { experienceKey } from "@/lib/inventory/normalize";
 import { isBulletSuggestionKind } from "@/lib/inventory-text-extraction/classify";
 import type { EnrichmentState } from "@/types/enrichment";
@@ -119,6 +123,35 @@ function recordApplied(
   });
 }
 
+function coerceAcceptedSuggestion(
+  suggestion: ReviewedInventoryTextSuggestion,
+): ReviewedInventoryTextSuggestion {
+  const coerced = coerceProjectLikeSuggestionToAdditional({
+    ...suggestion,
+    text: effectiveSuggestionText(suggestion),
+  });
+  return {
+    ...coerced,
+    reviewStatus: suggestion.reviewStatus,
+    editedText: suggestion.editedText,
+  };
+}
+
+function applyProjectAsAdditionalExperience(
+  edits: InventoryEdits,
+  suggestion: ReviewedInventoryTextSuggestion,
+  text: string,
+): InventoryEdits {
+  const coerced = coerceProjectLikeSuggestionToAdditional({
+    ...suggestion,
+    text,
+  });
+  return addInventoryTextImportAdditionalExperience(edits, {
+    text: coerced.text,
+    category: coerced.keyword ?? "Projects",
+  });
+}
+
 export function applyAcceptedInventoryTextSuggestions(
   accepted: ReviewedInventoryTextSuggestion[],
   currentEdits: InventoryEdits,
@@ -133,7 +166,9 @@ export function applyAcceptedInventoryTextSuggestions(
   const appliedItems: AppliedInventoryTextSuggestion[] = [];
   const skippedItems: SkippedInventoryTextSuggestion[] = [];
 
-  const acceptedOnly = accepted.filter((item) => item.reviewStatus === "accepted");
+  const acceptedOnly = accepted
+    .filter((item) => item.reviewStatus === "accepted")
+    .map((item) => coerceAcceptedSuggestion(item));
 
   const workExperiences = acceptedOnly.filter((item) => item.kind === "new_work_experience");
   const bullets = acceptedOnly.filter((item) => isBulletSuggestionKind(item.kind));
@@ -148,6 +183,13 @@ export function applyAcceptedInventoryTextSuggestions(
     if (!text) {
       skippedCount += 1;
       recordSkip(skippedItems, skippedReasons, suggestion, "Skipped empty work experience suggestion.");
+      continue;
+    }
+
+    if (isProjectLikeTextImportSuggestion(suggestion)) {
+      edits = applyProjectAsAdditionalExperience(edits, suggestion, text);
+      appliedCount += 1;
+      recordApplied(appliedItems, suggestion);
       continue;
     }
 
@@ -213,6 +255,13 @@ export function applyAcceptedInventoryTextSuggestions(
     if (!text) {
       skippedCount += 1;
       recordSkip(skippedItems, skippedReasons, suggestion, "Skipped empty bullet suggestion.");
+      continue;
+    }
+
+    if (isProjectLikeTextImportSuggestion(suggestion)) {
+      edits = applyProjectAsAdditionalExperience(edits, suggestion, text);
+      appliedCount += 1;
+      recordApplied(appliedItems, suggestion);
       continue;
     }
 
