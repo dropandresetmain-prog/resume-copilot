@@ -9,7 +9,6 @@ import {
   CompanyWebsiteDiscoveryPanel,
   focusCompanyWebsiteField,
 } from "@/components/setup/CompanyWebsiteDiscoveryPanel";
-import { ModelTierSelect } from "@/components/ai/ModelTierSelect";
 import { CompanyContextEditorPanel } from "@/components/company-context/CompanyContextEditorPanel";
 import { CompanyResearchCompactStatus } from "@/components/company-context/CompanyResearchCompactStatus";
 import {
@@ -106,6 +105,11 @@ type GenerateTailoredResumeSectionProps = {
   onClearForm?: () => void;
   onSaveJob: SaveJobForGenerationHandler;
   onGenerationFinished?: () => void;
+  /** Hides verbose secondary UI; shows only readiness strip, CTA, progress, and errors. */
+  embeddedMode?: boolean;
+  /** Controlled company website value (lifted to parent in embeddedMode). */
+  companyWebsiteInput?: string;
+  onCompanyWebsiteChange?: (v: string) => void;
 };
 
 type PartialCoverLetterFailure = {
@@ -123,6 +127,23 @@ type ResumeGenerationContext = {
   companyContext?: import("@/types/company-context").CompanyContext;
 };
 
+function SparkleIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    </svg>
+  );
+}
+
 export function GenerateTailoredResumeSection({
   inventory,
   jobDescriptions,
@@ -136,6 +157,9 @@ export function GenerateTailoredResumeSection({
   onClearForm,
   onSaveJob,
   onGenerationFinished,
+  embeddedMode = false,
+  companyWebsiteInput,
+  onCompanyWebsiteChange,
 }: GenerateTailoredResumeSectionProps) {
   const router = useRouter();
   const [selectedBaseResumeId, setSelectedBaseResumeId] = useState("");
@@ -151,7 +175,13 @@ export function GenerateTailoredResumeSection({
   const [generateMode, setGenerateMode] =
     useState<GenerateOutputMode>("resume_and_cover_letter");
   const [country, setCountry] = useState("Singapore");
-  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [internalCompanyWebsite, setInternalCompanyWebsite] = useState("");
+  const companyWebsite =
+    onCompanyWebsiteChange !== undefined ? (companyWebsiteInput ?? "") : internalCompanyWebsite;
+  function handleCompanyWebsiteChange(v: string) {
+    if (onCompanyWebsiteChange) onCompanyWebsiteChange(v);
+    else setInternalCompanyWebsite(v);
+  }
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [resumeStatus, setResumeStatus] = useState<ArtifactGenerationStatus>("pending");
   const [coverLetterStatus, setCoverLetterStatus] =
@@ -729,7 +759,7 @@ export function GenerateTailoredResumeSection({
     !isGenerating && (!canGenerate || websiteDiscoveryPending) && providerStatus !== null;
 
   return (
-    <div className="border-t border-slate-200 pt-5">
+    <div className={embeddedMode ? "" : "border-t border-slate-200 pt-5"}>
       {showReadinessStrip ? (
         <div
           className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
@@ -779,6 +809,17 @@ export function GenerateTailoredResumeSection({
             }
           />
         </div>
+      ) : embeddedMode ? (
+        <button
+          type="button"
+          onClick={() => void handleGenerate()}
+          disabled={!canGenerate || isGenerating}
+          aria-busy={isGenerating}
+          className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-[#2A7A5E] text-base font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <SparkleIcon />
+          Generate resume and cover letter
+        </button>
       ) : (
         <>
           <div
@@ -922,31 +963,6 @@ export function GenerateTailoredResumeSection({
                 </p>
               ) : null}
 
-              <ModelTierSelect
-                id="resume-model-tier"
-                label="Resume model"
-                value={resumeModelTier}
-                disabled={disabled || isGenerating || generateMode === "cover_letter_only"}
-                onChange={(tier) => {
-                  setResumeModelTier(tier);
-                  writeStoredResumeModelTier(tier);
-                }}
-              />
-              <ModelTierSelect
-                id="cover-letter-model-tier"
-                label="Cover letter model"
-                value={coverLetterModelTier}
-                disabled={
-                  disabled ||
-                  isGenerating ||
-                  generateMode === "resume_only" ||
-                  generateMode === "cover_letter_only"
-                }
-                onChange={(tier) => {
-                  setCoverLetterModelTier(tier);
-                  writeStoredCoverLetterModelTier(tier);
-                }}
-              />
 
               <div>
                 <label htmlFor="jd-url" className={labelClassName}>
@@ -984,7 +1000,7 @@ export function GenerateTailoredResumeSection({
                 <input
                   id="company-website"
                   value={companyWebsite}
-                  onChange={(event) => setCompanyWebsite(event.target.value)}
+                  onChange={(event) => handleCompanyWebsiteChange(event.target.value)}
                   disabled={disabled || isGenerating || confidentialPosting}
                   placeholder="https://company.com"
                   className={formFieldClassName}
@@ -1133,8 +1149,8 @@ export function GenerateTailoredResumeSection({
         </details>
       ) : null}
 
-      {/* Sticky bottom Generate bar — mobile only, not shown while generating */}
-      {!isGenerating ? (
+      {/* Sticky bottom Generate bar — mobile only, not shown while generating or in embedded mode */}
+      {!isGenerating && !embeddedMode ? (
         <div className="sm:hidden" data-testid="generate-mobile-sticky-cta">
           <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm">
             <button

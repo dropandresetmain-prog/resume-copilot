@@ -1,4 +1,4 @@
-import { GeneratePageClient } from "@/components/pages/GeneratePageClient";
+import { NewApplicationPageClient } from "@/components/pages/NewApplicationPageClient";
 
 type GeneratePageProps = {
   searchParams: Promise<{ jobId?: string }>;
@@ -6,5 +6,5 @@ type GeneratePageProps = {
 
 export default async function GeneratePage({ searchParams }: GeneratePageProps) {
   const params = await searchParams;
-  return <GeneratePageClient initialJobId={params.jobId} />;
+  return <NewApplicationPageClient initialJobId={params.jobId} />;
 }
