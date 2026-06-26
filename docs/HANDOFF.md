@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.17A** (code)
+**v0.9.17B** (code)
+
+## v0.9.17B implementation note
+
+M1 Unified Evidence Spine: deterministic cross-category evidence ranking before Gemini; ranked slices for education/skills/additional; spine snapshot on input for fit summary and future M2 story spine.
+
+**Spine:** `src/lib/evidence/` collects work bullets, additional experience, education, skills, evidence-tied keywords, and company-context positioning notes; scores JD overlap, role signals, metrics, recency, accepted wording, forced/excluded state, and within-role redundancy.
+
+**Resume generation:** `buildResumeDraftGenerationInput` uses spine shortlist for work bullets (cap still **40**); education/skills/additional capped at 3/5/5 by JD rank. Phase 0 compact prompt payload preserved.
+
+**Rationale:** deterministic `selectionAudit` fields merged from spine snapshot on save (Gemini still writes prose).
+
+**Safety:** no new Gemini calls; no Supabase schema migration; cover letter story spine not implemented.
+
+**Next:** M2 Cover Letter Story Spine.
 
 ## v0.9.17A implementation note
 

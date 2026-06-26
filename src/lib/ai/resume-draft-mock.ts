@@ -1,3 +1,4 @@
+import { mergeSpineSnapshotIntoSelectionAudit } from "@/lib/evidence/spine";
 import { prepareGeneratedResumeContent } from "@/lib/resume-draft/generation-validation";
 import {
   compactAdditionalExperience,
@@ -186,12 +187,16 @@ export function generateMockResumeDraft(
     .filter((bullet) => bullet.acceptedWording)
     .map((bullet) => bullet.bulletKey);
 
+  const spineSelectionAudit = input.evidenceSpine
+    ? mergeSpineSnapshotIntoSelectionAudit(input.evidenceSpine)
+    : undefined;
+
   const rationale = {
     overall: `Draft tailored for ${targetRole}: prioritized JD-relevant inventory evidence with honest gap notes. Reference resume (${input.referenceResume.filename}) informed layout only.`,
     toneNotes: `Lead with ${input.auditHints?.jdTermSample?.slice(0, 2).join(" and ") || "strongest role-relevant"} proof; keep one-page discipline.`,
-    omissions: [] as string[],
+    omissions: spineSelectionAudit?.honestGaps ?? ([] as string[]),
     keywordUsage: input.approvedKeywords.slice(0, 5).map((item) => item.keyword),
-    selectionAudit: {
+    selectionAudit: spineSelectionAudit ?? {
       jdThemes: input.auditHints?.jdTermSample ?? [],
       strongestMatches: input.experiences
         .slice(0, 2)

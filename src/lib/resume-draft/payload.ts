@@ -1,9 +1,9 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { countApprovedKeywords } from "@/lib/enrichment/state";
+import { buildEvidenceSpine } from "@/lib/evidence/spine";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import {
   groupGenerationBulletsByExperience,
-  selectGenerationBullets,
 } from "@/lib/resume-draft/bullet-payload";
 import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { buildReferenceResumeFormatProfile } from "@/lib/resume-draft/reference-format";
@@ -22,6 +22,14 @@ import {
 } from "@/types/resume-draft";
 
 export const MAX_RESUME_DRAFT_BULLETS = 40;
+
+function sliceCollatedByIds<T extends { id: string }>(
+  items: readonly T[],
+  ids: readonly string[],
+): T[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  return ids.map((id) => byId.get(id)).filter((item): item is T => Boolean(item));
+}
 
 export function buildSourceBulletTextsByKey(
   input: ResumeDraftGenerationInput,
@@ -81,14 +89,19 @@ export function buildResumeDraftGenerationInput(options: {
   );
   const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(options.enrichment);
   const regenerationControls = normalizeRegenerationControls(options.regenerationControls);
-  const { selected, totalBullets, jdTerms, unavailableForcedKeys } = selectGenerationBullets({
-    experiences: options.collated.experiences,
-    maxBullets,
+  const spine = buildEvidenceSpine({
+    collated: options.collated,
+    enrichment: options.enrichment,
     jdText,
-    acceptedWordingByBulletKey,
-    forcedBulletKeys: regenerationControls.forcedBulletKeys,
-    excludedBulletKeys: regenerationControls.excludedBulletKeys,
+    roleTitle: options.jobDescription.roleTitle,
+    maxWorkBullets: maxBullets,
+    regenerationControls,
+    companyContext: options.companyContext,
   });
+  const selected = spine.workBulletSelections;
+  const totalBullets = spine.totalWorkBullets;
+  const jdTerms = spine.jdTerms;
+  const unavailableForcedKeys = spine.unavailableForcedKeys;
 
   const experiences: ResumeDraftGenerationInput["experiences"] =
     groupGenerationBulletsByExperience(selected).map(({ experience, bullets }) => ({
@@ -129,20 +142,25 @@ export function buildResumeDraftGenerationInput(options: {
     },
     approvedKeywords,
     experiences,
-    education: options.collated.educationItems.map((item) => ({
-      institution: item.institution,
-      location: item.location,
-      programmes: item.programmes,
-      dateRange: item.dateRange,
-      bullets: item.bullets,
-      sourceCitations: item.sourceCitations,
-    })),
-    additionalExperience: options.collated.additionalExperienceItems.map((item) => ({
+    education: sliceCollatedByIds(options.collated.educationItems, spine.educationIds).map(
+      (item) => ({
+        institution: item.institution,
+        location: item.location,
+        programmes: item.programmes,
+        dateRange: item.dateRange,
+        bullets: item.bullets,
+        sourceCitations: item.sourceCitations,
+      }),
+    ),
+    additionalExperience: sliceCollatedByIds(
+      options.collated.additionalExperienceItems,
+      spine.additionalIds,
+    ).map((item) => ({
       category: item.category,
       text: item.text,
       sourceCitations: item.sourceCitations,
     })),
-    skills: options.collated.skillItems.map((item) => ({
+    skills: sliceCollatedByIds(options.collated.skillItems, spine.skillIds).map((item) => ({
       category: item.category,
       text: item.text,
       sourceCitations: item.sourceCitations,
@@ -156,9 +174,11 @@ export function buildResumeDraftGenerationInput(options: {
       bulletsWithAcceptedWording,
       jdTermSample: jdTerms.slice(0, 12),
       unavailableForcedBulletKeys: unavailableForcedKeys,
+      evidenceSpineVersion: 1,
     },
     regenerationControls,
     companyContext: options.companyContext,
+    evidenceSpine: spine.snapshot,
   };
 }
 
@@ -185,6 +205,7 @@ export function buildResumeDraftInputSnapshot(options: {
   enrichment: EnrichmentState;
   collated: CollatedInventory;
   regenerationControls?: ResumeDraftRegenerationControls;
+  evidenceSpine?: ResumeDraftInputSnapshot["evidenceSpine"];
   generatedAtRequest?: string;
   resumeModelTier?: ModelTier;
   coverLetterModelTier?: ModelTier;
@@ -209,6 +230,7 @@ export function buildResumeDraftInputSnapshot(options: {
       skillCount: options.collated.skillItems.length,
     },
     regenerationControls: normalizeRegenerationControls(options.regenerationControls),
+    evidenceSpine: options.evidenceSpine,
     generatedAtRequest: options.generatedAtRequest ?? new Date().toISOString(),
     resumeModelTier: options.resumeModelTier,
     coverLetterModelTier: options.coverLetterModelTier,
@@ -252,6 +274,7 @@ export function buildResumeDraftPayloadFromInventory(options: {
     enrichment: options.inventory.enrichment,
     collated,
     regenerationControls: options.regenerationControls,
+    evidenceSpine: generationInput.evidenceSpine,
     resumeModelTier: options.resumeModelTier,
     coverLetterModelTier: options.coverLetterModelTier,
   });

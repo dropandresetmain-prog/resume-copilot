@@ -6,6 +6,7 @@ import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-paylo
 import {
   buildResumeDraftGenerationInput,
   buildResumeDraftGenerationInputLegacyOrder,
+  buildResumeDraftPayloadFromInventory,
   MAX_RESUME_DRAFT_BULLETS,
 } from "../../src/lib/resume-draft/payload";
 import {
@@ -347,6 +348,21 @@ function main() {
     [
       "generation input still retains full rawTexts for validation",
       generationInput.experiences[0]?.bullets[0]?.rawTexts.length === 1,
+    ],
+    [
+      "generation input includes evidence spine snapshot",
+      generationInput.evidenceSpine?.version === 1 &&
+        Boolean(generationInput.evidenceSpine.positioningAngle),
+    ],
+    [
+      "input snapshot persists evidence spine for fit and story use",
+      Boolean(
+        buildResumeDraftPayloadFromInventory({
+          inventory,
+          jobDescription: sampleJd,
+          referenceResumeId: "resume-1",
+        }).inputSnapshot.evidenceSpine?.selectedIds.length,
+      ),
     ],
   ];
 

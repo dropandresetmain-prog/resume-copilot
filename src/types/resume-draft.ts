@@ -2,6 +2,7 @@ import type { SourceCitation } from "@/types/collated";
 import type { AIProviderId } from "@/types/enrichment";
 import type { CompanyContext } from "@/types/company-context";
 import type { ModelTier } from "@/lib/ai/model-tiers";
+import type { EvidenceSpineSnapshot } from "@/lib/evidence/types";
 
 export const RESUME_DRAFT_SCHEMA_VERSION = 1 as const;
 
@@ -168,6 +169,7 @@ export type ResumeDraftInputSnapshot = {
     skillCount: number;
   };
   regenerationControls?: ResumeDraftRegenerationControls;
+  evidenceSpine?: EvidenceSpineSnapshot;
   generatedAtRequest: string;
   resumeModelTier?: ModelTier;
   coverLetterModelTier?: ModelTier;
@@ -221,6 +223,7 @@ export type ResumeDraftGenerationAuditHints = {
   bulletsWithAcceptedWording: number;
   jdTermSample: string[];
   unavailableForcedBulletKeys?: string[];
+  evidenceSpineVersion?: 1;
 };
 
 export type ResumeDraftExperienceInput = {
@@ -284,6 +287,7 @@ export type ResumeDraftGenerationInput = {
   auditHints?: ResumeDraftGenerationAuditHints;
   regenerationControls?: ResumeDraftRegenerationControls;
   companyContext?: CompanyContext;
+  evidenceSpine?: EvidenceSpineSnapshot;
 };
 
 export type ResumeDraftGenerationRequest = ResumeDraftGenerationInput & {

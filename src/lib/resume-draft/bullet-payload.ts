@@ -1,10 +1,12 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
 import { getDateRangeEndSortKey } from "@/lib/date/duration";
+import { buildEvidenceSpine } from "@/lib/evidence/spine";
 import {
   isEarlyCareerExperience,
   scoreExperienceForGeneration,
 } from "@/lib/resume-draft/tailoring-quality";
 import type { CollatedBullet, CollatedExperience } from "@/types/collated";
+import type { EnrichmentState } from "@/types/enrichment";
 
 const JD_TERM_STOP_WORDS = new Set([
   "with",
@@ -153,6 +155,8 @@ export function selectGenerationBullets(options: {
   acceptedWordingByBulletKey: ReadonlyMap<string, string>;
   forcedBulletKeys?: readonly string[];
   excludedBulletKeys?: readonly string[];
+  enrichment?: EnrichmentState;
+  companyContext?: import("@/types/company-context").CompanyContext;
 }): {
   selected: GenerationBulletSelection[];
   totalBullets: number;
@@ -160,70 +164,33 @@ export function selectGenerationBullets(options: {
   forcedCount: number;
   unavailableForcedKeys: string[];
 } {
-  const jdTerms = extractJdMatchTerms(options.jdText);
-  const sortedExperiences = sortExperiencesForGeneration(options.experiences, { jdTerms });
+  const spine = buildEvidenceSpine({
+    collated: {
+      experiences: [...options.experiences],
+      educationItems: [],
+      additionalExperienceItems: [],
+      skillItems: [],
+    },
+    enrichment: options.enrichment ?? { suggestions: [], keywordBank: [], duplicateGroups: [] },
+    jdText: options.jdText,
+    maxWorkBullets: options.maxBullets,
+    regenerationControls: {
+      forcedBulletKeys: [...(options.forcedBulletKeys ?? [])],
+      excludedBulletKeys: [...(options.excludedBulletKeys ?? [])],
+    },
+    companyContext: options.companyContext,
+    acceptedWordingByBulletKey: options.acceptedWordingByBulletKey,
+  });
+
   const forcedSet = new Set(options.forcedBulletKeys ?? []);
-  const excludedSet = new Set(options.excludedBulletKeys ?? []);
-  const selected: GenerationBulletSelection[] = [];
-  const selectedKeys = new Set<string>();
-  const totalBullets = options.experiences.reduce(
-    (total, experience) => total + experience.bullets.length,
-    0,
-  );
-
-  const allCandidates: GenerationBulletSelection[] = [];
-  for (const experience of sortedExperiences) {
-    for (const bullet of experience.bullets) {
-      const bulletKey = resolveInventoryBulletKey(experience, bullet);
-      if (isBulletExcluded(bulletKey, excludedSet)) {
-        continue;
-      }
-      allCandidates.push({ experience, bullet, bulletKey });
-    }
-  }
-
-  const candidateByKey = new Map(allCandidates.map((item) => [item.bulletKey, item]));
-  const unavailableForcedKeys = [...forcedSet].filter((key) => !candidateByKey.has(key));
-
-  for (const forcedKey of forcedSet) {
-    if (selected.length >= options.maxBullets) {
-      break;
-    }
-    const candidate = candidateByKey.get(forcedKey);
-    if (!candidate || selectedKeys.has(forcedKey)) {
-      continue;
-    }
-    selected.push(candidate);
-    selectedKeys.add(forcedKey);
-  }
-
-  outer: for (const experience of sortedExperiences) {
-    const sortedBullets = sortBulletsForGeneration(experience.bullets, experience, {
-      jdTerms,
-      acceptedWordingByBulletKey: options.acceptedWordingByBulletKey,
-    });
-
-    for (const bullet of sortedBullets) {
-      if (selected.length >= options.maxBullets) {
-        break outer;
-      }
-
-      const bulletKey = resolveInventoryBulletKey(experience, bullet);
-      if (isBulletExcluded(bulletKey, excludedSet) || selectedKeys.has(bulletKey)) {
-        continue;
-      }
-
-      selected.push({ experience, bullet, bulletKey });
-      selectedKeys.add(bulletKey);
-    }
-  }
 
   return {
-    selected,
-    totalBullets,
-    jdTerms,
-    forcedCount: selected.filter((item) => forcedSet.has(item.bulletKey)).length,
-    unavailableForcedKeys,
+    selected: spine.workBulletSelections,
+    totalBullets: spine.totalWorkBullets,
+    jdTerms: spine.jdTerms,
+    forcedCount: spine.workBulletSelections.filter((item) => forcedSet.has(item.bulletKey))
+      .length,
+    unavailableForcedKeys: spine.unavailableForcedKeys,
   };
 }
 

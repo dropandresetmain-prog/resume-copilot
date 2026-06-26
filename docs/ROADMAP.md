@@ -2,12 +2,13 @@
 
 ## Current version
 
-**v0.9.17A**
+**v0.9.17B**
 
 ## Completed capabilities
 
 | Capability | Introduced |
 |------------|------------|
+| M1 unified evidence spine (deterministic cross-category rank) | v0.9.17B |
 | Phase 0 prompt & payload hygiene (pre–M1) | v0.9.17A |
 | Application record archive (hide from list, retain drafts) | v0.9.16E |
 | Inventory editing (bullet hide/edit overlay) | v0.7.7 |
@@ -56,6 +57,13 @@
 | Inventory project overlay cleanup audit & repair | v0.9.16D |
 
 ## Milestone log (recent)
+
+### v0.9.17B - M1 Unified Evidence Spine
+
+- Deterministic evidence spine across work bullets, additional experience, education, skills, evidence-tied keywords, company-context positioning.
+- Ranked resume payload slices (education/skills/additional); work bullet cap unchanged at 40.
+- `evidenceSpine` snapshot on draft input for fit summary and M2 story spine.
+- **Next:** M2 Cover Letter Story Spine.
 
 ### v0.9.17A - Phase 0 Prompt & Payload Hygiene
 

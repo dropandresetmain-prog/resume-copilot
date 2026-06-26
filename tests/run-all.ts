@@ -35,6 +35,7 @@ const SUITES: { name: string; file: string }[] = [
     file: "suites/forced-bullet-regeneration.test.ts",
   },
   { name: "generation-payload", file: "suites/generation-payload.test.ts" },
+  { name: "evidence-spine", file: "suites/evidence-spine.test.ts" },
   { name: "inventory-edits", file: "suites/inventory-edits.test.ts" },
   { name: "inventory-edit-ux", file: "suites/inventory-edit-ux.test.ts" },
   { name: "inventory-duplicate-cleanup", file: "suites/inventory-duplicate-cleanup.test.ts" },

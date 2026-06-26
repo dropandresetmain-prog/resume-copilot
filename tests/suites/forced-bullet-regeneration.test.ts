@@ -129,12 +129,16 @@ function buildManyInventoryExperiences(): CollatedExperience[] {
       sourceCitations: [],
       bullets: Array.from({ length: 8 }, (_, bulletIndex) => ({
         id: `bullet-${index}-${bulletIndex}`,
-        keyword: "Operations",
+        keyword:
+          bulletIndex === 7 && index === 7 ? undefined : "Operations",
         description:
           bulletIndex === 7 && index === 7
-            ? "Built partner CRM automation workflows"
+            ? "Routine office paperwork and filing support"
             : `Generic inventory bullet ${index}-${bulletIndex}`,
-        rawTexts: [],
+        rawTexts:
+          bulletIndex === 7 && index === 7
+            ? ["Routine office paperwork and filing support"]
+            : [],
         sourceCitations: [],
         inventoryBulletKey:
           bulletIndex === 7 && index === 7
@@ -222,13 +226,13 @@ function main() {
 
   const rankedWithoutForce = selectGenerationBullets({
     experiences: buildManyInventoryExperiences(),
-    maxBullets: 40,
+    maxBullets: 7,
     jdText,
     acceptedWordingByBulletKey: new Map(),
   });
   const rankedWithForce = selectGenerationBullets({
     experiences: buildManyInventoryExperiences(),
-    maxBullets: 40,
+    maxBullets: 7,
     jdText,
     acceptedWordingByBulletKey: new Map(),
     forcedBulletKeys: [forcedKey],
