@@ -31,8 +31,17 @@ export type TailoringDiagnosticAction = {
   hint: string;
 };
 
+export type CoverLetterProofStatus =
+  | "full"
+  | "saved-only"
+  | "needs-inventory"
+  | "no-cover-letter";
+
 export type PackageTailoringDiagnostics = {
   available: boolean;
+  /** Saved evidence spine snapshot present on the resume draft. */
+  hasEvidenceSpine: boolean;
+  coverLetterProofStatus: CoverLetterProofStatus;
   selectedEvidence: TailoringDiagnosticLine[];
   omittedEvidence: TailoringDiagnosticLine[];
   coverLetterProof: TailoringDiagnosticLine[];
@@ -99,8 +108,8 @@ function buildOmittedLines(spine: EvidenceSpineSnapshot): TailoringDiagnosticLin
     .slice(0, MAX_LINES)
     .map((item) => ({
       id: `omitted-${item.id}`,
-      severity: "warning" as const,
-      message: `${item.displayLabel} omitted (${item.relevanceScore}) — ${omissionChannelLabel(item)}`,
+      severity: "info" as const,
+      message: `Optional: ${item.displayLabel} (${item.relevanceScore}) — via ${omissionChannelLabel(item)}`,
     }));
 }
 
@@ -169,6 +178,8 @@ function buildSuggestedActions(
   spine: EvidenceSpineSnapshot | undefined,
   coverLetterOffResumeCount: number,
   warningCount: number,
+  omittedCount: number,
+  coverLetterProofStatus: CoverLetterProofStatus,
 ): TailoringDiagnosticAction[] {
   const actions: TailoringDiagnosticAction[] = [];
 
@@ -176,26 +187,31 @@ function buildSuggestedActions(
     actions.push({
       id: "fix-resume-evidence",
       label: "Fix resume evidence",
-      hint: "Stage work bullets or Additional Experience for regeneration.",
+      hint: "Opens package fix mode — stage work bullets or Additional Experience.",
     });
   }
 
-  if (coverLetterOffResumeCount > 0 || hasCoverLetterChannelOmission(spine)) {
+  if (
+    coverLetterProofStatus !== "no-cover-letter" &&
+    (coverLetterOffResumeCount > 0 ||
+      hasCoverLetterChannelOmission(spine) ||
+      coverLetterProofStatus === "saved-only")
+  ) {
     actions.push({
       id: "edit-cover-letter-evidence",
       label: "Edit cover letter evidence",
-      hint: "Stage proof to use or avoid before regenerating the letter.",
+      hint: "Opens cover letter editor — stage proof before regenerating.",
     });
   }
 
-  if (warningCount > 0) {
+  if (warningCount > 0 || omittedCount > 0) {
     actions.push({
       id: "accept-risk",
       label: actions.length > 0 ? "Or accept risk" : "Accept risk",
       hint:
         actions.length > 0
-          ? "Proceed if omissions and warnings are intentional."
-          : "Warnings are advisory — export if the package still represents you well.",
+          ? "Scroll to Approve for export if omissions are intentional."
+          : "Advisory only — approve for export when the package represents you well.",
     });
   }
 
@@ -216,6 +232,8 @@ export function buildPackageTailoringDiagnostics(options: {
   const spine = options.resumeDraft.inputSnapshot?.evidenceSpine;
   const empty: PackageTailoringDiagnostics = {
     available: false,
+    hasEvidenceSpine: false,
+    coverLetterProofStatus: "no-cover-letter",
     selectedEvidence: [],
     omittedEvidence: [],
     coverLetterProof: [],
@@ -249,14 +267,17 @@ export function buildPackageTailoringDiagnostics(options: {
     for (const omission of options.resumeDraft.rationale!.omissions!.slice(0, MAX_LINES)) {
       omittedEvidence.push({
         id: `rationale-omission-${omittedEvidence.length}`,
-        severity: "warning",
-        message: omission,
+        severity: "info",
+        message: `Gap noted: ${omission}`,
       });
     }
   }
 
   const coverLetterProof: TailoringDiagnosticLine[] = [];
   let coverLetterOffResumeCount = 0;
+  let coverLetterProofStatus: CoverLetterProofStatus = options.coverLetter
+    ? "needs-inventory"
+    : "no-cover-letter";
 
   if (
     options.coverLetter &&
@@ -264,6 +285,7 @@ export function buildPackageTailoringDiagnostics(options: {
     options.inventory &&
     options.companyContext
   ) {
+    coverLetterProofStatus = "full";
     const prompt = buildCoverLetterEvidencePrompt({
       inventory: options.inventory,
       resumeDraft: options.resumeDraft,
@@ -292,6 +314,7 @@ export function buildPackageTailoringDiagnostics(options: {
       });
     }
   } else if (options.coverLetter?.rationale?.storySpinePrompt?.includes("NOT on resume draft")) {
+    coverLetterProofStatus = "saved-only";
     coverLetterProof.push({
       id: "cl-saved-spine-hint",
       severity: "info",
@@ -321,16 +344,21 @@ export function buildPackageTailoringDiagnostics(options: {
     spine,
     coverLetterOffResumeCount,
     warnings.filter((line) => line.severity === "warning").length,
+    omittedEvidence.length,
+    coverLetterProofStatus,
   );
 
   const available =
     selectedEvidence.length > 0 ||
     omittedEvidence.length > 0 ||
     coverLetterProof.length > 0 ||
-    warnings.length > 0;
+    warnings.length > 0 ||
+    !spine;
 
   return {
     available,
+    hasEvidenceSpine: Boolean(spine),
+    coverLetterProofStatus,
     selectedEvidence,
     omittedEvidence,
     coverLetterProof,

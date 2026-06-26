@@ -4,58 +4,98 @@ import Link from "next/link";
 
 import { secondaryButtonClassName } from "@/components/setup/ui";
 import type { PackageFixMode } from "@/lib/package/fix-mode";
-import type { PackageTailoringDiagnostics } from "@/lib/package/tailoring-diagnostics";
+import type {
+  CoverLetterProofStatus,
+  PackageTailoringDiagnostics,
+  TailoringDiagnosticLine,
+} from "@/lib/package/tailoring-diagnostics";
 
 type PackageTailoringDiagnosticsPanelProps = {
   diagnostics: PackageTailoringDiagnostics;
   coverLetterId?: string;
   onFixAction?: (mode: PackageFixMode) => void;
+  onScrollToApprove?: () => void;
 };
 
-function DiagnosticList({
+function lineClassName(severity: TailoringDiagnosticLine["severity"]): string {
+  if (severity === "strength") {
+    return "text-emerald-900";
+  }
+  if (severity === "warning") {
+    return "text-amber-900";
+  }
+  return "text-slate-700";
+}
+
+function DiagnosticSection({
   title,
+  note,
   lines,
+  emptyMessage,
   testId,
 }: {
   title: string;
-  lines: PackageTailoringDiagnostics["selectedEvidence"];
+  note?: string;
+  lines: TailoringDiagnosticLine[];
+  emptyMessage?: string;
   testId: string;
 }) {
-  if (lines.length === 0) {
-    return null;
-  }
-
   return (
     <section data-testid={testId}>
       <p className="text-xs font-semibold uppercase text-slate-500">{title}</p>
-      <ul className="mt-1.5 space-y-1">
-        {lines.map((line) => (
-          <li
-            key={line.id}
-            className={`text-sm ${
-              line.severity === "strength"
-                ? "text-emerald-900"
-                : line.severity === "warning"
-                  ? "text-amber-900"
-                  : "text-slate-700"
-            }`}
-          >
-            {line.message}
-          </li>
-        ))}
-      </ul>
+      {note ? <p className="mt-0.5 text-xs text-slate-500">{note}</p> : null}
+      {lines.length > 0 ? (
+        <ul className="mt-1.5 space-y-1">
+          {lines.map((line) => (
+            <li key={line.id} className={`text-sm ${lineClassName(line.severity)}`}>
+              {line.message}
+            </li>
+          ))}
+        </ul>
+      ) : emptyMessage ? (
+        <p className="mt-1.5 text-sm text-slate-600" data-testid={`${testId}-empty`}>
+          {emptyMessage}
+        </p>
+      ) : null}
     </section>
   );
+}
+
+function coverLetterProofEmptyMessage(status: CoverLetterProofStatus): string | undefined {
+  switch (status) {
+    case "no-cover-letter":
+      return "No cover letter yet — generate one below to compare proof stories.";
+    case "needs-inventory":
+      return "Saved cover letter present — inventory unavailable here for live proof comparison.";
+    case "saved-only":
+      return undefined;
+    case "full":
+      return "No off-resume proof stories ranked for this letter.";
+    default:
+      return undefined;
+  }
 }
 
 export function PackageTailoringDiagnosticsPanel({
   diagnostics,
   coverLetterId,
   onFixAction,
+  onScrollToApprove,
 }: PackageTailoringDiagnosticsPanelProps) {
   if (!diagnostics.available) {
     return null;
   }
+
+  const selectedEmpty = diagnostics.hasEvidenceSpine
+    ? "No ranked selections in the saved spine snapshot."
+    : "Legacy draft — saved rationale only; regenerate for a full evidence spine.";
+
+  const omittedEmpty = diagnostics.hasEvidenceSpine
+    ? "No high-score optional evidence flagged — one-page fit may still leave inventory unused."
+    : "Legacy draft — check generation notes or Fix resume evidence for ranked options.";
+
+  const showCoverLetterSection = diagnostics.coverLetterProofStatus !== "no-cover-letter";
+  const coverLetterEmpty = coverLetterProofEmptyMessage(diagnostics.coverLetterProofStatus);
 
   return (
     <div
@@ -70,24 +110,32 @@ export function PackageTailoringDiagnosticsPanel({
       </p>
 
       <div className="mt-3 space-y-3">
-        <DiagnosticList
+        <DiagnosticSection
           title="Strongest evidence selected"
           lines={diagnostics.selectedEvidence}
+          emptyMessage={selectedEmpty}
           testId="tailoring-selected-evidence"
         />
-        <DiagnosticList
+        <DiagnosticSection
           title="Strong evidence omitted"
+          note="Advisory only — not a defect. One-page fit and JD focus often leave strong inventory unused."
           lines={diagnostics.omittedEvidence}
+          emptyMessage={omittedEmpty}
           testId="tailoring-omitted-evidence"
         />
-        <DiagnosticList
-          title="Cover letter proof"
-          lines={diagnostics.coverLetterProof}
-          testId="tailoring-cover-letter-proof"
-        />
-        <DiagnosticList
+        {showCoverLetterSection ? (
+          <DiagnosticSection
+            title="Cover letter proof"
+            lines={diagnostics.coverLetterProof}
+            emptyMessage={coverLetterEmpty}
+            testId="tailoring-cover-letter-proof"
+          />
+        ) : null}
+        <DiagnosticSection
           title="Tailoring warnings"
+          note="Style and rationale checks — advisory unless export is blocked elsewhere."
           lines={diagnostics.warnings}
+          emptyMessage="No tailoring warnings detected."
           testId="tailoring-warnings"
         />
       </div>
@@ -98,25 +146,42 @@ export function PackageTailoringDiagnosticsPanel({
           <ul className="mt-2 space-y-2">
             {diagnostics.suggestedActions.map((action) => (
               <li key={action.id} className="text-sm text-slate-700">
-                {action.id === "fix-resume-evidence" && onFixAction ? (
+                {action.id === "fix-resume-evidence" ? (
+                  onFixAction ? (
+                    <button
+                      type="button"
+                      className={`${secondaryButtonClassName} mr-2`}
+                      data-action="tailoring-fix-resume-evidence"
+                      onClick={() => onFixAction("fix-evidence")}
+                    >
+                      {action.label}
+                    </button>
+                  ) : (
+                    <span className="mr-2 font-medium text-slate-800">{action.label}</span>
+                  )
+                ) : action.id === "edit-cover-letter-evidence" ? (
+                  coverLetterId ? (
+                    <Link
+                      href={`/cover-letter-preview/${coverLetterId}`}
+                      className={`${secondaryButtonClassName} mr-2 inline-flex`}
+                      data-action="tailoring-edit-cover-letter-evidence"
+                    >
+                      {action.label}
+                    </Link>
+                  ) : (
+                    <span className="mr-2 font-medium text-slate-800">{action.label}</span>
+                  )
+                ) : action.id === "accept-risk" && onScrollToApprove ? (
                   <button
                     type="button"
                     className={`${secondaryButtonClassName} mr-2`}
-                    data-action="tailoring-fix-resume-evidence"
-                    onClick={() => onFixAction("fix-evidence")}
+                    data-action="tailoring-accept-risk"
+                    onClick={onScrollToApprove}
                   >
                     {action.label}
                   </button>
-                ) : action.id === "edit-cover-letter-evidence" && coverLetterId ? (
-                  <Link
-                    href={`/cover-letter-preview/${coverLetterId}`}
-                    className={`${secondaryButtonClassName} mr-2 inline-flex`}
-                    data-action="tailoring-edit-cover-letter-evidence"
-                  >
-                    {action.label}
-                  </Link>
                 ) : (
-                  <span className="font-medium text-slate-800">{action.label}</span>
+                  <span className="mr-2 font-medium text-slate-800">{action.label}</span>
                 )}
                 <span className="text-xs text-slate-500">{action.hint}</span>
               </li>

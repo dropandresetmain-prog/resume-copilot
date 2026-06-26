@@ -91,6 +91,20 @@ function main() {
       "tailoring diagnostics no ai on load copy",
       tailoringPanel.includes("no AI on page load"),
     ],
+    [
+      "tailoring diagnostics omitted section advisory",
+      tailoringPanel.includes("Advisory only") &&
+        tailoringPanel.includes("not a defect"),
+    ],
+    [
+      "tailoring diagnostics accept risk action",
+      tailoringPanel.includes("tailoring-accept-risk") &&
+        resumePreview.includes("onScrollToApprove={scrollToApprove}"),
+    ],
+    [
+      "tailoring diagnostics section empty states",
+      tailoringPanel.includes("-empty") && tailoringPanel.includes("Legacy draft"),
+    ],
     ["edit resume hidden by default", resumePreview.includes("activeFixMode") && resumePreview.includes('activeFixMode === "edit-resume"')],
     ["back to review control", resumePreview.includes("back-to-package-review")],
     ["review-first banner", resumePreview.includes("package-review-first-banner")],

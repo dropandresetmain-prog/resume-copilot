@@ -717,6 +717,7 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
               diagnostics={tailoringDiagnostics}
               coverLetterId={coverLetter?.id}
               onFixAction={openFixMode}
+              onScrollToApprove={scrollToApprove}
             />
           </section>
         ) : null}
