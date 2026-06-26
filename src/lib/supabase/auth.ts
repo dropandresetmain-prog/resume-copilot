@@ -46,6 +46,17 @@ export async function signInWithMagicLink(email: string) {
   return data;
 }
 
+export async function signInWithGoogle() {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+    },
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function signOut() {
   const supabase = getSupabaseClient();
   const { error } = await supabase.auth.signOut();

@@ -1,0 +1,134 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signUpWithPassword, signInWithGoogle } from "@/lib/supabase/auth";
+
+export default function SignupPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const [loading, setLoading] = useState(false);
+
+  function validate() {
+    const next: typeof errors = {};
+    if (!email.trim()) next.email = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Enter a valid email address.";
+    if (!password) next.password = "Password is required.";
+    else if (password.length < 8) next.password = "Password must be at least 8 characters.";
+    return next;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const v = validate();
+    if (Object.keys(v).length) { setErrors(v); return; }
+    setErrors({});
+    setLoading(true);
+    try {
+      await signUpWithPassword(email, password);
+      router.push("/onboarding");
+    } catch (err: unknown) {
+      setErrors({ form: err instanceof Error ? err.message : "Sign up failed." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogle() {
+    try {
+      await signInWithGoogle();
+    } catch (err: unknown) {
+      setErrors({ form: err instanceof Error ? err.message : "Google sign-in failed." });
+    }
+  }
+
+  return (
+    <div className="w-full max-w-[400px] bg-white rounded-[12px] border border-[#bec9c2]/50 px-8 py-10">
+      {/* Wordmark */}
+      <p className="text-center text-[22px] font-bold text-[#016147] mb-2">Folio</p>
+      <h1 className="text-center text-[20px] font-medium text-[#1c1c1a] mb-8">
+        Create your account
+      </h1>
+
+      {/* Google */}
+      <button
+        type="button"
+        onClick={handleGoogle}
+        className="w-full flex items-center justify-center gap-3 h-11 rounded-[8px] border border-[#bec9c2] bg-white text-[14px] font-medium text-[#1c1c1a] hover:bg-[#f6f3ef] transition-colors mb-5"
+      >
+        <GoogleIcon />
+        Continue with Google
+      </button>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex-1 h-px bg-[#bec9c2]" />
+        <span className="text-[12px] text-[#6f7973]">or continue with email</span>
+        <div className="flex-1 h-px bg-[#bec9c2]" />
+      </div>
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        {errors.form && (
+          <p className="text-[12px] text-[#ba1a1a]">{errors.form}</p>
+        )}
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[12px] text-[#3f4944]" htmlFor="email">Email address</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="name@company.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="h-11 rounded-[8px] border border-[#bec9c2] bg-white px-3 text-[14px] text-[#1c1c1a] placeholder:text-[#6f7973] focus:outline-none focus:border-[#2A7A5E] focus:ring-1 focus:ring-[#2A7A5E]"
+          />
+          {errors.email && <p className="text-[12px] text-[#ba1a1a]">{errors.email}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[12px] text-[#3f4944]" htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="h-11 rounded-[8px] border border-[#bec9c2] bg-white px-3 text-[14px] text-[#1c1c1a] placeholder:text-[#6f7973] focus:outline-none focus:border-[#2A7A5E] focus:ring-1 focus:ring-[#2A7A5E]"
+          />
+          {errors.password && <p className="text-[12px] text-[#ba1a1a]">{errors.password}</p>}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-11 rounded-[8px] bg-[#9a4523] text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-60 mt-1"
+        >
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+      </form>
+
+      <p className="text-center text-[12px] text-[#6f7973] mt-6">
+        Already have an account?{" "}
+        <Link href="/auth/login" className="text-[#2A7A5E] hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+      <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+    </svg>
+  );
+}
