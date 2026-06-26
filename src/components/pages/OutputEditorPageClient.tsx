@@ -5,6 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
+import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
+import { countWords } from "@/lib/cover-letter/resume-evidence";
+import { requestCoverLetterRevision } from "@/lib/cover-letter/revision-client";
+import {
+  FORMAL_COVER_LETTER_MAX_WORDS,
+  isOverWordLimit,
+} from "@/lib/cover-letter/word-limits";
+import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
+import {
+  generateAndSaveCoverLetterDraft,
+  REGENERATE_COVER_LETTER_CONFIRM,
+} from "@/lib/generate/cover-letter-generation";
 import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { experienceKey } from "@/lib/inventory/normalize";
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
@@ -18,12 +30,18 @@ import {
   normalizeRegenerationControls,
 } from "@/lib/resume-draft/payload";
 import { getApplicationRecordFromCloud, updateApplicationRecordInCloud } from "@/lib/supabase/application-records";
+import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-cover-letter-drafts";
 import {
   getGeneratedResumeDraftFromCloud,
   updateGeneratedResumeDraftInCloud,
 } from "@/lib/supabase/generated-resume-drafts";
 import type { CollatedExperience } from "@/types/collated";
 import type { CompanyContext } from "@/types/company-context";
+import type {
+  CoverLetterRevisionAction,
+  GeneratedCoverLetterDraftRecord,
+} from "@/types/cover-letter-draft";
+import type { StoredJobDescription } from "@/types/jd";
 import type {
   GeneratedResumeDraftRecord,
   ResumeDraftConfidence,
@@ -307,6 +325,306 @@ function chipsForExperience(exp: ResumeDraftExperienceSection): string[] {
     chips.push(words.length < alignment.length ? `${words}…` : words);
   }
   return chips;
+}
+
+// ── Cover letter tab ──────────────────────────────────────────────────────────
+
+type ToneOption = "formal" | "balanced" | "conversational";
+
+const TONE_SEGMENTS: { key: ToneOption; label: string }[] = [
+  { key: "formal", label: "Formal" },
+  { key: "balanced", label: "Balanced" },
+  { key: "conversational", label: "Conversational" },
+];
+
+// Quick-action buttons → existing CoverLetterRevisionAction enum values.
+const QUICK_ACTIONS: { action: CoverLetterRevisionAction; label: string }[] = [
+  { action: "shorten", label: "Shorten" },
+  { action: "more_formal", label: "More formal" },
+  { action: "more_conversational", label: "More conversational" },
+  { action: "warmer", label: "Warmer" },
+  { action: "remove_ai_phrases", label: "Remove AI phrases" },
+];
+
+type CoverLetterTabProps = {
+  resumeDraft: GeneratedResumeDraftRecord;
+  companyContext: CompanyContext | null;
+  inventory: ReturnType<typeof useWorkspace>["inventory"];
+  jobDescriptions: StoredJobDescription[];
+};
+
+function CoverLetterTab({
+  resumeDraft,
+  companyContext,
+  inventory,
+  jobDescriptions,
+}: CoverLetterTabProps) {
+  const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
+  const [body, setBody] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<CoverLetterRevisionAction | null>(null);
+  const [tone, setTone] = useState<ToneOption>("balanced");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const record = await findCoverLetterDraftByResumeDraftId(resumeDraft.id);
+        if (cancelled) return;
+        setCoverLetter(record);
+        setBody(record?.body ?? "");
+      } catch (loadError) {
+        if (cancelled) return;
+        setCoverLetter(null);
+        setError(
+          loadError instanceof Error ? loadError.message : "Failed to load cover letter.",
+        );
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeDraft.id]);
+
+  const linkedJob = useMemo<StoredJobDescription | null>(() => {
+    const jobId = coverLetter?.jobDescriptionId ?? resumeDraft.jobDescriptionId;
+    if (!jobId) return null;
+    return jobDescriptions.find((job) => job.id === jobId) ?? null;
+  }, [coverLetter, resumeDraft.jobDescriptionId, jobDescriptions]);
+
+  const wordCount = countWords(body);
+  const overLimit = isOverWordLimit(wordCount);
+  const isBusy = busyAction !== null || isRegenerating || isGenerating;
+
+  /** Run an existing revision action (reviseCoverLetterWithAI via the revision API) and persist. */
+  async function applyRevision(action: CoverLetterRevisionAction) {
+    if (!coverLetter || isBusy || !body.trim()) return;
+    setBusyAction(action);
+    setError(null);
+    try {
+      const response = await requestCoverLetterRevision({
+        draftId: coverLetter.id,
+        currentBody: body,
+        action,
+        persist: true,
+      });
+      setBody(response.body);
+      setCoverLetter((prev) => (prev ? { ...prev, body: response.body } : prev));
+    } catch (revisionError) {
+      setError(
+        revisionError instanceof Error
+          ? revisionError.message
+          : "Cover letter revision failed.",
+      );
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleSelectTone(next: ToneOption) {
+    if (isBusy || next === tone) return;
+    setTone(next);
+    // Tone shifts route through the existing revision actions. Balanced is the
+    // neutral resting state and does not call AI.
+    if (next === "formal") {
+      await applyRevision("more_formal");
+    } else if (next === "conversational") {
+      await applyRevision("more_conversational");
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!coverLetter || isBusy) return;
+    if (!linkedJob) {
+      setError("Saved job description is required to regenerate the cover letter.");
+      return;
+    }
+    if (!window.confirm(REGENERATE_COVER_LETTER_CONFIRM)) return;
+
+    setIsRegenerating(true);
+    setError(null);
+    try {
+      const updated = await generateAndSaveCoverLetterDraft({
+        ...buildCoverLetterGenerationOptions({
+          job: linkedJob,
+          resumeDraft,
+          inventory,
+          applicationId: coverLetter.applicationId ?? resumeDraft.applicationId,
+          fields: {
+            country: coverLetter.country,
+            companyWebsite: coverLetter.companyWebsite,
+            additionalInstructions: coverLetter.additionalInstructions,
+          },
+          savedCompanyContext: companyContext ?? coverLetter.companyContext,
+        }),
+        existingCoverLetterId: coverLetter.id,
+      });
+      setCoverLetter(updated);
+      setBody(updated.body);
+      setTone("balanced");
+    } catch (regenError) {
+      setError(
+        regenError instanceof Error ? regenError.message : "Cover letter regeneration failed.",
+      );
+    } finally {
+      setIsRegenerating(false);
+    }
+  }
+
+  async function handleGenerate() {
+    if (isBusy) return;
+    if (!linkedJob) {
+      setError("Saved job description is required to generate a cover letter.");
+      return;
+    }
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const created = await generateAndSaveCoverLetterDraft(
+        buildCoverLetterGenerationOptions({
+          job: linkedJob,
+          resumeDraft,
+          inventory,
+          applicationId: resumeDraft.applicationId,
+          fields: {},
+          savedCompanyContext: companyContext ?? undefined,
+        }),
+      );
+      setCoverLetter(created);
+      setBody(created.body);
+    } catch (genError) {
+      setError(
+        genError instanceof Error ? genError.message : "Cover letter generation failed.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="mt-5 rounded-xl border border-[#D8ECC8] bg-white px-6 py-16 text-center">
+        <p className="text-sm text-[#6f7973]">Loading cover letter…</p>
+      </div>
+    );
+  }
+
+  if (!coverLetter) {
+    return (
+      <div className="mt-5 flex flex-col items-center rounded-xl border border-[#D8ECC8] bg-white px-6 py-16 text-center">
+        <p className="text-sm text-[#6f7973]">
+          No cover letter has been generated for this application yet.
+        </p>
+        <button
+          type="button"
+          onClick={() => void handleGenerate()}
+          disabled={isGenerating || !linkedJob}
+          className="mt-4 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: "#2A7A5E" }}
+        >
+          {isGenerating ? "Generating…" : "Generate cover letter"}
+        </button>
+        {error ? (
+          <p className="mt-3 text-sm text-[#ba1a1a]">{error}</p>
+        ) : null}
+        {!linkedJob ? (
+          <p className="mt-2 text-xs text-[#6f7973]">
+            This draft is not linked to a saved job description.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5">
+      {/* Rendered letter — read-only document */}
+      <div className="rounded-xl border border-[#D8ECC8] bg-white p-6">
+        <div className="space-y-4 font-serif text-[15px] leading-7 text-[#1c1c1a]">
+          {splitCoverLetterParagraphs(body).map((paragraph, index) => (
+            <p key={index} className="m-0">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {QUICK_ACTIONS.map(({ action, label }) => (
+          <button
+            key={action}
+            type="button"
+            onClick={() => void applyRevision(action)}
+            disabled={isBusy}
+            className={GHOST_BUTTON}
+            aria-busy={busyAction === action}
+          >
+            {busyAction === action ? "Revising…" : label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tone selector */}
+      <div className="mt-5">
+        <p className="text-[13px] font-medium text-[#6f7973]">Tone</p>
+        <div className="mt-2 inline-flex rounded-lg border border-[#D8ECC8] bg-white p-0.5">
+          {TONE_SEGMENTS.map((segment) => {
+            const active = tone === segment.key;
+            return (
+              <button
+                key={segment.key}
+                type="button"
+                onClick={() => void handleSelectTone(segment.key)}
+                disabled={isBusy}
+                aria-pressed={active}
+                className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  active ? "text-white" : "text-[#6f7973] hover:text-[#1c1c1a]"
+                }`}
+                style={active ? { backgroundColor: "#2A7A5E" } : undefined}
+              >
+                {segment.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Regenerate + word count */}
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => void handleRegenerate()}
+          disabled={isBusy || !linkedJob}
+          className={`w-full ${GHOST_BUTTON}`}
+        >
+          <RefreshIcon />
+          {isRegenerating ? "Regenerating cover letter…" : "Regenerate cover letter"}
+        </button>
+        <p
+          className={`mt-2 text-right text-xs ${overLimit ? "text-[#ba1a1a]" : "text-[#6f7973]"}`}
+        >
+          {wordCount} / {FORMAL_COVER_LETTER_MAX_WORDS} words
+        </p>
+      </div>
+
+      {error ? (
+        <p className="mt-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-sm text-[#ba1a1a]">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps) {
@@ -756,10 +1074,13 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
           </div>
         </div>
       ) : (
-        /* ── Cover letter tab — placeholder (Pass B) ──────────── */
-        <div className="mt-5 flex items-center justify-center rounded-xl border border-dashed border-[#D8ECC8] bg-white py-20">
-          <p className="text-sm text-[#6f7973]">Coming in next pass</p>
-        </div>
+        /* ── Cover letter tab ─────────────────────────────────── */
+        <CoverLetterTab
+          resumeDraft={draft}
+          companyContext={companyContext}
+          inventory={inventory}
+          jobDescriptions={jobDescriptions}
+        />
       )}
     </div>
   );
