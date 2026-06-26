@@ -588,7 +588,7 @@ function CoverLetterTab({
                 onClick={() => void handleSelectTone(segment.key)}
                 disabled={isBusy}
                 aria-pressed={active}
-                className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   active ? "text-white" : "text-[#6f7973] hover:text-[#1c1c1a]"
                 }`}
                 style={active ? { backgroundColor: "#2A7A5E" } : undefined}
