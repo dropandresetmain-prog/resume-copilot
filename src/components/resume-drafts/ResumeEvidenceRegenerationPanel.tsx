@@ -68,11 +68,22 @@ type ResumeEvidenceRegenerationPanelProps = {
   onDraftUpdated: (draft: GeneratedResumeDraftRecord) => void;
 };
 
-function actionId(action: EvidencePendingAction): string {
+function actionId(
+  action: Pick<EvidencePendingAction, "type"> & {
+    bulletKey?: string;
+    evidenceId?: string;
+  },
+): string {
   if (action.evidenceId) {
     return `${action.type}:${action.evidenceId}`;
   }
   return `${action.type}:${action.bulletKey ?? ""}`;
+}
+
+function makePendingAction(
+  action: Omit<EvidencePendingAction, "id">,
+): EvidencePendingAction {
+  return { ...action, id: actionId(action) };
 }
 
 export function ResumeEvidenceRegenerationPanel({
@@ -566,16 +577,13 @@ export function ResumeEvidenceRegenerationPanel({
                           : secondaryButtonClassName
                       }
                       onClick={() =>
-                        togglePendingAction({
-                          id: actionId({
+                        togglePendingAction(
+                          makePendingAction({
                             type: "remove_from_draft",
                             bulletKey: primaryKey,
                             label: item.text,
                           }),
-                          type: "remove_from_draft",
-                          bulletKey: primaryKey,
-                          label: item.text,
-                        })
+                        )
                       }
                       data-action="stage-remove-from-draft"
                     >
@@ -591,16 +599,13 @@ export function ResumeEvidenceRegenerationPanel({
                           : secondaryButtonClassName
                       }
                       onClick={() =>
-                        togglePendingAction({
-                          id: actionId({
+                        togglePendingAction(
+                          makePendingAction({
                             type: "exclude_from_generation",
                             bulletKey: primaryKey,
                             label: item.text,
                           }),
-                          type: "exclude_from_generation",
-                          bulletKey: primaryKey,
-                          label: item.text,
-                        })
+                        )
                       }
                       data-action="stage-exclude-from-generation"
                     >
@@ -664,16 +669,13 @@ export function ResumeEvidenceRegenerationPanel({
                       type="button"
                       className={`mt-3 ${hasPendingAction("add_to_draft", row.bulletKey!) ? primaryButtonClassName : secondaryButtonClassName}`}
                       onClick={() =>
-                        togglePendingAction({
-                          id: actionId({
+                        togglePendingAction(
+                          makePendingAction({
                             type: "add_to_draft",
                             bulletKey: row.bulletKey!,
                             label: row.evidenceText,
                           }),
-                          type: "add_to_draft",
-                          bulletKey: row.bulletKey!,
-                          label: row.evidenceText,
-                        })
+                        )
                       }
                       data-action="stage-add-to-draft"
                     >
@@ -691,16 +693,13 @@ export function ResumeEvidenceRegenerationPanel({
                             : secondaryButtonClassName
                         }
                         onClick={() =>
-                          togglePendingAction({
-                            id: actionId({
+                          togglePendingAction(
+                            makePendingAction({
                               type: "include_on_full_regenerate",
                               evidenceId: row.id,
                               label: row.evidenceText,
                             }),
-                            type: "include_on_full_regenerate",
-                            evidenceId: row.id,
-                            label: row.evidenceText,
-                          })
+                          )
                         }
                         data-action="stage-include-additional-on-regenerate"
                       >
