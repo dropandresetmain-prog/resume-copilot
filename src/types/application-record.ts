@@ -7,6 +7,11 @@ export const APPLICATION_RECORD_STATUSES = [
   "archived",
 ] as const;
 
+/** Status values shown in the status dropdown — archive uses a dedicated confirmed action. */
+export const EDITABLE_APPLICATION_RECORD_STATUSES = APPLICATION_RECORD_STATUSES.filter(
+  (status) => status !== "archived",
+);
+
 export type ApplicationRecordStatus = (typeof APPLICATION_RECORD_STATUSES)[number];
 
 import type { CompanyContext } from "@/types/company-context";
@@ -46,4 +51,8 @@ export function normalizeApplicationRecordStatus(
     return value;
   }
   return "drafting";
+}
+
+export function isArchivedApplicationRecord(record: Pick<StoredApplicationRecord, "status">): boolean {
+  return record.status === "archived";
 }

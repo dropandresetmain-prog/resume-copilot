@@ -68,6 +68,7 @@
 ## Application workflow (v0.8.0+)
 
 - **Generate** creates or reuses `application_records` per `job_description_id`; links drafts via `application_id`.
+- **Archive (v0.9.16E):** Applications page **Archive application** sets status `archived` — hidden from default list; resume/cover letter drafts, JD, and company context retained. Hard delete not exposed (DB cascade would remove linked drafts). **Parked:** show archived, restore.
 - Post-generate navigation lands on **application package** (`/resume-preview/{id}`).
 - **Draft History** shows only drafts without `application_id` (legacy/unlinked).
 - **Package Review Center** (v0.9.11E) always surfaces a cover letter action path: "Edit cover letter" when a cover letter exists, "Go to cover letter" anchor to the package section when missing.

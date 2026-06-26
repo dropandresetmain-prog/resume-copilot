@@ -12,6 +12,7 @@ import { hasUsableCompanyContext } from "@/lib/company-context/normalize";
 import { formatApplicationArtifactSummary } from "@/lib/generate/generation-artifact-status";
 import { formatDraftStatusLabel } from "@/lib/resume-draft/draft-labels";
 import {
+  archiveApplicationRecordInCloud,
   listApplicationRecordsFromCloud,
   updateApplicationRecordInCloud,
 } from "@/lib/supabase/application-records";
@@ -19,6 +20,7 @@ import { listGeneratedCoverLetterDraftsFromCloud } from "@/lib/supabase/generate
 import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import {
   APPLICATION_RECORD_STATUSES,
+  EDITABLE_APPLICATION_RECORD_STATUSES,
   type ApplicationRecordStatus,
   type StoredApplicationRecord,
 } from "@/types/application-record";
@@ -28,6 +30,8 @@ import type { GeneratedResumeDraftRecord } from "@/types/resume-draft";
 
 import {
   EmptyState,
+  destructiveActionGroupClassName,
+  destructiveButtonClassName,
   formFieldClassName,
   labelClassName,
   primaryButtonClassName,
@@ -44,6 +48,7 @@ type ApplicationCardState = {
   notesDraft: string;
   isSavingNotes: boolean;
   isSavingStatus: boolean;
+  isArchiving: boolean;
   expanded: boolean;
 };
 
@@ -127,6 +132,7 @@ export function ApplicationRecordsPanel({
                 notesDraft: record.notes ?? "",
                 isSavingNotes: false,
                 isSavingStatus: false,
+                isArchiving: false,
                 expanded: false,
               },
             ]),
@@ -182,6 +188,7 @@ export function ApplicationRecordsPanel({
         notesDraft: current[applicationId]?.notesDraft ?? "",
         isSavingNotes: current[applicationId]?.isSavingNotes ?? false,
         isSavingStatus: current[applicationId]?.isSavingStatus ?? false,
+        isArchiving: current[applicationId]?.isArchiving ?? false,
         expanded: current[applicationId]?.expanded ?? false,
         ...patch,
       },
@@ -229,6 +236,41 @@ export function ApplicationRecordsPanel({
       );
     } finally {
       updateCardState(application.id, { isSavingNotes: false });
+    }
+  }
+
+  async function handleArchiveApplication(application: StoredApplicationRecord) {
+    const label = formatApplicationLabel(
+      application,
+      application.jobDescriptionId
+        ? jobById.get(application.jobDescriptionId)
+        : undefined,
+    );
+    const confirmed = window.confirm(
+      `Archive this application?\n\n${label}\n\nThis removes the application from the list. Linked resume and cover letter drafts are not deleted.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    updateCardState(application.id, { isArchiving: true });
+    setError(null);
+    try {
+      await archiveApplicationRecordInCloud(application.id);
+      setApplications((current) => current.filter((item) => item.id !== application.id));
+      setCardState((current) => {
+        const next = { ...current };
+        delete next[application.id];
+        return next;
+      });
+    } catch (archiveError) {
+      setError(
+        archiveError instanceof Error
+          ? archiveError.message
+          : "Failed to archive application.",
+      );
+    } finally {
+      updateCardState(application.id, { isArchiving: false });
     }
   }
 
@@ -312,6 +354,7 @@ export function ApplicationRecordsPanel({
                 notesDraft: application.notes ?? "",
                 isSavingNotes: false,
                 isSavingStatus: false,
+                isArchiving: false,
                 expanded: false,
               };
               const updatedLabel = new Date(application.updatedAt).toLocaleString();
@@ -411,7 +454,7 @@ export function ApplicationRecordsPanel({
                             }
                             className={formFieldClassName}
                           >
-                            {APPLICATION_RECORD_STATUSES.map((status) => (
+                            {EDITABLE_APPLICATION_RECORD_STATUSES.map((status) => (
                               <option key={status} value={status}>
                                 {formatApplicationStatusLabel(status)}
                               </option>
@@ -480,6 +523,21 @@ export function ApplicationRecordsPanel({
                           className={`mt-2 w-full sm:w-auto ${secondaryButtonClassName}`}
                         >
                           {state.isSavingNotes ? "Saving notes…" : "Save notes"}
+                        </button>
+                      </div>
+
+                      <div className={destructiveActionGroupClassName}>
+                        <p className="text-xs text-slate-600">
+                          Archive removes this application from the list. Linked drafts and company
+                          context are kept.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void handleArchiveApplication(application)}
+                          disabled={state.isArchiving}
+                          className={`w-full sm:w-auto ${destructiveButtonClassName}`}
+                        >
+                          {state.isArchiving ? "Archiving…" : "Archive application"}
                         </button>
                       </div>
                     </div>

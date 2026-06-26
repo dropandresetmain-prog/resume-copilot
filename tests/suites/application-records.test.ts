@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import {
   applicationRecordFromJobDescription,
+  archiveApplicationRecordInCloud,
   ensureApplicationRecordForJobDescription,
 } from "../../src/lib/supabase/application-records";
 import {
@@ -12,7 +13,9 @@ import {
 import { createJobDescriptionFromInput } from "../../src/lib/jd/persistence";
 import {
   APPLICATION_RECORD_STATUSES,
+  EDITABLE_APPLICATION_RECORD_STATUSES,
   isApplicationRecordStatus,
+  isArchivedApplicationRecord,
   normalizeApplicationRecordStatus,
 } from "../../src/types/application-record";
 
@@ -47,6 +50,18 @@ async function main() {
     join(process.cwd(), "src/components/pages/RecordsPageClient.tsx"),
     "utf8",
   );
+  const recordsPanel = readFileSync(
+    join(process.cwd(), "src/components/setup/ApplicationRecordsPanel.tsx"),
+    "utf8",
+  );
+  const applicationRecordsModule = readFileSync(
+    join(process.cwd(), "src/lib/supabase/application-records.ts"),
+    "utf8",
+  );
+  const coverLetterDrafts = readFileSync(
+    join(process.cwd(), "src/lib/supabase/generated-cover-letter-drafts.ts"),
+    "utf8",
+  );
   const draftHistory = readFileSync(
     join(process.cwd(), "src/components/setup/DraftHistoryPanel.tsx"),
     "utf8",
@@ -59,6 +74,8 @@ async function main() {
 
   const checks: [string, boolean][] = [
     ["application statuses include resume_generated", APPLICATION_RECORD_STATUSES.includes("resume_generated")],
+    ["application statuses include archived", APPLICATION_RECORD_STATUSES.includes("archived")],
+    ["editable statuses exclude archived", !EDITABLE_APPLICATION_RECORD_STATUSES.includes("archived")],
     ["application statuses include ready_to_apply", APPLICATION_RECORD_STATUSES.includes("ready_to_apply")],
     ["status validator accepts applied", isApplicationRecordStatus("applied")],
     ["status validator rejects unknown", !isApplicationRecordStatus("submitted")],
@@ -76,6 +93,18 @@ async function main() {
     ["records page renders applications panel", recordsPage.includes("ApplicationRecordsPanel")],
     ["draft history hides linked drafts", draftHistory.includes("!draft.applicationId")],
     ["ensure helper is exported", typeof ensureApplicationRecordForJobDescription === "function"],
+    ["archive helper is exported", typeof archiveApplicationRecordInCloud === "function"],
+    ["list omits archived by default", applicationRecordsModule.includes('.neq("status", "archived")')],
+    ["find by jd skips archived", applicationRecordsModule.includes('.neq("status", "archived")')],
+    ["archive sets status only", applicationRecordsModule.includes('status: "archived"')],
+    ["archive action visible in panel", recordsPanel.includes("Archive application")],
+    ["archive requires confirmation", recordsPanel.includes("window.confirm") && recordsPanel.includes("Linked resume and cover letter drafts are not deleted")],
+    ["archived hidden from list after action", recordsPanel.includes("current.filter((item) => item.id !== application.id)")],
+    ["status dropdown excludes archived", recordsPanel.includes("EDITABLE_APPLICATION_RECORD_STATUSES")],
+    ["archive does not delete resume drafts", !recordsPanel.includes("deleteGeneratedResumeDraftFromCloud")],
+    ["archive does not delete cover letter drafts", !recordsPanel.includes("deleteGeneratedCoverLetterDraftFromCloud")],
+    ["archived helper detects archived status", isArchivedApplicationRecord({ status: "archived" })],
+    ["cover letter drafts module has no application delete", !coverLetterDrafts.includes("deleteApplication")],
   ];
 
   for (const [name, ok] of checks) {

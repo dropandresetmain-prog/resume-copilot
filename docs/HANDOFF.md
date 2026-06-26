@@ -2,7 +2,21 @@
 
 ## Current version
 
-**v0.9.16D** (code)
+**v0.9.16E** (code)
+
+## v0.9.16E implementation note
+
+Application Record Delete / Archive: safe cleanup for old or test application rows on the Applications page.
+
+**Behavior:** Archive sets `application_records.status` to `archived` (existing status — no schema change). Archived records are hidden from the default Applications list. Linked generated resume drafts, cover letter drafts, job descriptions, and embedded company context are **not** deleted.
+
+**UI:** Expanded application details include **Archive application** with `window.confirm` — copy states linked drafts are retained. Status dropdown excludes `archived` (dedicated action only).
+
+**Generate reuse:** `findApplicationRecordByJobDescriptionId` skips archived records so generating for the same saved job creates a fresh application.
+
+**Package routes:** `/resume-preview/{draftId}` and `/cover-letter-preview/{id}` still load archived applications by draft id — drafts remain reachable.
+
+**Parked:** Show archived toggle; hard delete; restore from archive.
 
 ## v0.9.16D implementation note
 
@@ -284,7 +298,11 @@ Runtime constraints held: no Supabase schema changes, no parser architecture cha
 
 ## Latest milestone (code)
 
-**v0.9.16D - Inventory Cleanup Audit & Repair**
+**v0.9.16E - Application Record Delete / Archive**
+
+## Latest milestone summary (v0.9.16E)
+
+Archive application records from the Applications list without deleting linked resume/cover letter drafts; archived hidden by default; generate reuses JD only when no active application exists.
 
 ## Latest milestone summary (v0.9.16D)
 
@@ -306,6 +324,7 @@ Resume generation tailoring: JD-specific reframing instructions, anti-generic la
 
 | Version | Theme |
 |---------|--------|
+| v0.9.16E | Application record archive / safe cleanup |
 | v0.9.16D | Inventory project overlay cleanup audit & repair |
 | v0.9.16C | Keep projects out of work experience |
 | v0.9.16B | Export trust & A4 fit accuracy |

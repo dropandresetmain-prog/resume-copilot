@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.16D"')],
-    ["package json version", packageJson.includes('"version": "0.9.16D"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.16E"')],
+    ["package json version", packageJson.includes('"version": "0.9.16E"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -164,6 +164,12 @@ function main() {
         recordsPanel.includes("applicationStatusBadgeClassName"),
     ],
     [
+      "applications archive action with confirmation",
+      recordsPanel.includes("Archive application") &&
+        recordsPanel.includes("window.confirm") &&
+        recordsPanel.includes("archiveApplicationRecordInCloud"),
+    ],
+    [
       "generation progress dynamic treatment",
       generationProgress.includes("animate-spin") && generationProgress.includes("STAGE_HINTS"),
     ],
@@ -238,6 +244,10 @@ function main() {
     [
       "v0.9.15B documented",
       handoff.includes("v0.9.15B") && roadmap.includes("v0.9.15B"),
+    ],
+    [
+      "v0.9.16E documented",
+      handoff.includes("v0.9.16E") && roadmap.includes("v0.9.16E"),
     ],
     [
       "v0.9.16D documented",

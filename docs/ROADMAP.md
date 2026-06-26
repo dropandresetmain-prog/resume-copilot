@@ -2,12 +2,13 @@
 
 ## Current version
 
-**v0.9.16D**
+**v0.9.16E**
 
 ## Completed capabilities
 
 | Capability | Introduced |
 |------------|------------|
+| Application record archive (hide from list, retain drafts) | v0.9.16E |
 | Inventory editing (bullet hide/edit overlay) | v0.7.7 |
 | AI enrichment review | v0.4.x |
 | Resume generation | v0.4A |
@@ -54,6 +55,13 @@
 | Inventory project overlay cleanup audit & repair | v0.9.16D |
 
 ## Milestone log (recent)
+
+### v0.9.16E - Application Record Delete / Archive
+
+- Archive action on Applications page (confirmed) — sets status `archived`, no linked draft deletion.
+- Default list omits archived records; generate skips archived when reusing JD.
+- Package preview routes by draft id still work for archived applications.
+- **Parked:** Show archived toggle, hard delete, restore.
 
 ### v0.9.16D - Inventory Cleanup Audit & Repair
 

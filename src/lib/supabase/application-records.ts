@@ -57,15 +57,28 @@ export function applicationRecordFromJobDescription(
   };
 }
 
-export async function listApplicationRecordsFromCloud(): Promise<StoredApplicationRecord[]> {
+export type ListApplicationRecordsOptions = {
+  /** When false (default), archived records are omitted from the Applications list. */
+  includeArchived?: boolean;
+};
+
+export async function listApplicationRecordsFromCloud(
+  options?: ListApplicationRecordsOptions,
+): Promise<StoredApplicationRecord[]> {
   const user = await getCurrentUser();
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("application_records")
     .select("*")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
+
+  if (!options?.includeArchived) {
+    query = query.neq("status", "archived");
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -85,6 +98,7 @@ export async function findApplicationRecordByJobDescriptionId(
     .select("*")
     .eq("user_id", user.id)
     .eq("job_description_id", jobDescriptionId)
+    .neq("status", "archived")
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -239,4 +253,11 @@ export async function markApplicationResumeGenerated(
   return updateApplicationRecordInCloud(applicationId, {
     status: "resume_generated",
   });
+}
+
+/** Hide an application from the default list without deleting linked drafts or company context. */
+export async function archiveApplicationRecordInCloud(
+  id: string,
+): Promise<StoredApplicationRecord> {
+  return updateApplicationRecordInCloud(id, { status: "archived" });
 }
