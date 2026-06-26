@@ -43,6 +43,7 @@ import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
 import { buildEvidenceSpine } from "../../src/lib/evidence/spine";
 import { buildCoverLetterStorySpine } from "../../src/lib/evidence/story-spine";
+import { buildPackageTailoringDiagnostics } from "../../src/lib/package/tailoring-diagnostics";
 import { createEmptyInventoryEdits } from "../../src/types/inventory-edits";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "../../src/types/resume-draft";
 import type { CollatedInventory } from "../../src/types/collated";
@@ -341,6 +342,98 @@ function main() {
     companyContext: storyCompanyContext,
     resumeDraft: storyResumeDraft,
     jdText: storyJob.rawText,
+  });
+  const storyTailoringInventory = {
+    resumes: [
+      {
+        id: "resume-1",
+        filename: "resume.docx",
+        uploadedAt: "2025-01-01T00:00:00.000Z",
+        workExperiences: [
+          {
+            id: "exp-low",
+            company: "Legacy Corp",
+            role: "Analyst",
+            dateRange: "2020 - 2021",
+            bullets: [
+              {
+                id: "low-bullet",
+                description: "Prepared internal reporting packs",
+                rawTexts: ["Prepared internal reporting packs"],
+                sourceCitations: [],
+              },
+            ],
+            sourceCitations: [],
+            parseWarnings: [],
+          },
+        ],
+        education: [],
+        additionalExperience: {
+          id: "add-1",
+          sourceResumeId: "resume-1",
+          title: "Additional",
+          lines: [],
+          rawText: "",
+          parseWarnings: [],
+        },
+        skills: {
+          id: "skills-1",
+          sourceResumeId: "resume-1",
+          languages: [],
+          technicalSkills: [],
+          interests: [],
+          other: [],
+          rawText: "",
+          parseWarnings: [],
+        },
+        unparsedSections: [],
+        parseWarnings: [],
+      },
+    ],
+    enrichment: createEmptyEnrichmentState(),
+    edits: {
+      ...createEmptyInventoryEdits(),
+      addedAdditionalExperienceItems: [
+        {
+          id: "add-overlay-1",
+          text: "Led blockchain fintech market entry pilot across APAC partners",
+          category: "Projects",
+          addedAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+    },
+  } satisfies InventoryState;
+  const storyTailoringDiagnostics = buildPackageTailoringDiagnostics({
+    resumeDraft: {
+      ...storyResumeDraft,
+      inputSnapshot: {
+        schemaVersion: RESUME_DRAFT_SCHEMA_VERSION,
+        jobDescriptionId: storyJob.id,
+        referenceResumeId: "resume-1",
+        referenceResumeFilename: "resume.docx",
+        approvedKeywordIds: [],
+        approvedKeywords: [],
+        collatedSummary: {
+          experienceCount: 1,
+          bulletCount: 1,
+          educationCount: 0,
+          skillCount: 0,
+        },
+        evidenceSpine: storySpineEvidence.snapshot,
+      },
+    },
+    coverLetter: {
+      id: "cl-story",
+      userId: "user-1",
+      jobDescriptionId: storyJob.id,
+      resumeDraftId: storyResumeDraft.id,
+      body: "Dear hiring team, I am applying for the Product Lead role.",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    jobDescription: storyJob,
+    inventory: storyTailoringInventory,
+    companyContext: storyCompanyContext,
   });
   const proofControlCollated: CollatedInventory = {
     ...storyCollated,
@@ -704,6 +797,15 @@ function main() {
     [
       "story spine includes honest gaps when jd unsupported",
       storySpine.honestGaps.some((gap) => gap.includes("JD asks for")),
+    ],
+    [
+      "tailoring diagnostics surfaces off-resume cover letter proof",
+      storyTailoringDiagnostics.coverLetterProof.some((line) =>
+        line.message.includes("not on resume draft"),
+      ) &&
+        storyTailoringDiagnostics.suggestedActions.some(
+          (action) => action.id === "edit-cover-letter-evidence",
+        ),
     ],
     [
       "story spine includes avoid overclaim for company context",

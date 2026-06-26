@@ -18,10 +18,12 @@ import {
 import { ApplicationPackageCoverLetterPanel } from "@/components/application-package/ApplicationPackageCoverLetterPanel";
 import { ApplicationReviewCenter } from "@/components/application-package/ApplicationReviewCenter";
 import { PackageFitSummaryPanel } from "@/components/application-package/PackageFitSummaryPanel";
+import { PackageTailoringDiagnosticsPanel } from "@/components/application-package/PackageTailoringDiagnosticsPanel";
 import { CoverLetterStagedRevisionPanel } from "@/components/cover-letters/CoverLetterStagedRevisionPanel";
 import { CompanyContextPreviewPanel } from "@/components/company-context/CompanyContextPreviewPanel";
 import { ResumeDraftReviewWorkspace } from "@/components/resume-drafts/ResumeDraftReviewWorkspace";
 import { buildApplicationReviewStatus } from "@/lib/application-review/build-application-review-status";
+import { buildPackageTailoringDiagnostics } from "@/lib/package/tailoring-diagnostics";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { ResumeEvidenceRegenerationPanel } from "@/components/resume-drafts/ResumeEvidenceRegenerationPanel";
 import {
@@ -272,6 +274,19 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
     () => (draft ? calculateFitScore(draft.content, draft.rationale) : null),
     [draft],
   );
+
+  const tailoringDiagnostics = useMemo(() => {
+    if (!draft) {
+      return null;
+    }
+    return buildPackageTailoringDiagnostics({
+      resumeDraft: draft,
+      coverLetter,
+      jobDescription: linkedJob ?? null,
+      inventory,
+      companyContext,
+    });
+  }, [draft, coverLetter, linkedJob, inventory, companyContext]);
 
   const currentLayoutSettings = useMemo(
     () => ({
@@ -695,6 +710,16 @@ export function ResumePreviewPageClient({ draftId }: ResumePreviewPageClientProp
         <section data-testid="package-fit-summary-top">
           <PackageFitSummaryPanel rationale={draft.rationale} fitAssessment={assessment} />
         </section>
+
+        {tailoringDiagnostics ? (
+          <section data-testid="package-tailoring-diagnostics-top">
+            <PackageTailoringDiagnosticsPanel
+              diagnostics={tailoringDiagnostics}
+              coverLetterId={coverLetter?.id}
+              onFixAction={openFixMode}
+            />
+          </section>
+        ) : null}
 
         <p
           className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"

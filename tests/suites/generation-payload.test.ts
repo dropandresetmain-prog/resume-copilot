@@ -11,6 +11,7 @@ import {
   buildResumeDraftPayloadFromInventory,
   MAX_RESUME_DRAFT_BULLETS,
 } from "../../src/lib/resume-draft/payload";
+import { buildPackageTailoringDiagnostics } from "../../src/lib/package/tailoring-diagnostics";
 import {
   buildResumeDraftPrompt,
   promptIncludesAcceptedWordingRules,
@@ -195,6 +196,25 @@ function main() {
   const prompt = buildResumeDraftPrompt(generationInput);
   const mockDraft = generateMockResumeDraft(generationInput);
   const mockValidation = prepareGeneratedResumeContent(mockDraft.content);
+  const tailoringDiagnostics = buildPackageTailoringDiagnostics({
+    resumeDraft: {
+      id: "tailoring-draft",
+      userId: "user-1",
+      jobDescriptionId: sampleJd.id,
+      content: mockDraft.content,
+      rationale: mockDraft.rationale,
+      inputSnapshot: buildResumeDraftPayloadFromInventory({
+        inventory,
+        jobDescription: sampleJd,
+        referenceResumeId: "resume-1",
+      }).inputSnapshot,
+      status: "generated",
+      schemaVersion: "1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    },
+    jobDescription: sampleJd,
+  });
 
   const payloadBullets = flattenPayloadBulletDescriptions(generationInput);
   const acmeBullet = payloadBullets.find((bullet) => bullet.company === "Acme");
@@ -365,6 +385,17 @@ function main() {
           referenceResumeId: "resume-1",
         }).inputSnapshot.evidenceSpine?.selectedIds.length,
       ),
+    ],
+    [
+      "tailoring diagnostics reads evidence spine snapshot",
+      tailoringDiagnostics.available &&
+        tailoringDiagnostics.selectedEvidence.length > 0 &&
+        tailoringDiagnostics.selectedEvidence[0]!.message.includes("JD relevance"),
+    ],
+    [
+      "tailoring diagnostics builder returns evidence sections",
+      Array.isArray(tailoringDiagnostics.omittedEvidence) &&
+        Array.isArray(tailoringDiagnostics.suggestedActions),
     ],
   ];
 

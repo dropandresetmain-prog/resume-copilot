@@ -27,8 +27,16 @@ function main() {
     join(process.cwd(), "src/components/company-context/CompanyContextPreviewPanel.tsx"),
     "utf8",
   );
+  const tailoringPanel = readFileSync(
+    join(process.cwd(), "src/components/application-package/PackageTailoringDiagnosticsPanel.tsx"),
+    "utf8",
+  );
 
   const fitSummaryIndex = indexOrInfinity(resumePreview, 'data-testid="package-fit-summary-top"');
+  const tailoringDiagnosticsIndex = indexOrInfinity(
+    resumePreview,
+    'data-testid="package-tailoring-diagnostics-top"',
+  );
   const reviewCenterIndex = indexOrInfinity(resumePreview, 'data-testid="package-review-rail"');
   const approveIndex = indexOrInfinity(resumePreview, "exportControls={");
   const editModeIndex = indexOrInfinity(resumePreview, "package-fix-mode-edit-resume");
@@ -58,6 +66,31 @@ function main() {
     ["package structured editor on page", resumePreview.includes("ResumeDraftReviewWorkspace")],
     ["package decision tree", reviewCenter.includes("PackageDecisionTree")],
     ["package fit summary near top", fitSummaryIndex < reviewCenterIndex && fitSummaryIndex < editModeIndex],
+    [
+      "tailoring diagnostics panel wired on package page",
+      resumePreview.includes("PackageTailoringDiagnosticsPanel") &&
+        resumePreview.includes("buildPackageTailoringDiagnostics"),
+    ],
+    [
+      "tailoring diagnostics after fit summary",
+      fitSummaryIndex < tailoringDiagnosticsIndex && tailoringDiagnosticsIndex < reviewCenterIndex,
+    ],
+    [
+      "tailoring diagnostics shows evidence sections",
+      tailoringPanel.includes("Strongest evidence selected") &&
+        tailoringPanel.includes("tailoring-omitted-evidence") &&
+        tailoringPanel.includes("tailoring-cover-letter-proof"),
+    ],
+    [
+      "tailoring diagnostics next actions",
+      tailoringPanel.includes("tailoring-next-actions") &&
+        tailoringPanel.includes("tailoring-fix-resume-evidence") &&
+        tailoringPanel.includes("tailoring-edit-cover-letter-evidence"),
+    ],
+    [
+      "tailoring diagnostics no ai on load copy",
+      tailoringPanel.includes("no AI on page load"),
+    ],
     ["edit resume hidden by default", resumePreview.includes("activeFixMode") && resumePreview.includes('activeFixMode === "edit-resume"')],
     ["back to review control", resumePreview.includes("back-to-package-review")],
     ["review-first banner", resumePreview.includes("package-review-first-banner")],
