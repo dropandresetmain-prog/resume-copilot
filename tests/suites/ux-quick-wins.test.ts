@@ -75,8 +75,8 @@ function main() {
   );
 
   const checks: [string, boolean][] = [
-    ["app version constant", appVersion.includes('APP_VERSION = "0.9.16E"')],
-    ["package json version", packageJson.includes('"version": "0.9.16E"')],
+    ["app version constant", appVersion.includes('APP_VERSION = "0.9.17A"')],
+    ["package json version", packageJson.includes('"version": "0.9.17A"')],
     ["nav version uses shared constant", appNav.includes("APP_VERSION")],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
@@ -244,6 +244,10 @@ function main() {
     [
       "v0.9.15B documented",
       handoff.includes("v0.9.15B") && roadmap.includes("v0.9.15B"),
+    ],
+    [
+      "v0.9.17A documented",
+      handoff.includes("v0.9.17A") && roadmap.includes("v0.9.17A"),
     ],
     [
       "v0.9.16E documented",

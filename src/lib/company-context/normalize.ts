@@ -244,3 +244,34 @@ export function formatCompanyContextForPrompt(context: CompanyContext): string {
     2,
   );
 }
+
+/** Compact company context for resume generation — positioning/framing only. */
+export function formatCompanyContextForResumePrompt(context: CompanyContext): string {
+  const productsAndServices = context.productsAndServices ?? [];
+  const customers = context.customers ?? [];
+  const likelyHiringPriorities = context.likelyHiringPriorities ?? [];
+  const suggestedNarrativeAngles = context.suggestedNarrativeAngles ?? [];
+  const limitations = context.limitations ?? [];
+
+  const companyFacts = [
+    context.companySummary?.trim(),
+    ...productsAndServices.slice(0, 4),
+    ...customers.slice(0, 2),
+    context.industry?.trim(),
+    context.businessModel?.trim(),
+  ].filter((value): value is string => Boolean(value));
+
+  return JSON.stringify({
+    displayName: context.displayName,
+    companyFacts: [...new Set(companyFacts)].slice(0, 6),
+    likelyHiringPriorities: likelyHiringPriorities.slice(0, 5),
+    suggestedNarrativeAngles: suggestedNarrativeAngles.slice(0, 3).map((angle) => ({
+      angle: angle.angle,
+      relevance: angle.relevance,
+      avoidOveremphasizing: (angle.avoidOveremphasizing ?? []).slice(0, 2),
+    })),
+    whyThisRoleMayMatter: context.whyThisRoleMayMatter,
+    confidence: context.confidence,
+    limitations: limitations.slice(0, 4),
+  });
+}

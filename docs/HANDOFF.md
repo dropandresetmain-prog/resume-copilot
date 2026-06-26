@@ -2,7 +2,19 @@
 
 ## Current version
 
-**v0.9.16E** (code)
+**v0.9.17A** (code)
+
+## v0.9.17A implementation note
+
+Phase 0 Prompt & Payload Hygiene: reduces resume/cover letter Gemini input volume and improves company-aware positioning **without** lowering `MAX_RESUME_DRAFT_BULLETS` (still 40) or implementing M1 evidence spine.
+
+**Resume:** compact prompt JSON; prune redundant `rawTexts` in prompt only; shortened system instructions; company context appendix uses `formatCompanyContextForResumePrompt` for positioning/framing (not “light use only”).
+
+**Cover letter:** hiring-argument instruction; tighter anti-generic company language. Evidence universe unchanged (resume draft).
+
+**Safety:** full generation input + validation unchanged; no schema/provider/export changes.
+
+**Next:** M1 Unified Evidence Spine. Manual live QA: [`PHASE0_MANUAL_QA.md`](PHASE0_MANUAL_QA.md).
 
 ## v0.9.16E implementation note
 

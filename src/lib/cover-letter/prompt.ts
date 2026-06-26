@@ -36,6 +36,12 @@ Return ONLY valid JSON matching this schema:
   }
 }
 
+## Hiring argument (critical)
+Write a hiring argument for this candidate — not a resume summary.
+- Lead with why this person fits this role at ${displayCompany}, using evidence-backed stories.
+- Do not restate the resume bullet list or walk chronologically through every role.
+- Each story paragraph should prove a specific role requirement using concrete evidence.
+
 ## Tone (critical)
 Write in a conversational professional style: warm, human, grounded, and specific.
 - Sound natural, not stiff, corporate, salesy, or AI-polished.
@@ -100,12 +106,12 @@ Company fact → Role requirement → Candidate evidence → Why relevant (expli
 13. Never use bracketed placeholder names in final copy.
 
 ## Company context usage (critical)
-- REQUIRED: weave at least 2 company-specific facts into the formal letter.
+- REQUIRED: weave at least 2 company-specific facts into the formal letter (products, customers, industry, hiring priorities — not mission worship).
 - REQUIRED: reference at least 2 role-specific requirements from the JD.
 - REQUIRED: at least 2 explicit company-role-story bridges in rationale AND reflected in prose.
 - Prefer suggestedNarrativeAngles when supported by resume evidence.
-- NEVER write generic admiration such as "I deeply resonate with your mission".
-- Better: connect practical work to what ${displayCompany} appears to need.
+- NEVER write generic admiration ("deeply resonate with your mission", "admire your vision", "inspired by your values").
+- Connect practical work to what ${displayCompany} appears to need — cite specific facts, not feelings about the brand.
 
 ## Formal cover letter structure
 Opening (specific to ${displayCompany} + role)
@@ -186,6 +192,14 @@ export function promptIncludesCoverLetterCompanyContextRules(prompt: string): bo
 
 export function promptRequiresExplicitBridges(prompt: string): boolean {
   return prompt.includes("Company fact → Role requirement → Candidate evidence");
+}
+
+export function promptIncludesHiringArgumentRules(prompt: string): boolean {
+  return (
+    prompt.includes("hiring argument") &&
+    prompt.includes("not a resume summary") &&
+    prompt.includes("evidence-backed stories")
+  );
 }
 
 export function promptExcludesCandidateNamePlaceholder(prompt: string): boolean {

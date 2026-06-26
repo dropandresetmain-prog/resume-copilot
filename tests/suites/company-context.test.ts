@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { generateMockCompanyContext } from "../../src/lib/ai/company-context-mock";
 import { buildFallbackCompanyContext } from "../../src/lib/company-context/build-company-context";
 import { GEMINI_END_TO_END_CALL_MAP } from "../../src/lib/company-context/gemini-call-map";
-import { hasUsableCompanyContext, formatCompanyContextForPrompt } from "../../src/lib/company-context/normalize";
+import { hasUsableCompanyContext, formatCompanyContextForPrompt, formatCompanyContextForResumePrompt } from "../../src/lib/company-context/normalize";
 import {
   parseCompanyContextJson,
   validateCompanyContextForSave,
@@ -19,7 +19,10 @@ import {
   buildCoverLetterPrompt,
   promptIncludesCoverLetterCompanyContextRules,
 } from "../../src/lib/cover-letter/prompt";
-import { buildResumeDraftPrompt } from "../../src/lib/resume-draft/prompt";
+import {
+  buildResumeDraftPrompt,
+  promptIncludesResumeCompanyContextRules,
+} from "../../src/lib/resume-draft/prompt";
 import { createJobDescriptionFromInput } from "../../src/lib/jd/persistence";
 import type { CompanyContext } from "../../src/types/company-context";
 
@@ -158,7 +161,9 @@ function main() {
     ["saved context preferred over fallback", resolvedWithSaved.companySummary === saved.companySummary],
     ["generation works without saved context", hasUsableCompanyContext(resolvedWithoutSaved)],
     ["format for prompt includes summary", formatCompanyContextForPrompt(saved).includes("Digital bank")],
-    ["resume prompt includes company context lightly", resumePrompt.includes("Saved company context")],
+    ["resume company context formatter is compact", formatCompanyContextForResumePrompt(saved).includes("likelyHiringPriorities") && !formatCompanyContextForResumePrompt(saved).includes("sources")],
+    ["resume prompt includes company context positioning rules", promptIncludesResumeCompanyContextRules(resumePrompt)],
+    ["resume prompt avoids light use only wording", !resumePrompt.includes("light use only")],
     ["cover prompt avoids generic admiration", promptIncludesCoverLetterCompanyContextRules(coverPrompt)],
     ["gemini call map includes company context step", GEMINI_END_TO_END_CALL_MAP.some((step) => step.route === "/api/ai/generate-company-context")],
     ["schema has company_context column", schema.includes("company_context jsonb")],

@@ -13,6 +13,7 @@ import {
   buildCoverLetterPrompt,
   promptExcludesCandidateNamePlaceholder,
   promptIncludesBannedPhraseRules,
+  promptIncludesHiringArgumentRules,
   promptIncludesPunctuationRules,
   promptIncludesToneRules,
 } from "../../src/lib/cover-letter/prompt";
@@ -167,6 +168,7 @@ function main() {
     ],
     ["banned phrase detection finds founder-operator", detectBannedPhrases("founder-operator").length > 0],
     ["prompt includes tone rules", promptIncludesToneRules(prompt)],
+    ["prompt includes hiring argument rules", promptIncludesHiringArgumentRules(prompt)],
     ["prompt includes punctuation rules", promptIncludesPunctuationRules(prompt)],
     ["prompt includes banned phrase rules", promptIncludesBannedPhraseRules(prompt)],
     [

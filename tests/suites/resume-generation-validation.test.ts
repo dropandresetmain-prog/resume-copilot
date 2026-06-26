@@ -12,6 +12,8 @@ import {
   promptIncludesSkillsInterestsStructure,
   promptIncludesAcceptedWordingRules,
   promptIncludesKeywordDistinctionRules,
+  promptIncludesSourceRefsRules,
+  promptUsesCompactJsonPayload,
 } from "../../src/lib/resume-draft/prompt";
 import {
   DEFAULT_ADDITIONAL_EXPERIENCE_TITLE,
@@ -311,6 +313,8 @@ function main() {
     ["prompt includes skills interests structure", promptIncludesSkillsInterestsStructure(prompt)],
     ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
+    ["prompt includes sourceRefs rules", promptIncludesSourceRefsRules(prompt)],
+    ["prompt uses compact json payload", promptUsesCompactJsonPayload(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
     ["invalid draft still missing skills after repair", !invalidPrepared.validation.ok],
     [

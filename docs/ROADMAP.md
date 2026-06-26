@@ -2,12 +2,13 @@
 
 ## Current version
 
-**v0.9.16E**
+**v0.9.17A**
 
 ## Completed capabilities
 
 | Capability | Introduced |
 |------------|------------|
+| Phase 0 prompt & payload hygiene (pre–M1) | v0.9.17A |
 | Application record archive (hide from list, retain drafts) | v0.9.16E |
 | Inventory editing (bullet hide/edit overlay) | v0.7.7 |
 | AI enrichment review | v0.4.x |
@@ -55,6 +56,14 @@
 | Inventory project overlay cleanup audit & repair | v0.9.16D |
 
 ## Milestone log (recent)
+
+### v0.9.17A - Phase 0 Prompt & Payload Hygiene
+
+- Compact resume prompt JSON; redundant rawTexts pruned in prompt only (`MAX_RESUME_DRAFT_BULLETS` still 40).
+- Resume company context appendix for positioning/framing via `formatCompanyContextForResumePrompt`.
+- Shortened resume system instructions; v0.9.16A guardrails preserved.
+- Cover letter: hiring-argument instruction; tighter anti-generic company language.
+- **Next:** M1 Unified Evidence Spine. Manual QA: `PHASE0_MANUAL_QA.md`.
 
 ### v0.9.16E - Application Record Delete / Archive
 

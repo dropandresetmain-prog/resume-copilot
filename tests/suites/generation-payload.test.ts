@@ -15,8 +15,15 @@ import {
   promptIncludesJdReframingRules,
   promptIncludesKeywordDistinctionRules,
   promptIncludesRationaleQualityRules,
+  promptIncludesResumeCompanyContextRules,
   promptIncludesSeniorRoleSelectionRules,
+  promptIncludesSourceRefsRules,
+  promptUsesCompactJsonPayload,
 } from "../../src/lib/resume-draft/prompt";
+import {
+  pruneRedundantRawTexts,
+  serializeResumeDraftPromptPayload,
+} from "../../src/lib/resume-draft/prompt-payload";
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
 import { prepareGeneratedResumeContent } from "../../src/lib/resume-draft/generation-validation";
 import type { InventoryState } from "../../src/types/resume";
@@ -310,6 +317,8 @@ function main() {
     ["prompt includes senior role selection rules", promptIncludesSeniorRoleSelectionRules(prompt)],
     ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
+    ["prompt includes sourceRefs rules", promptIncludesSourceRefsRules(prompt)],
+    ["prompt uses compact json payload", promptUsesCompactJsonPayload(prompt)],
     ["prompt includes audit schema", prompt.includes("selectionAudit")],
     ["mock draft passes validation", mockValidation.validation.ok],
     ["mock rationale includes selection audit", Boolean(mockDraft.rationale.selectionAudit?.selectedBulletKeys?.length)],
@@ -320,6 +329,25 @@ function main() {
     ],
     ["mock uses accepted wording in output when present", mockDraft.content.experience.some((role) => role.bullets.some((bullet) => bullet.text.includes("modernization")))],
     ["default bullet cap remains 40", MAX_RESUME_DRAFT_BULLETS === 40],
+    [
+      "prune rawTexts drops duplicate of description",
+      pruneRedundantRawTexts(["Led product operations improvements"], "Led product operations improvements").length === 0,
+    ],
+    [
+      "prune rawTexts keeps distinct metric variant",
+      pruneRedundantRawTexts(
+        ["Led product operations improvements saving S$200k annually"],
+        "Led product operations improvements",
+      ).length === 1,
+    ],
+    [
+      "compact prompt payload omits duplicate rawTexts",
+      !serializeResumeDraftPromptPayload(generationInput).includes('"rawTexts":["Led product operations improvements"]'),
+    ],
+    [
+      "generation input still retains full rawTexts for validation",
+      generationInput.experiences[0]?.bullets[0]?.rawTexts.length === 1,
+    ],
   ];
 
   const hiddenInventory = buildLegacyHeavyInventory();
