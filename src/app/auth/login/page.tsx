@@ -1,35 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signInWithPassword, signInWithGoogle } from "@/lib/supabase/auth";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  signInWithGoogle,
+  signInWithMagicLink,
+  signInWithPassword,
+} from "@/lib/supabase/auth";
+
+type AuthMethod = "password" | "magic_link";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="w-full max-w-[400px] bg-white rounded-[12px] border border-folio-outline-variant/50 px-8 py-10">
+      <p className="text-center text-[22px] font-bold text-folio-primary mb-2">Folio</p>
+      <p className="text-center text-sm text-folio-outline">Loading…</p>
+    </div>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") ?? "/dashboard";
+
+  const [method, setMethod] = useState<AuthMethod>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function switchMethod(nextMethod: AuthMethod) {
+    setMethod(nextMethod);
+    setErrors({});
+    setSuccessMessage(null);
+  }
 
   function validate() {
     const next: typeof errors = {};
     if (!email.trim()) next.email = "Email is required.";
-    if (!password) next.password = "Password is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      next.email = "Enter a valid email address.";
+    }
+    if (method === "password" && !password) next.password = "Password is required.";
     return next;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const v = validate();
-    if (Object.keys(v).length) { setErrors(v); return; }
+    if (Object.keys(v).length) {
+      setErrors(v);
+      return;
+    }
     setErrors({});
+    setSuccessMessage(null);
     setLoading(true);
     try {
-      await signInWithPassword(email, password);
-      router.push("/dashboard");
+      if (method === "magic_link") {
+        await signInWithMagicLink(email, nextPath);
+        setSuccessMessage("Check your email for the sign-in link.");
+      } else {
+        await signInWithPassword(email, password);
+        router.push(nextPath);
+      }
     } catch (err: unknown) {
-      setErrors({ form: err instanceof Error ? err.message : "Sign in failed." });
+      setErrors({
+        form: err instanceof Error ? err.message : "Sign in failed.",
+      });
     } finally {
       setLoading(false);
     }
@@ -45,13 +93,11 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-[400px] bg-white rounded-[12px] border border-folio-outline-variant/50 px-8 py-10">
-      {/* Wordmark */}
       <p className="text-center text-[22px] font-bold text-folio-primary mb-2">Folio</p>
       <h1 className="text-center text-[20px] font-medium text-folio-on-surface mb-8">
         Sign in to your account
       </h1>
 
-      {/* Google */}
       <button
         type="button"
         onClick={handleGoogle}
@@ -61,55 +107,116 @@ export default function LoginPage() {
         Continue with Google
       </button>
 
-      {/* Divider */}
       <div className="flex items-center gap-3 mb-5">
         <div className="flex-1 h-px bg-folio-outline-variant" />
         <span className="text-[12px] text-folio-outline">or continue with email</span>
         <div className="flex-1 h-px bg-folio-outline-variant" />
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Email sign-in method"
+        className="mb-4 grid grid-cols-2 gap-1 rounded-[8px] border border-folio-outline-variant bg-folio-surface-container-low p-1"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={method === "password"}
+          onClick={() => switchMethod("password")}
+          className={`rounded-[6px] px-2 py-2 text-[13px] font-medium transition ${
+            method === "password"
+              ? "bg-white text-folio-on-surface shadow-sm"
+              : "text-folio-outline hover:text-folio-on-surface"
+          }`}
+        >
+          Password
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={method === "magic_link"}
+          onClick={() => switchMethod("magic_link")}
+          className={`rounded-[6px] px-2 py-2 text-[13px] font-medium transition ${
+            method === "magic_link"
+              ? "bg-white text-folio-on-surface shadow-sm"
+              : "text-folio-outline hover:text-folio-on-surface"
+          }`}
+        >
+          Magic link
+        </button>
+      </div>
+
+      {method === "magic_link" ? (
+        <p className="mb-4 rounded-[8px] border border-folio-sage-border bg-folio-surface-teal-ghost px-3 py-2 text-[12px] text-folio-on-surface-variant">
+          No password needed. We&apos;ll email you a one-time sign-in link — use this if your
+          account was created without a password.
+        </p>
+      ) : null}
+
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         {errors.form && (
           <p className="text-[12px] text-folio-error">{errors.form}</p>
         )}
+        {successMessage && (
+          <p className="rounded-[8px] border border-folio-sage-border bg-folio-mint-surface px-3 py-2 text-[12px] text-folio-on-surface-variant">
+            {successMessage}
+          </p>
+        )}
 
         <div className="flex flex-col gap-1">
-          <label className="text-[12px] text-folio-on-surface-variant" htmlFor="email">Email address</label>
+          <label className="text-[12px] text-folio-on-surface-variant" htmlFor="email">
+            Email address
+          </label>
           <input
             id="email"
             type="email"
             autoComplete="email"
             placeholder="name@company.com"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface placeholder:text-folio-outline focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
           />
           {errors.email && <p className="text-[12px] text-folio-error">{errors.email}</p>}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] text-folio-on-surface-variant" htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Your password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface placeholder:text-folio-outline focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
-          />
-          {errors.password && <p className="text-[12px] text-folio-error">{errors.password}</p>}
-          <Link href="/auth/forgot-password" className="text-[12px] text-folio-primary-container hover:underline self-start">
-            Forgot password?
-          </Link>
-        </div>
+        {method === "password" ? (
+          <div className="flex flex-col gap-1">
+            <label className="text-[12px] text-folio-on-surface-variant" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface placeholder:text-folio-outline focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
+            />
+            {errors.password && (
+              <p className="text-[12px] text-folio-error">{errors.password}</p>
+            )}
+            <Link
+              href="/auth/forgot-password"
+              className="text-[12px] text-folio-primary-container hover:underline self-start"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        ) : null}
 
         <button
           type="submit"
           disabled={loading}
           className="h-11 rounded-[8px] bg-folio-cta-secondary text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-60 mt-1"
         >
-          {loading ? "Signing in…" : "Sign in"}
+          {loading
+            ? method === "magic_link"
+              ? "Sending link…"
+              : "Signing in…"
+            : method === "magic_link"
+              ? "Send magic link"
+              : "Sign in"}
         </button>
       </form>
 
@@ -124,7 +231,6 @@ export default function LoginPage() {
 }
 
 function GoogleIcon() {
-  // Google brand colours
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>

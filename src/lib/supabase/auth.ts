@@ -33,14 +33,18 @@ export async function signUpWithPassword(email: string, password: string) {
   return data;
 }
 
-export async function signInWithMagicLink(email: string) {
+export async function signInWithMagicLink(
+  email: string,
+  redirectPath = "/dashboard",
+) {
   const supabase = getSupabaseClient();
+  const emailRedirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`
+      : undefined;
   const { data, error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
-    options: {
-      emailRedirectTo:
-        typeof window !== "undefined" ? `${window.location.origin}/setup` : undefined,
-    },
+    options: { emailRedirectTo },
   });
   if (error) throw new Error(error.message);
   return data;
