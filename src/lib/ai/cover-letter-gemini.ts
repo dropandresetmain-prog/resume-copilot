@@ -22,6 +22,74 @@ export type CoverLetterGeminiResult = CoverLetterGenerationResult & {
   modelFallbackApplied: boolean;
 };
 
+const STRING_ARRAY_SCHEMA = {
+  type: "array",
+  items: { type: "string" },
+} as const;
+
+export const COVER_LETTER_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    formalCoverLetter: {
+      type: "object",
+      properties: {
+        content: { type: "string" },
+        wordCount: { type: "integer" },
+      },
+      required: ["content", "wordCount"],
+    },
+    emailCoverLetter: {
+      type: "object",
+      properties: { content: { type: "string" } },
+      required: ["content"],
+    },
+    linkedinMessage: {
+      type: "object",
+      properties: { content: { type: "string" } },
+      required: ["content"],
+    },
+    recruiterDm: {
+      type: "object",
+      properties: { content: { type: "string" } },
+      required: ["content"],
+    },
+    whatsappIntro: {
+      type: "object",
+      properties: { content: { type: "string" } },
+      required: ["content"],
+    },
+    rationale: {
+      type: "object",
+      properties: {
+        selectedThemes: STRING_ARRAY_SCHEMA,
+        whyTheseThemes: { type: "string" },
+        selectedCompanyFacts: STRING_ARRAY_SCHEMA,
+        selectedRoleRequirements: STRING_ARRAY_SCHEMA,
+        companyRoleStoryBridges: STRING_ARRAY_SCHEMA,
+        companyContextUsed: STRING_ARRAY_SCHEMA,
+        riskFlags: STRING_ARRAY_SCHEMA,
+      },
+      required: [
+        "selectedThemes",
+        "whyTheseThemes",
+        "selectedCompanyFacts",
+        "selectedRoleRequirements",
+        "companyRoleStoryBridges",
+        "companyContextUsed",
+        "riskFlags",
+      ],
+    },
+  },
+  required: [
+    "formalCoverLetter",
+    "emailCoverLetter",
+    "linkedinMessage",
+    "recruiterDm",
+    "whatsappIntro",
+    "rationale",
+  ],
+} as const;
+
 async function callGeminiJson(
   apiKey: string,
   prompt: string,
@@ -33,6 +101,7 @@ async function callGeminiJson(
     prompt,
     temperature: 0.3,
     responseMimeType: "application/json",
+    responseSchema: COVER_LETTER_RESPONSE_SCHEMA,
     models: resolveModelsForTier(modelTier),
     logicalStep,
     modelTier,

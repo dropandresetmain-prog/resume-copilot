@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { generateMockCoverLetter } from "../../src/lib/ai/cover-letter-mock";
+import { COVER_LETTER_RESPONSE_SCHEMA } from "../../src/lib/ai/cover-letter-gemini";
 import { reviseMockCoverLetter } from "../../src/lib/ai/revise-cover-letter-mock";
 import { buildCompanyContext, resolveCompanyNameForGeneration } from "../../src/lib/company-context/build-company-context";
 import { detectBannedPhrases, hasBannedPhrases } from "../../src/lib/cover-letter/banned-phrases";
@@ -213,6 +214,14 @@ function main() {
       },
     }),
   );
+  const flatProviderShape = parseCoverLetterJson(
+    JSON.stringify({
+      formalContent: mock.formalContent,
+      rationale: mock.rationale,
+    }),
+  );
+  const formalCoverLetterSchema =
+    COVER_LETTER_RESPONSE_SCHEMA.properties.formalCoverLetter;
 
   const profilePage = readFileSync(
     join(process.cwd(), "src/components/pages/ProfilePageClient.tsx"),
@@ -772,6 +781,16 @@ function main() {
     ["mock secondary email present", mock.rationale.emailCoverLetter.length > 0],
     ["validation accepts mock formal letter", validation.ok],
     ["parser accepts formal cover letter json", parsed.ok === true],
+    [
+      "provider schema requires formalCoverLetter.content",
+      COVER_LETTER_RESPONSE_SCHEMA.required.includes("formalCoverLetter") &&
+        formalCoverLetterSchema.required.includes("content"),
+    ],
+    [
+      "parser still rejects uncontracted flat provider shape",
+      flatProviderShape.ok === false &&
+        flatProviderShape.error === "Missing formalCoverLetter.content.",
+    ],
     ["pdf html renders paragraphs", renderCoverLetterPdfHtml("Dear Hiring Manager,\n\nBody.").includes("<p>")],
     ["profile page saves communication profile", profilePage.includes("saveApplicationCommunicationProfileToCloud")],
     ["generate supports combined mode", generateSection.includes("resume_and_cover_letter")],

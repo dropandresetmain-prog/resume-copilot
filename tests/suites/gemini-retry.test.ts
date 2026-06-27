@@ -5,12 +5,14 @@ import {
   GEMINI_MAX_ATTEMPTS,
   GEMINI_RETRY_DELAYS_MS,
   GeminiHttpError,
+  buildGeminiGenerationConfig,
   isGeminiModelUnavailableError,
   isTransientGeminiError,
   isTransientGeminiHttpStatus,
   logGeminiCallMetadata,
 } from "../../src/lib/ai/call-gemini";
 import { GEMINI_MODEL_FALLBACK, GEMINI_MODEL_PRIMARY } from "../../src/lib/ai/config";
+import { COVER_LETTER_RESPONSE_SCHEMA } from "../../src/lib/ai/cover-letter-gemini";
 import { toCoverLetterApiResponse } from "../../src/lib/ai/cover-letter-provider";
 import { toResumeDraftApiResponse } from "../../src/lib/ai/resume-draft-provider";
 import {
@@ -74,6 +76,11 @@ function main() {
   }
 
   const premiumModels = resolveModelsForTier("premium");
+  const coverLetterGenerationConfig = buildGeminiGenerationConfig({
+    temperature: 0.3,
+    responseMimeType: "application/json",
+    responseSchema: COVER_LETTER_RESPONSE_SCHEMA,
+  });
   const resumeApiResponse = toResumeDraftApiResponse(
     {
       content: {
@@ -166,6 +173,11 @@ function main() {
     ["company context uses callGeminiWithRetry", companyContextGemini.includes("callGeminiWithRetry")],
     ["resume uses callGeminiWithRetry", resumeGemini.includes("callGeminiWithRetry")],
     ["cover letter uses callGeminiWithRetry", coverGemini.includes("callGeminiWithRetry")],
+    [
+      "cover letter generation config carries structured output schema",
+      coverLetterGenerationConfig.responseMimeType === "application/json" &&
+        coverLetterGenerationConfig.responseSchema === COVER_LETTER_RESPONSE_SCHEMA,
+    ],
     ["revision uses callGeminiWithRetry", reviseGemini.includes("callGeminiWithRetry")],
     ["standard tier maps to gemini-2.5-flash", getPrimaryModelIdForTier("standard") === "gemini-2.5-flash"],
     [
