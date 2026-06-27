@@ -45,12 +45,28 @@ export type CallGeminiGenerateContentOptions = {
   prompt: string;
   temperature: number;
   responseMimeType?: string;
+  responseSchema?: Record<string, unknown>;
   model?: string;
   signal?: AbortSignal;
 };
 
 function buildGeminiUrl(model: string, apiKey: string): string {
   return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+}
+
+export function buildGeminiGenerationConfig(
+  options: Pick<
+    CallGeminiGenerateContentOptions,
+    "temperature" | "responseMimeType" | "responseSchema"
+  >,
+): Record<string, unknown> {
+  return {
+    temperature: options.temperature,
+    ...(options.responseMimeType
+      ? { responseMimeType: options.responseMimeType }
+      : {}),
+    ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
+  };
 }
 
 function extractGeminiText(payload: {
@@ -72,12 +88,9 @@ export async function callGeminiGenerateContent(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: options.prompt }] }],
-      generationConfig: {
-        temperature: options.temperature,
-        ...(options.responseMimeType
-          ? { responseMimeType: options.responseMimeType }
-          : {}),
-      },
+      // The provider boundary must carry any requested schema; callers still validate
+      // semantic constraints after Gemini returns schema-conforming JSON.
+      generationConfig: buildGeminiGenerationConfig(options),
     }),
     signal: options.signal,
   });
