@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 
 import {
   fetchProviderStatus,
@@ -253,7 +253,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setIsCloudLoading(false);
     }
 
-    async function handleAuthSession(session: { user: User } | null) {
+    async function handleAuthSession(session: Session | null) {
       const nextUser = session?.user ?? null;
       setUser(nextUser);
       if (!nextUser) {
@@ -263,11 +263,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       await syncSignedInUser();
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (cancelled) return;
-      void handleAuthSession(session);
+      await handleAuthSession(session);
       setStorageReady(true);
-    });
+    })();
 
     const {
       data: { subscription },
