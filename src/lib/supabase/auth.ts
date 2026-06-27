@@ -29,11 +29,12 @@ export async function signInWithPassword(email: string, password: string) {
   return data;
 }
 
-export async function signUpWithPassword(email: string, password: string) {
+export async function signUpWithPassword(email: string, password: string, emailRedirectTo?: string) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
   });
   if (error) throw new Error(error.message);
   return data;

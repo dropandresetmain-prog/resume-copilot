@@ -15,11 +15,12 @@ function isAuthedAuthException(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const isRootPath = pathname === "/";
   const isProtected = PROTECTED_PREFIXES.some(p => pathname.startsWith(p));
   const isAuthRoute = AUTH_PREFIXES.some(p => pathname.startsWith(p));
 
   // Fast exit — no auth check needed for unrelated routes
-  if (!isProtected && !isAuthRoute) return NextResponse.next();
+  if (!isProtected && !isAuthRoute && !isRootPath) return NextResponse.next();
 
   const response = NextResponse.next({ request });
 
@@ -44,6 +45,12 @@ export async function middleware(request: NextRequest) {
   // getUser() validates the JWT and refreshes the session if needed
   const { data: { user } } = await supabase.auth.getUser();
   const hasSession = Boolean(user);
+
+  // Signed-in users visiting the landing page go straight to the app
+  if (isRootPath && hasSession) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+  if (isRootPath) return response;
 
   if (isProtected && !hasSession) {
     const loginUrl = new URL("/auth/login", request.url);

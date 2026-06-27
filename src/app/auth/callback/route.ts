@@ -52,8 +52,9 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
-      return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+      return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`);
     }
+    // OAuth codes always land on dashboard (next defaults to /dashboard)
     return NextResponse.redirect(`${origin}${next}`);
   }
 
@@ -64,11 +65,18 @@ export async function GET(request: Request) {
     });
     if (error) {
       console.error("[auth/callback] verifyOtp failed:", error.message);
-      return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+      return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`);
     }
-    const recoveryNext = type === "recovery" ? "/auth/reset-password" : next;
-    return NextResponse.redirect(`${origin}${recoveryNext}`);
+    // Type-based dispatch: each email OTP flow has a fixed destination
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/auth/reset-password`);
+    }
+    if (type === "signup" || type === "email_change") {
+      return NextResponse.redirect(`${origin}/onboarding`);
+    }
+    // magic link and other OTP types respect the next param
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+  return NextResponse.redirect(`${origin}/auth/login?error=confirmation_failed`);
 }

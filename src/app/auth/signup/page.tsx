@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signUpWithPassword, signInWithGoogle } from "@/lib/supabase/auth";
+import { signUpWithPassword, signInWithGoogle, buildAuthCallbackUrl } from "@/lib/supabase/auth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function SignupPage() {
     setErrors({});
     setLoading(true);
     try {
-      const result = await signUpWithPassword(email, password);
+      const result = await signUpWithPassword(email, password, buildAuthCallbackUrl("/onboarding"));
       // When email confirmation is required, Supabase returns no session.
       // Route the user to a holding page rather than a protected route they
       // cannot access yet.

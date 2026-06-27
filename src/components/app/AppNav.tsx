@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { NavIcon } from "@/components/app/NavIcon";
 import {
@@ -40,13 +40,13 @@ function NavItem({
 
 export function AppNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   async function handleSignOut() {
     try {
       await signOut();
     } finally {
-      router.push("/auth/login");
+      // Full navigation so middleware sees the cleared session cookie
+      window.location.assign("/auth/login");
     }
   }
 
