@@ -1,6 +1,12 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+/** Client-side redirect target after Supabase email/OAuth flows complete. */
+export function buildAuthCallbackUrl(redirectPath = "/dashboard"): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`;
+}
+
 export async function getCurrentUser(): Promise<User> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.getUser();
@@ -38,14 +44,26 @@ export async function signInWithMagicLink(
   redirectPath = "/dashboard",
 ) {
   const supabase = getSupabaseClient();
-  const emailRedirectTo =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`
-      : undefined;
   const { data, error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
-    options: { emailRedirectTo },
+    options: { emailRedirectTo: buildAuthCallbackUrl(redirectPath) },
   });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function requestPasswordReset(email: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: buildAuthCallbackUrl("/auth/reset-password"),
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updatePassword(newPassword: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error(error.message);
   return data;
 }
@@ -55,7 +73,7 @@ export async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+      redirectTo: buildAuthCallbackUrl("/dashboard"),
     },
   });
   if (error) throw new Error(error.message);

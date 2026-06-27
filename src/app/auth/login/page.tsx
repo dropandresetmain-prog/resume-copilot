@@ -32,6 +32,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
+  const callbackError = searchParams.get("error");
 
   const [method, setMethod] = useState<AuthMethod>("password");
   const [email, setEmail] = useState("");
@@ -154,6 +155,11 @@ function LoginPageContent() {
       ) : null}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        {callbackError === "auth_callback_failed" && !errors.form && (
+          <p className="text-[12px] text-folio-error">
+            Sign-in link expired or invalid. Request a new magic link or password reset.
+          </p>
+        )}
         {errors.form && (
           <p className="text-[12px] text-folio-error">{errors.form}</p>
         )}

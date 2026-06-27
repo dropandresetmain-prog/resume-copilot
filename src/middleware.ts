@@ -4,6 +4,14 @@ import { type NextRequest, NextResponse } from "next/server";
 const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/records", "/inventory", "/generate", "/output", "/settings", "/profile", "/resume-preview", "/cover-letter-preview"];
 const AUTH_PREFIXES = ["/auth"];
 
+/** Auth routes that must stay reachable while signed in (recovery, callback). */
+function isAuthedAuthException(pathname: string): boolean {
+  return (
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/auth/reset-password")
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -43,7 +51,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthRoute && hasSession) {
+  if (isAuthRoute && hasSession && !isAuthedAuthException(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

@@ -1,10 +1,74 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-// Supabase OAuth redirects here after Google sign-in.
-// The client-side Supabase JS picks up the token from the URL fragment automatically.
-// We just redirect to the right place and let the client handle session storage.
+import type { EmailOtpType } from "@supabase/supabase-js";
+
+function safeRedirectPath(value: string | null, fallback: string): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+  return value;
+}
+
+function supabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anonKey) return null;
+  return { url, anonKey };
+}
+
+// Supabase email links (magic link, password recovery) and OAuth land here with a
+// one-time code or token_hash. We must exchange/verify before redirecting — otherwise
+// the user keeps an anonymous session and lands on the public homepage.
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const next = url.searchParams.get("next") ?? "/dashboard";
-  return NextResponse.redirect(new URL(next, url.origin));
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
+  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const type = requestUrl.searchParams.get("type");
+  const next = safeRedirectPath(requestUrl.searchParams.get("next"), "/dashboard");
+  const origin = requestUrl.origin;
+
+  const config = supabaseConfig();
+  if (!config) {
+    return NextResponse.redirect(`${origin}/auth/login?error=supabase_not_configured`);
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(config.url, config.anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  });
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
+      return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+    }
+    return NextResponse.redirect(`${origin}${next}`);
+  }
+
+  if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({
+      type: type as EmailOtpType,
+      token_hash: tokenHash,
+    });
+    if (error) {
+      console.error("[auth/callback] verifyOtp failed:", error.message);
+      return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+    }
+    const recoveryNext = type === "recovery" ? "/auth/reset-password" : next;
+    return NextResponse.redirect(`${origin}${recoveryNext}`);
+  }
+
+  return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
 }
