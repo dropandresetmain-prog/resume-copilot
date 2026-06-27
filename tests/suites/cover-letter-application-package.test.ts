@@ -27,6 +27,7 @@ import {
   rankExperiencesForRole,
   documentStoryRankingMethodology,
 } from "../../src/lib/cover-letter/story-ranking";
+import { REGENERATE_COVER_LETTER_CONFIRM } from "../../src/lib/generate/cover-letter-generation";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "../../src/types/resume-draft";
 import type { GeneratedResumeDraftRecord } from "../../src/types/resume-draft";
 
@@ -201,8 +202,9 @@ function main() {
       resumePreview.includes("CompanyContextPreviewPanel") && resumePreview.includes("defaultOpen={false}"),
     ],
     [
-      "combined generation lands on resume preview",
-      generateSection.includes("router.push(`/resume-preview/${context.resumeDraft.id}`)"),
+      "combined generation lands on canonical output",
+      generateSection.includes("router.push(`/output/${context.resumeDraft.id}`)") &&
+        !generateSection.includes("router.push(`/resume-preview/"),
     ],
     [
       "cover letter export uses structured filename",
@@ -278,7 +280,7 @@ function main() {
       "regenerate cover letter confirms resume unchanged",
       coverLetterPreviewPage.includes("REGENERATE_COVER_LETTER_CONFIRM") &&
         coverLetterPreviewPage.includes("window.confirm") &&
-        stagedRevisionPanel.includes("resume unchanged"),
+        REGENERATE_COVER_LETTER_CONFIRM.includes("Your resume draft will not change."),
     ],
     [
       "regenerate cover letter does not call resume generation",
