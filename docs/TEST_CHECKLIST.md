@@ -35,9 +35,19 @@ Older milestone checklists were removed during repo cleanup. Completed phase doc
 
 ---
 
-## Application package
+## Canonical Generate → Output
 
-- [ ] Post-generate lands on `/resume-preview/{id}`
+- [ ] Combined generation lands on `/output/{resumeDraftId}`
+- [ ] Resume-only generation lands on `/output/{resumeDraftId}`
+- [ ] Resume success + cover-letter failure preserves the resume and offers cover-letter-only retry
+- [ ] Direct `/output/{resumeDraftId}` reload loads persisted resume, application, and cover-letter state
+- [ ] Missing cover letter is shown honestly; a failed lookup is not treated as confirmed absence
+
+---
+
+## Legacy application package
+
+- [ ] `/resume-preview/{id}` remains reachable for legacy drafts
 - [ ] Evidence tailoring panel below AI fit summary
 - [ ] Review-first layout: fit summary and review rail before prominent preview
 - [ ] Approve → export sequence in review center (no duplicate approve on resume card)

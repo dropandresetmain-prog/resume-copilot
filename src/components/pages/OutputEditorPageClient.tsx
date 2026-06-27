@@ -365,6 +365,8 @@ function CoverLetterTab({
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [body, setBody] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<CoverLetterRevisionAction | null>(null);
   const [tone, setTone] = useState<ToneOption>("balanced");
@@ -378,6 +380,7 @@ function CoverLetterTab({
 
     async function load() {
       setIsLoading(true);
+      setLoadError(null);
       setError(null);
       try {
         const record = await findCoverLetterDraftByResumeDraftId(resumeDraft.id);
@@ -391,7 +394,9 @@ function CoverLetterTab({
       } catch (loadError) {
         if (cancelled) return;
         setCoverLetter(null);
-        setError(
+        // A failed persisted lookup is not proof that no cover letter exists.
+        // Keep creation disabled until the read succeeds to avoid duplicate drafts.
+        setLoadError(
           loadError instanceof Error ? loadError.message : "Failed to load cover letter.",
         );
       } finally {
@@ -403,7 +408,7 @@ function CoverLetterTab({
     return () => {
       cancelled = true;
     };
-  }, [resumeDraft.id]);
+  }, [resumeDraft.id, loadAttempt]);
 
   const linkedJob = useMemo<StoredJobDescription | null>(() => {
     const jobId = coverLetter?.jobDescriptionId ?? resumeDraft.jobDescriptionId;
@@ -535,6 +540,25 @@ function CoverLetterTab({
     return (
       <div className="mt-5 rounded-xl border border-folio-sage-border bg-white px-6 py-16 text-center">
         <p className="text-sm text-folio-outline">Loading cover letter…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mt-5 flex flex-col items-center rounded-xl border border-[#f3c0bd] bg-[#fdeceb] px-6 py-16 text-center">
+        <p className="text-sm font-medium text-[#ba1a1a]">Cover letter unavailable</p>
+        <p className="mt-2 max-w-lg text-sm text-[#ba1a1a]">
+          We could not verify whether a cover letter is already saved. No new draft was created.
+        </p>
+        <p className="mt-2 max-w-lg text-xs text-[#ba1a1a]">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+          className={`mt-4 ${GHOST_BUTTON}`}
+        >
+          Retry loading
+        </button>
       </div>
     );
   }

@@ -330,10 +330,7 @@ async function main() {
     [
       "generate secondary options hide cover letter model",
       generateSection.includes("More options (optional)") &&
-        generateSection.includes('label="Cover letter model"') &&
-        generateSection.indexOf("More options (optional)") <
-          generateSection.indexOf('label="Cover letter model"') &&
-        generateSection.includes("Models · job URL · website · instructions"),
+        !generateSection.includes('label="Cover letter model"'),
     ],
     [
       "saved jobs default limit with show more",
@@ -430,6 +427,20 @@ async function main() {
     ["duplicate detection still works", Boolean(findDuplicateJobDescription([existingJob], duplicateInput))],
     ["generate flow ensures application record", generateSection.includes("ensureApplicationRecordForJobDescription")],
     ["generate flow links draft to application", generateSection.includes("applicationId: applicationRecord.id")],
+    [
+      "combined generation navigates with saved resume draft id",
+      generateSection.includes("router.push(`/output/${context.resumeDraft.id}`)") &&
+        !generateSection.includes("router.push(`/resume-preview/"),
+    ],
+    [
+      "resume-only generation navigates with saved resume draft id",
+      generateSection
+        .slice(
+          generateSection.indexOf('setCoverLetterStatus("pending");'),
+          generateSection.indexOf("} catch (generationError)"),
+        )
+        .includes("router.push(`/output/${context.resumeDraft.id}`)"),
+    ],
     [
       "generate shows ai step estimate",
       generateSection.includes('data-testid="generate-ai-step-estimate"') &&

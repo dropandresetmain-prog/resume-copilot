@@ -51,6 +51,10 @@ function main() {
     join(process.cwd(), "src/components/setup/ApplicationRecordsPanel.tsx"),
     "utf8",
   );
+  const outputEditor = readFileSync(
+    join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
+    "utf8",
+  );
 
   const resumeDraft = buildSampleResumeDraft();
   const job = createJobDescriptionFromInput({
@@ -132,6 +136,33 @@ function main() {
           generateSection.indexOf("const failureKind"),
         )
         .includes("createGeneratedResumeDraftInCloud"),
+    ],
+    [
+      "cover letter retry returns to output with the saved resume draft",
+      generateSection
+        .slice(
+          generateSection.indexOf("async function handleRetryCoverLetter"),
+          generateSection.indexOf("async function handleRegenerateResumeWithConfirm"),
+        )
+        .includes("router.push(`/output/${partialCoverLetterFailure.resumeDraft.id}`)"),
+    ],
+    [
+      "output direct load uses persisted resume application and cover letter records",
+      outputEditor.includes("getGeneratedResumeDraftFromCloud(draftId)") &&
+        outputEditor.includes("getApplicationRecordFromCloud(record.applicationId)") &&
+        outputEditor.includes("findCoverLetterDraftByResumeDraftId(resumeDraft.id)"),
+    ],
+    [
+      "output represents a confirmed missing cover letter without crashing",
+      outputEditor.includes("No cover letter has been generated for this application yet.") &&
+        outputEditor.includes("Generate cover letter"),
+    ],
+    [
+      "output does not treat a failed cover letter lookup as confirmed missing",
+      outputEditor.includes("A failed persisted lookup is not proof that no cover letter exists.") &&
+        outputEditor.includes("We could not verify whether a cover letter is already saved.") &&
+        outputEditor.includes("No new draft was created.") &&
+        outputEditor.includes("Retry loading"),
     ],
     ["resume preview panel offers retry cover letter", resumePanel.includes("Retry Cover Letter")],
     [

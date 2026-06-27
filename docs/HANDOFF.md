@@ -15,13 +15,13 @@ Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting d
 | 3 — Wire extraction panel + upload to Career Vault | ✅ Complete |
 | 4 — Polish (FAB wiring, app counts, token sweep, balanced tone) | ✅ Mostly complete |
 
-**Phase 4 remaining:** Task 6 (cover letter only mode — deferred); Task 10 (E2E flow test); route migration to `/output/[draftId]` (page exists; Generate still uses `/resume-preview`).
+**Phase 4 remaining:** Task 6 (cover letter only mode — deferred); Task 10 (authenticated E2E flow test). Generate now uses `/output/[draftId]`; full Output Editor parity remains a separate milestone.
 
 ### Current shell & routes
 
 - Sidebar nav: Dashboard → Career vault (`/inventory`) → Generate → Applications (`/records`) → Profile / Settings
 - New Output Editor: `/output/[draftId]` (`OutputEditorPageClient`)
-- Legacy application package: `/resume-preview/[draftId]` (still post-generate destination)
+- Legacy application package: `/resume-preview/[draftId]` (retained, but no longer the post-generate destination)
 - `/dev-tools` returns 404 in production
 
 AI generation, evidence spine, export, and package behaviour documented in v0.9.x notes below — engines were remounted, not rewritten.
@@ -506,7 +506,7 @@ Inventory (Supabase) + JD
   → POST /api/ai/generate-resume
       → parse JSON → normalize → repairGeneratedResumeContent() → validate → save draft
   → POST /api/ai/generate-cover-letter (uses saved company context + resume evidence spine)
-  → /resume-preview/[draftId]  (application package)
+  → /output/[draftId]  (canonical post-generation output)
 ```
 
 **Key modules**
@@ -532,7 +532,7 @@ Inventory (Supabase) + JD
 ## Post-generation navigation
 
 ```
-Generate → /resume-preview/{resumeDraftId}  (application package)
+Generate → /output/{resumeDraftId}  (canonical output)
   → Edit cover letter → /cover-letter-preview/{coverLetterId}
   → Back to application package
 ```
@@ -569,7 +569,7 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 1. E2E flow test — upload → Career vault → generate → output (see `docs/FOLIO_REDESIGN.md` Task 10)
 2. Cover letter only mode (deferred Task 6)
-3. Route migration — `/resume-preview/[draftId]` → `/output/[draftId]`
+3. Output Editor parity — restore only as bounded follow-up tasks after the canonical route is verified
 
 Then: live end-to-end QA for evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`).
 
