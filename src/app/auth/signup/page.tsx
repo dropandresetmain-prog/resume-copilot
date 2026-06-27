@@ -28,8 +28,15 @@ export default function SignupPage() {
     setErrors({});
     setLoading(true);
     try {
-      await signUpWithPassword(email, password);
-      router.push("/onboarding");
+      const result = await signUpWithPassword(email, password);
+      // When email confirmation is required, Supabase returns no session.
+      // Route the user to a holding page rather than a protected route they
+      // cannot access yet.
+      if (!result.session) {
+        router.push("/auth/confirm-email");
+      } else {
+        router.push("/onboarding");
+      }
     } catch (err: unknown) {
       setErrors({ form: err instanceof Error ? err.message : "Sign up failed." });
     } finally {

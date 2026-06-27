@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { NavIcon } from "@/components/app/NavIcon";
 import {
@@ -9,6 +9,7 @@ import {
   APP_UTILITY_ITEMS,
   isAppNavActive,
 } from "@/components/app/nav";
+import { signOut } from "@/lib/supabase/auth";
 
 function NavItem({
   href,
@@ -39,6 +40,15 @@ function NavItem({
 
 export function AppNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } finally {
+      router.push("/auth/login");
+    }
+  }
 
   return (
     <aside
@@ -76,8 +86,8 @@ export function AppNav() {
         <div className="mb-4 border-t border-white/10" />
 
         {/* Add a job — terracotta CTA */}
-        <button
-          type="button"
+        <Link
+          href="/generate"
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-folio-cta px-4 py-2.5 text-sm font-medium text-white transition hover:bg-folio-cta-hover"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
@@ -85,7 +95,7 @@ export function AppNav() {
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Add a job
-        </button>
+        </Link>
 
         {/* Utility nav (Profile, Settings) */}
         <nav className="mt-4 flex flex-col gap-0.5">
@@ -99,6 +109,22 @@ export function AppNav() {
             />
           ))}
         </nav>
+
+        {/* Sign out */}
+        <div className="mt-2 border-t border-white/10 pt-3">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );
