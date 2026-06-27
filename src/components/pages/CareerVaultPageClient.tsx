@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
+import { UploadCard } from "@/components/setup/UploadCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   buildCollatedBulletKey,
   hideInventoryBullet,
@@ -129,7 +138,18 @@ function EmptyTabState({ message }: { message: string }) {
 }
 
 export function CareerVaultPageClient() {
-  const { collated, inventory, totals, handleSaveInventoryEdits } = useWorkspace();
+  const {
+    collated,
+    inventory,
+    totals,
+    isProcessing,
+    handleSaveInventoryEdits,
+    handleFilesSelected,
+    handleClearResumeInventory,
+  } = useWorkspace();
+
+  const [extractionPanelOpen, setExtractionPanelOpen] = useState(false);
+  const [importPanelOpen, setImportPanelOpen] = useState(false);
 
   const savedEdits = inventory.edits ?? createEmptyInventoryEdits();
   const [draftEdits, setDraftEdits] = useState<InventoryEdits>(savedEdits);
@@ -213,6 +233,7 @@ export function CareerVaultPageClient() {
         </div>
         <button
           type="button"
+          onClick={() => setExtractionPanelOpen(true)}
           className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 bg-folio-primary-container"
         >
           <PlusIcon />
@@ -515,17 +536,58 @@ export function CareerVaultPageClient() {
       <div className="fixed bottom-8 right-8 flex flex-col items-end gap-2">
         <button
           type="button"
+          onClick={() => setImportPanelOpen(true)}
           className="rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface shadow-md transition hover:bg-folio-surface-container-low"
         >
           Import from resume
         </button>
         <button
           type="button"
+          onClick={() => setExtractionPanelOpen(true)}
           className="rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface shadow-md transition hover:bg-folio-surface-container-low"
         >
           Paste career text
         </button>
       </div>
+
+      {/* Inline panels rendered below content, visible when triggered */}
+      {extractionPanelOpen && (
+        <div className="mt-6">
+          <InventoryTextExtractionPanel
+            collated={collated}
+            enrichment={inventory.enrichment}
+            draftEdits={draftEdits}
+            onDraftEditsChange={setDraftEdits}
+            onSaveApplied={async (edits, enrichment) => {
+              await handleSaveInventoryEdits(edits, { enrichment });
+            }}
+            isOpen={extractionPanelOpen}
+            onOpenChange={setExtractionPanelOpen}
+          />
+        </div>
+      )}
+
+      <Dialog open={importPanelOpen} onOpenChange={setImportPanelOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Import from resume</DialogTitle>
+            <DialogDescription>
+              Upload a DOCX resume to add it to your career vault.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <UploadCard
+              onFilesSelected={(files) => {
+                handleFilesSelected(files);
+                setImportPanelOpen(false);
+              }}
+              isProcessing={isProcessing}
+              onClearAll={handleClearResumeInventory}
+              canClear={inventory.resumes.length > 0}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

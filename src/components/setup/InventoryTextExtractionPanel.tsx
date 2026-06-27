@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   primaryButtonClassName,
@@ -55,6 +55,10 @@ type InventoryTextExtractionPanelProps = {
   draftEdits: InventoryEdits;
   onDraftEditsChange: (edits: InventoryEdits) => void;
   onSaveApplied: (edits: InventoryEdits, enrichment: EnrichmentState) => Promise<void>;
+  /** Controlled open state. When provided, the panel uses this instead of its own toggle button. */
+  isOpen?: boolean;
+  /** Called when the panel opens or closes itself (only used in controlled mode). */
+  onOpenChange?: (open: boolean) => void;
 };
 
 function applyabilityBadgeClass(applyability: InventoryTextApplyability): string {
@@ -93,7 +97,10 @@ export function InventoryTextExtractionPanel({
   draftEdits,
   onDraftEditsChange,
   onSaveApplied,
+  isOpen,
+  onOpenChange,
 }: InventoryTextExtractionPanelProps) {
+  const controlled = isOpen !== undefined;
   const [phase, setPhase] = useState<PanelPhase>("closed");
   const [pastedText, setPastedText] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
@@ -105,6 +112,14 @@ export function InventoryTextExtractionPanel({
   const [applyFeedback, setApplyFeedback] = useState<string | null>(null);
   const [skippedAfterApply, setSkippedAfterApply] = useState<SkippedInventoryTextSuggestion[]>([]);
   const [isApplying, setIsApplying] = useState(false);
+
+  // Sync controlled open prop → internal phase
+  useEffect(() => {
+    if (!controlled) return;
+    if (isOpen && phase === "closed") openPanel();
+    if (!isOpen && phase !== "closed") closePanel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, controlled]);
 
   const grouped = useMemo(() => {
     const map = new Map<InventoryTextSuggestionCategory, ReviewedInventoryTextSuggestion[]>();
@@ -143,6 +158,7 @@ export function InventoryTextExtractionPanel({
     setExtractionWarnings([]);
     setApplyFeedback(null);
     setSkippedAfterApply([]);
+    if (controlled) onOpenChange?.(false);
   }
 
   async function handleExtract() {
@@ -229,7 +245,7 @@ export function InventoryTextExtractionPanel({
 
   return (
     <div data-testid="inventory-text-extraction-panel">
-      {phase === "closed" ? (
+      {phase === "closed" && !controlled ? (
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -243,7 +259,7 @@ export function InventoryTextExtractionPanel({
             Paste career notes or a ChatGPT summary — extract suggestions, review, then apply.
           </p>
         </div>
-      ) : (
+      ) : phase !== "closed" ? (
         <SetupCard
           title="Add experience from text"
           description="Paste free-form career text. Nothing is saved until you apply accepted suggestions."
@@ -476,7 +492,7 @@ export function InventoryTextExtractionPanel({
             </div>
           ) : null}
         </SetupCard>
-      )}
+      ) : null}
     </div>
   );
 }
