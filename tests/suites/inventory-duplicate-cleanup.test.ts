@@ -155,6 +155,10 @@ function main() {
     join(process.cwd(), "src/components/pages/InventoryPageClient.tsx"),
     "utf8",
   );
+  const vaultPage = readFileSync(
+    join(process.cwd(), "src/components/pages/CareerVaultPageClient.tsx"),
+    "utf8",
+  );
   const cleanupPanel = readFileSync(
     join(process.cwd(), "src/components/setup/InventoryDuplicateCleanupPanel.tsx"),
     "utf8",
@@ -207,6 +211,15 @@ function main() {
       "apply evidence is primary before full regenerate",
       regenerationPanel.indexOf('data-action="apply-evidence-changes"') <
         regenerationPanel.indexOf('data-action="regenerate-full-resume"'),
+    ],
+    // M2: CareerVaultPageClient (active /inventory Folio client) wiring check.
+    [
+      "vault page mounts duplicate cleanup panel",
+      vaultPage.includes("InventoryDuplicateCleanupPanel"),
+    ],
+    [
+      "vault page mounts enrichment review panel",
+      vaultPage.includes("EnrichmentReviewPanel"),
     ],
   ];
 

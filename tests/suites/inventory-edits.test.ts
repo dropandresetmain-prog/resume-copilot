@@ -107,6 +107,10 @@ function main() {
     join(process.cwd(), "src/components/pages/InventoryPageClient.tsx"),
     "utf8",
   );
+  const vaultPage = readFileSync(
+    join(process.cwd(), "src/components/pages/CareerVaultPageClient.tsx"),
+    "utf8",
+  );
   const duplicatePanel = readFileSync(
     join(process.cwd(), "src/components/setup/InventoryDuplicateCleanupPanel.tsx"),
     "utf8",
@@ -188,6 +192,43 @@ function main() {
     [
       "enrichment auto-save feedback",
       inventoryPage.includes('data-testid="inventory-enrich-auto-save-feedback"'),
+    ],
+    // M2: CareerVaultPageClient (active /inventory Folio client) parity checks.
+    // These run in parallel with the InventoryPageClient checks above — both files
+    // must satisfy the invariants independently.
+    [
+      "vault page warns before unload when unsaved",
+      vaultPage.includes("beforeunload") && vaultPage.includes("hasUnsavedChanges"),
+    ],
+    [
+      "vault unsaved banner test id",
+      vaultPage.includes('data-testid="inventory-unsaved-changes-banner"'),
+    ],
+    [
+      "vault page wires revert to original",
+      vaultPage.includes("revertBulletEdit"),
+    ],
+    [
+      "vault page exposes save error state",
+      vaultPage.includes("saveError"),
+    ],
+    [
+      "revert to original clears bullet text override",
+      (() => {
+        const editsWithOverride = setInventoryBulletEdit(createEmptyInventoryEdits(), keyCrm, "Custom text");
+        const reverted = setInventoryBulletEdit(editsWithOverride, keyCrm, null);
+        return reverted.editedBulletTextByBulletKey[keyCrm] === undefined;
+      })(),
+    ],
+    [
+      "revert does not mutate source resume",
+      (() => {
+        const inventory = buildInventory();
+        const originalJson = JSON.stringify(inventory.resumes);
+        const editsWithOverride = setInventoryBulletEdit(createEmptyInventoryEdits(), keyCrm, "Custom text");
+        setInventoryBulletEdit(editsWithOverride, keyCrm, null);
+        return JSON.stringify(inventory.resumes) === originalJson;
+      })(),
     ],
   ];
 

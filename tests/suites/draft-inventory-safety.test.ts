@@ -236,6 +236,34 @@ function reviewStateApplyDoesNotMutateOriginalContent(): boolean {
   return originalContentUnchanged;
 }
 
+function vaultPageAvoidsDirectInventoryMutation(): boolean {
+  // CareerVaultPageClient must route all saves through the WorkspaceProvider
+  // handler (handleSaveInventoryEdits), never calling cloud helpers directly.
+  const source = readSource("src/components/pages/CareerVaultPageClient.tsx");
+  const forbidden = [
+    "saveResumeInventoryToCloud",
+    "deleteResumeInventoryFromCloud",
+    "upsertResume",
+    "clearAllResumes",
+    "enrichInventory",
+  ];
+  return forbidden.every((pattern) => !source.includes(pattern));
+}
+
+function vaultUploadShowsExplicitParseStates(): boolean {
+  const source = readSource("src/components/pages/CareerVaultPageClient.tsx");
+  // Upload result must not be silently discarded — the component must track
+  // addedCount and failedCount from the inventory diff and render them.
+  return (
+    source.includes("uploadPhase") &&
+    source.includes("addedCount") &&
+    source.includes("failedCount") &&
+    source.includes("vault-upload-saved") &&
+    source.includes("vault-upload-partial") &&
+    source.includes("vault-upload-failed")
+  );
+}
+
 function main() {
   const checks: [string, boolean][] = [
     ["draft edit paths avoid inventory save helpers", draftEditPathsAvoidInventorySaveHelpers()],
@@ -245,6 +273,9 @@ function main() {
     ["marking draft reviewed/approved does not mutate inventory", simulateApprovedStatusChangeDoesNotMutateInventory()],
     ["deleting generated draft does not affect inventory", deleteDraftDoesNotTouchInventoryHelpers()],
     ["applyReviewStateToContent leaves original draft content unchanged", reviewStateApplyDoesNotMutateOriginalContent()],
+    // M2: CareerVaultPageClient source-of-truth safety checks.
+    ["vault page avoids direct inventory mutation helpers", vaultPageAvoidsDirectInventoryMutation()],
+    ["vault upload shows explicit parse states not silently swallowed", vaultUploadShowsExplicitParseStates()],
   ];
 
   for (const [name, ok] of checks) {

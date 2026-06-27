@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchResumeApplicationCountsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { EnrichmentReviewPanel } from "@/components/setup/EnrichmentReviewPanel";
+import { InventoryDuplicateCleanupPanel } from "@/components/setup/InventoryDuplicateCleanupPanel";
+import { InventoryProjectCleanupPanel } from "@/components/setup/InventoryProjectCleanupPanel";
 import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
 import { UploadCard } from "@/components/setup/UploadCard";
 import {
@@ -22,6 +25,16 @@ import {
   setInventoryBulletEdit,
 } from "@/lib/inventory/edits";
 import { createEmptyInventoryEdits, type InventoryEdits } from "@/types/inventory-edits";
+
+// Parse result after a DOCX upload batch completes.
+type UploadResult = {
+  addedCount: number;
+  failedCount: number;
+  newFailures: Array<{ filename: string; message: string }>;
+};
+
+// Import dialog phases: idle (show upload card) → processing → result.
+type UploadPhase = "idle" | "processing" | UploadResult;
 
 type VaultTab = "work" | "skills" | "education" | "additional";
 
@@ -141,12 +154,16 @@ function EmptyTabState({ message }: { message: string }) {
 /**
  * Career Vault page — primary inventory surface at `/inventory`.
  *
- * Wires Add experience (header + FAB) to {@link InventoryTextExtractionPanel} and
- * Import from resume to a Radix {@link Dialog} wrapping {@link UploadCard}.
- * Loads per-resume application counts via {@link fetchResumeApplicationCountsFromCloud}
- * and aggregates them on work experience cards through `sourceCitations[].resumeId`.
+ * M2 additions: explicit DOCX upload parse states (saved/partial/failed inside
+ * the dialog); revert-to-original per bullet; save error surfacing; Vault
+ * Management Tools section (enrichment review, duplicate cleanup, project
+ * cleanup) under progressive disclosure.
+ *
+ * Source resumes are never mutated. All overlay edits live in InventoryEdits
+ * and are persisted through handleSaveInventoryEdits only.
  *
  * @see docs/CAREER_VAULT.md
+ * @see docs/FOLIO_RECOVERY_ROADMAP.md §9 M2
  */
 export function CareerVaultPageClient() {
   const {
@@ -154,13 +171,45 @@ export function CareerVaultPageClient() {
     inventory,
     totals,
     isProcessing,
+    isEnriching,
+    enrichError,
+    enrichDebugRaw,
+    providerStatus,
     handleSaveInventoryEdits,
     handleFilesSelected,
     handleClearResumeInventory,
+    handleEnrichMissing,
+    handleFullRerunEnrich,
+    handleSuggestionStatus,
+    handleResolveSuggestion,
+    handleDuplicateGroupStatus,
   } = useWorkspace();
 
+  // ── Extraction / import panel visibility ─────────────────────────────────
   const [extractionPanelOpen, setExtractionPanelOpen] = useState(false);
   const [importPanelOpen, setImportPanelOpen] = useState(false);
+
+  // ── Upload phase: explicit parse result states (M2 §1) ───────────────────
+  // Tracks the lifecycle of a single upload batch inside the import dialog.
+  // "idle"       → show UploadCard normally
+  // "processing" → keep dialog open, show parsing indicator
+  // UploadResult → show saved / partial / failed state with details
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
+  const uploadSnapRef = useRef({ resumeCount: 0, failureCount: 0 });
+  const wasProcessingRef = useRef(false);
+
+  // Detect the isProcessing false-edge to compute upload result from inventory diff.
+  useEffect(() => {
+    if (wasProcessingRef.current && !isProcessing && uploadPhase === "processing") {
+      const addedCount = inventory.resumes.length - uploadSnapRef.current.resumeCount;
+      const failedCount = inventory.failures.length - uploadSnapRef.current.failureCount;
+      const newFailures = inventory.failures.slice(uploadSnapRef.current.failureCount);
+      setUploadPhase({ addedCount, failedCount, newFailures });
+    }
+    wasProcessingRef.current = isProcessing;
+  }, [isProcessing, inventory, uploadPhase]);
+
+  // ── Resume application counts ─────────────────────────────────────────────
   const [resumeAppCounts, setResumeAppCounts] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -169,15 +218,13 @@ export function CareerVaultPageClient() {
       .catch(() => {/* non-critical, leave counts at zero */});
   }, []);
 
+  // ── Inventory edits state ─────────────────────────────────────────────────
   const savedEdits = inventory.edits ?? createEmptyInventoryEdits();
   const [draftEdits, setDraftEdits] = useState<InventoryEdits>(savedEdits);
   const [syncedSavedEdits, setSyncedSavedEdits] = useState<InventoryEdits>(savedEdits);
-  const [activeTab, setActiveTab] = useState<VaultTab>("work");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
-  const [editDraftText, setEditDraftText] = useState("");
 
-  // Keep draft in sync when workspace saves externally (e.g. after enrichment)
+  // Sync local draft when workspace saves externally (e.g. after enrichment or
+  // when another tab triggers a cloud reload).
   if (!inventoryEditsEqual(syncedSavedEdits, savedEdits)) {
     setSyncedSavedEdits(savedEdits);
     setDraftEdits(savedEdits);
@@ -185,6 +232,15 @@ export function CareerVaultPageClient() {
 
   const hasUnsavedChanges = !inventoryEditsEqual(draftEdits, savedEdits);
 
+  // ── UI state ──────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<VaultTab>("work");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
+  const [editDraftText, setEditDraftText] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [vaultToolsOpen, setVaultToolsOpen] = useState(false);
+
+  // ── beforeunload guard (hasUnsavedChanges) ────────────────────────────────
   useEffect(() => {
     if (!hasUnsavedChanges) return;
     function guard(e: BeforeUnloadEvent) {
@@ -195,9 +251,16 @@ export function CareerVaultPageClient() {
     return () => window.removeEventListener("beforeunload", guard);
   }, [hasUnsavedChanges]);
 
+  // ── Overlay edit persistence ──────────────────────────────────────────────
+  // All edits go through persistEdits — never touch source resumes directly.
   async function persistEdits(nextEdits: InventoryEdits) {
     setDraftEdits(nextEdits);
-    await handleSaveInventoryEdits(nextEdits);
+    setSaveError(null);
+    try {
+      await handleSaveInventoryEdits(nextEdits);
+    } catch {
+      setSaveError("Failed to save changes. Please try again.");
+    }
   }
 
   async function toggleHide(bulletKey: string, currentlyHidden: boolean) {
@@ -224,10 +287,30 @@ export function CareerVaultPageClient() {
     setEditDraftText("");
   }
 
-  const vaultPct = vaultHealthPercent(totals);
-  const hint = vaultHint(totals);
+  // Revert a bullet's text override back to its source-resume text (M2 §2).
+  // Calls setInventoryBulletEdit with null to delete the override key.
+  async function revertBulletEdit(bulletKey: string) {
+    const next = setInventoryBulletEdit(draftEdits, bulletKey, null);
+    await persistEdits(next);
+  }
 
-  // Index accepted enrichment suggestions by bulletKey for chip display
+  // ── Import dialog handlers ────────────────────────────────────────────────
+  // Snapshot resume/failure counts before upload so we can compute the diff.
+  function handleImportFiles(files: File[]) {
+    uploadSnapRef.current = {
+      resumeCount: inventory.resumes.length,
+      failureCount: inventory.failures.length,
+    };
+    setUploadPhase("processing");
+    void handleFilesSelected(files);
+  }
+
+  function closeImportDialog() {
+    setImportPanelOpen(false);
+    setUploadPhase("idle");
+  }
+
+  // ── Enrichment chip index ─────────────────────────────────────────────────
   const enrichmentByKey = new Map<string, Array<{ id: string; issueTitle: string }>>();
   for (const s of inventory.enrichment?.suggestions ?? []) {
     if (s.status === "accepted") {
@@ -236,6 +319,9 @@ export function CareerVaultPageClient() {
       enrichmentByKey.set(s.bulletKey, arr);
     }
   }
+
+  const vaultPct = vaultHealthPercent(totals);
+  const hint = vaultHint(totals);
 
   return (
     <div className="relative max-w-[860px]">
@@ -298,7 +384,7 @@ export function CareerVaultPageClient() {
       </div>
 
       {/* Tab content */}
-      <div className="mt-4 space-y-3 pb-32">
+      <div className="mt-4 space-y-3 pb-8">
         {/* ── Work experience ── */}
         {activeTab === "work" &&
           (collated.experiences.length === 0 ? (
@@ -366,6 +452,8 @@ export function CareerVaultPageClient() {
                             bullet.inventoryBulletKey ??
                             buildCollatedBulletKey(exp, bullet);
                           const hidden = isBulletHidden(draftEdits, bKey);
+                          const hasTextOverride =
+                            draftEdits.editedBulletTextByBulletKey[bKey] !== undefined;
                           const displayText =
                             draftEdits.editedBulletTextByBulletKey[bKey] ??
                             bullet.description;
@@ -417,6 +505,11 @@ export function CareerVaultPageClient() {
                                   </span>
                                   <span className="flex-1 text-[14px] leading-relaxed text-folio-on-surface">
                                     {displayText}
+                                    {hasTextOverride && (
+                                      <span className="ml-1.5 rounded-full bg-folio-mint-surface px-1.5 py-0.5 text-[10px] font-medium text-folio-olive-text">
+                                        edited
+                                      </span>
+                                    )}
                                   </span>
                                   <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                     <button
@@ -434,6 +527,16 @@ export function CareerVaultPageClient() {
                                     >
                                       {hidden ? "Show" : "Hide"}
                                     </button>
+                                    {hasTextOverride && (
+                                      <button
+                                        type="button"
+                                        onClick={() => void revertBulletEdit(bKey)}
+                                        className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                                        title="Revert to original source text"
+                                      >
+                                        Revert
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -555,7 +658,78 @@ export function CareerVaultPageClient() {
           ))}
       </div>
 
-      {/* Floating action buttons — bottom right, above page edge */}
+      {/* Unsaved changes banner (M2 §2) — shown when auto-save is pending or failed. */}
+      {hasUnsavedChanges && (
+        <div
+          role="status"
+          data-testid="inventory-unsaved-changes-banner"
+          className={`mt-2 rounded-lg border px-4 py-3 text-sm ${
+            saveError
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <p className="font-medium">
+            {saveError ?? "Saving changes…"}
+          </p>
+          {saveError && (
+            <p className="mt-0.5 text-xs">
+              Some changes may not have saved. Check your connection and try again.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Vault Management Tools — progressive disclosure (M2 §4) */}
+      <div className="mt-6 pb-32">
+        <button
+          type="button"
+          onClick={() => setVaultToolsOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between rounded-xl border border-folio-sage-border bg-white px-4 py-3 text-sm font-medium text-folio-on-surface transition hover:bg-folio-surface-container-low"
+          aria-expanded={vaultToolsOpen}
+        >
+          <span>Vault management tools</span>
+          <ChevronIcon open={vaultToolsOpen} />
+        </button>
+
+        {vaultToolsOpen && (
+          <div className="mt-3 space-y-4">
+            {/* Enrichment review: AI suggestions, keyword bank, enrichment run. */}
+            <EnrichmentReviewPanel
+              collated={collated}
+              enrichment={inventory.enrichment}
+              providerStatus={providerStatus}
+              isEnriching={isEnriching}
+              enrichError={enrichError}
+              enrichDebugRaw={enrichDebugRaw}
+              onEnrichMissing={handleEnrichMissing}
+              onFullRerunEnrich={handleFullRerunEnrich}
+              onSuggestionStatus={handleSuggestionStatus}
+              onResolveSuggestion={handleResolveSuggestion}
+              onDuplicateGroupStatus={handleDuplicateGroupStatus}
+            />
+
+            {/* Duplicate cleanup: self-hides when no duplicates are detected. */}
+            <InventoryDuplicateCleanupPanel
+              inventory={inventory}
+              draftEdits={draftEdits}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onDraftEditsChange={(nextEdits) => { void persistEdits(nextEdits); }}
+            />
+
+            {/* Project-pollution cleanup: self-hides when no polluted overlay rows. */}
+            <InventoryProjectCleanupPanel
+              draftEdits={draftEdits}
+              savedEdits={savedEdits}
+              hasUnsavedChanges={hasUnsavedChanges}
+              onDraftEditsChange={setDraftEdits}
+              onSaveCleanup={handleSaveInventoryEdits}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Floating action buttons — bottom right */}
       <div className="fixed bottom-8 right-8 flex flex-col items-end gap-2">
         <button
           type="button"
@@ -573,7 +747,7 @@ export function CareerVaultPageClient() {
         </button>
       </div>
 
-      {/* Inline panels rendered below content, visible when triggered */}
+      {/* Add-from-Text panel (M2 §3) — extract→review→apply; onSaveApplied only called on Apply */}
       {extractionPanelOpen && (
         <div className="mt-6">
           <InventoryTextExtractionPanel
@@ -590,7 +764,13 @@ export function CareerVaultPageClient() {
         </div>
       )}
 
-      <Dialog open={importPanelOpen} onOpenChange={setImportPanelOpen}>
+      {/* Import from resume dialog with explicit parse states (M2 §1) */}
+      <Dialog
+        open={importPanelOpen}
+        onOpenChange={(open) => {
+          if (!open) closeImportDialog();
+        }}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Import from resume</DialogTitle>
@@ -599,15 +779,129 @@ export function CareerVaultPageClient() {
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 pb-6">
-            <UploadCard
-              onFilesSelected={(files) => {
-                handleFilesSelected(files);
-                setImportPanelOpen(false);
-              }}
-              isProcessing={isProcessing}
-              onClearAll={handleClearResumeInventory}
-              canClear={inventory.resumes.length > 0}
-            />
+            {/* idle: show upload card */}
+            {uploadPhase === "idle" && (
+              <UploadCard
+                onFilesSelected={handleImportFiles}
+                isProcessing={isProcessing}
+                onClearAll={handleClearResumeInventory}
+                canClear={inventory.resumes.length > 0}
+              />
+            )}
+
+            {/* processing: keep dialog open; show explicit parsing indicator */}
+            {uploadPhase === "processing" && (
+              <div
+                data-testid="vault-upload-processing"
+                className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-folio-sage-border bg-folio-surface-container-low px-6 py-10"
+              >
+                <p className="text-sm font-medium text-folio-on-surface">
+                  Parsing resume…
+                </p>
+                <p className="text-xs text-folio-outline">
+                  Files are parsed in your browser. This may take a moment.
+                </p>
+              </div>
+            )}
+
+            {/* done: explicit saved / partial / failed state */}
+            {typeof uploadPhase === "object" && (
+              <div
+                data-testid="vault-upload-result"
+                className="space-y-4"
+              >
+                {/* Saved: all parsed, no failures */}
+                {uploadPhase.addedCount > 0 && uploadPhase.failedCount === 0 && (
+                  <div
+                    data-testid="vault-upload-saved"
+                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+                  >
+                    <p className="font-medium">
+                      {uploadPhase.addedCount === 1
+                        ? "1 resume added to your vault."
+                        : `${uploadPhase.addedCount} resumes added to your vault.`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Partial: some parsed, some failed */}
+                {uploadPhase.addedCount > 0 && uploadPhase.failedCount > 0 && (
+                  <div
+                    data-testid="vault-upload-partial"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  >
+                    <p className="font-medium">
+                      {uploadPhase.addedCount}{" "}
+                      {uploadPhase.addedCount === 1 ? "resume" : "resumes"} added
+                      {", "}
+                      {uploadPhase.failedCount} failed to parse.
+                    </p>
+                    <p className="mt-0.5 text-xs">
+                      Successfully parsed resumes were saved. Check the details below for failed files.
+                    </p>
+                  </div>
+                )}
+
+                {/* Failed: all files failed */}
+                {uploadPhase.addedCount === 0 && uploadPhase.failedCount > 0 && (
+                  <div
+                    data-testid="vault-upload-failed"
+                    className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+                  >
+                    <p className="font-medium">
+                      {uploadPhase.failedCount === 1
+                        ? "Failed to parse the file."
+                        : `Failed to parse all ${uploadPhase.failedCount} files.`}
+                    </p>
+                    <p className="mt-0.5 text-xs">
+                      Only .docx files are supported. Make sure the file is not corrupted.
+                    </p>
+                  </div>
+                )}
+
+                {/* No output (e.g. empty file list edge case) */}
+                {uploadPhase.addedCount === 0 && uploadPhase.failedCount === 0 && (
+                  <div className="rounded-lg border border-folio-sage-border bg-folio-surface-container-low px-4 py-3 text-sm text-folio-outline">
+                    No changes were made to your vault.
+                  </div>
+                )}
+
+                {/* Failure details */}
+                {uploadPhase.newFailures.length > 0 && (
+                  <div className="space-y-1.5">
+                    {uploadPhase.newFailures.map((failure, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-800"
+                      >
+                        <span className="font-medium">{failure.filename}:</span>{" "}
+                        {failure.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={closeImportDialog}
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-white bg-folio-primary-container"
+                  >
+                    Done
+                  </button>
+                  {uploadPhase.failedCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setUploadPhase("idle")}
+                      className="rounded-lg border border-folio-sage-border px-4 py-2 text-sm font-medium text-folio-on-surface"
+                    >
+                      Try again
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -430,6 +430,10 @@ function main() {
     join(process.cwd(), "src/components/pages/InventoryPageClient.tsx"),
     "utf8",
   );
+  const vaultPage = readFileSync(
+    join(process.cwd(), "src/components/pages/CareerVaultPageClient.tsx"),
+    "utf8",
+  );
   const extractionPanel = readFileSync(
     join(process.cwd(), "src/components/setup/InventoryTextExtractionPanel.tsx"),
     "utf8",
@@ -509,6 +513,28 @@ function main() {
       ).includes("Preview only — not saved yet"),
     ],
     ["API route uses shared provider", apiRoute.includes("extractInventoryTextWithAI")],
+    // M2: CareerVaultPageClient (active /inventory Folio client) wiring checks.
+    [
+      "vault page wires Add from text",
+      vaultPage.includes("InventoryTextExtractionPanel"),
+    ],
+    [
+      "vault page wires project cleanup panel",
+      vaultPage.includes("InventoryProjectCleanupPanel"),
+    ],
+    [
+      "vault extraction panel onSaveApplied only wired to apply step",
+      // The onSaveApplied prop must only appear in the InventoryTextExtractionPanel
+      // usage (apply step), not wired to an extract-only path.
+      vaultPage.includes("onSaveApplied") &&
+        !vaultPage.includes("onSaveApplied={handleFilesSelected}"),
+    ],
+    [
+      "vault upload tracks explicit parse states",
+      vaultPage.includes("uploadPhase") &&
+        vaultPage.includes("addedCount") &&
+        vaultPage.includes("failedCount"),
+    ],
   ];
 
   for (const [name, ok] of checks) {
