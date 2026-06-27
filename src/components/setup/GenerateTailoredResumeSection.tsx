@@ -604,7 +604,7 @@ export function GenerateTailoredResumeSection({
           await advanceStage(getGenerationStageIndices(true).savingDrafts);
           await delay(200);
           onGenerationFinished?.();
-          router.push(`/resume-preview/${context.resumeDraft.id}`);
+          router.push(`/output/${context.resumeDraft.id}`);
           return;
         } catch (coverLetterError) {
           const clientError = coverLetterError as ResumeDraftClientError;
@@ -628,7 +628,7 @@ export function GenerateTailoredResumeSection({
       await delay(200);
 
       onGenerationFinished?.();
-      router.push(`/resume-preview/${context.resumeDraft.id}`);
+      router.push(`/output/${context.resumeDraft.id}`);
     } catch (generationError) {
       const clientError = generationError as ResumeDraftClientError;
       setResumeStatus("failed");
@@ -675,7 +675,7 @@ export function GenerateTailoredResumeSection({
       setCoverLetterStatus("success");
       setPartialCoverLetterFailure(null);
       onGenerationFinished?.();
-      router.push(`/resume-preview/${partialCoverLetterFailure.resumeDraft.id}`);
+      router.push(`/output/${partialCoverLetterFailure.resumeDraft.id}`);
     } catch (coverLetterError) {
       const clientError = coverLetterError as ResumeDraftClientError;
       setCoverLetterStatus("failed");
@@ -1085,7 +1085,7 @@ export function GenerateTailoredResumeSection({
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/resume-preview/${partialCoverLetterFailure.resumeDraft.id}`}
+              href={`/output/${partialCoverLetterFailure.resumeDraft.id}`}
               className={secondaryButtonClassName}
             >
               Open resume preview

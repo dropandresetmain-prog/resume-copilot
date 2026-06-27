@@ -16,6 +16,7 @@ import {
   MAX_BULLETS_PER_ROLE,
   MAX_WORK_EXPERIENCE_ROLES,
   MIN_BULLETS_PER_ROLE,
+  REQUIRED_SKILL_GROUP_LABELS,
   TARGET_TOTAL_WORK_BULLETS_MAX,
   TARGET_TOTAL_WORK_BULLETS_MIN,
 } from "@/lib/resume-draft/generation-validation";
@@ -36,7 +37,8 @@ export type ResumeRepairAction =
   | "allowed_underfilled_work_experience"
   | "marked_needs_review"
   | "protected_forced_bullet"
-  | "forced_bullet_removed_during_repair";
+  | "forced_bullet_removed_during_repair"
+  | "added_missing_skill_group";
 
 export type RepairGeneratedResumeContext = {
   jdText?: string;
@@ -283,6 +285,19 @@ export function repairGeneratedResumeContent(
   const additionalExperience = [...content.additionalExperience];
   let professionalSummary = { ...content.professionalSummary };
 
+  // Gemini may omit "Languages" or "Interests" when the vault has no such data.
+  // Repair adds the missing groups so the hard-block validation doesn't fire.
+  const skills = { ...content.skills, groups: [...content.skills.groups] };
+  const existingGroupLabels = new Set(skills.groups.map((g) => g.label.toLowerCase()));
+  for (const requiredLabel of REQUIRED_SKILL_GROUP_LABELS) {
+    if (!existingGroupLabels.has(requiredLabel.toLowerCase())) {
+      const defaultItems = requiredLabel === "Interests" ? ["Travel", "Music", "Fitness"] : [];
+      skills.groups.push({ label: requiredLabel, items: defaultItems });
+      repairActions.push("added_missing_skill_group");
+      repairMessages.push(`Added missing required skill group "${requiredLabel}".`);
+    }
+  }
+
   if (professionalSummary.text.trim()) {
     professionalSummary = { ...professionalSummary, text: "" };
     repairActions.push("stripped_professional_summary");
@@ -426,6 +441,7 @@ export function repairGeneratedResumeContent(
     content: {
       ...content,
       professionalSummary,
+      skills,
       experience,
       additionalExperience,
     },

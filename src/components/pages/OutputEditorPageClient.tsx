@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
+import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
+
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
@@ -631,6 +634,12 @@ function CoverLetterTab({
         >
           {wordCount} / {FORMAL_COVER_LETTER_MAX_WORDS} words
         </p>
+      </div>
+
+      {/* Download */}
+      <div className="mt-4 flex gap-2">
+        <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={isBusy || !body.trim()} />
+        <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={isBusy || !body.trim()} />
       </div>
 
       {error ? (
