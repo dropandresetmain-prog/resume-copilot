@@ -55,17 +55,13 @@ function Navbar() {
 
   return (
     <header
-      className="sticky top-0 z-50 w-full bg-white transition-shadow duration-200"
-      style={{
-        borderBottom: "1px solid #D8ECC8",
-        boxShadow: scrolled ? "0 1px 8px rgba(0,0,0,0.06)" : "none",
-      }}
+      className="sticky top-0 z-50 w-full bg-white transition-shadow duration-200 border-b border-folio-sage-border"
+      style={{ boxShadow: scrolled ? "0 1px 8px rgba(0,0,0,0.06)" : "none" }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link
           href="/"
-          className="text-[18px] font-medium leading-none"
-          style={{ color: "#085041" }}
+          className="text-[18px] font-medium leading-none text-folio-sidebar"
         >
           Folio
         </Link>
@@ -73,18 +69,13 @@ function Navbar() {
         <nav className="flex items-center gap-3">
           <Link
             href="/auth/login"
-            className="rounded-md border px-4 py-1.5 text-sm font-medium transition-colors"
-            style={{
-              borderColor: "#085041",
-              color: "#085041",
-            }}
+            className="rounded-md border px-4 py-1.5 text-sm font-medium transition-colors border-folio-sidebar text-folio-sidebar"
           >
             Sign in
           </Link>
           <Link
             href="/auth/signup"
-            className="rounded-md px-4 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#B85C38" }}
+            className="rounded-md px-4 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 bg-folio-cta"
           >
             Get started
           </Link>
@@ -98,35 +89,24 @@ function Navbar() {
 
 function Hero() {
   return (
-    <section
-      className="w-full py-24 md:py-32"
-      style={{ backgroundColor: "#FAFDF7" }}
-    >
+    <section className="w-full py-24 md:py-32 bg-folio-background">
       <div className="mx-auto flex max-w-3xl flex-col items-center px-6 text-center">
-        <h1
-          className="text-[2.75rem] font-medium leading-[1.12] tracking-tight md:text-[3rem]"
-          style={{ color: "#085041" }}
-        >
+        <h1 className="text-[2.75rem] font-medium leading-[1.12] tracking-tight md:text-[3rem] text-folio-sidebar">
           Your experience is already impressive. Your resume just needs to say so.
         </h1>
-        <p
-          className="mt-5 max-w-[560px] text-[18px] leading-relaxed"
-          style={{ color: "#3f4944" }}
-        >
+        <p className="mt-5 max-w-[560px] text-[18px] leading-relaxed text-folio-on-surface-variant">
           Folio builds tailored resumes and cover letters from your career vault, matched to every job you apply for.
         </p>
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <Link
             href="/auth/signup"
-            className="rounded-md px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#B85C38" }}
+            className="rounded-md px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 bg-folio-cta"
           >
             Get started free
           </Link>
           <a
             href="#how-it-works"
-            className="rounded-md border px-6 py-2.5 text-sm font-medium transition-colors"
-            style={{ borderColor: "#085041", color: "#085041" }}
+            className="rounded-md border px-6 py-2.5 text-sm font-medium transition-colors border-folio-sidebar text-folio-sidebar"
           >
             See how it works
           </a>
@@ -160,29 +140,22 @@ function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="w-full py-20 md:py-28"
-      style={{ backgroundColor: "#F1EFE8" }}
+      className="w-full py-20 md:py-28 bg-folio-surface-warm-white"
     >
       <div className="mx-auto max-w-6xl px-6">
-        <h2
-          className="mb-14 text-center text-2xl font-medium"
-          style={{ color: "#085041" }}
-        >
+        <h2 className="mb-14 text-center text-2xl font-medium text-folio-sidebar">
           How it works
         </h2>
         <div className="grid gap-8 md:grid-cols-3">
           {HOW_STEPS.map((step) => (
             <div key={step.heading} className="flex flex-col items-center text-center">
-              <div
-                className="mb-5 flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ backgroundColor: "#EAF3DE", color: "#085041" }}
-              >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-folio-mint-surface text-folio-sidebar">
                 {step.icon}
               </div>
-              <h3 className="mb-2 text-base font-medium" style={{ color: "#085041" }}>
+              <h3 className="mb-2 text-base font-medium text-folio-sidebar">
                 {step.heading}
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#3f4944" }}>
+              <p className="text-sm leading-relaxed text-folio-on-surface-variant">
                 {step.body}
               </p>
             </div>
@@ -197,20 +170,14 @@ function HowItWorks() {
 
 function VaultCallout() {
   return (
-    <section className="w-full py-20 md:py-28" style={{ backgroundColor: "#FAFDF7" }}>
+    <section className="w-full py-20 md:py-28 bg-folio-background">
       <div className="mx-auto grid max-w-6xl gap-16 px-6 md:grid-cols-2 md:items-center">
         {/* Text */}
         <div>
-          <h2
-            className="text-2xl font-medium leading-snug"
-            style={{ color: "#085041" }}
-          >
+          <h2 className="text-2xl font-medium leading-snug text-folio-sidebar">
             Your career vault. The last time you&apos;ll ever rewrite your history.
           </h2>
-          <p
-            className="mt-4 text-sm leading-relaxed"
-            style={{ color: "#3f4944" }}
-          >
+          <p className="mt-4 text-sm leading-relaxed text-folio-on-surface-variant">
             Traditional resumes force you to cut great experiences to fit a page. Folio stores everything. When you apply for a job, it pulls the most relevant experiences to create a focused high-impact document.
           </p>
           <ul className="mt-6 space-y-3">
@@ -218,11 +185,8 @@ function VaultCallout() {
               "Automatic metric extraction from old bullet points",
               "Skill-to-job semantic mapping",
             ].map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: "#3f4944" }}>
-                <span
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: "#EAF3DE", color: "#085041" }}
-                >
+              <li key={item} className="flex items-start gap-2.5 text-sm text-folio-on-surface-variant">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-folio-mint-surface text-folio-sidebar">
                   <CheckIcon />
                 </span>
                 {item}
@@ -232,15 +196,9 @@ function VaultCallout() {
         </div>
 
         {/* Mockup card */}
-        <div
-          className="rounded-xl border bg-white p-6 shadow-sm"
-          style={{ borderColor: "#D8ECC8" }}
-        >
-          <div
-            className="mb-4 border-b pb-3"
-            style={{ borderColor: "#D8ECC8" }}
-          >
-            <p className="text-xs font-medium" style={{ color: "#085041" }}>
+        <div className="rounded-xl border bg-white p-6 shadow-sm border-folio-sage-border">
+          <div className="mb-4 border-b pb-3 border-folio-sage-border">
+            <p className="text-xs font-medium text-folio-sidebar">
               Career vault · 14 projects · 8 roles
             </p>
           </div>
@@ -251,18 +209,17 @@ function VaultCallout() {
             ].map((exp) => (
               <div
                 key={exp.role}
-                className="rounded-lg border p-3"
-                style={{ borderColor: "#EAF3DE", backgroundColor: "#FAFDF7" }}
+                className="rounded-lg border p-3 border-folio-mint-surface bg-folio-background"
               >
-                <p className="text-sm font-medium" style={{ color: "#085041" }}>
+                <p className="text-sm font-medium text-folio-sidebar">
                   {exp.role}
                 </p>
-                <p className="mt-0.5 text-xs" style={{ color: "#6f7973" }}>
+                <p className="mt-0.5 text-xs text-folio-outline">
                   {exp.company}
                 </p>
                 <div className="mt-2 space-y-1.5">
-                  <div className="h-1.5 w-5/6 rounded-full" style={{ backgroundColor: "#EAF3DE" }} />
-                  <div className="h-1.5 w-4/6 rounded-full" style={{ backgroundColor: "#EAF3DE" }} />
+                  <div className="h-1.5 w-5/6 rounded-full bg-folio-mint-surface" />
+                  <div className="h-1.5 w-4/6 rounded-full bg-folio-mint-surface" />
                 </div>
               </div>
             ))}
@@ -277,13 +234,13 @@ function VaultCallout() {
 
 function ResumeTeaser() {
   return (
-    <section className="w-full py-20 md:py-28" style={{ backgroundColor: "#085041" }}>
+    <section className="w-full py-20 md:py-28 bg-folio-sidebar">
       <div className="mx-auto flex max-w-3xl flex-col items-center px-6 text-center">
         {/* Blurred resume card */}
         <div className="relative w-full max-w-sm">
           <div
             className="rounded-xl border bg-white p-6 shadow-xl"
-            style={{ borderColor: "#D8ECC8", filter: "blur(2px)", opacity: 0.6 }}
+            style={{ borderColor: "var(--color-folio-sage-border)", filter: "blur(2px)", opacity: 0.6 }}
             aria-hidden
           >
             <div className="mb-4 space-y-2">
@@ -301,19 +258,19 @@ function ResumeTeaser() {
           {/* Fade gradient overlay */}
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-b-xl"
-            style={{ background: "linear-gradient(to bottom, transparent, #085041)" }}
+            style={{ background: "linear-gradient(to bottom, transparent, var(--color-folio-sidebar))" }}
             aria-hidden
           />
         </div>
 
-        <p className="mt-4 text-xs font-medium uppercase tracking-widest" style={{ color: "#D8ECC8" }}>
+        <p className="mt-4 text-xs font-medium uppercase tracking-widest text-folio-sage-border">
           Generated by Folio
         </p>
 
         <h2 className="mt-6 text-2xl font-medium text-white">
           Tailored to the job, not just the title.
         </h2>
-        <p className="mt-4 max-w-[520px] text-sm leading-relaxed" style={{ color: "#D8ECC8" }}>
+        <p className="mt-4 max-w-[520px] text-sm leading-relaxed text-folio-sage-border">
           Our AI understands the nuances of job descriptions. It doesn&apos;t just swap keywords — it reframes your actual experience to speak the recruiter&apos;s language.
         </p>
       </div>
@@ -325,19 +282,18 @@ function ResumeTeaser() {
 
 function FinalCta() {
   return (
-    <section className="w-full py-24 md:py-32" style={{ backgroundColor: "#FFFFFF" }}>
+    <section className="w-full py-24 md:py-32 bg-white">
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 text-center">
-        <h2 className="text-2xl font-medium" style={{ color: "#085041" }}>
+        <h2 className="text-2xl font-medium text-folio-sidebar">
           Ready to apply smarter?
         </h2>
         <Link
           href="/auth/signup"
-          className="mt-8 rounded-md px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#B85C38" }}
+          className="mt-8 rounded-md px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 bg-folio-cta"
         >
           Get started free
         </Link>
-        <p className="mt-4 text-xs" style={{ color: "#6f7973" }}>
+        <p className="mt-4 text-xs text-folio-outline">
           No credit card needed. Set up in 2 minutes.
         </p>
       </div>
@@ -350,12 +306,11 @@ function FinalCta() {
 function Footer() {
   return (
     <footer
-      className="w-full border-t"
-      style={{ backgroundColor: "#F1EFE8", borderColor: "#D8ECC8" }}
+      className="w-full border-t border-folio-sage-border bg-folio-surface-warm-white"
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-6 sm:flex-row">
-        <p className="text-sm" style={{ color: "#6f7973" }}>
-          <span className="font-medium" style={{ color: "#085041" }}>Folio</span>
+        <p className="text-sm text-folio-outline">
+          <span className="font-medium text-folio-sidebar">Folio</span>
           {" "}· © 2024 Folio Career. All rights reserved.
         </p>
         <nav className="flex gap-6">
@@ -363,8 +318,7 @@ function Footer() {
             <a
               key={label}
               href="#"
-              className="text-sm transition-colors hover:underline"
-              style={{ color: "#6f7973" }}
+              className="text-sm transition-colors hover:underline text-folio-outline"
             >
               {label}
             </a>

@@ -44,7 +44,7 @@ function CircleProgress({ pct }: { pct: number }) {
         cy="48"
         r={r}
         fill="none"
-        stroke="#2A7A5E"
+        stroke="var(--color-folio-primary-container)"
         strokeWidth="8"
         strokeDasharray={`${dash} ${circ - dash}`}
         strokeDashoffset={circ / 4}
@@ -153,22 +153,23 @@ export function ProfilePageClient() {
   const pct = completenessPercent({ fullName, currentTitle, tone, commStyle });
 
   const cardClass =
-    "rounded-xl border border-[#D8ECC8] bg-white p-4";
+    "rounded-xl border border-folio-sage-border bg-white p-4";
 
   const inputClass =
-    "w-full rounded-lg border border-[#D8ECC8] bg-white px-3 py-2 text-sm text-[#1c1c1a] placeholder-[#9eaaa3] focus:border-[#2A7A5E] focus:outline-none focus:ring-1 focus:ring-[#2A7A5E]";
+    /* #9eaaa3 placeholder: between outline and outline-variant, no exact token */
+    "w-full rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-sm text-folio-on-surface placeholder-[#9eaaa3] focus:border-folio-primary-container focus:outline-none focus:ring-1 focus:ring-folio-primary-container";
 
   const ghostTealBtn =
-    "rounded-lg border border-[#2A7A5E] px-4 py-2 text-sm font-medium text-[#2A7A5E] transition hover:bg-[#f0faf6] disabled:opacity-50";
+    "rounded-lg border border-folio-primary-container px-4 py-2 text-sm font-medium text-folio-primary-container transition hover:bg-folio-surface-teal-ghost disabled:opacity-50";
 
   return (
     <div className="max-w-[720px] space-y-5">
       {/* Page header */}
       <div>
-        <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[#1c1c1a]">
+        <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
           Profile
         </h1>
-        <p className="mt-1 text-sm text-[#6f7973]">
+        <p className="mt-1 text-sm text-folio-outline">
           Manage your identity and communication preferences.
         </p>
       </div>
@@ -183,16 +184,16 @@ export function ProfilePageClient() {
       <div className={cardClass}>
         <div className="flex items-center gap-2">
           {/* Person icon — sage tint */}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A7A5E" strokeWidth={1.75} strokeLinecap="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-folio-primary-container)" strokeWidth={1.75} strokeLinecap="round" aria-hidden="true">
             <circle cx="12" cy="8" r="4" />
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
           </svg>
-          <h2 className="text-[15px] font-semibold text-[#1c1c1a]">Your details</h2>
+          <h2 className="text-[15px] font-semibold text-folio-on-surface">Your details</h2>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#3f4944]">Full name</label>
+            <label className="mb-1 block text-xs font-medium text-folio-on-surface-variant">Full name</label>
             <input
               type="text"
               value={fullName}
@@ -203,18 +204,18 @@ export function ProfilePageClient() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#3f4944]">Email</label>
+            <label className="mb-1 block text-xs font-medium text-folio-on-surface-variant">Email</label>
             <input
               type="email"
               value={email}
               readOnly
-              className={`${inputClass} cursor-not-allowed bg-[#f5f7f5] text-[#6f7973]`}
+              className={`${inputClass} cursor-not-allowed bg-folio-surface text-folio-outline`}
             />
           </div>
         </div>
 
         <div className="mt-3">
-          <label className="mb-1 block text-xs font-medium text-[#3f4944]">Current title</label>
+          <label className="mb-1 block text-xs font-medium text-folio-on-surface-variant">Current title</label>
           <input
             type="text"
             value={currentTitle}
@@ -226,7 +227,7 @@ export function ProfilePageClient() {
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-3">
-          {detailsMessage ? <p className="text-xs text-[#2A7A5E]">{detailsMessage}</p> : null}
+          {detailsMessage ? <p className="text-xs text-folio-primary-container">{detailsMessage}</p> : null}
           {detailsError ? <p className="text-xs text-red-600">{detailsError}</p> : null}
           <button
             type="button"
@@ -243,16 +244,16 @@ export function ProfilePageClient() {
       <div className={cardClass}>
         <div className="flex items-center gap-2">
           {/* Speech/voice icon — terracotta tint */}
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B85C38" strokeWidth={1.75} strokeLinecap="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-folio-cta)" strokeWidth={1.75} strokeLinecap="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          <h2 className="text-[15px] font-semibold text-[#1c1c1a]">Cover letter voice</h2>
+          <h2 className="text-[15px] font-semibold text-folio-on-surface">Cover letter voice</h2>
         </div>
-        <p className="mt-1 text-xs text-[#6f7973]">How do you want to sound?</p>
+        <p className="mt-1 text-xs text-folio-outline">How do you want to sound?</p>
 
         {/* Tone segmented control */}
         <div className="mt-4">
-          <div className="inline-flex rounded-lg border border-[#D8ECC8] bg-[#f5f7f5] p-1 gap-1">
+          <div className="inline-flex rounded-lg border border-folio-sage-border bg-folio-surface p-1 gap-1">
             {TONES.map((t) => (
               <button
                 key={t.key}
@@ -261,8 +262,8 @@ export function ProfilePageClient() {
                 disabled={!isSignedIn}
                 className={`rounded-lg px-4 py-1.5 text-sm font-medium transition disabled:opacity-50 ${
                   tone === t.key
-                    ? "bg-[#2A7A5E] text-white"
-                    : "text-[#6f7973] hover:text-[#1c1c1a]"
+                    ? "bg-folio-primary-container text-white"
+                    : "text-folio-outline hover:text-folio-on-surface"
                 }`}
               >
                 {t.label}
@@ -272,13 +273,13 @@ export function ProfilePageClient() {
         </div>
 
         <div className="mt-4">
-          <label className="mb-1 block text-xs font-medium text-[#3f4944]">
+          <label className="mb-1 block text-xs font-medium text-folio-on-surface-variant">
             Anything else about your communication style?
           </label>
           {!isSignedIn ? (
-            <p className="text-sm text-[#6f7973]">Sign in to edit your communication profile.</p>
+            <p className="text-sm text-folio-outline">Sign in to edit your communication profile.</p>
           ) : !hasLoadedVoice ? (
-            <p className="text-sm text-[#6f7973]">Loading…</p>
+            <p className="text-sm text-folio-outline">Loading…</p>
           ) : (
             <textarea
               value={commStyle}
@@ -291,7 +292,7 @@ export function ProfilePageClient() {
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-3">
-          {voiceMessage ? <p className="text-xs text-[#2A7A5E]">{voiceMessage}</p> : null}
+          {voiceMessage ? <p className="text-xs text-folio-primary-container">{voiceMessage}</p> : null}
           {voiceError ? <p className="text-xs text-red-600">{voiceError}</p> : null}
           <button
             type="button"
@@ -305,10 +306,10 @@ export function ProfilePageClient() {
       </div>
 
       {/* Section 3 — Completeness card */}
-      <div className="rounded-xl bg-[#085041] p-5">
+      <div className="rounded-xl bg-folio-sidebar p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <span className="inline-block rounded-full bg-[#D8ECC8] px-3 py-1 text-xs font-semibold text-[#085041]">
+            <span className="inline-block rounded-full bg-folio-sage-border px-3 py-1 text-xs font-semibold text-folio-sidebar">
               Profile is {pct}% complete
             </span>
             <h2 className="mt-3 text-[17px] font-semibold text-white">

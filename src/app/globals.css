@@ -22,6 +22,14 @@
   --color-folio-error:                   #ba1a1a;
   --color-folio-background:              #fafdf7;
   --color-folio-cta:                     #b85c38;
+  --color-folio-cta-hover:              #a34f2f;
+  --color-folio-cta-secondary:          #9a4523;
+  --color-folio-surface-teal-ghost:     #f0faf6;
+  --color-folio-surface-warm-white:     #F1EFE8;
+  --color-folio-sage-border:            #D8ECC8;
+  --color-folio-mint-surface:           #EAF3DE;
+  --color-folio-olive-text:             #3B6D11;
+  --color-folio-olive-border:           #C0DD97;
 
   /* Typography scale */
   --font-sans: Inter, Arial, Helvetica, sans-serif;
@@ -47,7 +55,7 @@
 html,
 body {
   min-height: 100%;
-  background-color: #fafdf7;
+  background-color: var(--color-folio-background);
   color: #1c1c1a;
   font-family: Inter, Arial, Helvetica, sans-serif;
   color-scheme: light only;
@@ -57,7 +65,7 @@ body {
 @media (prefers-color-scheme: dark) {
   :root { color-scheme: light only; }
   html, body {
-    background-color: #fafdf7 !important;
+    background-color: var(--color-folio-background) !important;
     color: #1c1c1a !important;
   }
 }

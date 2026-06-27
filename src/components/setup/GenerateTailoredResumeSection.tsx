@@ -815,7 +815,7 @@ export function GenerateTailoredResumeSection({
           onClick={() => void handleGenerate()}
           disabled={!canGenerate || isGenerating}
           aria-busy={isGenerating}
-          className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-[#2A7A5E] text-base font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-folio-primary-container text-base font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <SparkleIcon />
           Generate resume and cover letter

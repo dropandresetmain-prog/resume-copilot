@@ -43,7 +43,7 @@ export function AppNav() {
   return (
     <aside
       aria-label="Main navigation"
-      className="fixed inset-y-0 left-0 flex w-[220px] flex-col bg-[#085041]"
+      className="fixed inset-y-0 left-0 flex w-[220px] flex-col bg-folio-sidebar"
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 pt-6 pb-8">
@@ -78,7 +78,7 @@ export function AppNav() {
         {/* Add a job — terracotta CTA */}
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#B85C38] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#a34f2f]"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-folio-cta px-4 py-2.5 text-sm font-medium text-white transition hover:bg-folio-cta-hover"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
             <line x1="12" y1="5" x2="12" y2="19" />

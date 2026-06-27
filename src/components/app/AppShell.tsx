@@ -5,7 +5,7 @@ import { TopBar } from "@/components/app/TopBar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FAFDF7]">
+    <div className="min-h-screen bg-folio-background">
       <AppNav />
 
       {/* Content area — offset by sidebar width */}

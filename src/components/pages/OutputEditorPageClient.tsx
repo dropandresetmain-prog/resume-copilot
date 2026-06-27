@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
@@ -30,7 +30,10 @@ import {
   normalizeRegenerationControls,
 } from "@/lib/resume-draft/payload";
 import { getApplicationRecordFromCloud, updateApplicationRecordInCloud } from "@/lib/supabase/application-records";
-import { findCoverLetterDraftByResumeDraftId } from "@/lib/supabase/generated-cover-letter-drafts";
+import {
+  findCoverLetterDraftByResumeDraftId,
+  updateGeneratedCoverLetterDraftInCloud,
+} from "@/lib/supabase/generated-cover-letter-drafts";
 import {
   getGeneratedResumeDraftFromCloud,
   updateGeneratedResumeDraftInCloud,
@@ -94,7 +97,7 @@ function ToggleSwitch({
       aria-label={label}
       onClick={onToggle}
       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-150 ${
-        on ? "bg-[#2A7A5E]" : "bg-[#bec9c2]"
+        on ? "bg-folio-primary-container" : "bg-folio-outline-variant"
       }`}
     >
       <span
@@ -116,8 +119,7 @@ function relevanceLabel(confidence: ResumeDraftConfidence): string {
 function RationaleChip({ text }: { text: string }) {
   return (
     <span
-      className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}
+      className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium bg-folio-mint-surface text-folio-olive-text"
     >
       {text}
     </span>
@@ -147,16 +149,14 @@ function ExperienceToggleCard({
     .join("");
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-[#D8ECC8] bg-white p-3">
-      <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold"
-        style={{ backgroundColor: "#EAF3DE", color: "#085041" }}
-      >
+    <div className="flex items-start gap-3 rounded-xl border border-folio-sage-border bg-white p-3">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold bg-folio-mint-surface text-folio-sidebar">
+
         {initials || "?"}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-[#1c1c1a]">
-          <span className="text-[#6f7973]">{company}</span> · {role}
+        <p className="truncate text-sm text-folio-on-surface">
+          <span className="text-folio-outline">{company}</span> · {role}
         </p>
         {chips.length > 0 ? (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -181,21 +181,21 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
     .join("  ·  ");
 
   return (
-    <div className="text-[#1c1c1a]">
+    <div className="text-folio-on-surface">
       {/* Header */}
       <header className="text-center">
         {header.fullName ? (
           <h2 className="text-2xl font-semibold tracking-tight">{header.fullName}</h2>
         ) : null}
         {contactLine ? (
-          <p className="mt-1.5 text-xs text-[#6f7973]">{contactLine}</p>
+          <p className="mt-1.5 text-xs text-folio-outline">{contactLine}</p>
         ) : null}
       </header>
 
       {/* Experience */}
       {content.experience.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-[#D8ECC8] pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#085041]">
+          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
             Experience
           </h3>
           <div className="mt-3 space-y-4">
@@ -206,15 +206,15 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                     <p className="text-sm font-semibold">
                       {exp.role}
-                      <span className="font-normal text-[#3f4944]"> · {exp.company}</span>
+                      <span className="font-normal text-folio-on-surface-variant"> · {exp.company}</span>
                     </p>
-                    {meta ? <p className="text-xs text-[#6f7973]">{meta}</p> : null}
+                    {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
                   </div>
                   {exp.bullets.length > 0 ? (
                     <ul className="mt-1.5 space-y-1">
                       {exp.bullets.map((b, bi) => (
                         <li key={bi} className="flex gap-2 text-[13px] leading-relaxed">
-                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#6f7973]" />
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
                           <span>{b.text}</span>
                         </li>
                       ))}
@@ -230,14 +230,14 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
       {/* Skills */}
       {content.skills.groups.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-[#D8ECC8] pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#085041]">
+          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
             Skills
           </h3>
           <dl className="mt-3 space-y-1.5">
             {content.skills.groups.map((group) => (
               <div key={group.label} className="flex gap-2 text-[13px]">
                 <dt className="font-semibold">{group.label}:</dt>
-                <dd className="text-[#3f4944]">{group.items.join(", ")}</dd>
+                <dd className="text-folio-on-surface-variant">{group.items.join(", ")}</dd>
               </div>
             ))}
           </dl>
@@ -247,7 +247,7 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
       {/* Education */}
       {content.education.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-[#D8ECC8] pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#085041]">
+          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
             Education
           </h3>
           <div className="mt-3 space-y-3">
@@ -257,16 +257,16 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
                 <div key={`${edu.institution}-${i}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                     <p className="text-sm font-semibold">{edu.institution}</p>
-                    {meta ? <p className="text-xs text-[#6f7973]">{meta}</p> : null}
+                    {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
                   </div>
                   {edu.programmes.length > 0 ? (
-                    <p className="text-[13px] text-[#3f4944]">{edu.programmes.join(", ")}</p>
+                    <p className="text-[13px] text-folio-on-surface-variant">{edu.programmes.join(", ")}</p>
                   ) : null}
                   {edu.bullets.length > 0 ? (
                     <ul className="mt-1 space-y-1">
                       {edu.bullets.map((b, bi) => (
                         <li key={bi} className="flex gap-2 text-[13px] leading-relaxed">
-                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#6f7973]" />
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
                           <span>{b}</span>
                         </li>
                       ))}
@@ -282,13 +282,13 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
       {/* Additional experience (rendered when present) */}
       {content.additionalExperience.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-[#D8ECC8] pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#085041]">
+          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
             Additional experience
           </h3>
           <ul className="mt-3 space-y-1">
             {content.additionalExperience.map((item, i) => (
               <li key={i} className="flex gap-2 text-[13px] leading-relaxed">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#6f7973]" />
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
                 <span>
                   {item.category ? <span className="font-semibold">{item.category}: </span> : null}
                   {item.text}
@@ -305,7 +305,7 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const GHOST_BUTTON =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#D8ECC8] bg-white px-3.5 py-2 text-sm font-medium text-[#1c1c1a] transition hover:bg-[#f6f3ef] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-folio-sage-border bg-white px-3.5 py-2 text-sm font-medium text-folio-on-surface transition hover:bg-folio-surface-container-low disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Rationale chips for one included experience, derived from generated bullet metadata. */
 function chipsForExperience(exp: ResumeDraftExperienceSection): string[] {
@@ -367,6 +367,8 @@ function CoverLetterTab({
   const [tone, setTone] = useState<ToneOption>("balanced");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  // Stores the body as it arrived from generation so Balanced can restore it.
+  const originalCoverLetterBodyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,7 +380,11 @@ function CoverLetterTab({
         const record = await findCoverLetterDraftByResumeDraftId(resumeDraft.id);
         if (cancelled) return;
         setCoverLetter(record);
-        setBody(record?.body ?? "");
+        const loadedBody = record?.body ?? "";
+        setBody(loadedBody);
+        if (originalCoverLetterBodyRef.current === null) {
+          originalCoverLetterBodyRef.current = loadedBody;
+        }
       } catch (loadError) {
         if (cancelled) return;
         setCoverLetter(null);
@@ -434,12 +440,22 @@ function CoverLetterTab({
   async function handleSelectTone(next: ToneOption) {
     if (isBusy || next === tone) return;
     setTone(next);
-    // Tone shifts route through the existing revision actions. Balanced is the
-    // neutral resting state and does not call AI.
     if (next === "formal") {
       await applyRevision("more_formal");
     } else if (next === "conversational") {
       await applyRevision("more_conversational");
+    } else if (next === "balanced" && originalCoverLetterBodyRef.current !== null && coverLetter) {
+      const original = originalCoverLetterBodyRef.current;
+      setBody(original);
+      setCoverLetter((prev) => (prev ? { ...prev, body: original } : prev));
+      setError(null);
+      try {
+        await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, { body: original });
+      } catch (restoreError) {
+        setError(
+          restoreError instanceof Error ? restoreError.message : "Failed to restore original text.",
+        );
+      }
     }
   }
 
@@ -471,6 +487,7 @@ function CoverLetterTab({
       });
       setCoverLetter(updated);
       setBody(updated.body);
+      originalCoverLetterBodyRef.current = updated.body;
       setTone("balanced");
     } catch (regenError) {
       setError(
@@ -513,32 +530,31 @@ function CoverLetterTab({
 
   if (isLoading) {
     return (
-      <div className="mt-5 rounded-xl border border-[#D8ECC8] bg-white px-6 py-16 text-center">
-        <p className="text-sm text-[#6f7973]">Loading cover letter…</p>
+      <div className="mt-5 rounded-xl border border-folio-sage-border bg-white px-6 py-16 text-center">
+        <p className="text-sm text-folio-outline">Loading cover letter…</p>
       </div>
     );
   }
 
   if (!coverLetter) {
     return (
-      <div className="mt-5 flex flex-col items-center rounded-xl border border-[#D8ECC8] bg-white px-6 py-16 text-center">
-        <p className="text-sm text-[#6f7973]">
+      <div className="mt-5 flex flex-col items-center rounded-xl border border-folio-sage-border bg-white px-6 py-16 text-center">
+        <p className="text-sm text-folio-outline">
           No cover letter has been generated for this application yet.
         </p>
         <button
           type="button"
           onClick={() => void handleGenerate()}
           disabled={isGenerating || !linkedJob}
-          className="mt-4 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: "#2A7A5E" }}
+          className="mt-4 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 bg-folio-primary-container"
         >
           {isGenerating ? "Generating…" : "Generate cover letter"}
         </button>
         {error ? (
-          <p className="mt-3 text-sm text-[#ba1a1a]">{error}</p>
+          <p className="mt-3 text-sm text-folio-error">{error}</p>
         ) : null}
         {!linkedJob ? (
-          <p className="mt-2 text-xs text-[#6f7973]">
+          <p className="mt-2 text-xs text-folio-outline">
             This draft is not linked to a saved job description.
           </p>
         ) : null}
@@ -549,8 +565,8 @@ function CoverLetterTab({
   return (
     <div className="mt-5">
       {/* Rendered letter — read-only document */}
-      <div className="rounded-xl border border-[#D8ECC8] bg-white p-6">
-        <div className="space-y-4 font-serif text-[15px] leading-7 text-[#1c1c1a]">
+      <div className="rounded-xl border border-folio-sage-border bg-white p-6">
+        <div className="space-y-4 font-serif text-[15px] leading-7 text-folio-on-surface">
           {splitCoverLetterParagraphs(body).map((paragraph, index) => (
             <p key={index} className="m-0">
               {paragraph}
@@ -577,8 +593,8 @@ function CoverLetterTab({
 
       {/* Tone selector */}
       <div className="mt-5">
-        <p className="text-[13px] font-medium text-[#6f7973]">Tone</p>
-        <div className="mt-2 inline-flex rounded-lg border border-[#D8ECC8] bg-white p-0.5">
+        <p className="text-[13px] font-medium text-folio-outline">Tone</p>
+        <div className="mt-2 inline-flex rounded-lg border border-folio-sage-border bg-white p-0.5">
           {TONE_SEGMENTS.map((segment) => {
             const active = tone === segment.key;
             return (
@@ -589,9 +605,8 @@ function CoverLetterTab({
                 disabled={isBusy}
                 aria-pressed={active}
                 className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                  active ? "text-white" : "text-[#6f7973] hover:text-[#1c1c1a]"
+                  active ? "bg-folio-primary-container text-white" : "text-folio-outline hover:text-folio-on-surface"
                 }`}
-                style={active ? { backgroundColor: "#2A7A5E" } : undefined}
               >
                 {segment.label}
               </button>
@@ -612,14 +627,15 @@ function CoverLetterTab({
           {isRegenerating ? "Regenerating cover letter…" : "Regenerate cover letter"}
         </button>
         <p
-          className={`mt-2 text-right text-xs ${overLimit ? "text-[#ba1a1a]" : "text-[#6f7973]"}`}
+          className={`mt-2 text-right text-xs ${overLimit ? "text-folio-error" : "text-folio-outline"}`}
         >
           {wordCount} / {FORMAL_COVER_LETTER_MAX_WORDS} words
         </p>
       </div>
 
       {error ? (
-        <p className="mt-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-sm text-[#ba1a1a]">
+        /* error/warning surface tints — intentional */
+        <p className="mt-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-sm text-folio-error">
           {error}
         </p>
       ) : null}
@@ -874,14 +890,14 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   }
 
   if (isLoading) {
-    return <p className="text-sm text-[#6f7973]">Loading output editor…</p>;
+    return <p className="text-sm text-folio-outline">Loading output editor…</p>;
   }
 
   if (error && !draft) {
     return (
-      <div className="max-w-[640px] rounded-xl border border-[#D8ECC8] bg-white p-4">
-        <h1 className="text-[18px] font-medium text-[#1c1c1a]">Output editor unavailable</h1>
-        <p className="mt-2 text-sm text-[#ba1a1a]">{error}</p>
+      <div className="max-w-[640px] rounded-xl border border-folio-sage-border bg-white p-4">
+        <h1 className="text-[18px] font-medium text-folio-on-surface">Output editor unavailable</h1>
+        <p className="mt-2 text-sm text-folio-error">{error}</p>
         <Link
           href="/generate"
           className={`mt-4 ${GHOST_BUTTON}`}
@@ -899,12 +915,11 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       {/* ── Topbar ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[#1c1c1a]">
+          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
             {roleTitle} · {displayCompany}
           </h1>
           <span
-            className="rounded-full border px-2.5 py-0.5 text-[11px] font-medium"
-            style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", borderColor: "#C0DD97" }}
+            className="rounded-full border border-folio-olive-border bg-folio-mint-surface px-2.5 py-0.5 text-[11px] font-medium text-folio-olive-text"
           >
             Generated
           </span>
@@ -931,8 +946,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
             type="button"
             onClick={() => void handleMarkSent()}
             disabled={isMarkingSent || markedSent || !draft.applicationId}
-            className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ backgroundColor: "#B85C38" }}
+            className="inline-flex items-center justify-center rounded-lg bg-folio-cta px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {markedSent ? "Marked as sent" : isMarkingSent ? "Marking…" : "Mark as sent"}
           </button>
@@ -940,7 +954,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       </div>
 
       {exportMessage ? (
-        <p className="mt-3 rounded-lg border border-[#f5d9b0] bg-[#fdf4e6] px-3 py-2 text-sm text-[#9a4523]">
+        {/* error/warning surface tints — intentional */}
+        <p className="mt-3 rounded-lg border border-[#f5d9b0] bg-[#fdf4e6] px-3 py-2 text-sm text-folio-cta-secondary">
           {exportMessage}
         </p>
       ) : null}
@@ -951,7 +966,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       ) : null}
 
       {/* ── Tabs ───────────────────────────────────────────────── */}
-      <div className="mt-5 flex border-b border-[#D8ECC8]">
+      <div className="mt-5 flex border-b border-folio-sage-border">
         {([
           { key: "resume", label: "Resume" },
           { key: "cover-letter", label: "Cover letter" },
@@ -964,8 +979,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               onClick={() => setActiveTab(tab.key)}
               className={`mb-[-1px] px-4 pb-3 pt-1 text-sm font-medium transition-colors ${
                 active
-                  ? "border-b-2 border-[#2A7A5E] text-[#2A7A5E]"
-                  : "text-[#6f7973] hover:text-[#1c1c1a]"
+                  ? "border-b-2 border-folio-primary-container text-folio-primary-container"
+                  : "text-folio-outline hover:text-folio-on-surface"
               }`}
             >
               {tab.label}
@@ -979,7 +994,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start">
           {/* Left panel — rendered preview (60%) */}
           <div className="lg:w-3/5">
-            <div className="rounded-xl border border-[#D8ECC8] bg-white p-6">
+            <div className="rounded-xl border border-folio-sage-border bg-white p-6">
               <RenderedResume draft={draft} />
             </div>
 
@@ -996,12 +1011,12 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
 
           {/* Right panel — included / excluded experience (40%) */}
           <div className="lg:w-2/5">
-            <p className="text-[13px] font-medium uppercase tracking-wide text-[#6f7973]">
+            <p className="text-[13px] font-medium uppercase tracking-wide text-folio-outline">
               Included experience
             </p>
             <div className="mt-3 space-y-2.5">
               {includedExperiences.length === 0 ? (
-                <p className="text-sm text-[#6f7973]">No experience in this draft yet.</p>
+                <p className="text-sm text-folio-outline">No experience in this draft yet.</p>
               ) : (
                 includedExperiences.map((exp, i) => {
                   const key = experienceKey(exp.company, exp.role);
@@ -1019,12 +1034,12 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               )}
             </div>
 
-            <div className="my-5 border-t border-[#D8ECC8]" />
+            <div className="my-5 border-t border-folio-sage-border" />
 
             <button
               type="button"
               onClick={() => setShowExcluded((v) => !v)}
-              className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-[#6f7973] transition hover:text-[#1c1c1a]"
+              className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
               aria-expanded={showExcluded}
             >
               <span>Available but excluded ({excludedExperiences.length})</span>
@@ -1046,7 +1061,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
             {showExcluded ? (
               <div className="mt-3 space-y-2.5">
                 {excludedExperiences.length === 0 ? (
-                  <p className="text-sm text-[#6f7973]">
+                  <p className="text-sm text-folio-outline">
                     Every vault experience is already included.
                   </p>
                 ) : (
@@ -1068,7 +1083,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               </div>
             ) : null}
 
-            <p className="mt-4 text-xs text-[#6f7973]">
+            <p className="mt-4 text-xs text-folio-outline">
               Selected experiences will be prioritised for generation
             </p>
           </div>

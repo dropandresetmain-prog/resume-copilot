@@ -31,7 +31,7 @@ function CompanyAvatar({ name }: { name: string }) {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f0edea] text-sm font-semibold text-[#3f4944]">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-folio-surface-container text-sm font-semibold text-folio-on-surface-variant">
       {initials || "?"}
     </div>
   );
@@ -39,6 +39,7 @@ function CompanyAvatar({ name }: { name: string }) {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
+    /* status colours — intentional */
     case "resume_generated":
       return "bg-[#e8f5ef] text-[#016147] border-[#88d6b5]";
     case "ready_to_apply":
@@ -48,9 +49,9 @@ function statusBadgeClass(status: string): string {
     case "rejected":
       return "bg-[#ffdad6] text-[#93000a] border-[#ba1a1a]";
     case "archived":
-      return "bg-[#e5e2de] text-[#6f7973] border-[#bec9c2]";
+      return "bg-folio-surface-dim text-folio-outline border-folio-outline-variant";
     default:
-      return "bg-[#f0edea] text-[#6f7973] border-[#bec9c2]";
+      return "bg-folio-surface-container text-folio-outline border-folio-outline-variant";
   }
 }
 
@@ -79,16 +80,16 @@ export function DashboardPageClient() {
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[#1c1c1a]">
+          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
             Your applications
           </h1>
-          <p className="mt-1 text-sm text-[#6f7973]">
+          <p className="mt-1 text-sm text-folio-outline">
             Manage and track your active job pursuits.
           </p>
         </div>
         <Link
           href="/generate"
-          className="flex shrink-0 items-center gap-2 rounded-lg bg-[#B85C38] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#a34f2f]"
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-folio-cta px-4 py-2.5 text-sm font-medium text-white transition hover:bg-folio-cta-hover"
         >
           <svg
             width="14"
@@ -108,7 +109,7 @@ export function DashboardPageClient() {
       </div>
 
       {/* Vault health banner */}
-      <div className="mt-6 rounded-xl border border-[#D8ECC8] bg-white px-4 py-4">
+      <div className="mt-6 rounded-xl border border-folio-sage-border bg-white px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg
@@ -116,30 +117,30 @@ export function DashboardPageClient() {
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#016147"
+              stroke="var(--color-folio-primary)"
               strokeWidth={2}
               strokeLinecap="round"
               aria-hidden="true"
             >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            <span className="text-sm font-medium text-[#1c1c1a]">
+            <span className="text-sm font-medium text-folio-on-surface">
               Career vault is {vaultPct}% complete
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-[#016147]">{vaultPct}%</span>
+            <span className="text-sm font-medium text-folio-primary">{vaultPct}%</span>
             <Link
               href="/inventory"
-              className="text-sm font-medium text-[#016147] hover:underline"
+              className="text-sm font-medium text-folio-primary hover:underline"
             >
               Fill the gaps →
             </Link>
           </div>
         </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#e5e2de]">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-folio-surface-dim">
           <div
-            className="h-full rounded-full bg-[#016147] transition-all"
+            className="h-full rounded-full bg-folio-primary transition-all"
             style={{ width: `${vaultPct}%` }}
           />
         </div>
@@ -148,14 +149,14 @@ export function DashboardPageClient() {
       {/* Application list */}
       <div className="mt-6 space-y-3">
         {activeApplications.length === 0 ? (
-          <div className="flex flex-col items-center rounded-xl border border-[#D8ECC8] bg-white px-8 py-16 text-center">
-            <h2 className="text-[18px] font-medium text-[#1c1c1a]">Add your first job</h2>
-            <p className="mt-2 max-w-xs text-sm text-[#6f7973]">
+          <div className="flex flex-col items-center rounded-xl border border-folio-sage-border bg-white px-8 py-16 text-center">
+            <h2 className="text-[18px] font-medium text-folio-on-surface">Add your first job</h2>
+            <p className="mt-2 max-w-xs text-sm text-folio-outline">
               Paste a job description and Folio will tailor your resume and cover letter.
             </p>
             <Link
               href="/generate"
-              className="mt-6 flex items-center gap-2 rounded-lg bg-[#B85C38] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#a34f2f]"
+              className="mt-6 flex items-center gap-2 rounded-lg bg-folio-cta px-4 py-2.5 text-sm font-medium text-white transition hover:bg-folio-cta-hover"
             >
               + Add a job
             </Link>
@@ -172,15 +173,15 @@ export function DashboardPageClient() {
             return (
               <div
                 key={app.id}
-                className="flex items-center gap-4 rounded-xl border border-[#D8ECC8] bg-white px-4 py-4"
+                className="flex items-center gap-4 rounded-xl border border-folio-sage-border bg-white px-4 py-4"
               >
                 <CompanyAvatar name={company} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[#1c1c1a]">
+                  <p className="truncate text-sm font-semibold text-folio-on-surface">
                     {company}
-                    <span className="font-normal text-[#6f7973]"> · {role}</span>
+                    <span className="font-normal text-folio-outline"> · {role}</span>
                   </p>
-                  <p className="mt-0.5 text-xs text-[#6f7973]">Added {dateAdded}</p>
+                  <p className="mt-0.5 text-xs text-folio-outline">Added {dateAdded}</p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(app.status)}`}

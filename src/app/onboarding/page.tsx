@@ -83,23 +83,23 @@ export default function OnboardingPage() {
   const progressStep = step === 1 ? 1 : step === 2 ? 2 : 3;
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 pt-12 pb-16 bg-[#fcf9f5]">
+    <div className="min-h-screen flex flex-col items-center px-4 pt-12 pb-16 bg-folio-surface">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-4">
         <FolioIcon />
-        <span className="text-[20px] font-bold text-[#016147]">Folio</span>
+        <span className="text-[20px] font-bold text-folio-primary">Folio</span>
       </div>
 
       {/* Progress */}
-      <p className="text-[11px] font-medium tracking-widest text-[#6f7973] uppercase mb-10">
+      <p className="text-[11px] font-medium tracking-widest text-folio-outline uppercase mb-10">
         Progress {progressStep}/3
       </p>
 
       {/* Heading */}
-      <h1 className="text-[22px] font-medium text-[#1c1c1a] text-center mb-2">
+      <h1 className="text-[22px] font-medium text-folio-on-surface text-center mb-2">
         {STEP_LABELS[step - 1]}
       </h1>
-      <p className="text-[14px] text-[#3f4944] text-center max-w-md mb-10">
+      <p className="text-[14px] text-folio-on-surface-variant text-center max-w-md mb-10">
         {STEP_SUBS[step - 1]}
       </p>
 
@@ -110,30 +110,30 @@ export default function OnboardingPage() {
             selected={method === "upload"}
             onClick={() => handleMethodSelect("upload")}
             icon={<UploadIcon />}
-            iconBg="bg-[#2a7a5e]/15"
-            iconColor="text-[#016147]"
+            iconBg="bg-folio-primary-container/15"
+            iconColor="text-folio-primary"
             title="Upload a resume"
-            titleColor="text-[#016147]"
+            titleColor="text-folio-primary"
             caption="PDF, DocX or TXT"
           />
           <OptionCard
             selected={method === "linkedin"}
             onClick={() => handleMethodSelect("linkedin")}
             icon={<LinkedInIcon />}
-            iconBg="bg-[#ff946c]/20"
-            iconColor="text-[#9a4523]"
+            iconBg="bg-folio-secondary-container/20" /* LinkedIn brand */
+            iconColor="text-folio-cta-secondary"
             title="Import from LinkedIn"
-            titleColor="text-[#9a4523]"
+            titleColor="text-folio-cta-secondary"
             caption="Sync your profile"
           />
           <OptionCard
             selected={method === "scratch"}
             onClick={() => handleMethodSelect("scratch")}
             icon={<ScratchIcon />}
-            iconBg="bg-[#bec9c2]/30"
-            iconColor="text-[#3f4944]"
+            iconBg="bg-folio-outline-variant/30"
+            iconColor="text-folio-on-surface-variant"
             title="Start from scratch"
-            titleColor="text-[#1c1c1a]"
+            titleColor="text-folio-on-surface"
             caption="Build it manually"
           />
         </div>
@@ -147,26 +147,26 @@ export default function OnboardingPage() {
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={`flex flex-col items-center justify-center gap-3 h-48 rounded-[12px] border-2 border-dashed cursor-pointer transition-colors ${dragging ? "border-[#2a7a5e] bg-[#2a7a5e]/5" : "border-[#bec9c2] hover:border-[#2a7a5e]"}`}
+            className={`flex flex-col items-center justify-center gap-3 h-48 rounded-[12px] border-2 border-dashed cursor-pointer transition-colors ${dragging ? "border-folio-primary-container bg-folio-primary-container/5" : "border-folio-outline-variant hover:border-folio-primary-container"}`}
           >
             {file ? (
               <div className="flex items-center gap-3">
-                <span className="text-[14px] text-[#1c1c1a]">{file.name}</span>
+                <span className="text-[14px] text-folio-on-surface">{file.name}</span>
                 <button
                   type="button"
                   onClick={e => { e.stopPropagation(); setFile(null); }}
-                  className="text-[#6f7973] hover:text-[#ba1a1a] transition-colors"
+                  className="text-folio-outline hover:text-folio-error transition-colors"
                 >
                   ✕
                 </button>
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-[#2a7a5e]/15 flex items-center justify-center text-[#016147]">
+                <div className="w-12 h-12 rounded-full bg-folio-primary-container/15 flex items-center justify-center text-folio-primary">
                   <UploadIcon />
                 </div>
-                <p className="text-[14px] text-[#3f4944]">Drag and drop or click to browse</p>
-                <p className="text-[12px] text-[#6f7973]">PDF, DocX or TXT</p>
+                <p className="text-[14px] text-folio-on-surface-variant">Drag and drop or click to browse</p>
+                <p className="text-[12px] text-folio-outline">PDF, DocX or TXT</p>
               </>
             )}
           </div>
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={() => setStep(3)}
-              className="h-10 px-6 rounded-[8px] bg-[#9a4523] text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
+              className="h-10 px-6 rounded-[8px] bg-folio-cta-secondary text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
             >
               Continue
             </button>
@@ -193,39 +193,39 @@ export default function OnboardingPage() {
       {/* ── Step 3: Profile ── */}
       {step === 3 && (
         <form onSubmit={handleFinish} noValidate className="w-full max-w-[400px] flex flex-col gap-4">
-          {formError && <p className="text-[12px] text-[#ba1a1a]">{formError}</p>}
+          {formError && <p className="text-[12px] text-folio-error">{formError}</p>}
 
           <div className="flex flex-col gap-1">
-            <label className="text-[12px] text-[#3f4944]" htmlFor="full-name">Full name</label>
+            <label className="text-[12px] text-folio-on-surface-variant" htmlFor="full-name">Full name</label>
             <input
               id="full-name"
               type="text"
               placeholder="Jane Smith"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
-              className="h-11 rounded-[8px] border border-[#bec9c2] bg-white px-3 text-[14px] text-[#1c1c1a] placeholder:text-[#6f7973] focus:outline-none focus:border-[#2A7A5E] focus:ring-1 focus:ring-[#2A7A5E]"
+              className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface placeholder:text-folio-outline focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[12px] text-[#3f4944]" htmlFor="target-role">Target role</label>
+            <label className="text-[12px] text-folio-on-surface-variant" htmlFor="target-role">Target role</label>
             <input
               id="target-role"
               type="text"
               placeholder="e.g. Senior Product Manager"
               value={targetRole}
               onChange={e => setTargetRole(e.target.value)}
-              className="h-11 rounded-[8px] border border-[#bec9c2] bg-white px-3 text-[14px] text-[#1c1c1a] placeholder:text-[#6f7973] focus:outline-none focus:border-[#2A7A5E] focus:ring-1 focus:ring-[#2A7A5E]"
+              className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface placeholder:text-folio-outline focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[12px] text-[#3f4944]" htmlFor="seniority">Seniority</label>
+            <label className="text-[12px] text-folio-on-surface-variant" htmlFor="seniority">Seniority</label>
             <select
               id="seniority"
               value={seniority}
               onChange={e => setSeniority(e.target.value)}
-              className="h-11 rounded-[8px] border border-[#bec9c2] bg-white px-3 text-[14px] text-[#1c1c1a] focus:outline-none focus:border-[#2A7A5E] focus:ring-1 focus:ring-[#2A7A5E]"
+              className="h-11 rounded-[8px] border border-folio-outline-variant bg-white px-3 text-[14px] text-folio-on-surface focus:outline-none focus:border-folio-primary-container focus:ring-1 focus:ring-folio-primary-container"
             >
               <option value="">Select level</option>
               <option value="entry">Entry level</option>
@@ -239,7 +239,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={saving}
-            className="h-11 rounded-[8px] bg-[#9a4523] text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-60 mt-2"
+            className="h-11 rounded-[8px] bg-folio-cta-secondary text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-60 mt-2"
           >
             {saving ? "Setting up…" : "Finish setup"}
           </button>
@@ -267,14 +267,14 @@ function OptionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 flex flex-col items-center gap-4 p-8 rounded-[12px] border bg-white transition-all text-left ${selected ? "border-[#2a7a5e] ring-1 ring-[#2a7a5e]" : "border-[#bec9c2]/50 hover:border-[#2a7a5e]/50"}`}
+      className={`flex-1 flex flex-col items-center gap-4 p-8 rounded-[12px] border bg-white transition-all text-left ${selected ? "border-folio-primary-container ring-1 ring-folio-primary-container" : "border-folio-outline-variant/50 hover:border-folio-primary-container/50"}`}
     >
       <div className={`w-16 h-16 rounded-full flex items-center justify-center ${iconBg} ${iconColor}`}>
         {icon}
       </div>
       <div className="text-center">
         <p className={`text-[16px] font-medium ${titleColor}`}>{title}</p>
-        <p className="text-[12px] text-[#6f7973] mt-1">{caption}</p>
+        <p className="text-[12px] text-folio-outline mt-1">{caption}</p>
       </div>
     </button>
   );
@@ -283,9 +283,9 @@ function OptionCard({
 function FolioIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="4" width="20" height="16" rx="2" stroke="#016147" strokeWidth="1.5"/>
-      <path d="M7 4V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="#016147" strokeWidth="1.5"/>
-      <path d="M12 10v4M10 12h4" stroke="#016147" strokeWidth="1.5" strokeLinecap="round"/>
+      <rect x="2" y="4" width="20" height="16" rx="2" stroke="var(--color-folio-primary)" strokeWidth="1.5"/>
+      <path d="M7 4V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="var(--color-folio-primary)" strokeWidth="1.5"/>
+      <path d="M12 10v4M10 12h4" stroke="var(--color-folio-primary)" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }

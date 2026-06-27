@@ -1,3 +1,4 @@
+/* PDF layout styles — intentional raw values, not UI tokens */
 import type { ResumeDocumentModel } from "@/lib/resume-draft/document-model";
 import { A4_HEIGHT_MM, A4_WIDTH_MM } from "@/lib/resume-draft/preview-settings";
 

@@ -59,8 +59,7 @@ function CompanyAvatar({ name }: { name: string }) {
     .join("");
   return (
     <div
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
-      style={{ backgroundColor: "#EAF3DE", color: "#085041" }}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-semibold bg-folio-mint-surface text-folio-sidebar"
     >
       {initials || "?"}
     </div>
@@ -123,8 +122,8 @@ function PencilIcon() {
 
 function EmptyTabState({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center rounded-xl border border-dashed border-[#D8ECC8] py-16">
-      <p className="text-sm text-[#6f7973]">{message}</p>
+    <div className="flex items-center justify-center rounded-xl border border-dashed border-folio-sage-border py-16">
+      <p className="text-sm text-folio-outline">{message}</p>
     </div>
   );
 }
@@ -205,17 +204,16 @@ export function CareerVaultPageClient() {
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[#1c1c1a]">
+          <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
             Career vault
           </h1>
-          <p className="mt-1 text-sm text-[#6f7973]">
+          <p className="mt-1 text-sm text-folio-outline">
             Manage and refine your professional inventory.
           </p>
         </div>
         <button
           type="button"
-          className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-          style={{ backgroundColor: "#2A7A5E" }}
+          className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 bg-folio-primary-container"
         >
           <PlusIcon />
           Add experience
@@ -223,24 +221,24 @@ export function CareerVaultPageClient() {
       </div>
 
       {/* Vault health card */}
-      <div className="mt-6 rounded-xl border border-[#D8ECC8] bg-white px-4 py-4">
+      <div className="mt-6 rounded-xl border border-folio-sage-border bg-white px-4 py-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-[#1c1c1a]">Vault health</span>
-          <span className="text-sm font-semibold" style={{ color: "#2A7A5E" }}>
+          <span className="text-sm font-medium text-folio-on-surface">Vault health</span>
+          <span className="text-sm font-semibold text-folio-primary-container">
             {vaultPct}%
           </span>
         </div>
-        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[#e5e2de]">
+        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-folio-surface-dim">
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${vaultPct}%`, backgroundColor: "#2A7A5E" }}
+            className="h-full rounded-full bg-folio-primary-container transition-all duration-500"
+            style={{ width: `${vaultPct}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-[#6f7973]">{hint}</p>
+        <p className="mt-2 text-xs text-folio-outline">{hint}</p>
       </div>
 
       {/* Tab nav */}
-      <div className="mt-6 flex border-b border-[#D8ECC8]">
+      <div className="mt-6 flex border-b border-folio-sage-border">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -250,8 +248,8 @@ export function CareerVaultPageClient() {
               onClick={() => setActiveTab(tab.key)}
               className={`mb-[-1px] px-4 pb-3 pt-1 text-sm font-medium transition-colors ${
                 active
-                  ? "border-b-2 border-[#2A7A5E] text-[#2A7A5E]"
-                  : "text-[#6f7973] hover:text-[#1c1c1a]"
+                  ? "border-b-2 border-folio-primary-container text-folio-primary-container"
+                  : "text-folio-outline hover:text-folio-on-surface"
               }`}
             >
               {tab.label}
@@ -273,29 +271,30 @@ export function CareerVaultPageClient() {
               return (
                 <div
                   key={exp.id}
-                  className="rounded-xl border border-[#D8ECC8] bg-white p-4"
+                  className="rounded-xl border border-folio-sage-border bg-white p-4"
                 >
                   {/* Card header row */}
                   <div className="flex items-start gap-3">
                     <CompanyAvatar name={exp.company} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-semibold leading-snug text-[#1c1c1a]">
+                      <p className="text-[15px] font-semibold leading-snug text-folio-on-surface">
                         {exp.role}
                       </p>
-                      <p className="mt-0.5 text-[13px] text-[#6f7973]">
+                      <p className="mt-0.5 text-[13px] text-folio-outline">
                         {exp.company}
                         {exp.dateRange ? ` · ${exp.dateRange}` : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-[#f0edea] px-2.5 py-0.5 text-[11px] text-[#6f7973]">
+                        <span className="rounded-full bg-folio-surface-container px-2.5 py-0.5 text-[11px] text-folio-outline">
                           {exp.bullets.length}{" "}
                           {exp.bullets.length === 1 ? "bullet" : "bullets"}
                         </span>
+                        {/* status colours — intentional */}
                         <span
                           className="rounded-full border px-2.5 py-0.5 text-[11px] font-medium"
                           style={{
                             backgroundColor: "#D6F5EC",
-                            color: "#085041",
+                            color: "var(--color-folio-sidebar)",
                             borderColor: "#9FE1CB",
                           }}
                         >
@@ -306,7 +305,7 @@ export function CareerVaultPageClient() {
                     <button
                       type="button"
                       onClick={() => setExpandedId(isExpanded ? null : exp.id)}
-                      className="mt-0.5 shrink-0 rounded p-1 text-[#6f7973] transition hover:bg-[#f0edea] hover:text-[#1c1c1a]"
+                      className="mt-0.5 shrink-0 rounded p-1 text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
                       aria-label={isExpanded ? "Collapse" : "Expand"}
                       aria-expanded={isExpanded}
                     >
@@ -332,7 +331,7 @@ export function CareerVaultPageClient() {
                           return (
                             <li
                               key={bullet.id}
-                              className={`group border-t border-[#f0edea] pt-3 first:border-t-0 first:pt-0 ${
+                              className={`group border-t border-folio-surface-container pt-3 first:border-t-0 first:pt-0 ${
                                 hidden ? "opacity-40" : ""
                               }`}
                             >
@@ -348,21 +347,20 @@ export function CareerVaultPageClient() {
                                         void commitEdit(bKey);
                                       if (e.key === "Escape") cancelEdit();
                                     }}
-                                    className="flex-1 rounded-lg border border-[#bec9c2] p-2 text-[14px] text-[#1c1c1a] focus:border-[#2A7A5E] focus:outline-none"
+                                    className="flex-1 rounded-lg border border-folio-outline-variant p-2 text-[14px] text-folio-on-surface focus:border-folio-primary-container focus:outline-none"
                                   />
                                   <div className="flex shrink-0 flex-col gap-1">
                                     <button
                                       type="button"
                                       onClick={() => void commitEdit(bKey)}
-                                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-                                      style={{ backgroundColor: "#2A7A5E" }}
+                                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-folio-primary-container"
                                     >
                                       Save
                                     </button>
                                     <button
                                       type="button"
                                       onClick={cancelEdit}
-                                      className="rounded-lg border border-[#bec9c2] px-3 py-1.5 text-xs font-medium text-[#6f7973]"
+                                      className="rounded-lg border border-folio-outline-variant px-3 py-1.5 text-xs font-medium text-folio-outline"
                                     >
                                       Cancel
                                     </button>
@@ -370,17 +368,17 @@ export function CareerVaultPageClient() {
                                 </div>
                               ) : (
                                 <div className="flex items-start gap-2">
-                                  <span className="mt-0.5 shrink-0 select-none text-[#6f7973]">
+                                  <span className="mt-0.5 shrink-0 select-none text-folio-outline">
                                     •
                                   </span>
-                                  <span className="flex-1 text-[14px] leading-relaxed text-[#1c1c1a]">
+                                  <span className="flex-1 text-[14px] leading-relaxed text-folio-on-surface">
                                     {displayText}
                                   </span>
                                   <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                     <button
                                       type="button"
                                       onClick={() => startEdit(bKey, displayText)}
-                                      className="rounded p-1 text-[#6f7973] hover:bg-[#f0edea] hover:text-[#1c1c1a]"
+                                      className="rounded p-1 text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                                       aria-label="Edit bullet"
                                     >
                                       <PencilIcon />
@@ -388,7 +386,7 @@ export function CareerVaultPageClient() {
                                     <button
                                       type="button"
                                       onClick={() => void toggleHide(bKey, hidden)}
-                                      className="rounded px-2 py-0.5 text-[11px] text-[#6f7973] hover:bg-[#f0edea] hover:text-[#1c1c1a]"
+                                      className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                                     >
                                       {hidden ? "Show" : "Hide"}
                                     </button>
@@ -401,11 +399,7 @@ export function CareerVaultPageClient() {
                                   {chips.map((chip) => (
                                     <span
                                       key={chip.id}
-                                      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                                      style={{
-                                        backgroundColor: "#EAF3DE",
-                                        color: "#3B6D11",
-                                      }}
+                                      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-folio-mint-surface text-folio-olive-text"
                                     >
                                       {chip.issueTitle}
                                     </span>
@@ -420,7 +414,7 @@ export function CareerVaultPageClient() {
                       {/* Add bullet ghost row */}
                       <button
                         type="button"
-                        className="mt-3 flex w-full items-center gap-2 rounded-lg border border-dashed border-[#D8ECC8] px-4 py-2.5 text-[13px] text-[#6f7973] transition hover:border-[#2A7A5E] hover:text-[#2A7A5E]"
+                        className="mt-3 flex w-full items-center gap-2 rounded-lg border border-dashed border-folio-sage-border px-4 py-2.5 text-[13px] text-folio-outline transition hover:border-folio-primary-container hover:text-folio-primary-container"
                       >
                         <PlusIcon size={12} />
                         Add bullet point
@@ -437,7 +431,7 @@ export function CareerVaultPageClient() {
           (collated.skillItems.length === 0 ? (
             <EmptyTabState message="No skills yet. Upload a resume to populate skills." />
           ) : (
-            <div className="rounded-xl border border-[#D8ECC8] bg-white p-4">
+            <div className="rounded-xl border border-folio-sage-border bg-white p-4">
               {Object.entries(
                 collated.skillItems.reduce<Record<string, string[]>>((acc, item) => {
                   if (!acc[item.category]) acc[item.category] = [];
@@ -446,14 +440,14 @@ export function CareerVaultPageClient() {
                 }, {}),
               ).map(([category, skills]) => (
                 <div key={category} className="mt-4 first:mt-0">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#6f7973]">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-folio-outline">
                     {category}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {skills.map((skill) => (
                       <span
                         key={skill}
-                        className="rounded-full border border-[#D8ECC8] px-3 py-1 text-[13px] text-[#1c1c1a]"
+                        className="rounded-full border border-folio-sage-border px-3 py-1 text-[13px] text-folio-on-surface"
                       >
                         {skill}
                       </span>
@@ -472,24 +466,24 @@ export function CareerVaultPageClient() {
             collated.educationItems.map((edu) => (
               <div
                 key={edu.id}
-                className="rounded-xl border border-[#D8ECC8] bg-white p-4"
+                className="rounded-xl border border-folio-sage-border bg-white p-4"
               >
-                <p className="text-[15px] font-semibold text-[#1c1c1a]">
+                <p className="text-[15px] font-semibold text-folio-on-surface">
                   {edu.institution}
                 </p>
                 {edu.programmes.length > 0 && (
-                  <p className="mt-0.5 text-[13px] text-[#6f7973]">
+                  <p className="mt-0.5 text-[13px] text-folio-outline">
                     {edu.programmes.join(", ")}
                   </p>
                 )}
                 {edu.dateRange && (
-                  <p className="mt-0.5 text-[13px] text-[#6f7973]">{edu.dateRange}</p>
+                  <p className="mt-0.5 text-[13px] text-folio-outline">{edu.dateRange}</p>
                 )}
                 {edu.bullets.length > 0 && (
                   <ul className="mt-3 space-y-1">
                     {edu.bullets.map((b, i) => (
-                      <li key={i} className="flex gap-2 text-[14px] text-[#1c1c1a]">
-                        <span className="mt-0.5 shrink-0 text-[#6f7973]">•</span>
+                      <li key={i} className="flex gap-2 text-[14px] text-folio-on-surface">
+                        <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
                         {b}
                       </li>
                     ))}
@@ -504,11 +498,11 @@ export function CareerVaultPageClient() {
           (collated.additionalExperienceItems.length === 0 ? (
             <EmptyTabState message="No additional experience yet." />
           ) : (
-            <div className="rounded-xl border border-[#D8ECC8] bg-white p-4">
+            <div className="rounded-xl border border-folio-sage-border bg-white p-4">
               <ul className="space-y-2">
                 {collated.additionalExperienceItems.map((item) => (
-                  <li key={item.id} className="flex gap-2 text-[14px] text-[#1c1c1a]">
-                    <span className="mt-0.5 shrink-0 text-[#6f7973]">•</span>
+                  <li key={item.id} className="flex gap-2 text-[14px] text-folio-on-surface">
+                    <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
                     {item.text}
                   </li>
                 ))}
@@ -521,13 +515,13 @@ export function CareerVaultPageClient() {
       <div className="fixed bottom-8 right-8 flex flex-col items-end gap-2">
         <button
           type="button"
-          className="rounded-lg border border-[#D8ECC8] bg-white px-4 py-2.5 text-sm font-medium text-[#1c1c1a] shadow-md transition hover:bg-[#f6f3ef]"
+          className="rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface shadow-md transition hover:bg-folio-surface-container-low"
         >
           Import from resume
         </button>
         <button
           type="button"
-          className="rounded-lg border border-[#D8ECC8] bg-white px-4 py-2.5 text-sm font-medium text-[#1c1c1a] shadow-md transition hover:bg-[#f6f3ef]"
+          className="rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface shadow-md transition hover:bg-folio-surface-container-low"
         >
           Paste career text
         </button>

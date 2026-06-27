@@ -22,7 +22,7 @@ const EMPTY_FORM: JobDescriptionInput = {
 
 function StepCircle({ n }: { n: number }) {
   return (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#085041] text-[11px] font-semibold text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-folio-sidebar text-[11px] font-semibold text-white">
       {n}
     </div>
   );
@@ -37,8 +37,7 @@ function CompanyInitials({ name }: { name: string }) {
     .join("");
   return (
     <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold"
-      style={{ backgroundColor: "#EAF3DE", color: "#085041" }}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold bg-folio-mint-surface text-folio-sidebar"
     >
       {initials || "?"}
     </div>
@@ -53,7 +52,7 @@ function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       aria-checked={on}
       onClick={onToggle}
       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-150 ${
-        on ? "bg-[#2A7A5E]" : "bg-[#dcdad6]"
+        on ? "bg-folio-primary-container" : "bg-folio-surface-dim"
       }`}
     >
       <span
@@ -142,15 +141,15 @@ export function NewApplicationPageClient({
   }
 
   const fieldClass =
-    "w-full rounded-lg border border-[#bec9c2] bg-white px-3 py-2 text-sm text-[#1c1c1a] placeholder:text-[#6f7973] focus:border-[#2A7A5E] focus:outline-none";
+    "w-full rounded-lg border border-folio-outline-variant bg-white px-3 py-2 text-sm text-folio-on-surface placeholder:text-folio-outline focus:border-folio-primary-container focus:outline-none";
 
   return (
     <div className="max-w-[640px] space-y-4">
       {/* ── Step 1 — Job description ─────────────────────────────── */}
-      <div className="rounded-xl border border-[#D8ECC8] bg-white p-4">
+      <div className="rounded-xl border border-folio-sage-border bg-white p-4">
         <div className="flex items-center gap-2.5">
           <StepCircle n={1} />
-          <h2 className="text-[18px] font-medium text-[#1c1c1a]">Job description</h2>
+          <h2 className="text-[18px] font-medium text-folio-on-surface">Job description</h2>
         </div>
 
         <div className="mt-4 space-y-4">
@@ -166,10 +165,10 @@ export function NewApplicationPageClient({
           <div>
             <label
               htmlFor="new-app-company-website"
-              className="mb-1.5 block text-sm font-medium text-[#1c1c1a]"
+              className="mb-1.5 block text-sm font-medium text-folio-on-surface"
             >
               Company website{" "}
-              <span className="font-normal text-[#6f7973]">(optional)</span>
+              <span className="font-normal text-folio-outline">(optional)</span>
             </label>
             <input
               id="new-app-company-website"
@@ -180,7 +179,7 @@ export function NewApplicationPageClient({
               placeholder="https://company.com"
               className={fieldClass}
             />
-            <p className="mt-1.5 text-xs text-[#6f7973]">
+            <p className="mt-1.5 text-xs text-folio-outline">
               We'll research the company to strengthen your cover letter
             </p>
           </div>
@@ -188,17 +187,17 @@ export function NewApplicationPageClient({
       </div>
 
       {/* ── Step 2 — Confirm role ─────────────────────────────────── */}
-      <div className="rounded-xl border border-[#D8ECC8] bg-white p-4">
+      <div className="rounded-xl border border-folio-sage-border bg-white p-4">
         <div className="flex items-center gap-2.5">
           <StepCircle n={2} />
-          <h2 className="text-[18px] font-medium text-[#1c1c1a]">Confirm role</h2>
+          <h2 className="text-[18px] font-medium text-folio-on-surface">Confirm role</h2>
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label
               htmlFor="new-app-role"
-              className="mb-1.5 block text-sm font-medium text-[#1c1c1a]"
+              className="mb-1.5 block text-sm font-medium text-folio-on-surface"
             >
               Role title
             </label>
@@ -218,7 +217,7 @@ export function NewApplicationPageClient({
           <div>
             <label
               htmlFor="new-app-company"
-              className="mb-1.5 block text-sm font-medium text-[#1c1c1a]"
+              className="mb-1.5 block text-sm font-medium text-folio-on-surface"
             >
               Company name
             </label>
@@ -236,25 +235,25 @@ export function NewApplicationPageClient({
             />
           </div>
         </div>
-        <p className="mt-2 text-xs text-[#6f7973]">
+        <p className="mt-2 text-xs text-folio-outline">
           Extracted from the job description — edit if needed
         </p>
       </div>
 
       {/* ── Step 3 — Vault match ──────────────────────────────────── */}
-      <div className="rounded-xl border border-[#D8ECC8] bg-white p-4">
+      <div className="rounded-xl border border-folio-sage-border bg-white p-4">
         <div className="flex items-center gap-2.5">
           <StepCircle n={3} />
-          <h2 className="text-[18px] font-medium text-[#1c1c1a]">Vault match</h2>
+          <h2 className="text-[18px] font-medium text-folio-on-surface">Vault match</h2>
         </div>
 
         <div className="mt-4">
           {collated.experiences.length === 0 ? (
-            <p className="text-sm text-[#6f7973]">
+            <p className="text-sm text-folio-outline">
               No experience in vault yet.{" "}
               <Link
                 href="/inventory"
-                className="underline underline-offset-2 hover:text-[#1c1c1a]"
+                className="underline underline-offset-2 hover:text-folio-on-surface"
               >
                 Add experience in Career Vault
               </Link>{" "}
@@ -262,10 +261,10 @@ export function NewApplicationPageClient({
             </p>
           ) : (
             <>
-              <p className="mb-3 text-[14px] font-medium text-[#1c1c1a]">
+              <p className="mb-3 text-[14px] font-medium text-folio-on-surface">
                 Relevant experience found
               </p>
-              <ul className="divide-y divide-[#f0edea]">
+              <ul className="divide-y divide-folio-surface-container">
                 {collated.experiences.map((exp) => {
                   const on = !disabledExperienceIds.has(exp.id);
                   return (
@@ -275,11 +274,11 @@ export function NewApplicationPageClient({
                     >
                       <CompanyInitials name={exp.company} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm text-[#1c1c1a]">
+                        <p className="truncate text-sm text-folio-on-surface">
                           {exp.role}
-                          <span className="text-[#6f7973]"> · {exp.company}</span>
+                          <span className="text-folio-outline"> · {exp.company}</span>
                           {exp.dateRange ? (
-                            <span className="text-[#6f7973]"> · {exp.dateRange}</span>
+                            <span className="text-folio-outline"> · {exp.dateRange}</span>
                           ) : null}
                         </p>
                       </div>
@@ -288,7 +287,7 @@ export function NewApplicationPageClient({
                   );
                 })}
               </ul>
-              <p className="mt-3 text-xs text-[#6f7973]">
+              <p className="mt-3 text-xs text-folio-outline">
                 Selected experiences will be prioritised for generation
               </p>
             </>

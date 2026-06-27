@@ -52,6 +52,7 @@ function filterApplications(
 
 function statusBadgeClass(status: string): string {
   switch (status) {
+    /* status colours — intentional */
     case "resume_generated":
       return "bg-[#e8f5ef] text-[#016147] border-[#88d6b5]";
     case "ready_to_apply":
@@ -61,9 +62,9 @@ function statusBadgeClass(status: string): string {
     case "rejected":
       return "bg-[#ffdad6] text-[#93000a] border-[#ba1a1a]";
     case "archived":
-      return "bg-[#e5e2de] text-[#6f7973] border-[#bec9c2]";
+      return "bg-folio-surface-dim text-folio-outline border-folio-outline-variant";
     default:
-      return "bg-[#f0edea] text-[#6f7973] border-[#bec9c2]";
+      return "bg-folio-surface-container text-folio-outline border-folio-outline-variant";
   }
 }
 
@@ -75,7 +76,7 @@ function CompanyAvatar({ name }: { name: string }) {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0edea] text-xs font-semibold text-[#3f4944]">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-folio-surface-container text-xs font-semibold text-folio-on-surface-variant">
       {initials || "?"}
     </div>
   );
@@ -150,7 +151,7 @@ export function ApplicationsPageClient() {
 
   return (
     <div className="max-w-[860px]">
-      <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[#1c1c1a]">
+      <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
         Applications
       </h1>
 
@@ -159,7 +160,7 @@ export function ApplicationsPageClient() {
       ) : null}
 
       {!isSignedIn ? (
-        <p className="mt-4 text-sm text-[#6f7973]">Sign in to view your applications.</p>
+        <p className="mt-4 text-sm text-folio-outline">Sign in to view your applications.</p>
       ) : (
         <>
           {/* Filter pills */}
@@ -172,8 +173,8 @@ export function ApplicationsPageClient() {
                 className={[
                   "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
                   activeFilter === tab.key
-                    ? "border-[#016147] bg-[#016147] text-white"
-                    : "border-[#bec9c2] bg-white text-[#3f4944] hover:border-[#6f7973]",
+                    ? "border-folio-primary bg-folio-primary text-white"
+                    : "border-folio-outline-variant bg-white text-folio-on-surface-variant hover:border-folio-outline",
                 ].join(" ")}
               >
                 {tab.label}
@@ -182,31 +183,31 @@ export function ApplicationsPageClient() {
           </div>
 
           {/* Table */}
-          <div className="mt-5 overflow-hidden rounded-xl border border-[#D8ECC8] bg-white">
+          <div className="mt-5 overflow-hidden rounded-xl border border-folio-sage-border bg-white">
             {filteredApplications.length === 0 ? (
-              <div className="px-6 py-16 text-center text-sm text-[#6f7973]">
+              <div className="px-6 py-16 text-center text-sm text-folio-outline">
                 {emptyMessageForFilter(activeFilter)}
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#D8ECC8]">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973]">
+                  <tr className="border-b border-folio-sage-border">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
                       Company
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
                       Role
                     </th>
-                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973] sm:table-cell">
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline sm:table-cell">
                       Date added
                     </th>
-                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973] md:table-cell">
+                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline md:table-cell">
                       Date applied
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#6f7973]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
                       Actions
                     </th>
                   </tr>
@@ -233,19 +234,19 @@ export function ApplicationsPageClient() {
                     return (
                       <tr
                         key={app.id}
-                        className={isLast ? "" : "border-b border-[#f0edea]"}
+                        className={isLast ? "" : "border-b border-folio-surface-container"}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <CompanyAvatar name={company} />
-                            <span className="font-medium text-[#1c1c1a]">{company}</span>
+                            <span className="font-medium text-folio-on-surface">{company}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-[#3f4944]">{role}</td>
-                        <td className="hidden px-4 py-3 text-[#6f7973] sm:table-cell">
+                        <td className="px-4 py-3 text-folio-on-surface-variant">{role}</td>
+                        <td className="hidden px-4 py-3 text-folio-outline sm:table-cell">
                           {dateAdded}
                         </td>
-                        <td className="hidden px-4 py-3 text-[#6f7973] md:table-cell">
+                        <td className="hidden px-4 py-3 text-folio-outline md:table-cell">
                           {dateApplied}
                         </td>
                         <td className="px-4 py-3">
@@ -261,7 +262,7 @@ export function ApplicationsPageClient() {
                               <Link
                                 href={`/resume-preview/${latestDraft.id}`}
                                 title="View draft"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6f7973] transition hover:bg-[#f0edea] hover:text-[#1c1c1a]"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
                               >
                                 {/* Eye icon */}
                                 <svg
@@ -281,7 +282,7 @@ export function ApplicationsPageClient() {
                             ) : (
                               <span
                                 title="No draft yet"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#bec9c2]"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline-variant"
                               >
                                 <svg
                                   width="16"
@@ -303,7 +304,7 @@ export function ApplicationsPageClient() {
                               title="Archive"
                               disabled={archivingId === app.id}
                               onClick={() => void handleArchive(app)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6f7973] transition hover:bg-[#f0edea] hover:text-[#1c1c1a] disabled:opacity-40"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface disabled:opacity-40"
                             >
                               {/* Archive/box icon */}
                               <svg
