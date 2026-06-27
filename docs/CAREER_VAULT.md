@@ -1,147 +1,64 @@
 # Career Vault
 
-Route: **`/inventory`** → `CareerVaultPageClient` (`src/components/pages/CareerVaultPageClient.tsx`).
+Route: **`/inventory`** → `InventoryPageClient` (`src/components/pages/InventoryPageClient.tsx`).
 
-Nav label: **Career vault**. This is the primary surface for viewing collated inventory, uploading resumes, and adding experience from pasted text.
+Nav label: **Career vault**. This is the persisted career-inventory workspace used to review source resumes, parsed evidence, enrichment, and non-destructive edit overlays.
 
-Legacy **`InventoryPageClient`** remains in the repo for reference but is not mounted on any route.
+The Folio-only **`CareerVaultPageClient`** remains in the repo for reference but is not mounted. It did not expose the established enrichment, overlay editing, cleanup, or source-resume workflows.
 
-## Page structure
+## Restoration contract
 
-1. **Header** — title + **Add experience** (opens text extraction flow)
-2. **Vault health** — completeness meter from resume/work/education/skills counts
-3. **Tabs** — Work experience, Skills, Education, Additional
-4. **FAB stack** (bottom-right, fixed) — Import from resume, Paste career text
-5. **Panels** — inline extraction panel; import via Radix `Dialog` + `UploadCard`
+The restored route reuses the existing workspace and persistence handlers. It does not introduce a second inventory model or change generation inputs.
 
-## "Used in N applications" data flow
+1. **Trust states** — loading, signed-out, failed load, empty, partially parsed, and parser/storage warnings are distinguishable.
+2. **Source upload** — `UploadCard` uses `handleFilesSelected` for DOCX parsing, inventory persistence, and private source-file storage.
+3. **Staged text extraction** — extract → review/edit → apply; extraction alone does not save.
+4. **Enrichment review** — suggestions remain reviewable and resolutions use the established enrichment state.
+5. **User-directed cleanup** — duplicate and project cleanup update the existing `InventoryEdits` overlay.
+6. **Inventory tabs** — collated overview, edit overlays, and per-resume parsed source audit remain accessible.
 
-Per-experience counts on work cards show how often source resumes backing that experience appear in generated applications.
+## Workspace integration
 
-```
-ParsedResume (upload)
-  └─ collated experiences with sourceCitations[].resumeId
-       │
-       ▼
-fetchResumeApplicationCountsFromCloud()
-  queries generated_resume_drafts
-  WHERE reference_resume_id IS NOT NULL
-    AND application_id IS NOT NULL
-  counts DISTINCT application_id per reference_resume_id
-       │
-       ▼
-Map<resumeId, count>  (loaded once on mount in CareerVaultPageClient)
-       │
-       ▼
-For each CollatedExperience:
-  expAppCount = sum over exp.sourceCitations of map.get(cite.resumeId)
-  display: "Used in N applications" | "Not used in active apps"
-```
+All reads and mutations flow through `useWorkspace()`:
 
-### Load-bearing fields
+| Handler / state | Purpose |
+|---|---|
+| `inventory`, `collated`, `warnings` | Persisted source model, active overlay view, and parser warnings |
+| `isWorkspaceLoading`, `inventoryLoadError` | Prevent pre-auth or failed loads from appearing as trustworthy empty inventory |
+| `handleFilesSelected` | Validate and parse DOCX files, upsert parsed inventory, and store source files |
+| `handleSaveInventoryEdits` | Persist overlay edits and optional enrichment changes |
+| enrichment handlers | Run enrichment and resolve reviewable suggestions |
+| `handleClearResumeInventory` | Confirm and clear resume inventory without touching saved jobs |
 
-| Field | Table / type | Role |
-|-------|--------------|------|
-| `sourceCitations[].resumeId` | `CollatedExperience` / parsed inventory | Links experience bullets to uploaded resume IDs |
-| `reference_resume_id` | `generated_resume_drafts` | Which base resume was used for generation |
-| `application_id` | `generated_resume_drafts` | Which application record owns the draft |
+Inventory draft UI is keyed by authenticated user ID. This prevents an unsaved overlay from surviving an identity change when two users happen to have similar saved data.
 
-**Risk:** Schema or generation changes that drop `reference_resume_id` or break citation linkage will zero out counts silently. Any migration touching `generated_resume_drafts` must preserve this chain.
+## Persistence and source-of-truth rules
 
-### Implementation
+- Parsed source resumes are not mutated by inventory edits.
+- `InventoryEdits` remains the non-destructive overlay used by active collation and generation.
+- Add-from-Text applies accepted suggestions only after explicit Apply.
+- Project-like extracted items route to Additional Experience; existing polluted overlays require user-reviewed cleanup.
+- Preview-only education suggestions cannot be accepted or presented as saved.
+- Upload presence is not parse success. Parser failures and warnings remain visible.
+- Important edit saves show progress, success, and failure; unsaved edits register a reload warning.
+- Direct reload waits for auth resolution and persisted inventory loading before deciding the vault is empty.
 
-- Query: `fetchResumeApplicationCountsFromCloud()` in `src/lib/supabase/generated-resume-drafts.ts`
-- UI: `useEffect` on mount in `CareerVaultPageClient`; failures are non-critical (counts stay at zero)
-- Aggregation: sum across all citations on an experience (an experience cited from two resumes adds both resumes' application counts)
+## Unmounted Folio presentation
 
-## Panel & modal trigger pattern
-
-Reference for future features: **FAB or header button → React state → panel or Dialog**.
-
-### Pattern A — Inline panel (text extraction)
-
-Used for multi-step flows that stay in page context.
-
-```tsx
-const [extractionPanelOpen, setExtractionPanelOpen] = useState(false);
-
-// Trigger (header button or FAB)
-<button onClick={() => setExtractionPanelOpen(true)}>Add experience</button>
-
-// Render below content when open
-{extractionPanelOpen && (
-  <InventoryTextExtractionPanel
-    isOpen={extractionPanelOpen}
-    onOpenChange={setExtractionPanelOpen}
-    collated={collated}
-    draftEdits={draftEdits}
-    onDraftEditsChange={setDraftEdits}
-    onSaveApplied={async (edits, enrichment) => {
-      await handleSaveInventoryEdits(edits, { enrichment });
-    }}
-    // ...
-  />
-)}
-```
-
-`InventoryTextExtractionPanel` owns extract → review → apply; parent owns `InventoryEdits` draft state and persists via `handleSaveInventoryEdits` from `WorkspaceProvider`.
-
-### Pattern B — Dialog modal (file import)
-
-Used for focused single-action flows (upload).
-
-```tsx
-const [importPanelOpen, setImportPanelOpen] = useState(false);
-
-<button onClick={() => setImportPanelOpen(true)}>Import from resume</button>
-
-<Dialog open={importPanelOpen} onOpenChange={setImportPanelOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Import from resume</DialogTitle>
-    </DialogHeader>
-    <UploadCard
-      onFilesSelected={(files) => {
-        handleFilesSelected(files);
-        setImportPanelOpen(false);
-      }}
-      isProcessing={isProcessing}
-    />
-  </DialogContent>
-</Dialog>
-```
-
-Dialog component: `src/components/ui/dialog.tsx` (Radix UI, `@radix-ui/react-dialog`).
-
-### Triggers on Career Vault
-
-| UI control | State | Surface |
-|------------|-------|---------|
-| Header **Add experience** | `extractionPanelOpen` | `InventoryTextExtractionPanel` (inline) |
-| FAB **Paste career text** | `extractionPanelOpen` | Same panel |
-| FAB **Import from resume** | `importPanelOpen` | `Dialog` + `UploadCard` |
-
-### Workspace integration
-
-All vault mutations go through **`useWorkspace()`**:
-
-| Handler | Purpose |
-|---------|---------|
-| `handleFilesSelected` | Parse DOCX, upsert inventory |
-| `handleSaveInventoryEdits` | Persist overlay edits (+ optional enrichment) |
-| `handleClearResumeInventory` | Clear uploads (UploadCard) |
-| `collated`, `inventory`, `totals` | Read models for display |
+`CareerVaultPageClient` retains the Folio tab/card presentation and per-resume application-count query as reference. Restoring those visuals on top of the persisted workspace is optional future presentation work, not part of this restoration milestone.
 
 ## Related modules
 
 | Module | Role |
-|--------|------|
-| `src/components/setup/InventoryTextExtractionPanel.tsx` | Paste → AI extract → apply suggestions |
-| `src/components/setup/UploadCard.tsx` | DOCX dropzone |
-| `src/lib/inventory/edits.ts` | Hide/edit bullet overlay helpers |
-| `src/lib/inventory/collation.ts` | Build `collated` view from parsed resumes |
-| `src/lib/supabase/resume-inventories.ts` | Cloud persistence |
-
-## Inventory overlay (unchanged semantics)
-
-Career Vault edits use the same **`InventoryEdits`** overlay as pre-redesign Inventory — source resumes are never mutated. See [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) for project routing, duplicate cleanup, and CRUD limitations.
+|---|---|
+| `src/components/pages/InventoryPageClient.tsx` | Mounted Career Vault workspace |
+| `src/components/setup/InventoryTextExtractionPanel.tsx` | Paste → extract → review → apply |
+| `src/components/setup/EnrichmentReviewPanel.tsx` | Reviewable enrichment suggestions |
+| `src/components/setup/InventoryEditPanel.tsx` | Non-destructive edit overlay |
+| `src/components/setup/InventoryDuplicateCleanupPanel.tsx` | User-directed duplicate cleanup |
+| `src/components/setup/InventoryProjectCleanupPanel.tsx` | User-directed project pollution cleanup |
+| `src/components/setup/SourceResumesView.tsx` | Per-resume parsed audit |
+| `src/components/app/WorkspaceProvider.tsx` | Auth-scoped loading, persistence, and inventory handlers |
+| `src/lib/inventory/edits.ts` | Overlay normalization and application |
+| `src/lib/inventory/collation.ts` | Parsed-source collation |
+| `src/lib/supabase/resume-inventories.ts` | Persisted inventory source |

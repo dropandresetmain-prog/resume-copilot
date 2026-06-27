@@ -430,12 +430,14 @@ See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
 1. Cover-letter structured-output blocker — complete
 2. Canonical Generate → Output — complete at code/test/build level
 3. Applications — restored at code/targeted-test/build level; authenticated Supabase QA pending
-4. Career Vault — next
-5. Onboarding/auth correctness
+4. Career Vault — restored at code/targeted-test/build level; authenticated Supabase QA pending
+5. Onboarding/auth correctness — next
 6. Bounded Output Editor parity
 7. Authenticated E2E regression closure
 
 Applications uses the established persisted-record workspace again. Archived records stay hidden by default and remain non-destructive; Generate reuse continues to skip them.
+
+Career Vault uses the established persisted inventory workspace again. Source upload, staged text extraction, enrichment review, edit overlays, duplicate/project cleanup, and source-resume audit are restored without changing inventory normalization or generation semantics.
 
 ### Live end-to-end QA (v0.9.19 follow-up)
 

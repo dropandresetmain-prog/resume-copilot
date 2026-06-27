@@ -22,12 +22,14 @@ Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting d
 1. Cover-letter structured-output blocker — complete
 2. Canonical Generate → Output flow — complete at code/test/build level; authenticated Supabase QA pending
 3. Applications restoration — complete at code/targeted-test/build level; authenticated Supabase QA pending
-4. Career Vault restoration — next milestone
+4. Career Vault restoration — complete at code/targeted-test/build level; authenticated Supabase QA pending
 5. Onboarding/auth correctness — separate milestone
 6. Output Editor parity — bounded follow-up tasks only
 7. Authenticated E2E regression closure
 
 Applications now remounts the established persisted-record workspace at `/records`. It loads applications, linked resume and cover-letter drafts, saved jobs, company context, status, and notes from their existing sources of truth; distinguishes signed-out/loading/empty/error states; uses `/output/{resumeDraftId}` as the primary package route; and retains archive-without-delete semantics. The incomplete Folio tracker remains unmounted rather than duplicating persistence logic.
+
+Career Vault now remounts the established persisted inventory workspace at `/inventory`. It restores source DOCX upload, staged Add-from-Text, enrichment review, inventory edit overlays, duplicate cleanup, project cleanup, and source-resume audit without changing normalization or generation inputs. Loading, signed-out, empty, failed-load, parse-warning, unsaved, saving, success, and failure states are distinct; inventory draft UI remounts on identity changes. The Folio-only viewer remains unmounted rather than maintaining a second persistence surface.
 
 ### Current shell & routes
 
@@ -577,10 +579,10 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**Career Vault restoration**
+**Onboarding/auth correctness**
 
-Restore and verify the existing persisted Inventory/Career Vault workflow without reopening Applications, canonical Generate → Output, onboarding/auth, or Output Editor parity unless direct evidence shows a blocker.
+Career Vault restoration is complete at code/targeted-test/build level. Verify the restored vault against authenticated Supabase data during the final E2E regression milestone rather than reopening its persistence model here.
 
-Then: onboarding/auth correctness, bounded Output Editor parity tasks, and authenticated E2E regression closure.
+Then: bounded Output Editor parity tasks and authenticated E2E regression closure.
 
 Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, full Inventory CRUD).

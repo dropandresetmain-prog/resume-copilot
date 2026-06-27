@@ -12,12 +12,21 @@ import { InventoryProjectCleanupPanel } from "@/components/setup/InventoryProjec
 import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
 import { SetupAlerts } from "@/components/setup/SetupAlerts";
 import { SourceResumesView } from "@/components/setup/SourceResumesView";
-import { SectionHeader, ViewTabs } from "@/components/setup/ui";
+import { UploadCard } from "@/components/setup/UploadCard";
+import { SectionHeader, SetupCard, ViewTabs } from "@/components/setup/ui";
 import { pageMilestone } from "@/lib/app-version";
 import { createEmptyInventoryEdits, type InventoryEdits } from "@/types/inventory-edits";
 import { inventoryEditsEqual } from "@/lib/inventory/edits";
 
 export function InventoryPageClient() {
+  const { user } = useWorkspace();
+
+  // Inventory drafts are user-scoped. Remounting prevents an unsaved overlay from
+  // one identity surviving an auth switch when both users have similar saved data.
+  return <InventoryWorkspace key={user?.id ?? "signed-out"} />;
+}
+
+function InventoryWorkspace() {
   const {
     collated,
     inventory,
@@ -27,6 +36,12 @@ export function InventoryPageClient() {
     isEnriching,
     enrichError,
     enrichDebugRaw,
+    isSignedIn,
+    cloudEnabled,
+    signInRequiredReason,
+    isWorkspaceLoading,
+    inventoryLoadError,
+    isProcessing,
     activeTab,
     setActiveTab,
     handleEnrichMissing,
@@ -35,6 +50,8 @@ export function InventoryPageClient() {
     handleResolveSuggestion,
     handleDuplicateGroupStatus,
     handleSaveInventoryEdits,
+    handleFilesSelected,
+    handleClearResumeInventory,
   } = useWorkspace();
 
   const savedEdits = inventory.edits ?? createEmptyInventoryEdits();
@@ -104,6 +121,9 @@ export function InventoryPageClient() {
     setSaveFeedback(null);
   }
 
+  const isPersistedSignedOut = cloudEnabled && !isSignedIn;
+  const hasParsedInventory = inventory.resumes.length > 0;
+
   return (
     <>
       <PageHeader
@@ -113,6 +133,38 @@ export function InventoryPageClient() {
         description="Review the career evidence used by generation, tune bullet wording, and keep parser/source details available without crowding the main view."
       />
 
+      {isWorkspaceLoading ? (
+        <SetupCard
+          title="Loading career vault"
+          description="Loading your persisted resumes, parsed inventory, edits, and review state."
+        >
+          <p role="status" className="mt-4 text-sm text-slate-600">
+            Loading saved career evidence…
+          </p>
+        </SetupCard>
+      ) : isPersistedSignedOut ? (
+        <SetupCard
+          title="Sign in to access Career Vault"
+          description={signInRequiredReason}
+        >
+          <p className="mt-4 text-sm text-slate-600">
+            Your persisted resumes and inventory are not loaded while signed out.
+          </p>
+        </SetupCard>
+      ) : inventoryLoadError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          data-testid="inventory-load-error"
+        >
+          <p className="font-medium">Career Vault could not load</p>
+          <p className="mt-1">
+            {inventoryLoadError} Reload the page to retry. The empty state below is not proof
+            that your saved inventory is missing.
+          </p>
+        </div>
+      ) : null}
+
       <SetupAlerts
         persistenceWarning={persistenceWarning}
         importError={null}
@@ -120,6 +172,32 @@ export function InventoryPageClient() {
         warnings={warnings}
       />
 
+      {!isWorkspaceLoading && !isPersistedSignedOut && !inventoryLoadError ? (
+        <div className="space-y-4">
+          <SectionHeader
+            eyebrow="Source resumes"
+            title={hasParsedInventory ? "Import another resume" : "Build your Career Vault"}
+            description={
+              hasParsedInventory
+                ? "Upload another DOCX source resume or inspect existing sources below."
+                : "No parsed inventory is available yet. Uploading a file is only successful when its parsed evidence appears in the vault."
+            }
+          />
+          <UploadCard
+            onFilesSelected={(files) => {
+              void handleFilesSelected(files);
+            }}
+            isProcessing={isProcessing}
+            onClearAll={() => {
+              void handleClearResumeInventory();
+            }}
+            canClear={hasParsedInventory}
+          />
+        </div>
+      ) : null}
+
+      {!isWorkspaceLoading && !isPersistedSignedOut && !inventoryLoadError ? (
+        <>
       <div className="space-y-4">
         <SectionHeader
           eyebrow="Import"
@@ -228,6 +306,8 @@ export function InventoryPageClient() {
           )}
         </div>
       </div>
+        </>
+      ) : null}
     </>
   );
 }

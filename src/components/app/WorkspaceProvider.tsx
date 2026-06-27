@@ -88,6 +88,8 @@ export type WorkspaceContextValue = {
   persistenceWarning: string | null;
   isProcessing: boolean;
   isCloudLoading: boolean;
+  isWorkspaceLoading: boolean;
+  inventoryLoadError: string | null;
   isEnriching: boolean;
   enrichError: string | null;
   enrichDebugRaw: string | null;
@@ -188,6 +190,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const isSignedIn = Boolean(user);
+  // Auth resolution and persisted inventory loading are one trust state for consumers:
+  // an empty in-memory inventory is not authoritative until both have completed.
+  const isWorkspaceLoading = !storageReady || isCloudLoading;
   const cloudEnabled = isSupabaseConfigured();
   const signInRequiredReason = cloudEnabled
     ? "Sign in to save and sync data across devices."
@@ -707,6 +712,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     persistenceWarning,
     isProcessing,
     isCloudLoading,
+    isWorkspaceLoading,
+    inventoryLoadError: cloudLoadError,
     isEnriching,
     enrichError,
     enrichDebugRaw,

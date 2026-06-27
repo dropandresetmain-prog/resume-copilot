@@ -58,6 +58,21 @@ Older milestone checklists were removed during repo cleanup. Completed phase doc
 
 ---
 
+## Career Vault restoration
+
+- [ ] Signed-out, loading, empty, failed-load, and partially parsed states are visibly distinct
+- [ ] Direct `/inventory` reload shows persisted resumes, parsed inventory, overlays, and enrichment state
+- [ ] DOCX upload reports parsing/storage failures and does not imply parse success from upload presence alone
+- [ ] Add-from-Text extraction remains staged; extraction alone does not save
+- [ ] Accepted extraction suggestions save only on Apply and project-like entries route to Additional Experience
+- [ ] Enrichment suggestions remain reviewable before saved inventory changes
+- [ ] Duplicate and project cleanup remain user-directed and save through the existing overlay
+- [ ] Edit Bullets exposes save progress, success, and failure; unsaved edits warn before reload
+- [ ] Source Resumes exposes the per-resume parsed audit view
+- [ ] Switching authenticated users cannot retain another user's unsaved inventory draft
+
+---
+
 ## Legacy application package
 
 - [ ] `/resume-preview/{id}` remains reachable for legacy drafts

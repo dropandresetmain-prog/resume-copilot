@@ -107,6 +107,14 @@ function main() {
     join(process.cwd(), "src/components/pages/InventoryPageClient.tsx"),
     "utf8",
   );
+  const inventoryRoute = readFileSync(
+    join(process.cwd(), "src/app/(workspace)/inventory/page.tsx"),
+    "utf8",
+  );
+  const workspaceProvider = readFileSync(
+    join(process.cwd(), "src/components/app/WorkspaceProvider.tsx"),
+    "utf8",
+  );
   const duplicatePanel = readFileSync(
     join(process.cwd(), "src/components/setup/InventoryDuplicateCleanupPanel.tsx"),
     "utf8",
@@ -188,6 +196,34 @@ function main() {
     [
       "enrichment auto-save feedback",
       inventoryPage.includes('data-testid="inventory-enrich-auto-save-feedback"'),
+    ],
+    [
+      "inventory route restores the persisted workspace",
+      inventoryRoute.includes("InventoryPageClient") &&
+        !inventoryRoute.includes("CareerVaultPageClient"),
+    ],
+    [
+      "restored workspace exposes upload and source resumes",
+      inventoryPage.includes("<UploadCard") && inventoryPage.includes("<SourceResumesView"),
+    ],
+    [
+      "restored workspace exposes enrichment, edit, and cleanup surfaces",
+      inventoryPage.includes("<EnrichmentReviewPanel") &&
+        inventoryPage.includes("<InventoryEditPanel") &&
+        inventoryPage.includes("<InventoryDuplicateCleanupPanel") &&
+        inventoryPage.includes("<InventoryProjectCleanupPanel"),
+    ],
+    [
+      "identity changes remount unsaved inventory drafts",
+      inventoryPage.includes('key={user?.id ?? "signed-out"}'),
+    ],
+    [
+      "loading, signed-out, empty, and load-error states are distinct",
+      inventoryPage.includes("Loading saved career evidence") &&
+        inventoryPage.includes("Sign in to access Career Vault") &&
+        inventoryPage.includes("No parsed inventory is available yet") &&
+        inventoryPage.includes("Career Vault could not load") &&
+        workspaceProvider.includes("const isWorkspaceLoading = !storageReady || isCloudLoading"),
     ],
   ];
 
