@@ -953,8 +953,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         </div>
       </div>
 
+      {/* error/warning surface tints — intentional */}
       {exportMessage ? (
-        {/* error/warning surface tints — intentional */}
         <p className="mt-3 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-sm text-folio-cta-secondary">
           {exportMessage}
         </p>
