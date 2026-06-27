@@ -2,14 +2,22 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   signInWithGoogle,
   signInWithMagicLink,
   signInWithPassword,
 } from "@/lib/supabase/auth";
+import { getSupabaseConfigError, isSupabaseConfigured } from "@/lib/supabase/client";
 
 type AuthMethod = "password" | "magic_link";
+
+function safeNextPath(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/dashboard";
+  }
+  return raw;
+}
 
 export default function LoginPage() {
   return (
@@ -29,10 +37,10 @@ function LoginPageFallback() {
 }
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/dashboard";
+  const nextPath = safeNextPath(searchParams.get("next"));
   const callbackError = searchParams.get("error");
+  const configError = getSupabaseConfigError();
 
   const [method, setMethod] = useState<AuthMethod>("password");
   const [email, setEmail] = useState("");
@@ -59,6 +67,10 @@ function LoginPageContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSupabaseConfigured()) {
+      setErrors({ form: configError ?? "Supabase is not configured." });
+      return;
+    }
     const v = validate();
     if (Object.keys(v).length) {
       setErrors(v);
@@ -71,15 +83,16 @@ function LoginPageContent() {
       if (method === "magic_link") {
         await signInWithMagicLink(email, nextPath);
         setSuccessMessage("Check your email for the sign-in link.");
+        setLoading(false);
       } else {
         await signInWithPassword(email, password);
-        router.push(nextPath);
+        // Full navigation so middleware sees the new auth cookies (client router.push can loop back to login).
+        window.location.assign(nextPath);
       }
     } catch (err: unknown) {
       setErrors({
         form: err instanceof Error ? err.message : "Sign in failed.",
       });
-    } finally {
       setLoading(false);
     }
   }
@@ -98,6 +111,12 @@ function LoginPageContent() {
       <h1 className="text-center text-[20px] font-medium text-folio-on-surface mb-8">
         Sign in to your account
       </h1>
+
+      {!isSupabaseConfigured() && (
+        <p className="mb-4 rounded-[8px] border border-folio-error/30 bg-red-50 px-3 py-2 text-[12px] text-folio-error">
+          {configError ?? "Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."}
+        </p>
+      )}
 
       <button
         type="button"
