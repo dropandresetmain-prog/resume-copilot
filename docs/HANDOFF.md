@@ -17,6 +17,18 @@ Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting d
 
 **Phase 4 remaining:** Task 6 (cover letter only mode — deferred); Task 10 (authenticated E2E flow test). Generate now uses `/output/[draftId]`; full Output Editor parity remains a separate milestone.
 
+### Restoration sequence
+
+1. Cover-letter structured-output blocker — complete
+2. Canonical Generate → Output flow — complete at code/test/build level; authenticated Supabase QA pending
+3. Applications restoration — complete at code/targeted-test/build level; authenticated Supabase QA pending
+4. Career Vault restoration — next milestone
+5. Onboarding/auth correctness — separate milestone
+6. Output Editor parity — bounded follow-up tasks only
+7. Authenticated E2E regression closure
+
+Applications now remounts the established persisted-record workspace at `/records`. It loads applications, linked resume and cover-letter drafts, saved jobs, company context, status, and notes from their existing sources of truth; distinguishes signed-out/loading/empty/error states; uses `/output/{resumeDraftId}` as the primary package route; and retains archive-without-delete semantics. The incomplete Folio tracker remains unmounted rather than duplicating persistence logic.
+
 ### Current shell & routes
 
 - Sidebar nav: Dashboard → Career vault (`/inventory`) → Generate → Applications (`/records`) → Profile / Settings
@@ -565,12 +577,10 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**Folio Phase 4 closure**
+**Career Vault restoration**
 
-1. E2E flow test — upload → Career vault → generate → output (see `docs/FOLIO_REDESIGN.md` Task 10)
-2. Cover letter only mode (deferred Task 6)
-3. Output Editor parity — restore only as bounded follow-up tasks after the canonical route is verified
+Restore and verify the existing persisted Inventory/Career Vault workflow without reopening Applications, canonical Generate → Output, onboarding/auth, or Output Editor parity unless direct evidence shows a blocker.
 
-Then: live end-to-end QA for evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`).
+Then: onboarding/auth correctness, bounded Output Editor parity tasks, and authenticated E2E regression closure.
 
 Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, full Inventory CRUD).

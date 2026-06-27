@@ -50,6 +50,10 @@ async function main() {
     join(process.cwd(), "src/components/pages/RecordsPageClient.tsx"),
     "utf8",
   );
+  const recordsRoute = readFileSync(
+    join(process.cwd(), "src/app/(workspace)/records/page.tsx"),
+    "utf8",
+  );
   const recordsPanel = readFileSync(
     join(process.cwd(), "src/components/setup/ApplicationRecordsPanel.tsx"),
     "utf8",
@@ -91,6 +95,8 @@ async function main() {
     ["generate flow links draft to application", generateSection.includes("applicationId: applicationRecord.id")],
     ["generate flow marks resume_generated", generateSection.includes("markApplicationResumeGenerated")],
     ["records page renders applications panel", recordsPage.includes("ApplicationRecordsPanel")],
+    ["records route mounts restored records page", recordsRoute.includes("RecordsPageClient")],
+    ["records route does not mount incomplete tracker", !recordsRoute.includes("ApplicationsPageClient")],
     ["draft history hides linked drafts", draftHistory.includes("!draft.applicationId")],
     ["ensure helper is exported", typeof ensureApplicationRecordForJobDescription === "function"],
     ["archive helper is exported", typeof archiveApplicationRecordInCloud === "function"],
@@ -103,6 +109,10 @@ async function main() {
     ["status dropdown excludes archived", recordsPanel.includes("EDITABLE_APPLICATION_RECORD_STATUSES")],
     ["archive does not delete resume drafts", !recordsPanel.includes("deleteGeneratedResumeDraftFromCloud")],
     ["archive does not delete cover letter drafts", !recordsPanel.includes("deleteGeneratedCoverLetterDraftFromCloud")],
+    ["records distinguish loading state", recordsPanel.includes("Loading saved applications")],
+    ["records primary package route is canonical output", recordsPanel.includes("href={`/output/${latestDraft.id}`}")],
+    ["records report successful status saves", recordsPanel.includes("Status saved.")],
+    ["records report successful note saves", recordsPanel.includes("Notes saved.")],
     ["archived helper detects archived status", isArchivedApplicationRecord({ status: "archived" })],
     ["cover letter drafts module has no application delete", !coverLetterDrafts.includes("deleteApplication")],
   ];

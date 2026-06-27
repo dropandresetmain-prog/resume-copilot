@@ -1,5 +1,5 @@
-import { ApplicationsPageClient } from "@/components/pages/ApplicationsPageClient";
+import { RecordsPageClient } from "@/components/pages/RecordsPageClient";
 
 export default function RecordsPage() {
-  return <ApplicationsPageClient />;
+  return <RecordsPageClient />;
 }

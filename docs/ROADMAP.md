@@ -17,7 +17,7 @@ See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
 | Item | Priority |
 |------|----------|
 | E2E flow test (upload → vault → generate → output) | High |
-| Route migration `/resume-preview` → `/output` | Medium |
+| Canonical Generate/Applications route migration to `/output` | ✅ Complete |
 | Cover letter only generate mode | Deferred |
 | Settings page content | Low |
 
@@ -425,9 +425,17 @@ See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
 
 ## Next (planned)
 
-### Folio Phase 4 closure
+### Restoration sequence
 
-E2E test, output route migration, cover letter only mode. See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md).
+1. Cover-letter structured-output blocker — complete
+2. Canonical Generate → Output — complete at code/test/build level
+3. Applications — restored at code/targeted-test/build level; authenticated Supabase QA pending
+4. Career Vault — next
+5. Onboarding/auth correctness
+6. Bounded Output Editor parity
+7. Authenticated E2E regression closure
+
+Applications uses the established persisted-record workspace again. Archived records stay hidden by default and remain non-destructive; Generate reuse continues to skip them.
 
 ### Live end-to-end QA (v0.9.19 follow-up)
 

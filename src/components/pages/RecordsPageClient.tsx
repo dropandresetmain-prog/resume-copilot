@@ -10,6 +10,7 @@ import { pageMilestone } from "@/lib/app-version";
 
 export function RecordsPageClient() {
   const {
+    user,
     jobDescriptions,
     isSignedIn,
     cloudEnabled,
@@ -39,7 +40,12 @@ export function RecordsPageClient() {
         compact
       />
 
-      <ApplicationRecordsPanel isSignedIn={isSignedIn} jobDescriptions={jobDescriptions} />
+      <ApplicationRecordsPanel
+        // Application rows and linked artifacts are user-scoped; remount on identity changes.
+        key={user?.id ?? "signed-out"}
+        isSignedIn={isSignedIn}
+        jobDescriptions={jobDescriptions}
+      />
 
       <details className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-slate-900">

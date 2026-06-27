@@ -49,6 +49,8 @@ type ApplicationCardState = {
   isSavingNotes: boolean;
   isSavingStatus: boolean;
   isArchiving: boolean;
+  notesFeedback: string | null;
+  statusFeedback: string | null;
   expanded: boolean;
 };
 
@@ -101,6 +103,7 @@ export function ApplicationRecordsPanel({
   const [applications, setApplications] = useState<StoredApplicationRecord[]>([]);
   const [drafts, setDrafts] = useState<GeneratedResumeDraftRecord[]>([]);
   const [coverLetters, setCoverLetters] = useState<GeneratedCoverLetterDraftRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(isSignedIn);
   const [error, setError] = useState<string | null>(null);
   const [cardState, setCardState] = useState<Record<string, ApplicationCardState>>({});
 
@@ -133,6 +136,8 @@ export function ApplicationRecordsPanel({
                 isSavingNotes: false,
                 isSavingStatus: false,
                 isArchiving: false,
+                notesFeedback: null,
+                statusFeedback: null,
                 expanded: false,
               },
             ]),
@@ -146,6 +151,10 @@ export function ApplicationRecordsPanel({
               ? loadError.message
               : "Failed to load application records.",
           );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
         }
       }
     }
@@ -189,6 +198,8 @@ export function ApplicationRecordsPanel({
         isSavingNotes: current[applicationId]?.isSavingNotes ?? false,
         isSavingStatus: current[applicationId]?.isSavingStatus ?? false,
         isArchiving: current[applicationId]?.isArchiving ?? false,
+        notesFeedback: current[applicationId]?.notesFeedback ?? null,
+        statusFeedback: current[applicationId]?.statusFeedback ?? null,
         expanded: current[applicationId]?.expanded ?? false,
         ...patch,
       },
@@ -199,13 +210,17 @@ export function ApplicationRecordsPanel({
     application: StoredApplicationRecord,
     status: ApplicationRecordStatus,
   ) {
-    updateCardState(application.id, { isSavingStatus: true });
+    updateCardState(application.id, {
+      isSavingStatus: true,
+      statusFeedback: null,
+    });
     setError(null);
     try {
       const updated = await updateApplicationRecordInCloud(application.id, { status });
       setApplications((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
+      updateCardState(application.id, { statusFeedback: "Status saved." });
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -219,7 +234,10 @@ export function ApplicationRecordsPanel({
 
   async function handleSaveNotes(application: StoredApplicationRecord) {
     const notesDraft = cardState[application.id]?.notesDraft ?? application.notes ?? "";
-    updateCardState(application.id, { isSavingNotes: true });
+    updateCardState(application.id, {
+      isSavingNotes: true,
+      notesFeedback: null,
+    });
     setError(null);
     try {
       const updated = await updateApplicationRecordInCloud(application.id, {
@@ -228,6 +246,10 @@ export function ApplicationRecordsPanel({
       setApplications((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
+      updateCardState(application.id, {
+        notesDraft: updated.notes ?? "",
+        notesFeedback: "Notes saved.",
+      });
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -284,8 +306,14 @@ export function ApplicationRecordsPanel({
         <p className="mt-3 text-sm text-slate-600">
           Sign in to see application records from Supabase.
         </p>
-      ) : error ? (
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+      ) : isLoading ? (
+        <p className="mt-3 text-sm text-slate-600" role="status">
+          Loading saved applications…
+        </p>
+      ) : error && applications.length === 0 ? (
+        <p className="mt-3 text-sm text-red-700" role="alert">
+          Could not load saved applications: {error}
+        </p>
       ) : applications.length === 0 ? (
         <EmptyState
           title="No applications yet"
@@ -293,6 +321,11 @@ export function ApplicationRecordsPanel({
         />
       ) : (
         <>
+          {error ? (
+            <p className="mt-3 text-sm text-red-700" role="alert">
+              {error}
+            </p>
+          ) : null}
           <dl className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -355,6 +388,8 @@ export function ApplicationRecordsPanel({
                 isSavingNotes: false,
                 isSavingStatus: false,
                 isArchiving: false,
+                notesFeedback: null,
+                statusFeedback: null,
                 expanded: false,
               };
               const updatedLabel = new Date(application.updatedAt).toLocaleString();
@@ -389,7 +424,7 @@ export function ApplicationRecordsPanel({
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
                       {latestDraft ? (
                         <Link
-                          href={`/resume-preview/${latestDraft.id}`}
+                          href={`/output/${latestDraft.id}`}
                           className={`${primaryButtonClassName} min-h-9 px-4 py-2 text-sm`}
                         >
                           Open package
@@ -462,6 +497,10 @@ export function ApplicationRecordsPanel({
                           </select>
                           {state.isSavingStatus ? (
                             <p className="mt-1 text-xs text-slate-500">Saving…</p>
+                          ) : state.statusFeedback ? (
+                            <p className="mt-1 text-xs text-emerald-700" role="status">
+                              {state.statusFeedback}
+                            </p>
                           ) : null}
                         </div>
 
@@ -478,7 +517,7 @@ export function ApplicationRecordsPanel({
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <Link
-                                  href={`/resume-preview/${latestDraft.id}`}
+                                  href={`/output/${latestDraft.id}`}
                                   className={secondaryButtonClassName}
                                 >
                                   Open draft
@@ -524,6 +563,11 @@ export function ApplicationRecordsPanel({
                         >
                           {state.isSavingNotes ? "Saving notes…" : "Save notes"}
                         </button>
+                        {!state.isSavingNotes && state.notesFeedback ? (
+                          <p className="mt-2 text-xs text-emerald-700" role="status">
+                            {state.notesFeedback}
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className={destructiveActionGroupClassName}>

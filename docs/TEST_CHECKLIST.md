@@ -45,6 +45,19 @@ Older milestone checklists were removed during repo cleanup. Completed phase doc
 
 ---
 
+## Applications restoration
+
+- [ ] Signed-out, loading, empty, and failed-load states are visibly distinct
+- [ ] Direct `/records` reload shows persisted applications and linked saved jobs
+- [ ] Resume/package action opens `/output/{resumeDraftId}`
+- [ ] Missing resume, cover letter, or company context is shown as missing
+- [ ] Status change persists and shows success or failure feedback
+- [ ] Notes save persists and shows success or failure feedback
+- [ ] Archive confirmation hides the application without deleting linked drafts or company context
+- [ ] Generating again for an archived job creates/reuses only a non-archived application record
+
+---
+
 ## Legacy application package
 
 - [ ] `/resume-preview/{id}` remains reachable for legacy drafts
