@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchResumeApplicationCountsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { InventoryTextExtractionPanel } from "@/components/setup/InventoryTextExtractionPanel";
@@ -150,6 +151,13 @@ export function CareerVaultPageClient() {
 
   const [extractionPanelOpen, setExtractionPanelOpen] = useState(false);
   const [importPanelOpen, setImportPanelOpen] = useState(false);
+  const [resumeAppCounts, setResumeAppCounts] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    fetchResumeApplicationCountsFromCloud()
+      .then(setResumeAppCounts)
+      .catch(() => {/* non-critical, leave counts at zero */});
+  }, []);
 
   const savedEdits = inventory.edits ?? createEmptyInventoryEdits();
   const [draftEdits, setDraftEdits] = useState<InventoryEdits>(savedEdits);
@@ -288,6 +296,9 @@ export function CareerVaultPageClient() {
           ) : (
             collated.experiences.map((exp) => {
               const isExpanded = expandedId === exp.id;
+              const expAppCount = exp.sourceCitations.reduce((sum, cite) => {
+                return sum + (resumeAppCounts.get(cite.resumeId) ?? 0);
+              }, 0);
 
               return (
                 <div
@@ -319,7 +330,9 @@ export function CareerVaultPageClient() {
                             borderColor: "#9FE1CB",
                           }}
                         >
-                          Not used in active apps
+                          {expAppCount === 0
+                            ? "Not used in active apps"
+                            : `Used in ${expAppCount} ${expAppCount === 1 ? "application" : "applications"}`}
                         </span>
                       </div>
                     </div>

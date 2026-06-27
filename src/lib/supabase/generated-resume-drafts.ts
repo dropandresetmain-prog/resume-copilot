@@ -357,3 +357,39 @@ export async function deleteGeneratedResumeDraftFromCloud(id: string): Promise<v
     throw new Error(error.message);
   }
 }
+
+/**
+ * Returns a map of reference_resume_id -> count of distinct applications that
+ * used that source resume. Only rows with both fields populated are counted.
+ */
+export async function fetchResumeApplicationCountsFromCloud(): Promise<
+  Map<string, number>
+> {
+  const user = await getCurrentUser();
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("generated_resume_drafts")
+    .select("reference_resume_id, application_id")
+    .eq("user_id", user.id)
+    .not("reference_resume_id", "is", null)
+    .not("application_id", "is", null);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Count distinct application_ids per reference_resume_id
+  const seenPairs = new Set<string>();
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const resumeId = row.reference_resume_id as string;
+    const appId = row.application_id as string;
+    const pairKey = `${resumeId}::${appId}`;
+    if (!seenPairs.has(pairKey)) {
+      seenPairs.add(pairKey);
+      counts.set(resumeId, (counts.get(resumeId) ?? 0) + 1);
+    }
+  }
+  return counts;
+}

@@ -30,6 +30,8 @@
   --color-folio-mint-surface:           #EAF3DE;
   --color-folio-olive-text:             #3B6D11;
   --color-folio-olive-border:           #C0DD97;
+  --color-folio-warning-surface:        #fdf4e6;
+  --color-folio-warning-border:         #f5d9b0;
 
   /* Typography scale */
   --font-sans: Inter, Arial, Helvetica, sans-serif;
