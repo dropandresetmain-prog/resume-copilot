@@ -1,19 +1,25 @@
-**v0.9.11D** - See [`HANDOFF.md`](HANDOFF.md) for current milestone.
+**Folio redesign** — See [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for current milestone. v0.9.19B AI/evidence notes in [`HANDOFF.md`](HANDOFF.md).
 
 ## App routes
 
 | Path | File | Purpose |
 |------|------|---------|
-| `/` | `src/app/page.tsx` | Landing page (CTA → Manage Uploads) |
-| `/generate` | `src/app/(workspace)/generate/page.tsx` | Job intake + tailor resume (main product) |
-| `/inventory` | `src/app/(workspace)/inventory/page.tsx` | Career inventory + enrichment |
-| `/records` | `src/app/(workspace)/records/page.tsx` | Applications + saved jobs + communications + unlinked draft history |
-| `/profile` | `src/app/(workspace)/profile/page.tsx` | Application Communication Profile editor (v0.9.0) |
-| `/setup` | `src/app/(workspace)/setup/page.tsx` | Manage Uploads (auth, upload, parsing) |
-| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Application package — resume, cover letter, research (v0.9.8) |
-| `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace (v0.5.2) |
-| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Cover letter editor + export (v0.9.0) |
-| `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Dev utilities (profile backfill, etc.) |
+| `/` | `src/app/page.tsx` | Landing page (`LandingHero`) |
+| `/auth/login` | `src/app/auth/login/page.tsx` | Sign in |
+| `/auth/signup` | `src/app/auth/signup/page.tsx` | Sign up |
+| `/onboarding` | `src/app/onboarding/page.tsx` | First-run upload + profile setup |
+| `/dashboard` | `src/app/(workspace)/dashboard/page.tsx` | Dashboard (`DashboardPageClient`) |
+| `/inventory` | `src/app/(workspace)/inventory/page.tsx` | **Career vault** (`CareerVaultPageClient`) |
+| `/generate` | `src/app/(workspace)/generate/page.tsx` | Job intake + tailor resume |
+| `/records` | `src/app/(workspace)/records/page.tsx` | **Applications** (`ApplicationsPageClient`) |
+| `/profile` | `src/app/(workspace)/profile/page.tsx` | Application Communication Profile |
+| `/settings` | `src/app/(workspace)/settings/page.tsx` | Settings shell |
+| `/output/[draftId]` | `src/app/(workspace)/output/[draftId]/page.tsx` | **Output editor** — unified resume + cover letter (`OutputEditorPageClient`) |
+| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Legacy application package (`ResumePreviewPageClient`) |
+| `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace |
+| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Cover letter editor + export |
+| `/setup` | `src/app/(workspace)/setup/page.tsx` | Legacy Manage Uploads (`ManageUploadsPageClient`) |
+| `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Dev utilities — **404 in production** |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Resume draft generation |
 | `/api/ai/generate-company-context` | `src/app/api/ai/generate-company-context/route.ts` | Company context generation (v0.9.3+) |
@@ -28,26 +34,33 @@
 
 Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `AppShell`).
 
+**Auth:** Protected prefixes in `src/middleware.ts` — unauthenticated users redirect to `/auth/login`.
+
 ## App shell
 
 | File | Purpose |
 |------|---------|
 | `src/components/app/WorkspaceProvider.tsx` | Auth session, Supabase sync, shared state/handlers |
-| `src/components/app/AppShell.tsx` | Premium workspace frame with nav and constrained page content |
-| `src/components/app/AppNav.tsx` | Sticky mobile-safe main navigation (Uploads -> Inventory -> Generate -> Applications -> Profile) |
+| `src/components/app/AppShell.tsx` | Folio shell — sidebar offset content area (`ml-[220px]`), top bar |
+| `src/components/app/AppNav.tsx` | Forest-green sidebar nav (Dashboard, Career vault, Generate, Applications, Profile, Settings) |
+| `src/components/app/TopBar.tsx` | Workspace top bar |
 | `src/components/app/nav.ts` | Nav items and active-route helper |
-| `src/components/app/PageHeader.tsx` | Per-page hero/header with milestone and optional eyebrow |
+| `src/components/ui/dialog.tsx` | Radix Dialog — Folio tokens (Career Vault import modal) |
 
-## Page clients (v0.4.4)
+## Page clients (Folio redesign)
 
 | File | Route |
 |------|-------|
-| `src/components/pages/GeneratePageClient.tsx` | `/generate` - composer-first JD intake + generate tailored resume |
-| `src/components/pages/InventoryPageClient.tsx` | `/inventory` - enrichment plus Overview/Edit/Source sections |
-| `src/components/pages/RecordsPageClient.tsx` | `/records` - Applications workspace; saved jobs/draft history secondary |
-| `src/components/pages/ProfilePageClient.tsx` | `/profile` - focused Application Communication Profile settings editor |
-| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` - cover letter editor with separate edit/save/export/revision surfaces |
-| `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` - Uploads readiness/onboarding workspace |
+| `src/components/pages/DashboardPageClient.tsx` | `/dashboard` |
+| `src/components/pages/CareerVaultPageClient.tsx` | `/inventory` — Career vault (FAB, extraction, upload dialog, app counts) |
+| `src/components/pages/GeneratePageClient.tsx` | `/generate` |
+| `src/components/pages/ApplicationsPageClient.tsx` | `/records` — Applications table |
+| `src/components/pages/OutputEditorPageClient.tsx` | `/output/[draftId]` — unified output editor |
+| `src/components/pages/ProfilePageClient.tsx` | `/profile` |
+| `src/components/pages/ResumePreviewPageClient.tsx` | `/resume-preview/[draftId]` — legacy application package |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` |
+| `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` — legacy uploads |
+| `src/components/pages/InventoryPageClient.tsx` | *(unmounted)* — pre-redesign inventory reference |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
 
 ## Setup / shared components
@@ -92,7 +105,7 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 | `supabase/migrations/20260620_add_saved_job_summary.sql` | Adds `summary` column to `job_descriptions` |
 | `supabase/migrations/20260622_application_communication_v090.sql` | Profile table + cover letter columns (v0.9.0) |
 | `supabase/migrations/20260623_application_company_context_v093.sql` | `company_context` on application_records (v0.9.3) |
-| `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete generated resume drafts |
+| `src/lib/supabase/generated-resume-drafts.ts` | Create/list/get/delete drafts; `fetchResumeApplicationCountsFromCloud()` for vault app counts |
 | `src/lib/supabase/generated-cover-letter-drafts.ts` | Create/list/get/update cover letter drafts (v0.9.0) |
 | `src/lib/supabase/application-communication-profiles.ts` | Load/save Application Communication Profile (v0.9.0) |
 | `src/lib/supabase/application-records.ts` | Application records CRUD + ensure per JD (v0.8.0) |
@@ -321,6 +334,9 @@ Utility scripts (not tests): `scripts/pull-gemini-analysis.ts`, `scripts/build-g
 | File | Purpose |
 |------|---------|
 | `README.md` | Project overview (root) |
+| `docs/FOLIO_REDESIGN.md` | Folio UI redesign phases, routes, remaining tasks |
+| `docs/FOLIO_DESIGN_TOKENS.md` | Grove design tokens (`globals.css`) |
+| `docs/CAREER_VAULT.md` | Career vault data flow, app counts, panel patterns |
 | `docs/FIT_SCORE_RUBRIC.md` | Target fit-score rubric (`fit-rubric-v1`) — product IP |
 | `docs/HANDOFF.md` | Current milestone and run instructions |
 | `docs/ROADMAP.md` | Planned milestones |
@@ -328,3 +344,4 @@ Utility scripts (not tests): `scripts/pull-gemini-analysis.ts`, `scripts/build-g
 | `docs/KNOWN_ISSUES.md` | Known limitations |
 | `docs/TEST_CHECKLIST.md` | Manual QA checklist |
 | `docs/TESTING.md` | Automated test layout, policy, source-grep audit |
+| `AUDIT_CLAUDE.md` | Phase 0 pre-redesign audit (historical) |

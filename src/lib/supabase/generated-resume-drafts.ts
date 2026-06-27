@@ -359,8 +359,14 @@ export async function deleteGeneratedResumeDraftFromCloud(id: string): Promise<v
 }
 
 /**
- * Returns a map of reference_resume_id -> count of distinct applications that
- * used that source resume. Only rows with both fields populated are counted.
+ * Counts distinct applications per source resume used in generation.
+ *
+ * Queries `generated_resume_drafts` for rows with both `reference_resume_id` and
+ * `application_id`, dedupes `(resumeId, applicationId)` pairs, and returns a map
+ * used by Career Vault to show "Used in N applications" on work experience cards
+ * (aggregated via `CollatedExperience.sourceCitations[].resumeId`).
+ *
+ * @see docs/CAREER_VAULT.md
  */
 export async function fetchResumeApplicationCountsFromCloud(): Promise<
   Map<string, number>

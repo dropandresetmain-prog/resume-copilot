@@ -138,6 +138,16 @@ function EmptyTabState({ message }: { message: string }) {
   );
 }
 
+/**
+ * Career Vault page — primary inventory surface at `/inventory`.
+ *
+ * Wires Add experience (header + FAB) to {@link InventoryTextExtractionPanel} and
+ * Import from resume to a Radix {@link Dialog} wrapping {@link UploadCard}.
+ * Loads per-resume application counts via {@link fetchResumeApplicationCountsFromCloud}
+ * and aggregates them on work experience cards through `sourceCitations[].resumeId`.
+ *
+ * @see docs/CAREER_VAULT.md
+ */
 export function CareerVaultPageClient() {
   const {
     collated,

@@ -1,5 +1,13 @@
 # Known Issues
 
+## Folio UI redesign
+
+- **Dual output routes** — `/output/[draftId]` (new Output Editor) and `/resume-preview/[draftId]` (legacy Application Package) both exist. Generate and Applications links still target `/resume-preview`. Migration pending — see `docs/FOLIO_REDESIGN.md`.
+- **Token discipline** — new UI must use Folio CSS tokens from `globals.css`; occasional inline hex may remain on status chips until swept.
+- **Settings page** — route shell only; preferences not implemented.
+- **Legacy `/setup`** — still available; onboarding is the preferred first-run path.
+- **Career vault app counts** — depend on `reference_resume_id` + `sourceCitations[].resumeId` linkage; see `docs/CAREER_VAULT.md`. Failures load silently as zero counts.
+
 ## Export strategy (v0.7.0+)
 
 - **Server PDF page count is export truth** — Puppeteer + `pdf-lib` validation on Approve and hard block on PDF export when `pageCount > 1`.

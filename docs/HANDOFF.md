@@ -1,8 +1,36 @@
 # HANDOFF
 
+## Folio UI redesign (current focus)
+
+**Product:** Folio — resume tailoring app. **Branch:** `folio-redesign` (merge to `main` per phase).
+
+Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting docs: [`FOLIO_DESIGN_TOKENS.md`](FOLIO_DESIGN_TOKENS.md), [`CAREER_VAULT.md`](CAREER_VAULT.md).
+
+### Redesign status (Phases 1–4)
+
+| Phase | Status |
+|-------|--------|
+| 1 — Design system & Folio tokens | ✅ Complete |
+| 2 — Shell + page rebuild (Dashboard, Vault, Generate, Output, Landing, Auth, Onboarding, Profile, Settings) | ✅ Complete |
+| 3 — Wire extraction panel + upload to Career Vault | ✅ Complete |
+| 4 — Polish (FAB wiring, app counts, token sweep, balanced tone) | ✅ Mostly complete |
+
+**Phase 4 remaining:** Task 6 (cover letter only mode — deferred); Task 10 (E2E flow test); route migration to `/output/[draftId]` (page exists; Generate still uses `/resume-preview`).
+
+### Current shell & routes
+
+- Sidebar nav: Dashboard → Career vault (`/inventory`) → Generate → Applications (`/records`) → Profile / Settings
+- New Output Editor: `/output/[draftId]` (`OutputEditorPageClient`)
+- Legacy application package: `/resume-preview/[draftId]` (still post-generate destination)
+- `/dev-tools` returns 404 in production
+
+AI generation, evidence spine, export, and package behaviour documented in v0.9.x notes below — engines were remounted, not rewritten.
+
+---
+
 ## Current version
 
-**v0.9.19B** (code)
+**v0.9.19B** (code) — AI/evidence milestone label; Folio redesign does not bump this yet.
 
 ## v0.9.19B implementation note
 
@@ -537,6 +565,12 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**Live end-to-end QA** — evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`). No code milestone queued until QA feedback.
+**Folio Phase 4 closure**
 
-Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, cover letter-only generate path, full Inventory CRUD).
+1. E2E flow test — upload → Career vault → generate → output (see `docs/FOLIO_REDESIGN.md` Task 10)
+2. Cover letter only mode (deferred Task 6)
+3. Route migration — `/resume-preview/[draftId]` → `/output/[draftId]`
+
+Then: live end-to-end QA for evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`).
+
+Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, full Inventory CRUD).

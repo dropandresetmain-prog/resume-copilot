@@ -1,8 +1,31 @@
 # Roadmap
 
+## Folio UI redesign
+
+See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
+
+| Phase | Theme | Status |
+|-------|-------|--------|
+| 0 | Audit — routes, AI calls, data models | ✅ [`AUDIT_CLAUDE.md`](../AUDIT_CLAUDE.md) |
+| 1 | Design system — Folio tokens in `globals.css` | ✅ |
+| 2 | Shell + pages — Dashboard, Vault, Generate, Output, Landing, Auth, Onboarding, Profile, Settings | ✅ |
+| 3 | Feature wiring — extraction panel + upload in Career Vault | ✅ |
+| 4 | Polish — FAB wiring, app counts, token sweep, balanced tone | ✅ Mostly |
+
+**Remaining (Phase 4):**
+
+| Item | Priority |
+|------|----------|
+| E2E flow test (upload → vault → generate → output) | High |
+| Route migration `/resume-preview` → `/output` | Medium |
+| Cover letter only generate mode | Deferred |
+| Settings page content | Low |
+
+---
+
 ## Current version
 
-**v0.9.19B**
+**v0.9.19B** (AI/evidence milestone label)
 
 ## Completed capabilities
 
@@ -402,9 +425,13 @@
 
 ## Next (planned)
 
+### Folio Phase 4 closure
+
+E2E test, output route migration, cover letter only mode. See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md).
+
 ### Live end-to-end QA (v0.9.19 follow-up)
 
-Manual QA for evidence controls and tailoring diagnostics before next code milestone. See `docs/TEST_CHECKLIST.md`. **Not started.**
+Manual QA for evidence controls and tailoring diagnostics. See `docs/TEST_CHECKLIST.md`.
 
 ### v0.9.16A — Tailoring Quality
 
