@@ -40,6 +40,11 @@ function main() {
     "src/lib/resume-draft/approve-resume-draft-client.ts",
   );
   const approveClientSource = readFileSync(approveClientPath, "utf8");
+  const outputClientPath = join(
+    process.cwd(),
+    "src/components/pages/OutputEditorPageClient.tsx",
+  );
+  const outputClientSource = readFileSync(outputClientPath, "utf8");
 
   const checks: [string, boolean][] = [
     [
@@ -76,6 +81,26 @@ function main() {
     [
       "export ready checks serverPdfValidation page count",
       previewSource.includes("serverPdfValidation?.pageCount === 1"),
+    ],
+    // M4 — Folio Output Editor surfaces the same approval gate (no route changes).
+    [
+      "output editor calls approve api",
+      outputClientSource.includes("approveResumeDraftForExport") &&
+        outputClientSource.includes("Validating server PDF"),
+    ],
+    [
+      "output editor surfaces one-page block",
+      outputClientSource.includes("ResumePdfOnePageBlockedError") &&
+        outputClientSource.includes("formatOnePageBlockedMessage"),
+    ],
+    [
+      "output editor export ready checks server page count",
+      outputClientSource.includes("serverPdfValidation?.pageCount === 1"),
+    ],
+    [
+      "output editor gates export behind approval",
+      outputClientSource.includes("exportReady") &&
+        outputClientSource.includes("!exportReady"),
     ],
   ];
 

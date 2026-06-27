@@ -32,6 +32,18 @@ import {
   buildResumeDraftPayloadFromInventory,
   normalizeRegenerationControls,
 } from "@/lib/resume-draft/payload";
+import { DEFAULT_RESUME_LAYOUT_SETTINGS } from "@/lib/resume-draft/document-model";
+import {
+  approveResumeDraftForExport,
+  formatOnePageBlockedMessage,
+  ResumePdfOnePageBlockedError,
+} from "@/lib/resume-draft/approve-resume-draft-client";
+import {
+  isApprovedDraftStatus,
+  isLayoutChangedAfterApprovalStatus,
+  RESUME_DRAFT_STATUS_NEEDS_REVIEW,
+} from "@/lib/resume-draft/draft-status";
+import { areExportLayoutSettingsEqual } from "@/lib/resume-draft/export-layout-settings";
 import { getApplicationRecordFromCloud, updateApplicationRecordInCloud } from "@/lib/supabase/application-records";
 import {
   findCoverLetterDraftByResumeDraftId,
@@ -309,6 +321,9 @@ function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
 
 const GHOST_BUTTON =
   "inline-flex items-center justify-center gap-1.5 rounded-lg border border-folio-sage-border bg-white px-3.5 py-2 text-sm font-medium text-folio-on-surface transition hover:bg-folio-surface-container-low disabled:cursor-not-allowed disabled:opacity-50";
+
+const PRIMARY_BUTTON =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-folio-primary-container px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Rationale chips for one included experience, derived from generated bullet metadata. */
 function chipsForExperience(exp: ResumeDraftExperienceSection): string[] {
@@ -683,9 +698,24 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   const [companyContext, setCompanyContext] = useState<CompanyContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A failed persisted read (loadFailed) is never the same as a confirmed-missing
+  // draft (notFound). Conflating them would falsely tell the user their draft is gone.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const [activeTab, setActiveTab] = useState<OutputTab>("resume");
   const [showExcluded, setShowExcluded] = useState(false);
+
+  // Explicit, persisted approval state lives on the draft (status === "approved"
+  // plus a server one-page validation). These drive the two-step Approve → Export flow.
+  const [isApproving, setIsApproving] = useState(false);
+  const [validationFailure, setValidationFailure] = useState<{
+    pageCount: number;
+    message: string;
+    suggestedActions: string[];
+    overflowMm?: number;
+  } | null>(null);
 
   // Toggle intent — wired to forced/excluded bullet regeneration controls.
   const [excludedDraftKeys, setExcludedDraftKeys] = useState<Set<string>>(new Set());
@@ -704,32 +734,48 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     async function loadDraft() {
       setIsLoading(true);
       setError(null);
+      setLoadFailed(false);
+      setNotFound(false);
+
+      let record: GeneratedResumeDraftRecord | null;
       try {
-        const record = await getGeneratedResumeDraftFromCloud(draftId);
-        if (cancelled) return;
-        if (!record) {
-          setError("Resume draft not found.");
-          setDraft(null);
-          return;
-        }
-        setDraft(record);
-        if (record.applicationId) {
-          const application = await getApplicationRecordFromCloud(record.applicationId);
-          if (!cancelled) {
-            setCompanyContext(application?.companyContext ?? null);
-            setMarkedSent(application?.status === "applied");
-          }
-        } else if (!cancelled) {
-          setCompanyContext(null);
-        }
+        record = await getGeneratedResumeDraftFromCloud(draftId);
       } catch (loadError) {
-        if (!cancelled) {
-          setError(
-            loadError instanceof Error ? loadError.message : "Failed to load resume draft.",
-          );
-        }
+        if (cancelled) return;
+        // The read itself failed (network/auth/db). Do NOT claim the draft is missing —
+        // keep the door open for a retry instead of offering a misleading "not found".
+        setLoadFailed(true);
+        setError(
+          loadError instanceof Error ? loadError.message : "Failed to load resume draft.",
+        );
+        return;
       } finally {
         if (!cancelled) setIsLoading(false);
+      }
+
+      if (cancelled) return;
+      if (!record) {
+        // The read succeeded and returned nothing — this draft genuinely does not exist.
+        setNotFound(true);
+        setDraft(null);
+        return;
+      }
+      setDraft(record);
+
+      // Company context / sent-state is supplementary — a failure here must not be
+      // mistaken for a failed draft load, so it is fetched in its own guarded pass.
+      if (!record.applicationId) {
+        setCompanyContext(null);
+        return;
+      }
+      try {
+        const application = await getApplicationRecordFromCloud(record.applicationId);
+        if (!cancelled) {
+          setCompanyContext(application?.companyContext ?? null);
+          setMarkedSent(application?.status === "applied");
+        }
+      } catch {
+        if (!cancelled) setCompanyContext(null);
       }
     }
 
@@ -737,7 +783,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     return () => {
       cancelled = true;
     };
-  }, [draftId]);
+  }, [draftId, loadAttempt]);
 
   const linkedJob = useMemo(() => {
     if (!draft?.jobDescriptionId) return null;
@@ -829,6 +875,9 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
 
     setIsRegenerating(true);
     setError(null);
+    // Regenerating replaces the draft content, so any prior approval no longer applies.
+    // Clearing the validation block here keeps the approval state honest after the rewrite.
+    setValidationFailure(null);
 
     try {
       const mergedControls = buildMergedControls();
@@ -864,6 +913,42 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     }
   }
 
+  /**
+   * Step 1 of the two-step delivery flow. Calls the server approve route, which re-runs the
+   * Puppeteer one-page validation and persists status="approved" + serverPdfValidation.
+   * A 422 (resume overflows one page) is surfaced as an actionable hard block, not a silent
+   * failure — export stays disabled until a passing approval round-trips back onto the draft.
+   */
+  async function handleApprove() {
+    if (!draft || isApproving) return;
+    setIsApproving(true);
+    setError(null);
+    setValidationFailure(null);
+    try {
+      const layoutSettings = draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS;
+      const result = await approveResumeDraftForExport({ draftId: draft.id, layoutSettings });
+      setDraft(result.draft);
+      setExportMessage(null);
+    } catch (approveError) {
+      if (approveError instanceof ResumePdfOnePageBlockedError) {
+        setValidationFailure({
+          pageCount: approveError.pageCount,
+          message: formatOnePageBlockedMessage(approveError),
+          suggestedActions: approveError.suggestedActions,
+          overflowMm: approveError.overflowMm,
+        });
+      } else {
+        setError(
+          approveError instanceof Error
+            ? approveError.message
+            : "Failed to approve draft for export.",
+        );
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  }
+
   async function handleExportPdf() {
     if (!draft || isExportingPdf) return;
     setIsExportingPdf(true);
@@ -871,7 +956,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     try {
       const result = await exportResumePdfFromApi({
         draftId: draft.id,
-        layoutSettings: draft.content.exportLayoutSettings,
+        layoutSettings: draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS,
       });
       if (!result.downloadUrl) throw new Error("Export did not return a download URL.");
       const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "pdf");
@@ -892,7 +977,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     try {
       const result = await exportResumeDocxFromApi({
         draftId: draft.id,
-        layoutSettings: draft.content.exportLayoutSettings,
+        layoutSettings: draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS,
       });
       if (!result.downloadUrl) throw new Error("Export did not return a download URL.");
       const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "docx");
@@ -926,15 +1011,45 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     return <p className="text-sm text-folio-outline">Loading output editor…</p>;
   }
 
-  if (error && !draft) {
+  // Failed read: we could not load the draft, but that is NOT proof it is missing.
+  // Offer a retry; never route the user away as if the draft were gone.
+  if (loadFailed && !draft) {
+    return (
+      <div
+        data-testid="output-load-failed"
+        className="max-w-[640px] rounded-xl border border-[#f3c0bd] bg-[#fdeceb] p-4"
+      >
+        <h1 className="text-[18px] font-medium text-[#ba1a1a]">Could not load this draft</h1>
+        <p className="mt-2 max-w-lg text-sm text-[#ba1a1a]">
+          We could not load this draft right now. This does not mean it is missing — please try
+          again.
+        </p>
+        {error ? <p className="mt-2 text-xs text-[#ba1a1a]">{error}</p> : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+            className={GHOST_BUTTON}
+          >
+            Retry loading
+          </button>
+          <Link href="/generate" className={GHOST_BUTTON}>
+            Back to new application
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Confirmed missing: the read succeeded and returned nothing.
+  if (notFound && !draft) {
     return (
       <div className="max-w-[640px] rounded-xl border border-folio-sage-border bg-white p-4">
-        <h1 className="text-[18px] font-medium text-folio-on-surface">Output editor unavailable</h1>
-        <p className="mt-2 text-sm text-folio-error">{error}</p>
-        <Link
-          href="/generate"
-          className={`mt-4 ${GHOST_BUTTON}`}
-        >
+        <h1 className="text-[18px] font-medium text-folio-on-surface">Resume draft not found</h1>
+        <p className="mt-2 text-sm text-folio-outline">
+          This draft does not exist or has been removed.
+        </p>
+        <Link href="/generate" className={`mt-4 ${GHOST_BUTTON}`}>
           Back to new application
         </Link>
       </div>
@@ -942,6 +1057,23 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   }
 
   if (!draft) return null;
+
+  // ── Approval / export trust state (explicit + persisted on the draft) ──────────
+  // Folio has no layout sliders yet (those land in M5a), so approval validates the
+  // draft's stored export layout settings, falling back to the shared defaults.
+  const resolvedLayoutSettings = draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS;
+  const exportReady = Boolean(
+    isApprovedDraftStatus(draft.status) &&
+      draft.content.serverPdfValidation?.pageCount === 1 &&
+      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, resolvedLayoutSettings),
+  );
+  const layoutChangedAfterApproval = isLayoutChangedAfterApprovalStatus(draft.status);
+  const needsReview = draft.status === RESUME_DRAFT_STATUS_NEEDS_REVIEW;
+  const approveLabel = isApproving
+    ? "Validating server PDF…"
+    : layoutChangedAfterApproval || isApprovedDraftStatus(draft.status)
+      ? "Re-approve for export"
+      : "Approve for export";
 
   return (
     <div className="max-w-[1100px]">
@@ -962,7 +1094,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
           <button
             type="button"
             onClick={() => void handleExportPdf()}
-            disabled={isExportingPdf}
+            disabled={isExportingPdf || !exportReady}
+            title={exportReady ? undefined : "Approve for export first"}
             className={GHOST_BUTTON}
           >
             {isExportingPdf ? "Exporting…" : "Export PDF"}
@@ -970,7 +1103,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
           <button
             type="button"
             onClick={() => void handleExportDocx()}
-            disabled={isExportingDocx}
+            disabled={isExportingDocx || !exportReady}
+            title={exportReady ? undefined : "Approve for export first"}
             className={GHOST_BUTTON}
           >
             {isExportingDocx ? "Exporting…" : "Export DOCX"}
@@ -1024,8 +1158,144 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
 
       {/* ── Resume tab ─────────────────────────────────────────── */}
       {activeTab === "resume" ? (
-        <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start">
-          {/* Left panel — rendered preview (60%) */}
+        <div className="mt-5 space-y-5">
+          {/* ── Review & export (trust/delivery layer) ───────────── */}
+          <section
+            data-testid="output-approve-export"
+            className="rounded-xl border border-folio-sage-border bg-white p-5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[18px] font-medium tracking-[-0.01em] text-folio-on-surface">
+                  Review and export
+                </h2>
+                <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-folio-outline">
+                  {exportReady
+                    ? "Approved for export. The server confirmed this resume fits one page."
+                    : "Approve runs a server one-page check. Export unlocks only after it passes."}
+                </p>
+              </div>
+              {exportReady ? (
+                <span className="rounded-full border border-folio-olive-border bg-folio-mint-surface px-2.5 py-0.5 text-[11px] font-medium text-folio-olive-text">
+                  Approved for export
+                </span>
+              ) : null}
+            </div>
+
+            {/* needs_review — visible warning before the approve CTA (banner only) */}
+            {needsReview ? (
+              <div
+                data-testid="output-needs-review-banner"
+                className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2.5 text-sm text-folio-cta-secondary"
+              >
+                <p className="font-medium">Resume needs a structure review</p>
+                <p className="mt-1 leading-relaxed">
+                  Automatic repair flagged possible structure issues. Regenerate the resume below to
+                  re-run automatic repair before you approve for export.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Server one-page hard gate (422) — actionable, never silent */}
+            {validationFailure ? (
+              <div
+                data-testid="output-one-page-block"
+                className="mt-4 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2.5 text-sm text-[#ba1a1a]"
+              >
+                <p className="font-medium">
+                  Export blocked — server PDF is {validationFailure.pageCount} pages
+                </p>
+                <p className="mt-1 leading-relaxed">{validationFailure.message}</p>
+                {validationFailure.suggestedActions.length > 0 ? (
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    {validationFailure.suggestedActions.slice(0, 4).map((action) => (
+                      <li key={action}>{action}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* Layout changed after approval — re-approve before export */}
+            {layoutChangedAfterApproval ? (
+              <div className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2.5 text-sm text-folio-cta-secondary">
+                Layout changed after approval. Re-approve for export before downloading.
+              </div>
+            ) : null}
+
+            {exportReady ? (
+              /* Step 2 active — export is the primary action */
+              <div className="mt-4 space-y-3">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                    Export
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleExportPdf()}
+                      disabled={isExportingPdf}
+                      className={PRIMARY_BUTTON}
+                    >
+                      {isExportingPdf ? "Exporting…" : "Export PDF"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleExportDocx()}
+                      disabled={isExportingDocx}
+                      className={GHOST_BUTTON}
+                    >
+                      {isExportingDocx ? "Exporting…" : "Export DOCX"}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleApprove()}
+                  disabled={isApproving}
+                  data-action="reapprove-for-export"
+                  className={GHOST_BUTTON}
+                >
+                  {isApproving ? "Validating server PDF…" : "Re-approve for export"}
+                </button>
+              </div>
+            ) : (
+              /* Step 1 — approve gates export */
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                    Step 1 — Approve
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleApprove()}
+                    disabled={isApproving}
+                    data-action="approve-for-export"
+                    className={`mt-2 w-full ${PRIMARY_BUTTON}`}
+                  >
+                    {approveLabel}
+                  </button>
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline/70">
+                    Step 2 — Export (after approval)
+                  </p>
+                  <p className="mt-1 text-xs text-folio-outline">Approve first to enable export.</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" disabled className={PRIMARY_BUTTON}>
+                      Export PDF
+                    </button>
+                    <button type="button" disabled className={GHOST_BUTTON}>
+                      Export DOCX
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+            {/* Left panel — rendered preview (60%) */}
           <div className="lg:w-3/5">
             <div className="rounded-xl border border-folio-sage-border bg-white p-6">
               <RenderedResume draft={draft} />
@@ -1119,6 +1389,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
             <p className="mt-4 text-xs text-folio-outline">
               Selected experiences will be prioritised for generation
             </p>
+          </div>
           </div>
         </div>
       ) : (

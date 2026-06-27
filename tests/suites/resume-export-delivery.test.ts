@@ -23,10 +23,15 @@ function main() {
     process.cwd(),
     "src/components/resume-drafts/DownloadResumeDocxButton.tsx",
   );
+  const outputClientPath = join(
+    process.cwd(),
+    "src/components/pages/OutputEditorPageClient.tsx",
+  );
   const pdfButtonSource = readFileSync(pdfButtonPath, "utf8");
   const docxButtonSource = readFileSync(docxButtonPath, "utf8");
   const pdfStorageSource = readFileSync(pdfStoragePath, "utf8");
   const docxStorageSource = readFileSync(docxStoragePath, "utf8");
+  const outputClientSource = readFileSync(outputClientPath, "utf8");
 
   resetExportDeliveryMetrics();
   const expectedName = buildResumePdfFileName({
@@ -102,6 +107,18 @@ function main() {
       "metrics reset helper exported",
       typeof resetExportDeliveryMetrics === "function" &&
         typeof getExportDeliveryMetrics === "function",
+    ],
+    // M4 — Output Editor delivers via the same export client, gated by approval.
+    [
+      "output editor awaits export then deliver",
+      outputClientSource.includes("await exportResumePdfFromApi") &&
+        outputClientSource.includes("await exportResumeDocxFromApi") &&
+        outputClientSource.includes("await deliverExportedFile"),
+    ],
+    [
+      "output editor topbar export disabled until export ready",
+      outputClientSource.includes("isExportingPdf || !exportReady") &&
+        outputClientSource.includes("isExportingDocx || !exportReady"),
     ],
   ];
 

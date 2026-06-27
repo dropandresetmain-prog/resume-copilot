@@ -31,6 +31,10 @@ function main() {
     join(process.cwd(), "src/components/application-package/PackageTailoringDiagnosticsPanel.tsx"),
     "utf8",
   );
+  const outputEditor = readFileSync(
+    join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
+    "utf8",
+  );
 
   const fitSummaryIndex = indexOrInfinity(resumePreview, 'data-testid="package-fit-summary-top"');
   const tailoringDiagnosticsIndex = indexOrInfinity(
@@ -139,6 +143,33 @@ function main() {
     [
       "review center still approves",
       resumePreview.includes("onApproveForExport={() => void handleApproveForExport()}"),
+    ],
+    // ── M4 — Folio Output Editor trust/delivery surfaces ──────────────────────────
+    [
+      "output editor has approve-export trust surface",
+      outputEditor.includes('data-testid="output-approve-export"'),
+    ],
+    [
+      "output editor approve step precedes export step",
+      indexOrInfinity(outputEditor, "Step 1 — Approve") <
+        indexOrInfinity(outputEditor, "Step 2 — Export"),
+    ],
+    [
+      "output editor surfaces needs_review banner before approve",
+      outputEditor.includes('data-testid="output-needs-review-banner"') &&
+        outputEditor.includes("RESUME_DRAFT_STATUS_NEEDS_REVIEW"),
+    ],
+    [
+      "output editor re-approves after layout change",
+      outputEditor.includes("isLayoutChangedAfterApprovalStatus") &&
+        outputEditor.includes("Re-approve for export"),
+    ],
+    [
+      "output editor distinguishes failed load from missing draft",
+      outputEditor.includes("loadFailed") &&
+        outputEditor.includes("notFound") &&
+        outputEditor.includes('data-testid="output-load-failed"') &&
+        outputEditor.includes("Retry loading"),
     ],
   ];
 

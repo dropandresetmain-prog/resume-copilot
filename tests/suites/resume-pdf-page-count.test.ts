@@ -32,10 +32,15 @@ async function main() {
   const exportRoutePath = join(process.cwd(), "src/app/api/export/resume-pdf/route.ts");
   const approveRoutePath = join(process.cwd(), "src/app/api/approve/resume-draft/route.ts");
   const validateRoutePath = join(process.cwd(), "src/app/api/validate/resume-pdf/route.ts");
+  const outputClientPath = join(
+    process.cwd(),
+    "src/components/pages/OutputEditorPageClient.tsx",
+  );
   const pdfExportSource = readFileSync(pdfExportPath, "utf8");
   const exportRouteSource = readFileSync(exportRoutePath, "utf8");
   const approveRouteSource = readFileSync(approveRoutePath, "utf8");
   const validateRouteSource = readFileSync(validateRoutePath, "utf8");
+  const outputClientSource = readFileSync(outputClientPath, "utf8");
 
   const onePageValidation = buildOnePagePdfValidation(1);
   const twoPageValidation = buildOnePagePdfValidation(2);
@@ -124,6 +129,16 @@ async function main() {
     [
       "validate route exists",
       validateRouteSource.includes("validateResumePdfExport"),
+    ],
+    // M4 — Output Editor renders the server page-overflow block with actionable copy.
+    [
+      "output editor renders one-page block with page count",
+      outputClientSource.includes('data-testid="output-one-page-block"') &&
+        outputClientSource.includes("validationFailure.pageCount"),
+    ],
+    [
+      "output editor lists server suggested actions",
+      outputClientSource.includes("validationFailure.suggestedActions"),
     ],
   ];
 
