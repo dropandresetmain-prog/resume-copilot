@@ -9,6 +9,8 @@ import {
   extractJobMetadataFromText,
   mergeExtractedJobMetadata,
 } from "@/lib/jd/extract-metadata";
+import { findDuplicateJobDescription } from "@/lib/jd/persistence";
+import { normalizeJobDescriptionInput } from "@/lib/generate/save-job-for-generation";
 import type { JobDescriptionInput } from "@/types/jd";
 
 const EMPTY_FORM: JobDescriptionInput = {
@@ -79,7 +81,6 @@ export function NewApplicationPageClient({
     jobDescriptions,
     isSignedIn,
     cloudEnabled,
-    signInRequiredReason,
     handleSaveJobDescription,
   } = useWorkspace();
 
@@ -103,9 +104,22 @@ export function NewApplicationPageClient({
   const [disabledExperienceIds, setDisabledExperienceIds] = useState<Set<string>>(
     new Set(),
   );
+  // Tracks which saved-job match the user has dismissed ("Start fresh") — resets per matched job id.
+  const [dismissedJobId, setDismissedJobId] = useState<string | null>(null);
 
   const companyTouchedRef = useRef(false);
   const roleTouchedRef = useRef(false);
+
+  const normalizedForm = useMemo(() => normalizeJobDescriptionInput(jobForm), [jobForm]);
+
+  // Detect duplicate saved job for the live form. Only active when not already editing a saved job.
+  const matchingJob = useMemo(
+    () =>
+      normalizedForm.rawText && !editingJobId
+        ? findDuplicateJobDescription(jobDescriptions, normalizedForm) ?? null
+        : null,
+    [jobDescriptions, normalizedForm, editingJobId],
+  );
 
   const disabled = cloudEnabled && !isSignedIn;
 
@@ -180,7 +194,7 @@ export function NewApplicationPageClient({
               className={fieldClass}
             />
             <p className="mt-1.5 text-xs text-folio-outline">
-              We'll research the company to strengthen your cover letter
+              We&apos;ll research the company to strengthen your cover letter
             </p>
           </div>
         </div>
@@ -295,9 +309,59 @@ export function NewApplicationPageClient({
         </div>
       </div>
 
+      {/* ── Saved job matched notice ─────────────────────────────────
+          When the live form matches an existing saved job (same company+role
+          or same raw text), surface it so the user can reuse or start fresh.
+          The generate engine reuses automatically, but this makes it visible.
+      ───────────────────────────────────────────────────────────────── */}
+      {matchingJob && matchingJob.id !== dismissedJobId ? (
+        <div
+          className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4"
+          data-testid="generate-saved-job-match"
+        >
+          <div className="flex items-center gap-3">
+            <CompanyInitials name={matchingJob.companyName ?? "?"} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-folio-on-surface">Saved job matched</p>
+              <p className="mt-0.5 text-xs text-folio-outline">
+                {[matchingJob.companyName, matchingJob.roleTitle].filter(Boolean).join(" · ")}
+                {" — "}will be reused on Generate
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setJobForm({
+                  rawText: matchingJob.rawText,
+                  companyName: matchingJob.companyName ?? "",
+                  roleTitle: matchingJob.roleTitle ?? "",
+                  jobUrl: matchingJob.jobUrl ?? "",
+                });
+                setEditingJobId(matchingJob.id);
+                companyTouchedRef.current = true;
+                roleTouchedRef.current = true;
+              }}
+              className="rounded-lg border border-folio-outline-variant bg-white px-3 py-1.5 text-sm font-medium text-folio-on-surface transition hover:bg-folio-surface-container"
+            >
+              Reuse saved job
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismissedJobId(matchingJob.id)}
+              className="rounded-lg px-3 py-1.5 text-sm font-medium text-folio-outline transition hover:text-folio-on-surface"
+            >
+              Start fresh
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* ── Generate section ─────────────────────────────────────────
           Embedded mode strips verbose secondary UI and renders only the
-          readiness strip + generate CTA + progress panel + error recovery.
+          readiness strip + context policy + generate CTA + progress +
+          error recovery.
       ───────────────────────────────────────────────────────────────── */}
       <GenerateTailoredResumeSection
         inventory={inventory}

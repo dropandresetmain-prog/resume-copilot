@@ -584,7 +584,50 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 
 ### M4 Opening Prompt
 
-*(To be written by the M3 implementation chat upon closing.)*
+```
+Implement Milestone M4 — Output Core Delivery — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1, M2, and M3 are complete. Read the M3 Milestone Completion Log row and §9 "M4 — Output Core Delivery".
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. OutputEditorPageClient stays mounted at /output/[draftId]. Never swap an active route to a legacy page client. No active page.tsx may import InventoryPageClient, RecordsPageClient, GeneratePageClient, ResumePreviewPageClient, or CoverLetterPreviewPageClient. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow the Folio design system defined in docs/DESIGN.md. Read it before building any component. Key rules: Inter font, sentence case everywhere, no shadows (depth via hairline borders and tonal surfaces), rounded-xl for cards (12px), rounded-lg for controls (8px), folio-primary-container (#2A7A5E) for primary actions, folio-sage-border for card borders, folio-surface-container-low for tinted notice surfaces.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. Approve-for-export sequence: explicit two-step Approve → Export flow in OutputEditorPageClient; Approve calls /api/approve/resume-draft; approval state is explicit and persisted.
+2. Server one-page PDF hard gate (422): /api/validate/resume-pdf blocks export when resume overflows one page; UI must surface the block with actionable copy (not silent failure).
+3. PDF/DOCX export with structured filenames + private storage delivery: wire to /api/export/resume-pdf and /api/export/resume-docx; filenames follow the existing structured naming scheme.
+4. needs_review repair banner: when draft status is needs_review, show a visible banner with repair action before the approve CTA.
+5. Post-approval edit invalidation: structured edits after approval must downgrade the approval state (layout_changed).
+6. Failed-load vs confirmed-missing honesty: a failed persisted load must never be treated as "no draft exists."
+
+STAYS MOUNTED: OutputEditorPageClient.
+
+REFERENCES (read only — behavioral reference, never mount): ResumePreviewPageClient, ApplicationReviewCenter, ExportFitStatusPanel.
+
+BACKEND/DEPS: /api/approve/resume-draft, /api/validate/resume-pdf, /api/export/resume-*, generated-documents, application_records.
+
+MUST NOT CHANGE: export engine, page-count truth, filename scheme, generation engine, model IDs, evidence spine.
+
+CHECKS: npm run test, npm run lint, npm run build. Add tests into existing suites only — extend resume-approve-validation, resume-pdf-page-count, resume-export-delivery, application-package-ux (docs/TESTING.md). Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix unless explicitly scoped): resume-generation-validation.test.ts (3 fails, generation-semantics area); draft-inventory-safety.test.ts (2 fails, updateGeneratedResumeDraftInCloud / deleteGeneratedResumeDraftFromCloud); lint error in ProfilePageClient.tsx (1 error, untouched file). Report if they block your verification but do not expand scope.
+
+INDEPENDENT REVIEW: M4 requires an independent Opus review before merge. After implementation and verification, open a fresh chat with the Opus review brief + diff only — no implementation history.
+
+After completing M4, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M4 complete in the Milestone Completion Log.
+- Write the M5a opening prompt into the Chat Prompts section.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
 
 ### M5a Opening Prompt
 
@@ -618,7 +661,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 |---|---|---|---|
 | M1 — Foundation lock, route-contract safeguards | ✅ Complete | 2026-06-28 | Cherry-picked `56bc7c5` + `0877eb2` (clean, sit directly on `7aec1d0`); added 10 route-contract + forbidden-remount checks to `app-shell.test.ts` (scoped to 5 active routes); refreshed 9 stale pre-Folio shell assertions to the Folio shell; verified sign-out / signup→confirm-email / profiles migration (no behavior change); documented the forbidden-remount rule + fixed a stale route table in `FOLIO_REDESIGN.md`. **Pre-existing red carried forward (not M1):** `resume-generation-validation` (3 fails, generation-semantics area — forbidden to touch in M1); lint has 2 pre-existing errors in untouched files (`ProfilePageClient.tsx`). `npm run build` green; M1 suites green when run directly. |
 | M2 — Career Vault minimum parity | ✅ Complete | 2026-06-28 | DOCX upload dialog keeps open while parsing and shows explicit saved/partial/failed states from inventory diff (no silent bad parse); revert-to-original per bullet clears `editedBulletTextByBulletKey` overlay (source resumes never touched); save error surfaced in `inventory-unsaved-changes-banner`; `InventoryTextExtractionPanel` wired with `onSaveApplied` only on Apply (extract≠save confirmed); `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel` brought into `CareerVaultPageClient` under "Vault management tools" progressive-disclosure section — legacy clients never mounted. New checks added to `inventory-edits`, `inventory-text-extraction`, `inventory-duplicate-cleanup`, and `draft-inventory-safety` suites. **Pre-existing red carried forward (not M2):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); lint errors in `NewApplicationPageClient.tsx` + `ProfilePageClient.tsx` (2 errors, all untouched files). Build green; M2 suites green when run directly. |
-| M3 — Generate minimum parity | Not started | — | — |
+| M3 — Generate minimum parity | ✅ Complete | 2026-06-28 | Saved-job match banner added to `NewApplicationPageClient`: live detection via `findDuplicateJobDescription` + `normalizeJobDescriptionInput`; "Reuse saved job" fills form + sets `editingJobId`; "Start fresh" dismisses per-match. Context policy summary (headline + detail, `data-testid="generate-context-policy-summary"`) added to `embeddedMode` path of `GenerateTailoredResumeSection` so users see JD-only vs website+JD vs confidential before clicking Generate. Partial-failure recovery (resume preserved, "Retry Cover Letter" offered, retry skips resume API) was already complete — confirmed by full `generation-partial-failure` suite pass. 4 new checks added to `generate-flow.test.ts`. Fixed 2 pre-existing lint errors in `NewApplicationPageClient.tsx` (unescaped apostrophe + unused `signInRequiredReason`). **Pre-existing red carried forward (not M3):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (2 fails); lint in `ProfilePageClient.tsx` (1 error). Build green; M3 suites green. |
 | M4 — Output core delivery | Not started | — | — |
 | M5a — Output: structured edit + revision queue | Not started | — | — |
 | M5b — Output: evidence controls + diagnostics + fit summary | Not started | — | — |

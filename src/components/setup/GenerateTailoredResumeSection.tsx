@@ -810,16 +810,34 @@ export function GenerateTailoredResumeSection({
           />
         </div>
       ) : embeddedMode ? (
-        <button
-          type="button"
-          onClick={() => void handleGenerate()}
-          disabled={!canGenerate || isGenerating}
-          aria-busy={isGenerating}
-          className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-folio-primary-container text-base font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <SparkleIcon />
-          Generate resume and cover letter
-        </button>
+        <>
+          {hasIntakeComplete ? (
+            <div
+              className="mt-3 rounded-lg border border-folio-sage-border bg-white px-4 py-3"
+              data-testid="generate-context-policy-summary"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-folio-outline">
+                Context
+              </p>
+              <p className="mt-1 text-sm font-medium text-folio-on-surface">
+                {contextPolicy.summaryHeadline}
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-folio-outline">
+                {contextPolicy.summaryDetail}
+              </p>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void handleGenerate()}
+            disabled={!canGenerate || isGenerating}
+            aria-busy={isGenerating}
+            className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-folio-primary-container text-base font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <SparkleIcon />
+            Generate resume and cover letter
+          </button>
+        </>
       ) : (
         <>
           <div

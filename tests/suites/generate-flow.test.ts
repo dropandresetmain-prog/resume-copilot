@@ -154,6 +154,10 @@ async function main() {
     join(process.cwd(), "src/components/setup/GenerationProgressPanel.tsx"),
     "utf8",
   );
+  const newApplicationPage = readFileSync(
+    join(process.cwd(), "src/components/pages/NewApplicationPageClient.tsx"),
+    "utf8",
+  );
 
   const prefersDraft = resolveDefaultBaseResumeId(sampleResumes, {
     recentDraftReferenceResumeId: "resume-new",
@@ -648,6 +652,30 @@ async function main() {
         mode: "resume_and_cover_letter",
         policy: websitePolicy,
       }).footnote.includes("Firecrawl"),
+    ],
+
+    // M3 — Generate minimum parity
+    [
+      "saved job match banner wired in new application page",
+      newApplicationPage.includes('data-testid="generate-saved-job-match"'),
+    ],
+    [
+      "saved job match banner has start fresh dismiss",
+      newApplicationPage.includes("Start fresh") &&
+        newApplicationPage.includes("setDismissedJobId"),
+    ],
+    [
+      "saved job match uses findDuplicateJobDescription",
+      newApplicationPage.includes("findDuplicateJobDescription"),
+    ],
+    [
+      "context policy visible before embedded generate button",
+      // The first occurrence of the policy testid must appear before the embedded button text.
+      // Before M3, the testid only appeared in the non-embeddedMode path (after the button).
+      generateSection.indexOf('data-testid="generate-context-policy-summary"') !== -1 &&
+        generateSection.indexOf("Generate resume and cover letter") !== -1 &&
+        generateSection.indexOf('data-testid="generate-context-policy-summary"') <
+          generateSection.indexOf("Generate resume and cover letter"),
     ],
   ];
 
