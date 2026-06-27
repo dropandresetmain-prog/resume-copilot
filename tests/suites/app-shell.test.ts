@@ -50,29 +50,79 @@ function main() {
     "utf8",
   );
 
+  // Route-contract safeguard (Folio Recovery M1, roadmap §10.1 / §10.2).
+  // Each active workspace route must mount its Folio client, and must never
+  // import a legacy page client. A one-line import swap is exactly how the
+  // pre-Folio rollback happened (d71d353 inventory, bc2fb9f records); these
+  // grep contracts fail CI if a route is remounted to a legacy client.
+  const activeRouteClients: Array<{ route: string; file: string; client: string }> = [
+    { route: "/dashboard", file: "src/app/(workspace)/dashboard/page.tsx", client: "DashboardPageClient" },
+    { route: "/inventory", file: "src/app/(workspace)/inventory/page.tsx", client: "CareerVaultPageClient" },
+    { route: "/generate", file: "src/app/(workspace)/generate/page.tsx", client: "NewApplicationPageClient" },
+    { route: "/records", file: "src/app/(workspace)/records/page.tsx", client: "ApplicationsPageClient" },
+    {
+      route: "/output/[draftId]",
+      file: "src/app/(workspace)/output/[draftId]/page.tsx",
+      client: "OutputEditorPageClient",
+    },
+  ];
+  // The five legacy clients that must never be mounted at an active route.
+  // Legacy routes (/resume-preview, /cover-letter-preview) keep their own
+  // clients as behavioral references and are intentionally out of this scope.
+  const forbiddenLegacyClients = [
+    "InventoryPageClient",
+    "RecordsPageClient",
+    "GeneratePageClient",
+    "ResumePreviewPageClient",
+    "CoverLetterPreviewPageClient",
+  ];
+  const activeRouteSources = activeRouteClients.map(({ route, file, client }) => ({
+    route,
+    client,
+    source: readFileSync(join(process.cwd(), file), "utf8"),
+  }));
+
   const checks: [string, boolean][] = [
-    ["nav version uses shared constant", appNav.includes("APP_VERSION")],
+    // Folio shell contracts (updated from pre-Folio nav assertions in M1).
+    // The pre-Folio sidebar (APP_VERSION badge, grid-cols-5 mobile nav,
+    // mobileLabel, /setup, old landing copy) was replaced by the Folio
+    // sidebar; these checks assert the shipped Folio shell instead.
+    [
+      "folio sidebar renders nav item arrays",
+      appNav.includes("APP_NAV_ITEMS") && appNav.includes("APP_UTILITY_ITEMS"),
+    ],
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
-      "nav labels ordered for IA cleanup",
-      nav.indexOf('label: "Uploads"') < nav.indexOf('label: "Generate"') &&
-        nav.indexOf('label: "Generate"') < nav.indexOf('label: "Inventory"') &&
-        nav.indexOf('label: "Inventory"') < nav.indexOf('label: "Applications"') &&
-        nav.indexOf('label: "Applications"') < nav.indexOf('label: "Profile"'),
-    ],
-    ["generate nav is primary action", nav.includes('primary: true') && nav.includes('label: "Generate"')],
-    ["nav route hrefs unchanged", nav.includes('href: "/setup"') && nav.includes('href: "/records"')],
-    [
-      "mobile nav grid layout",
-      appNav.includes("grid-cols-5") && appNav.includes("sm:hidden"),
+      "folio nav order dashboard → vault → generate → applications",
+      nav.indexOf('label: "Dashboard"') < nav.indexOf('label: "Career vault"') &&
+        nav.indexOf('label: "Career vault"') < nav.indexOf('label: "Generate"') &&
+        nav.indexOf('label: "Generate"') < nav.indexOf('label: "Applications"'),
     ],
     [
-      "mobile nav no horizontal scroll",
-      appNav.includes("grid-cols-5") && !appNav.includes("overflow-x-auto"),
+      "folio add-a-job cta targets generate",
+      appNav.includes('href="/generate"') && appNav.includes("Add a job"),
     ],
     [
-      "mobile nav apps short label",
-      nav.includes('mobileLabel: "Apps"') && nav.includes('label: "Applications"'),
+      "folio nav route hrefs",
+      nav.includes('href: "/dashboard"') &&
+        nav.includes('href: "/inventory"') &&
+        nav.includes('href: "/generate"') &&
+        nav.includes('href: "/records"'),
+    ],
+    [
+      "folio sidebar fixed layout",
+      appNav.includes("fixed inset-y-0 left-0") && appNav.includes("flex-col"),
+    ],
+    [
+      "appnav sign out wired with full navigation",
+      appNav.includes("handleSignOut") &&
+        appNav.includes("signOut") &&
+        appNav.includes("window.location.assign") &&
+        appNav.includes("/auth/login"),
+    ],
+    [
+      "folio nav applications label and route",
+      nav.includes('label: "Applications"') && nav.includes('href: "/records"'),
     ],
     ["records renamed applications", records.includes('title="Applications"') && records.includes('pageMilestone("Applications")')],
     ["uploads page renamed", uploads.includes('title="Uploads"') && uploads.includes('pageMilestone("Uploads")')],
@@ -98,13 +148,16 @@ function main() {
     ["uploads single column resume list", !cloudFileStoragePanel.includes("lg:grid-cols-2")],
     ["uploads summary uses row layout", summaryCards.includes("flex flex-col gap-2")],
     [
-      "landing hero centered product story",
-      landingHero.includes("Customize your resume for every role") &&
-        landingHero.includes("LandingCta") &&
-        landingHero.includes("Application package preview"),
+      "landing hero folio product story",
+      landingHero.includes("Folio builds tailored resumes") &&
+        landingHero.includes('href="/auth/signup"') &&
+        landingHero.includes("How it works"),
     ],
     ["profile removes hardcoded name", !profile.includes("Min Htet")],
-    ["profile links dev tools", profile.includes('href="/dev-tools"')],
+    [
+      "profile renders folio communication profile",
+      profile.includes("Your details") && profile.includes("Cover letter voice"),
+    ],
     [
       "applications compact rollup and details",
       recordsPanel.includes("By status") &&
@@ -124,6 +177,20 @@ function main() {
     ["generate compact page header", generate.includes("compact") && generate.includes("PageHeader")],
     ["draft history open package label", draftHistory.includes("Open package") && !draftHistory.includes(">Edit<")],
     ["draft delete keeps list on error", draftHistory.includes("actionError") && draftHistory.includes('role="alert"')],
+    // Route-contract: each active route mounts its Folio client.
+    ...activeRouteSources.map(
+      ({ route, client, source }): [string, boolean] => [
+        `route ${route} mounts ${client}`,
+        source.includes(`import { ${client} }`) && source.includes(`<${client}`),
+      ],
+    ),
+    // Forbidden-remount: no active route imports a legacy page client.
+    ...activeRouteSources.map(
+      ({ route, source }): [string, boolean] => [
+        `route ${route} imports no legacy page client`,
+        !forbiddenLegacyClients.some((legacy) => source.includes(legacy)),
+      ],
+    ),
   ];
 
   for (const [name, ok] of checks) {

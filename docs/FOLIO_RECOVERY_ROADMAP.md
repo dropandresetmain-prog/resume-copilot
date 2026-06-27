@@ -500,9 +500,47 @@ OUTPUT (at the end): files changed, behavior changed, tests/checks run, known ri
 Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
 ```
 
-### M2 Opening Prompt
+### M2 Opening Prompt (current — use this to start the M2 implementation chat)
 
-*(To be written by the M1 implementation chat upon closing.)*
+```
+Implement Milestone M2 — Career Vault Minimum Parity — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1 is complete (route-contract safeguards landed; two safe Codex commits ported; auth verified). Read the M1 Milestone Completion Log row and §9 "M2 — Career Vault Minimum Parity".
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. CareerVaultPageClient stays mounted at /inventory. Never swap an active route to a legacy page client. No active page.tsx may import InventoryPageClient, RecordsPageClient, GeneratePageClient, ResumePreviewPageClient, or CoverLetterPreviewPageClient. The forbidden-remount rule is documented in docs/FOLIO_REDESIGN.md and enforced by tests/suites/app-shell.test.ts — keep it green.
+
+PROTOCOL: Ask me clarifying questions before writing any code. State what you plan to do and wait for my confirmation.
+
+SCOPE (only this, nothing else):
+1. Trustworthy DOCX upload/parse in the Career Vault dialog: explicit partial / failed / saved states (no silent bad parse). Source resumes are NEVER mutated.
+2. Overlay edit / hide / restore fully wired (non-destructive; overlay edits live in InventoryEdits — never touch source resumes).
+3. Add-from-Text: enforce extract → review → apply. Extraction alone must NEVER save. Project-like evidence must NOT silently enter Work Experience.
+4. Bring selected cleanup tools under progressive disclosure (PD), decomposing behavior from the legacy references — do NOT mount legacy clients:
+   - Enrichment review (reference: EnrichmentReviewPanel)
+   - Duplicate cleanup (reference: InventoryDuplicateCleanupPanel)
+   - Project-pollution cleanup (reference: InventoryProjectCleanupPanel)
+
+REFERENCES (read only — behavioral reference, never mount): InventoryPageClient, InventoryEditPanel, InventoryTextExtractionPanel, and the d71d353 WorkspaceProvider state additions.
+
+BACKEND/DEPS: resume_inventories, stored_files, original-resume-files, InventoryEdits, parseDocxResume() (client-side). No schema changes.
+
+MUST NOT CHANGE: source resumes never mutated; evidence spine / generation payload; route→client mounts; model IDs; Supabase schema.
+
+CHECKS: npm run test, npm run lint, npm run build. Add tests into existing suites only — extend inventory-edits, inventory-text-extraction, draft-inventory-safety, and the /inventory route-contract check in app-shell.test.ts (docs/TESTING.md). Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix unless explicitly scoped): resume-generation-validation.test.ts (3 fails, generation-semantics area) and 2 lint errors in ProfilePageClient.tsx. Report if they block your verification but do not expand scope into them.
+
+After completing M2, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M2 complete in the Milestone Completion Log.
+- Write the M3 opening prompt into the Chat Prompts section.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
 
 ### M3 Opening Prompt
 
@@ -542,7 +580,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 
 | Milestone | Status | Completed | Notes |
 |---|---|---|---|
-| M1 — Foundation lock, route-contract safeguards | Not started | — | — |
+| M1 — Foundation lock, route-contract safeguards | ✅ Complete | 2026-06-28 | Cherry-picked `56bc7c5` + `0877eb2` (clean, sit directly on `7aec1d0`); added 10 route-contract + forbidden-remount checks to `app-shell.test.ts` (scoped to 5 active routes); refreshed 9 stale pre-Folio shell assertions to the Folio shell; verified sign-out / signup→confirm-email / profiles migration (no behavior change); documented the forbidden-remount rule + fixed a stale route table in `FOLIO_REDESIGN.md`. **Pre-existing red carried forward (not M1):** `resume-generation-validation` (3 fails, generation-semantics area — forbidden to touch in M1); lint has 2 pre-existing errors in untouched files (`ProfilePageClient.tsx`). `npm run build` green; M1 suites green when run directly. |
 | M2 — Career Vault minimum parity | Not started | — | — |
 | M3 — Generate minimum parity | Not started | — | — |
 | M4 — Output core delivery | Not started | — | — |

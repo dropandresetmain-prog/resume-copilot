@@ -71,10 +71,12 @@ Sidebar order (`src/components/app/nav.ts`):
 |-----------|------|-------------|
 | Dashboard | `/dashboard` | `DashboardPageClient` |
 | Career vault | `/inventory` | `CareerVaultPageClient` |
-| Generate | `/generate` | `GeneratePageClient` |
+| Generate | `/generate` | `NewApplicationPageClient` |
 | Applications | `/records` | `ApplicationsPageClient` |
 | Profile | `/profile` | `ProfilePageClient` |
 | Settings | `/settings` | Settings shell (stub) |
+
+These five route → client mounts are **contract-locked** (see [Route contract & forbidden remount](#route-contract--forbidden-remount-non-negotiable) below).
 
 Public / auth:
 
@@ -88,13 +90,50 @@ Output & legacy package routes:
 
 | Path | Purpose |
 |------|---------|
-| `/output/[draftId]` | **New** unified Output Editor (`OutputEditorPageClient`) — resume + cover letter tabs |
-| `/resume-preview/[draftId]` | **Legacy** Application Package (`ResumePreviewPageClient`) — still used by Generate navigation |
-| `/cover-letter-preview/[draftId]` | Cover letter editor (legacy deep link) |
+| `/output/[draftId]` | **New** unified Output Editor (`OutputEditorPageClient`) — resume + cover letter tabs. **Canonical Generate destination** (Generate now routes here, not `/resume-preview`). |
+| `/resume-preview/[draftId]` | **Legacy** Application Package (`ResumePreviewPageClient`) — behavioral reference only; off the main path. Not an active Folio route. |
+| `/cover-letter-preview/[draftId]` | Cover letter editor (`CoverLetterPreviewPageClient`) — legacy deep link / behavioral reference. Not an active Folio route. |
 | `/setup` | Legacy uploads route (still exists; onboarding preferred for new users) |
 | `/dev-tools` | Dev utilities — **404 in production** |
 
 Protected routes enforced in `src/middleware.ts` (redirect to `/auth/login` when unauthenticated).
+
+## Route contract & forbidden remount (non-negotiable)
+
+Folio is the visual/product baseline. The pre-Folio rollback was caused by a single
+one-line import swap that remounted a legacy page client at an active route
+(`d71d353` swapped `/inventory`'s `CareerVaultPageClient` → `InventoryPageClient`;
+`bc2fb9f` swapped `/records`'s `ApplicationsPageClient` → `RecordsPageClient`). To
+prevent recurrence (Folio Recovery M1):
+
+**Rule 1 — Active route → client mounts are locked.** Each active workspace route must
+mount exactly its Folio client:
+
+| Route | Required client |
+|-------|-----------------|
+| `/dashboard` | `DashboardPageClient` |
+| `/inventory` | `CareerVaultPageClient` |
+| `/generate` | `NewApplicationPageClient` |
+| `/records` | `ApplicationsPageClient` |
+| `/output/[draftId]` | `OutputEditorPageClient` |
+
+**Rule 2 — Forbidden remount.** No active workspace `page.tsx` may import any of these
+five legacy clients:
+
+- `InventoryPageClient`
+- `RecordsPageClient`
+- `GeneratePageClient`
+- `ResumePreviewPageClient`
+- `CoverLetterPreviewPageClient`
+
+Legacy clients are **behavioral references only**. Restore capability by decomposing
+their behavior into the Folio client — never by mounting the legacy page wholesale. The
+legacy `/resume-preview` and `/cover-letter-preview` routes keep their own clients as
+references and are intentionally outside this contract (removal is later-milestone work).
+
+**Enforcement.** `tests/suites/app-shell.test.ts` source-greps each active `page.tsx`
+and fails CI if a route is remounted or imports a forbidden client. If a plan proposes
+swapping a route or importing a legacy client, stop and re-scope.
 
 ## Grove palette (reference)
 
