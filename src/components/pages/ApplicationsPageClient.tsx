@@ -56,7 +56,7 @@ function filterApplications(
   // "all" shows active (non-archived) records; archived records only appear under the Archived tab
   if (filter === "all") return applications.filter((a) => a.status !== "archived");
   if (filter === "applied") return applications.filter((a) => a.status === "applied");
-  if (filter === "interview") return [];
+  if (filter === "interview") return applications.filter((a) => a.status === "interview");
   if (filter === "rejected") return applications.filter((a) => a.status === "rejected");
   if (filter === "archived") return applications.filter((a) => a.status === "archived");
   return applications;

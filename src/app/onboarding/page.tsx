@@ -4,6 +4,11 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { getCurrentUser } from "@/lib/supabase/auth";
+import { parseDocxResume } from "@/lib/parser/docx-parser";
+import { upsertResume } from "@/lib/inventory/inventory";
+import { saveResumeInventoryToCloud } from "@/lib/supabase/resume-inventories";
+import { createEmptyInventoryEdits } from "@/types/inventory-edits";
+import { createEmptyEnrichmentState } from "@/lib/enrichment/state";
 
 type VaultMethod = "upload" | "linkedin" | "scratch" | null;
 
@@ -12,7 +17,7 @@ type VaultMethod = "upload" | "linkedin" | "scratch" | null;
 const STEP_LABELS = ["Let's build your vault", "Upload your resume", "About you"];
 const STEP_SUBS = [
   "Your career history is the foundation of every perfect application. How should we begin?",
-  "Upload your resume — you can add it to your career vault after setup.",
+  "Upload a .docx resume and we'll parse it into your career vault.",
   "Just a couple of details to personalize your experience.",
 ];
 
@@ -25,6 +30,8 @@ export default function OnboardingPage() {
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "parsing" | "saving" | "done" | "error">("idle");
+  const [uploadError, setUploadError] = useState("");
 
   // Step 3 — profile
   const [fullName, setFullName] = useState("");
@@ -48,6 +55,41 @@ export default function OnboardingPage() {
     setDragging(false);
     const dropped = e.dataTransfer.files[0];
     if (dropped) setFile(dropped);
+  }
+
+  async function handleUploadContinue() {
+    if (!file) {
+      // Skip upload — proceed without parsing
+      setStep(3);
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".docx")) {
+      setUploadError("Only .docx files are supported. You can add other formats in Career Vault after setup.");
+      return;
+    }
+
+    setUploadError("");
+    setUploadStatus("parsing");
+    try {
+      const parsed = await parseDocxResume(file);
+      setUploadStatus("saving");
+      const emptyInventory = {
+        resumes: [],
+        failures: [],
+        enrichment: createEmptyEnrichmentState(),
+        edits: createEmptyInventoryEdits(),
+      };
+      const merged = upsertResume(emptyInventory, parsed);
+      await saveResumeInventoryToCloud(merged);
+      setUploadStatus("done");
+      setStep(3);
+    } catch (err: unknown) {
+      setUploadStatus("error");
+      setUploadError(
+        err instanceof Error ? err.message : "Could not parse your resume. You can add it in Career Vault after setup."
+      );
+    }
   }
 
   // ── Step 3: finish ────────────────────────────────────────────────────────
@@ -79,8 +121,8 @@ export default function OnboardingPage() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
 
-  const displayStep = method === "upload" ? step : step === 3 ? 3 : step;
   const progressStep = step === 1 ? 1 : step === 2 ? 2 : 3;
+  const isBusy = uploadStatus === "parsing" || uploadStatus === "saving";
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 pt-12 pb-16 bg-folio-surface">
@@ -114,13 +156,13 @@ export default function OnboardingPage() {
             iconColor="text-folio-primary"
             title="Upload a resume"
             titleColor="text-folio-primary"
-            caption="PDF, DocX or TXT"
+            caption="DocX format"
           />
           <OptionCard
             selected={method === "linkedin"}
             onClick={() => handleMethodSelect("linkedin")}
             icon={<LinkedInIcon />}
-            iconBg="bg-folio-secondary-container/20" /* LinkedIn brand */
+            iconBg="bg-folio-secondary-container/20"
             iconColor="text-folio-cta-secondary"
             title="Import from LinkedIn"
             titleColor="text-folio-cta-secondary"
@@ -146,15 +188,19 @@ export default function OnboardingPage() {
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`flex flex-col items-center justify-center gap-3 h-48 rounded-[12px] border-2 border-dashed cursor-pointer transition-colors ${dragging ? "border-folio-primary-container bg-folio-primary-container/5" : "border-folio-outline-variant hover:border-folio-primary-container"}`}
+            onClick={() => !isBusy && fileRef.current?.click()}
+            className={`flex flex-col items-center justify-center gap-3 h-48 rounded-[12px] border-2 border-dashed cursor-pointer transition-colors ${isBusy ? "opacity-60 cursor-not-allowed" : ""} ${dragging ? "border-folio-primary-container bg-folio-primary-container/5" : "border-folio-outline-variant hover:border-folio-primary-container"}`}
           >
-            {file ? (
+            {isBusy ? (
+              <p className="text-[14px] text-folio-on-surface-variant">
+                {uploadStatus === "parsing" ? "Parsing resume…" : "Saving to vault…"}
+              </p>
+            ) : file ? (
               <div className="flex items-center gap-3">
                 <span className="text-[14px] text-folio-on-surface">{file.name}</span>
                 <button
                   type="button"
-                  onClick={e => { e.stopPropagation(); setFile(null); }}
+                  onClick={e => { e.stopPropagation(); setFile(null); setUploadError(""); setUploadStatus("idle"); }}
                   className="text-folio-outline hover:text-folio-error transition-colors"
                 >
                   ✕
@@ -166,25 +212,39 @@ export default function OnboardingPage() {
                   <UploadIcon />
                 </div>
                 <p className="text-[14px] text-folio-on-surface-variant">Drag and drop or click to browse</p>
-                <p className="text-[12px] text-folio-outline">PDF, DocX or TXT</p>
+                <p className="text-[12px] text-folio-outline">.docx files only</p>
               </>
             )}
           </div>
+
           <input
             ref={fileRef}
             type="file"
-            accept=".pdf,.doc,.docx,.txt"
+            accept=".docx"
             className="hidden"
-            onChange={e => setFile(e.target.files?.[0] ?? null)}
+            onChange={e => { setFile(e.target.files?.[0] ?? null); setUploadError(""); setUploadStatus("idle"); }}
           />
 
-          <div className="flex justify-end mt-6">
+          {uploadError && (
+            <p className="mt-3 text-[12px] text-folio-error">{uploadError}</p>
+          )}
+
+          <div className="flex justify-between mt-6">
             <button
               type="button"
-              onClick={() => setStep(3)}
-              className="h-10 px-6 rounded-[8px] bg-folio-cta-secondary text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
+              disabled={isBusy}
+              onClick={() => { setStep(3); }}
+              className="text-[13px] text-folio-outline hover:text-folio-on-surface transition-colors disabled:opacity-40"
             >
-              Continue
+              Skip for now
+            </button>
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={handleUploadContinue}
+              className="h-10 px-6 rounded-[8px] bg-folio-cta-secondary text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {isBusy ? "Processing…" : file ? "Upload and continue" : "Continue"}
             </button>
           </div>
         </div>
@@ -193,6 +253,16 @@ export default function OnboardingPage() {
       {/* ── Step 3: Profile ── */}
       {step === 3 && (
         <form onSubmit={handleFinish} noValidate className="w-full max-w-[400px] flex flex-col gap-4">
+          {method === "upload" && uploadStatus === "done" && (
+            <p className="text-[12px] text-folio-primary bg-folio-primary-container/10 rounded-lg px-3 py-2">
+              Resume parsed and saved to your career vault.
+            </p>
+          )}
+          {method === "upload" && uploadStatus === "error" && (
+            <p className="text-[12px] text-folio-outline bg-folio-surface-container-low rounded-lg px-3 py-2">
+              Resume could not be parsed — you can add it in Career Vault after setup.
+            </p>
+          )}
           {formError && <p className="text-[12px] text-folio-error">{formError}</p>}
 
           <div className="flex flex-col gap-1">

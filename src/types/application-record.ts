@@ -3,6 +3,7 @@ export const APPLICATION_RECORD_STATUSES = [
   "resume_generated",
   "ready_to_apply",
   "applied",
+  "interview",
   "rejected",
   "archived",
 ] as const;

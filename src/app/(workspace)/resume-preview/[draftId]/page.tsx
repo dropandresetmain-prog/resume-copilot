@@ -1,10 +1,5 @@
-import { ResumePreviewPageClient } from "@/components/pages/ResumePreviewPageClient";
+import { notFound } from "next/navigation";
 
-type ResumePreviewPageProps = {
-  params: Promise<{ draftId: string }>;
-};
-
-export default async function ResumePreviewPage({ params }: ResumePreviewPageProps) {
-  const { draftId } = await params;
-  return <ResumePreviewPageClient draftId={draftId} />;
+export default function ResumePreviewPage() {
+  notFound();
 }

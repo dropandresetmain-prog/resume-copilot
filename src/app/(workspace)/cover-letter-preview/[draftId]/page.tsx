@@ -1,10 +1,5 @@
-import { CoverLetterPreviewPageClient } from "@/components/pages/CoverLetterPreviewPageClient";
+import { notFound } from "next/navigation";
 
-type CoverLetterPreviewPageProps = {
-  params: Promise<{ draftId: string }>;
-};
-
-export default async function CoverLetterPreviewPage({ params }: CoverLetterPreviewPageProps) {
-  const { draftId } = await params;
-  return <CoverLetterPreviewPageClient draftId={draftId} />;
+export default function CoverLetterPreviewPage() {
+  notFound();
 }

@@ -558,14 +558,6 @@ export function CareerVaultPageClient() {
                         })}
                       </ul>
 
-                      {/* Add bullet ghost row */}
-                      <button
-                        type="button"
-                        className="mt-3 flex w-full items-center gap-2 rounded-lg border border-dashed border-folio-sage-border px-4 py-2.5 text-[13px] text-folio-outline transition hover:border-folio-primary-container hover:text-folio-primary-container"
-                      >
-                        <PlusIcon size={12} />
-                        Add bullet point
-                      </button>
                     </div>
                   )}
                 </div>

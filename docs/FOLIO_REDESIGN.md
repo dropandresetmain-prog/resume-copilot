@@ -91,8 +91,9 @@ Output & legacy package routes:
 | Path | Purpose |
 |------|---------|
 | `/output/[draftId]` | **New** unified Output Editor (`OutputEditorPageClient`) — resume + cover letter tabs. **Canonical Generate destination** (Generate now routes here, not `/resume-preview`). |
-| `/resume-preview/[draftId]` | **Legacy** Application Package (`ResumePreviewPageClient`) — behavioral reference only; off the main path. Not an active Folio route. |
-| `/cover-letter-preview/[draftId]` | Cover letter editor (`CoverLetterPreviewPageClient`) — legacy deep link / behavioral reference. Not an active Folio route. |
+| `/resume-preview/[draftId]` | **Retired (M7)** — returns `notFound()`. Was a grandfathered secondary route; structured editing absorbed into `/output` in M5a. |
+| `/resume-preview/[draftId]/edit` | **Retired (M7)** — returns `notFound()`. |
+| `/cover-letter-preview/[draftId]` | **Retired (M7)** — returns `notFound()`. Was a grandfathered secondary route; CL editing absorbed into `/output` CL tab in M5c. |
 | `/setup` | Legacy uploads route (still exists; onboarding preferred for new users) |
 | `/dev-tools` | Dev utilities — **404 in production** |
 
@@ -128,8 +129,9 @@ five legacy clients:
 
 Legacy clients are **behavioral references only**. Restore capability by decomposing
 their behavior into the Folio client — never by mounting the legacy page wholesale. The
-legacy `/resume-preview` and `/cover-letter-preview` routes keep their own clients as
-references and are intentionally outside this contract (removal is later-milestone work).
+legacy `/resume-preview` and `/cover-letter-preview` routes were grandfathered secondary
+routes through M5a/M5c and were retired in M7 — their `page.tsx` files now return
+`notFound()` and no longer import the forbidden clients.
 
 **Enforcement.** `tests/suites/app-shell.test.ts` source-greps each active `page.tsx`
 and fails CI if a route is remounted or imports a forbidden client. If a plan proposes
