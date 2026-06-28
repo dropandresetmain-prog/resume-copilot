@@ -234,6 +234,82 @@ function main() {
         outputEditor.includes('data-testid="output-load-failed"') &&
         outputEditor.includes("Retry loading"),
     ],
+    // ── M5c — CL editing, evidence staging, export gates ─────────────────────────
+    [
+      "CL tab has editable textarea with testid",
+      outputEditor.includes('data-testid="cl-edit-textarea"'),
+    ],
+    [
+      "CL tab has edit toggle button",
+      outputEditor.includes('data-testid="cl-edit-toggle"'),
+    ],
+    [
+      "CL tab has save cover letter button",
+      outputEditor.includes('data-testid="cl-save-button"') &&
+        outputEditor.includes("Save cover letter"),
+    ],
+    [
+      "CL tab save button disabled when not dirty",
+      outputEditor.includes("isSavingCl || !clIsDirty"),
+    ],
+    [
+      "CL tab has cancel button to discard edits",
+      outputEditor.includes('data-testid="cl-edit-cancel"'),
+    ],
+    [
+      "CL tab tracks dirty state against saved body",
+      outputEditor.includes("clIsDirty") &&
+        outputEditor.includes("body !== coverLetter.body"),
+    ],
+    [
+      "CL tab has beforeunload guard while dirty",
+      outputEditor.includes("beforeunload") && outputEditor.includes("clIsDirty"),
+    ],
+    [
+      "CL tab persists via updateGeneratedCoverLetterDraftInCloud",
+      outputEditor.includes("handleSaveCoverLetter") &&
+        outputEditor.includes("updateGeneratedCoverLetterDraftInCloud"),
+    ],
+    [
+      "CL evidence staging disclosure present",
+      outputEditor.includes('data-testid="cl-evidence-staging"') &&
+        outputEditor.includes('data-testid="cl-evidence-staging-toggle"'),
+    ],
+    [
+      "CL evidence rows list present",
+      outputEditor.includes('data-testid="cl-evidence-rows"'),
+    ],
+    [
+      "CL evidence staging has force and exclude actions",
+      outputEditor.includes('data-action="stage-cl-force-evidence"') &&
+        outputEditor.includes('data-action="stage-cl-exclude-evidence"'),
+    ],
+    [
+      "CL evidence queue summary shown when controls staged",
+      outputEditor.includes('data-testid="cl-evidence-queue-summary"') &&
+        outputEditor.includes("hasCoverLetterEvidenceControls"),
+    ],
+    [
+      "CL evidence controls passed to regeneration",
+      outputEditor.includes("evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls)"),
+    ],
+    [
+      "CL evidence controls cleared after regeneration",
+      outputEditor.includes("setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] })"),
+    ],
+    [
+      "CL export gate blocks download on overLimit",
+      outputEditor.includes("exportBlocked") &&
+        outputEditor.includes("overLimit || bannedPhrases.length > 0"),
+    ],
+    [
+      "CL download buttons gated on exportBlocked",
+      outputEditor.includes("disabled={isBusy || !body.trim() || exportBlocked}"),
+    ],
+    [
+      "CL quick-action chips disabled in edit mode",
+      outputEditor.includes("isBusy || clIsEditMode"),
+    ],
   ];
 
   for (const [name, ok] of checks) {

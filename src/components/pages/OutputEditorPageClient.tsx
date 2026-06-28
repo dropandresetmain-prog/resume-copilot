@@ -8,7 +8,14 @@ import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/Downloa
 import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { buildCompanyContext } from "@/lib/company-context/build-company-context";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
+import {
+  hasCoverLetterEvidenceControls,
+  normalizeCoverLetterEvidenceControls,
+} from "@/lib/cover-letter/evidence-controls";
+import { buildCoverLetterProofEvidenceList } from "@/lib/cover-letter/proof-evidence-list";
+import { buildEvidenceSpine } from "@/lib/evidence/spine";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
@@ -33,7 +40,9 @@ import {
 import {
   buildResumeDraftPayloadFromInventory,
   normalizeRegenerationControls,
+  MAX_RESUME_DRAFT_BULLETS,
 } from "@/lib/resume-draft/payload";
+import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
 import { DEFAULT_RESUME_LAYOUT_SETTINGS } from "@/lib/resume-draft/document-model";
 import {
   approveResumeDraftForExport,
@@ -77,6 +86,7 @@ import {
 import type { CollatedExperience } from "@/types/collated";
 import type { CompanyContext } from "@/types/company-context";
 import type {
+  CoverLetterEvidenceControls,
   CoverLetterRevisionAction,
   GeneratedCoverLetterDraftRecord,
 } from "@/types/cover-letter-draft";
@@ -1316,6 +1326,11 @@ function CoverLetterTab({
   const [tone, setTone] = useState<ToneOption>("balanced");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingCl, setIsSavingCl] = useState(false);
+  const [clIsEditMode, setClIsEditMode] = useState(false);
+  const [pendingEvidenceControls, setPendingEvidenceControls] =
+    useState<CoverLetterEvidenceControls>({ forcedEvidenceIds: [], excludedEvidenceIds: [] });
+  const [showEvidenceStaging, setShowEvidenceStaging] = useState(false);
   const originalCoverLetterBodyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -1357,11 +1372,89 @@ function CoverLetterTab({
     return jobDescriptions.find((job) => job.id === jobId) ?? null;
   }, [coverLetter, resumeDraft.jobDescriptionId, jobDescriptions]);
 
+  const clIsDirty = coverLetter !== null && body !== coverLetter.body;
+
+  // beforeunload guard while user has unsaved CL edits
+  useEffect(() => {
+    if (!clIsDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [clIsDirty]);
+
   const wordCount = countWords(body);
   const overLimit = isOverWordLimit(wordCount);
   const bannedPhrases = detectBannedPhrases(body);
   const exportBlocked = overLimit || bannedPhrases.length > 0;
-  const isBusy = busyAction !== null || isRegenerating || isGenerating;
+  const isBusy = busyAction !== null || isRegenerating || isGenerating || isSavingCl;
+
+  // Pending-only evidence rows — rebuilt when job, inventory, or pending controls change.
+  // Never calls AI; never auto-saves. Applied on Regenerate only.
+  const evidenceRows = useMemo(() => {
+    if (!linkedJob) return [];
+    const collated = buildActiveCollatedInventory(inventory);
+    const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(inventory.enrichment);
+    const companyCtx = buildCompanyContext({
+      companyName: linkedJob.companyName ?? "Company",
+      country: coverLetter?.country ?? "Singapore",
+      jobDescriptionText: linkedJob.rawText,
+      roleTitle: linkedJob.roleTitle,
+    });
+    const spine = buildEvidenceSpine({
+      collated,
+      enrichment: inventory.enrichment,
+      jdText: linkedJob.rawText,
+      roleTitle: linkedJob.roleTitle ?? resumeDraft.content.targetRoleTitle,
+      maxWorkBullets: MAX_RESUME_DRAFT_BULLETS,
+      regenerationControls: resumeDraft.inputSnapshot?.regenerationControls,
+      companyContext: companyCtx,
+      acceptedWordingByBulletKey,
+    });
+    return buildCoverLetterProofEvidenceList(spine, pendingEvidenceControls);
+  }, [linkedJob, inventory, resumeDraft, pendingEvidenceControls, coverLetter]);
+
+  function toggleForceEvidence(id: string) {
+    setPendingEvidenceControls((prev) => {
+      const norm = normalizeCoverLetterEvidenceControls(prev);
+      const isForced = norm.forcedEvidenceIds.includes(id);
+      return normalizeCoverLetterEvidenceControls({
+        forcedEvidenceIds: isForced
+          ? norm.forcedEvidenceIds.filter((x) => x !== id)
+          : [...norm.forcedEvidenceIds, id],
+        excludedEvidenceIds: norm.excludedEvidenceIds.filter((x) => x !== id),
+      });
+    });
+  }
+
+  function toggleExcludeEvidence(id: string) {
+    setPendingEvidenceControls((prev) => {
+      const norm = normalizeCoverLetterEvidenceControls(prev);
+      const isExcluded = norm.excludedEvidenceIds.includes(id);
+      return normalizeCoverLetterEvidenceControls({
+        forcedEvidenceIds: norm.forcedEvidenceIds.filter((x) => x !== id),
+        excludedEvidenceIds: isExcluded
+          ? norm.excludedEvidenceIds.filter((x) => x !== id)
+          : [...norm.excludedEvidenceIds, id],
+      });
+    });
+  }
+
+  async function handleSaveCoverLetter() {
+    if (!coverLetter || isSavingCl) return;
+    setIsSavingCl(true);
+    setError(null);
+    try {
+      const updated = await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, { body });
+      setCoverLetter(updated);
+      setClIsEditMode(false);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save cover letter.");
+    } finally {
+      setIsSavingCl(false);
+    }
+  }
 
   async function applyRevision(action: CoverLetterRevisionAction) {
     if (!coverLetter || isBusy || !body.trim()) return;
@@ -1434,11 +1527,15 @@ function CoverLetterTab({
           savedCompanyContext: companyContext ?? coverLetter.companyContext,
         }),
         existingCoverLetterId: coverLetter.id,
+        // Pending-only evidence staging — applied on regenerate only, never persisted.
+        evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls),
       });
       setCoverLetter(updated);
       setBody(updated.body);
       originalCoverLetterBodyRef.current = updated.body;
       setTone("balanced");
+      // Clear staged evidence after regeneration (staging is single-use).
+      setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] });
     } catch (regenError) {
       setError(
         regenError instanceof Error ? regenError.message : "Cover letter regeneration failed.",
@@ -1533,23 +1630,78 @@ function CoverLetterTab({
 
   return (
     <div className="mt-5">
+      {/* Body — togglable between read-only paragraph view and editable textarea */}
       <div className="rounded-xl border border-folio-sage-border bg-white p-6">
-        <div className="space-y-4 font-serif text-[15px] leading-7 text-folio-on-surface">
-          {splitCoverLetterParagraphs(body).map((paragraph, index) => (
-            <p key={index} className="m-0">
-              {paragraph}
-            </p>
-          ))}
-        </div>
+        {clIsEditMode ? (
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className={`${TEXTAREA_CLASS} min-h-[320px] font-serif text-[15px] leading-7`}
+            data-testid="cl-edit-textarea"
+          />
+        ) : (
+          <div className="space-y-4 font-serif text-[15px] leading-7 text-folio-on-surface">
+            {splitCoverLetterParagraphs(body).map((paragraph, index) => (
+              <p key={index} className="m-0">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Edit / save / cancel controls */}
+      <div className="mt-3 flex items-center gap-3">
+        {!clIsEditMode ? (
+          <button
+            type="button"
+            onClick={() => setClIsEditMode(true)}
+            disabled={isBusy}
+            className={GHOST_BUTTON}
+            data-testid="cl-edit-toggle"
+          >
+            Edit
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => void handleSaveCoverLetter()}
+              disabled={isSavingCl || !clIsDirty}
+              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 bg-folio-primary-container"
+              data-testid="cl-save-button"
+            >
+              {isSavingCl ? "Saving…" : "Save cover letter"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBody(coverLetter.body);
+                setClIsEditMode(false);
+              }}
+              disabled={isSavingCl}
+              className={GHOST_BUTTON}
+              data-testid="cl-edit-cancel"
+            >
+              Cancel
+            </button>
+          </>
+        )}
+        {clIsDirty && !clIsEditMode ? (
+          <span className="text-xs text-folio-outline" data-testid="cl-dirty-indicator">
+            Unsaved changes
+          </span>
+        ) : null}
+      </div>
+
+      {/* Quick-action chips — disabled while in manual-edit mode to prevent overwriting unsaved edits */}
       <div className="mt-4 flex flex-wrap gap-2">
         {QUICK_ACTIONS.map(({ action, label }) => (
           <button
             key={action}
             type="button"
             onClick={() => void applyRevision(action)}
-            disabled={isBusy}
+            disabled={isBusy || clIsEditMode}
             className={GHOST_BUTTON}
             aria-busy={busyAction === action}
           >
@@ -1558,6 +1710,7 @@ function CoverLetterTab({
         ))}
       </div>
 
+      {/* Tone selector — disabled while in manual-edit mode */}
       <div className="mt-5">
         <p className="text-[13px] font-medium text-folio-outline">Tone</p>
         <div className="mt-2 inline-flex rounded-lg border border-folio-sage-border bg-white p-0.5">
@@ -1568,7 +1721,7 @@ function CoverLetterTab({
                 key={segment.key}
                 type="button"
                 onClick={() => void handleSelectTone(segment.key)}
-                disabled={isBusy}
+                disabled={isBusy || clIsEditMode}
                 aria-pressed={active}
                 className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   active ? "bg-folio-primary-container text-white" : "text-folio-outline hover:text-folio-on-surface"
@@ -1581,6 +1734,126 @@ function CoverLetterTab({
         </div>
       </div>
 
+      {/* Evidence staging — pending-only; applied on Regenerate only, never auto-saved */}
+      {linkedJob ? (
+        <div className="mt-5" data-testid="cl-evidence-staging">
+          <button
+            type="button"
+            onClick={() => setShowEvidenceStaging((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface hover:bg-folio-surface-container-low"
+            data-testid="cl-evidence-staging-toggle"
+          >
+            <span>Stage evidence for regeneration</span>
+            <span className="flex items-center gap-2">
+              {hasCoverLetterEvidenceControls(pendingEvidenceControls) ? (
+                <span className="inline-flex items-center rounded-full bg-folio-mint-surface px-2 py-0.5 text-[11px] font-medium text-folio-olive-text">
+                  {pendingEvidenceControls.forcedEvidenceIds.length +
+                    pendingEvidenceControls.excludedEvidenceIds.length}{" "}
+                  staged
+                </span>
+              ) : null}
+              <ChevronIcon open={showEvidenceStaging} />
+            </span>
+          </button>
+
+          {showEvidenceStaging ? (
+            <div className="mt-2 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
+              <p className="text-[12px] text-folio-outline">
+                Work, Additional Experience, and Education only. Staging never calls AI — only
+                Regenerate cover letter does (1 AI step). Choices are cleared after regeneration.
+              </p>
+
+              {evidenceRows.length === 0 ? (
+                <p className="mt-3 text-sm text-folio-outline">
+                  No ranked proof evidence available for this application.
+                </p>
+              ) : (
+                <ul
+                  className="mt-3 max-h-72 space-y-2 overflow-y-auto"
+                  data-testid="cl-evidence-rows"
+                >
+                  {evidenceRows.map((row) => {
+                    const isForced = row.stagedAs === "force";
+                    const isExcluded = row.stagedAs === "exclude";
+                    return (
+                      <li
+                        key={row.id}
+                        className="rounded-lg border border-folio-sage-border bg-white p-3"
+                        data-evidence-category={row.categoryLabel}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex rounded-full bg-folio-mint-surface px-2 py-0.5 text-[11px] font-medium text-folio-olive-text">
+                            {row.categoryLabel}
+                          </span>
+                          <span className="text-[13px] font-medium text-folio-on-surface">
+                            {row.displayLabel}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[13px] text-folio-on-surface">{row.evidenceText}</p>
+                        <p className="mt-0.5 text-[12px] text-folio-outline">{row.rationale}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => toggleForceEvidence(row.id)}
+                            className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              isForced
+                                ? "bg-folio-primary-container text-white"
+                                : "border border-folio-sage-border bg-white text-folio-on-surface hover:bg-folio-surface-container-low"
+                            }`}
+                            data-action="stage-cl-force-evidence"
+                          >
+                            {isForced ? "Staged: use" : "Use in cover letter"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => toggleExcludeEvidence(row.id)}
+                            className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              isExcluded
+                                ? "bg-folio-primary-container text-white"
+                                : "border border-folio-sage-border bg-white text-folio-on-surface hover:bg-folio-surface-container-low"
+                            }`}
+                            data-action="stage-cl-exclude-evidence"
+                          >
+                            {isExcluded ? "Staged: avoid" : "Avoid in cover letter"}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {hasCoverLetterEvidenceControls(pendingEvidenceControls) ? (
+                <div
+                  className="mt-3 rounded-lg border border-folio-mint-surface bg-folio-mint-surface px-3 py-3 text-[13px] text-folio-olive-text"
+                  data-testid="cl-evidence-queue-summary"
+                >
+                  <p className="font-medium">Pending evidence</p>
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                    {pendingEvidenceControls.forcedEvidenceIds.length > 0 ? (
+                      <li>
+                        Use {pendingEvidenceControls.forcedEvidenceIds.length} item
+                        {pendingEvidenceControls.forcedEvidenceIds.length === 1 ? "" : "s"} in proof stories
+                      </li>
+                    ) : null}
+                    {pendingEvidenceControls.excludedEvidenceIds.length > 0 ? (
+                      <li>
+                        Avoid {pendingEvidenceControls.excludedEvidenceIds.length} item
+                        {pendingEvidenceControls.excludedEvidenceIds.length === 1 ? "" : "s"} in proof stories
+                      </li>
+                    ) : null}
+                  </ul>
+                  <p className="mt-1.5 text-[11px]">Staging never calls AI — applied on next Regenerate only.</p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Regenerate */}
       <div className="mt-5">
         <button
           type="button"
