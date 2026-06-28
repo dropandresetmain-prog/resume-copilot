@@ -837,6 +837,9 @@ export function GenerateTailoredResumeSection({
             <SparkleIcon />
             Generate resume and cover letter
           </button>
+          <p className="mt-1.5 text-center text-xs text-folio-outline" data-testid="generate-ai-step-estimate">
+            {aiStepEstimate.headline}
+          </p>
         </>
       ) : (
         <>

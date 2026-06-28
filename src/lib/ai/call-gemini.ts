@@ -142,7 +142,14 @@ export type GeminiCallLogMetadata = {
 };
 
 export function logGeminiCallMetadata(metadata: GeminiCallLogMetadata): void {
-  console.info("[gemini-call]", JSON.stringify(metadata));
+  if (metadata.fallbackApplied) {
+    console.warn(
+      `[gemini-call] fallback applied — requested: ${metadata.requestedModelId}, used: ${metadata.modelUsed ?? "unknown"}, tier: ${metadata.modelTier ?? "unset"}`,
+      metadata,
+    );
+  } else {
+    console.info("[gemini-call]", JSON.stringify(metadata));
+  }
 }
 
 export async function callGeminiWithRetry(

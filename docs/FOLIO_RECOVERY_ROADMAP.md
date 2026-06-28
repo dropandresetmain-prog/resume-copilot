@@ -707,6 +707,50 @@ OUTPUT (at the end): files changed, behavior changed, tests/checks run, known ri
 Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
 ```
 
+### M4.6 Opening Prompt
+
+```
+Implement Milestone M4.6 — Pre-M5a Bug Fixes + M3 Gap Closure — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M4 and M4.5 (roadmap reconciliation) are complete. Read the M4 and M4.5 Milestone Completion Log rows and §9 "M4.6 — Pre-M5a Bug Fixes + M3 Gap Closure".
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. All five active route clients stay mounted. Never swap an active route to a legacy page client. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow the Folio design system in docs/DESIGN.md. Sentence case; no shadows; folio-* tokens.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. CL export gate in OutputEditorPageClient: the download buttons (DownloadCoverLetterPdfButton, DownloadCoverLetterDocxButton) are currently gated only on `isBusy || !body.trim()`. The gate must match CoverLetterPreviewPageClient's logic — import detectBannedPhrases from @/lib/cover-letter/banned-phrases, compute bannedPhrases, disable both buttons when `overLimit || bannedPhrases.length > 0`, and show a visible error/warning message explaining why export is blocked. Do NOT modify CoverLetterPreviewPageClient.
+
+2. AI step cost estimate in the Generate flow: confirmed missing from the active Folio path (GenerateTailoredResumeSection / NewApplicationPageClient). Add a visible "1–2 AI steps" estimate or equivalent label near the Generate CTA so the user knows the AI cost before triggering generation. Keep it simple — a static label or inline copy is sufficient; do not add a new API call or dynamic computation.
+
+3. Onboarding upload subtitle honesty: src/app/onboarding/page.tsx STEP_SUBS[1] currently reads "Upload your existing resume and we'll parse it into your career vault." — this is false (handleFinish upserts profiles only; the file is never processed). Replace with honest text that does not promise parsing. Example: "Upload your resume — you can add it to your career vault after setup." Keep the upload UI as-is; only the subtitle text changes.
+
+4. Model tier diagnostic guardrail: add runtime logging (console.warn or equivalent) in the model-tier read path (src/lib/ai/model-tier-storage.ts or call-gemini.ts) so that if the model ID fails or falls back, the failure surface is clearly logged with the attempted model ID. IDs are confirmed stable — this is a defensive diagnostic only, not a behavior change.
+
+STAYS MOUNTED: OutputEditorPageClient, NewApplicationPageClient (or embedded GenerateTailoredResumeSection), onboarding/page.tsx.
+
+REFERENCES (behavioral reference, do not remount): CoverLetterPreviewPageClient (gate logic reference for item 1 only).
+
+MUST NOT CHANGE: generation engine, export engine, page-count truth, approval/export gate semantics, model IDs, Supabase schema, CoverLetterPreviewPageClient behavior.
+
+CHECKS: npm run test, npm run lint, npm run build. No new test suites needed; verify CL gate blocks in OutputEditorPageClient. Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix unless explicitly scoped): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx. Report if they block your verification but do not expand scope.
+
+After completing M4.6, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M4.6 complete in the Milestone Completion Log.
+- Write the M5a opening prompt into the Chat Prompts section (it already exists as a draft — update it if needed after seeing what changed).
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
+
 ### M5a Opening Prompt
 
 ```
@@ -782,7 +826,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 | M3 — Generate minimum parity | ✅ Complete | 2026-06-28 | Saved-job match banner added to `NewApplicationPageClient`: live detection via `findDuplicateJobDescription` + `normalizeJobDescriptionInput`; "Reuse saved job" fills form + sets `editingJobId`; "Start fresh" dismisses per-match. Context policy summary (headline + detail, `data-testid="generate-context-policy-summary"`) added to `embeddedMode` path of `GenerateTailoredResumeSection` so users see JD-only vs website+JD vs confidential before clicking Generate. Partial-failure recovery (resume preserved, "Retry Cover Letter" offered, retry skips resume API) was already complete — confirmed by full `generation-partial-failure` suite pass. 4 new checks added to `generate-flow.test.ts`. Fixed 2 pre-existing lint errors in `NewApplicationPageClient.tsx` (unescaped apostrophe + unused `signInRequiredReason`). **Pre-existing red carried forward (not M3):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (2 fails); lint in `ProfilePageClient.tsx` (1 error). Build green; M3 suites green. **Known gap [M4.6]:** AI step cost estimate listed as "Present" in capability matrix but confirmed missing from active Folio Generate flow — add in M4.6. |
 | M4 — Output core delivery | ✅ Complete | 2026-06-28 | All surfacing landed in `OutputEditorPageClient.tsx` (the only client touched) — backend approve/validate/export gate was already complete and correct, so **no route/schema/engine changes**. Added a dedicated **Review and export** card (`data-testid="output-approve-export"`) at the top of the Resume tab implementing the explicit two-step **Approve → Export** flow: Approve calls `approveResumeDraftForExport` (`/api/approve/resume-draft`), which server-validates one page and persists `status="approved"` + `serverPdfValidation`; export unlocks only when `exportReady` (approved + `serverPdfValidation.pageCount === 1` + layout equal). **Server one-page hard gate (422)** surfaced via `ResumePdfOnePageBlockedError` + `formatOnePageBlockedMessage` as an actionable block (`output-one-page-block`) listing server `suggestedActions` — never silent. PDF/DOCX export wired through the existing `exportResume*FromApi` + `deliverExportedFile` (structured filenames + private storage unchanged); **topbar exports gated** (`isExportingPdf \|\| !exportReady`) so there is no visual bypass. **needs_review banner** (`output-needs-review-banner`, banner-only per scope decision) shown before the approve CTA. **Post-approval invalidation** wired to Regenerate (clears `validationFailure`; fresh content downgrades status) — structured-edit invalidation deferred to M5a. **Failed-load vs confirmed-missing honesty**: load effect now distinguishes `loadFailed` (retryable, `output-load-failed`) from `notFound`, with the company-context fetch isolated so a context failure never masquerades as a missing draft. Mark-as-sent left untouched. Checks added to `resume-approve-validation`, `resume-pdf-page-count`, `resume-export-delivery`, `application-package-ux`; `/output` route-contract + forbidden-remount stay green. **Pre-existing red carried forward (not M4):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); 1 lint error in `ProfilePageClient.tsx` (untouched). Build green; M4 suites green when run directly. **Independent Opus review required before merge.** **Known gap [M4.5]:** Visual resume preview is screen-scaled HTML (`RenderedResume` component) — not A4/PDF-truth faithful; server gate remains export truth; A4 visual preview capability gap assigned to M5a. |
 | M4.5 — Post-M4 capability matrix reconciliation | ✅ Complete | 2026-06-28 | Roadmap-only update. Reconciled matrix, milestone owners, and post-rollback audit. Settled 8 decisions: A4 preview → M5a; model-tier selector → INV then M5b; Vault tool reuse → accepted debt, restyle MX (optional); preview route policy → grandfathered-secondary, retire M7; onboarding honesty → interim label/hide by M7; source-resume debug → parked; model IDs → investigate before M5b; CL export gate → verify M5c. Strengthened §6 safeguard and §10.9 to cover sub-panels. No application code changed. |
-| M4.6 — Pre-M5a bug fixes + M3 gap closure | Not started | — | CL export gate (live bug), AI step cost (M3 gap), onboarding subtitle (trust), model guardrail |
+| M4.6 — Pre-M5a bug fixes + M3 gap closure | ✅ Complete | 2026-06-28 | (1) CL export gate fixed in `OutputEditorPageClient`: imported `detectBannedPhrases`, computed `bannedPhrases` + `exportBlocked`, gated both download buttons on `overLimit \|\| bannedPhrases.length > 0`, added visible error message with reason (over-limit or banned-phrase list). (2) AI step cost estimate added to `embeddedMode` branch of `GenerateTailoredResumeSection`: dynamic `aiStepEstimate.headline` (already computed via `estimateGenerateAiSteps`) rendered as caption below Generate CTA; `data-testid="generate-ai-step-estimate"`. (3) Onboarding subtitle honest: `STEP_SUBS[1]` changed to "Upload your resume — you can add it to your career vault after setup." — no longer implies parsing. (4) Model-tier guardrail: `logGeminiCallMetadata` in `call-gemini.ts` now emits `console.warn` (with requested model ID, actual model used, and tier) when `fallbackApplied` is true; normal path unchanged (`console.info`). **Pre-existing red carried forward (not M4.6):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; test suite green (pre-existing fails only). |
 | M5a — Output: structured edit + revision queue + PDF-on-approve preview | Not started | — | — |
 | M5b — Output: evidence controls + diagnostics + fit summary + model-tier | Not started | — | — |
 | M5c — Cover-letter editing + evidence + export gates | Not started | — | — |

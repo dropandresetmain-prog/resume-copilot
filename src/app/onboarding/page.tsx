@@ -12,7 +12,7 @@ type VaultMethod = "upload" | "linkedin" | "scratch" | null;
 const STEP_LABELS = ["Let's build your vault", "Upload your resume", "About you"];
 const STEP_SUBS = [
   "Your career history is the foundation of every perfect application. How should we begin?",
-  "Upload your existing resume and we'll parse it into your career vault.",
+  "Upload your resume — you can add it to your career vault after setup.",
   "Just a couple of details to personalize your experience.",
 ];
 

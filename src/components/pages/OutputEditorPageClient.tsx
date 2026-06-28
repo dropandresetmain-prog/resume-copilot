@@ -7,6 +7,7 @@ import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/Downlo
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
@@ -433,6 +434,8 @@ function CoverLetterTab({
 
   const wordCount = countWords(body);
   const overLimit = isOverWordLimit(wordCount);
+  const bannedPhrases = detectBannedPhrases(body);
+  const exportBlocked = overLimit || bannedPhrases.length > 0;
   const isBusy = busyAction !== null || isRegenerating || isGenerating;
 
   /** Run an existing revision action (reviseCoverLetterWithAI via the revision API) and persist. */
@@ -677,9 +680,16 @@ function CoverLetterTab({
 
       {/* Download */}
       <div className="mt-4 flex gap-2">
-        <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={isBusy || !body.trim()} />
-        <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={isBusy || !body.trim()} />
+        <DownloadCoverLetterPdfButton draftId={coverLetter.id} disabled={isBusy || !body.trim() || exportBlocked} />
+        <DownloadCoverLetterDocxButton draftId={coverLetter.id} disabled={isBusy || !body.trim() || exportBlocked} />
       </div>
+      {exportBlocked && body.trim() ? (
+        <p className="mt-2 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-sm text-folio-error">
+          {overLimit
+            ? `Export blocked — cover letter exceeds ${FORMAL_COVER_LETTER_MAX_WORDS} words. Shorten it to unlock download.`
+            : `Export blocked — remove banned phrasing before downloading: ${bannedPhrases.join(", ")}.`}
+        </p>
+      ) : null}
 
       {error ? (
         /* error/warning surface tints — intentional */
