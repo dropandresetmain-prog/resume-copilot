@@ -60,6 +60,11 @@ import {
   writeStoredResumeModelTier,
 } from "@/lib/ai/model-tier-storage";
 import type { ModelTier } from "@/lib/ai/model-tiers";
+import {
+  buildPackageFitSummary,
+  PACKAGE_FIT_SUMMARY_UNAVAILABLE,
+} from "@/lib/package/fit-summary";
+import { buildPackageTailoringDiagnostics } from "@/lib/package/tailoring-diagnostics";
 import { getApplicationRecordFromCloud, updateApplicationRecordInCloud } from "@/lib/supabase/application-records";
 import {
   findCoverLetterDraftByResumeDraftId,
@@ -1651,6 +1656,13 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   const [excludedDraftKeys, setExcludedDraftKeys] = useState<Set<string>>(new Set());
   const [includedExtraKeys, setIncludedExtraKeys] = useState<Set<string>>(new Set());
 
+  // Line-level bullet controls — staged for next Regenerate, not applied live
+  const [lineLevelExcludedBulletKeys, setLineLevelExcludedBulletKeys] = useState<Set<string>>(new Set());
+  const [lineLevelForcedBulletKeys, setLineLevelForcedBulletKeys] = useState<Set<string>>(new Set());
+  const [showBulletControls, setShowBulletControls] = useState(false);
+  const [showFitSummary, setShowFitSummary] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
@@ -1751,6 +1763,19 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     );
   }, [inventory, includedKeys]);
 
+  const fitSummary = useMemo(
+    () => buildPackageFitSummary({ rationale: draft?.rationale }),
+    [draft],
+  );
+
+  const tailoringDiagnostics = useMemo(
+    () =>
+      draft
+        ? buildPackageTailoringDiagnostics({ resumeDraft: draft, jobDescription: linkedJob })
+        : null,
+    [draft, linkedJob],
+  );
+
   function toggleDraftExperience(key: string) {
     setExcludedDraftKeys((prev) => {
       const next = new Set(prev);
@@ -1791,6 +1816,10 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         if (bullet.inventoryBulletKey) forcedBulletKeys.add(bullet.inventoryBulletKey);
       }
     }
+
+    // Merge line-level staged controls set by the user in the bullet controls panel
+    for (const k of lineLevelExcludedBulletKeys) excludedBulletKeys.add(k);
+    for (const k of lineLevelForcedBulletKeys) forcedBulletKeys.add(k);
 
     return normalizeRegenerationControls({
       forcedBulletKeys: [...forcedBulletKeys],
@@ -2485,6 +2514,238 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                       onAccepted={handleRevisionQueueAccepted}
                     />
                   </div>
+                ) : null}
+              </div>
+
+              {/* ── Bullet controls (collapsed disclosure) ─────────── */}
+              {/* Exclude individual included bullets or force individual excluded bullets */}
+              {/* into the next Regenerate call via lineLevelExcludedBulletKeys / lineLevelForcedBulletKeys. */}
+              <div className="mt-5 border-t border-folio-sage-border pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowBulletControls((v) => !v)}
+                  className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
+                  aria-expanded={showBulletControls}
+                  data-testid="bullet-controls-toggle"
+                >
+                  <span>Bullet controls</span>
+                  <ChevronIcon open={showBulletControls} />
+                </button>
+
+                {showBulletControls ? (
+                  <div className="mt-3 space-y-4">
+                    {includedExperiences.map((exp, i) => {
+                      const expKey = experienceKey(exp.company, exp.role);
+                      const bulletsWithKey = exp.bullets.filter(
+                        (b) => b.sourceRefs[0]?.bulletKey,
+                      );
+                      if (bulletsWithKey.length === 0) return null;
+                      return (
+                        <div key={`${expKey}-${i}`}>
+                          <p className="text-[11px] font-semibold text-folio-on-surface">
+                            {exp.company} — {exp.role}
+                          </p>
+                          <div className="mt-1.5 space-y-1.5">
+                            {bulletsWithKey.map((bullet) => {
+                              const bulletKey = bullet.sourceRefs[0]!.bulletKey!;
+                              const isExcluded = lineLevelExcludedBulletKeys.has(bulletKey);
+                              return (
+                                <label
+                                  key={bulletKey}
+                                  className="flex cursor-pointer items-start gap-2 rounded-lg border border-folio-sage-border bg-white px-3 py-2"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!isExcluded}
+                                    onChange={() => {
+                                      setLineLevelExcludedBulletKeys((prev) => {
+                                        const next = new Set(prev);
+                                        if (next.has(bulletKey)) next.delete(bulletKey);
+                                        else next.add(bulletKey);
+                                        return next;
+                                      });
+                                    }}
+                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-folio-primary-container"
+                                  />
+                                  <span
+                                    className={`text-[12px] leading-relaxed ${isExcluded ? "text-folio-outline line-through" : "text-folio-on-surface"}`}
+                                  >
+                                    {bullet.text}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {excludedExperiences.some((exp) =>
+                      exp.bullets.some((b) => b.inventoryBulletKey),
+                    ) ? (
+                      <div>
+                        <p className="text-[11px] font-semibold text-folio-outline">
+                          Force from excluded experiences
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-folio-outline">
+                          Checked bullets will be forced into the next regeneration.
+                        </p>
+                        {excludedExperiences.map((exp) => {
+                          const expKey = experienceKey(exp.company, exp.role);
+                          const bulletsWithKey = exp.bullets.filter((b) => b.inventoryBulletKey);
+                          if (bulletsWithKey.length === 0) return null;
+                          return (
+                            <div key={expKey} className="mt-2">
+                              <p className="text-[11px] text-folio-outline">
+                                {exp.company} — {exp.role}
+                              </p>
+                              <div className="mt-1.5 space-y-1.5">
+                                {bulletsWithKey.map((bullet) => {
+                                  const bulletKey = bullet.inventoryBulletKey!;
+                                  const isForced = lineLevelForcedBulletKeys.has(bulletKey);
+                                  return (
+                                    <label
+                                      key={bulletKey}
+                                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-folio-sage-border bg-white px-3 py-2"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isForced}
+                                        onChange={() => {
+                                          setLineLevelForcedBulletKeys((prev) => {
+                                            const next = new Set(prev);
+                                            if (next.has(bulletKey)) next.delete(bulletKey);
+                                            else next.add(bulletKey);
+                                            return next;
+                                          });
+                                        }}
+                                        className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-folio-primary-container"
+                                      />
+                                      <span
+                                        className={`text-[12px] leading-relaxed ${isForced ? "text-folio-on-surface" : "text-folio-outline"}`}
+                                      >
+                                        {bullet.description}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
+                    {lineLevelExcludedBulletKeys.size > 0 ||
+                    lineLevelForcedBulletKeys.size > 0 ? (
+                      <p className="text-xs text-folio-outline">
+                        Changes take effect on next Regenerate.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* ── Fit summary (collapsed disclosure) ─────────────── */}
+              <div className="mt-5 border-t border-folio-sage-border pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowFitSummary((v) => !v)}
+                  className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
+                  aria-expanded={showFitSummary}
+                  data-testid="fit-summary-toggle"
+                >
+                  <span>Fit summary</span>
+                  <ChevronIcon open={showFitSummary} />
+                </button>
+
+                {showFitSummary ? (
+                  <div className="mt-3 rounded-lg border border-folio-sage-border bg-folio-surface-container-low px-3 py-3">
+                    <p className="text-sm leading-relaxed text-folio-on-surface">
+                      {fitSummary ?? PACKAGE_FIT_SUMMARY_UNAVAILABLE}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* ── Tailoring diagnostics (collapsed disclosure) ────── */}
+              <div className="mt-5 border-t border-folio-sage-border pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowDiagnostics((v) => !v)}
+                  className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
+                  aria-expanded={showDiagnostics}
+                  data-testid="tailoring-diagnostics-toggle"
+                >
+                  <span>Tailoring diagnostics</span>
+                  <ChevronIcon open={showDiagnostics} />
+                </button>
+
+                {showDiagnostics ? (
+                  tailoringDiagnostics ? (
+                    <div className="mt-3 space-y-4">
+                      {tailoringDiagnostics.selectedEvidence.length > 0 ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-folio-on-surface">
+                            Strongest evidence selected
+                          </p>
+                          <ul className="mt-2 space-y-1.5">
+                            {tailoringDiagnostics.selectedEvidence.map((line) => (
+                              <li key={line.id} className="text-xs text-folio-on-surface">
+                                {line.message}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {tailoringDiagnostics.omittedEvidence.length > 0 ? (
+                        <div data-testid="tailoring-omitted-evidence">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-folio-outline">
+                            Omitted evidence
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-folio-outline">
+                            Advisory only — not a defect.
+                          </p>
+                          <ul className="mt-2 space-y-1.5">
+                            {tailoringDiagnostics.omittedEvidence.map((line) => (
+                              <li key={line.id} className="text-xs text-folio-outline">
+                                {line.message}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {tailoringDiagnostics.warnings.length > 0 ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-folio-cta-secondary">
+                            Warnings
+                          </p>
+                          <ul className="mt-2 space-y-1.5">
+                            {tailoringDiagnostics.warnings.map((line) => (
+                              <li key={line.id} className="text-xs text-folio-cta-secondary">
+                                {line.message}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {tailoringDiagnostics.selectedEvidence.length === 0 &&
+                      tailoringDiagnostics.omittedEvidence.length === 0 &&
+                      tailoringDiagnostics.warnings.length === 0 ? (
+                        <p className="text-sm text-folio-outline">
+                          No diagnostics available — regenerate with a job description to see
+                          tailoring signals.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-folio-outline">
+                      No diagnostics available for this draft.
+                    </p>
+                  )
                 ) : null}
               </div>
             </div>

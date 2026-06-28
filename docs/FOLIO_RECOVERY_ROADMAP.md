@@ -845,7 +845,54 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 
 ### M5c Opening Prompt
 
-*(To be written by the M5b implementation chat upon closing.)*
+```
+Implement Milestone M5c — Cover-Letter Editing, Evidence Staging, Export Gates — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M5b are complete. Read the M5b Milestone Completion Log row and §9 "M5c — Cover-Letter Editing, Evidence Staging, Export Gates".
+
+WHAT IS COMPLETE (do not redo):
+- M5b: line-level bullet controls (exclude/force via lineLevelExcludedBulletKeys / lineLevelForcedBulletKeys merged in buildMergedControls), tailoring diagnostics (buildPackageTailoringDiagnostics, read-only, no AI), fit summary (buildPackageFitSummary, read-only, no AI), model-tier selects in Generate embedded mode (Folio-native, uses existing internal state).
+- M5a: structured editor, dirty/beforeunload, re-approval invalidation, Folio-native revision queue (right column collapsed disclosure), PDF-on-approve two-mode preview.
+- M4: Approve→Export card, server one-page gate, needs_review banner, load-failure honesty, experience toggles (whole-job).
+- M4.6: CL export gate (detectBannedPhrases + overLimit gates both download buttons), AI step estimate in embedded mode, onboarding honesty, model-tier guardrail.
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. OutputEditorPageClient stays mounted at /output/[draftId]. Never swap an active route to a legacy page client. No active page.tsx may import InventoryPageClient, RecordsPageClient, GeneratePageClient, ResumePreviewPageClient, or CoverLetterPreviewPageClient. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow the Folio design system in docs/DESIGN.md. Sentence case; no shadows; folio-* tokens; rounded-xl cards; rounded-lg controls.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. Manual cover-letter edit in OutputEditorPageClient (CL tab): editable textarea already exists (body/setBody state). Wire dirty/save/beforeunload: track `clIsDirty` when body differs from the loaded draft; beforeunload guard while dirty; "Save cover letter" button persists via updateGeneratedCoverLetterDraftInCloud; re-approval invalidation not needed for CL edits (CL does not gate PDF export).
+2. Pending-only evidence staging applied on CL regeneration only: surface any cover-letter evidence queue items (added via the existing CL evidence UI path) as a staged list; these queue items are applied only when the user clicks "Regenerate cover letter" — never on page load and never auto-saved. No new AI on staging. Behavioral reference: CoverLetterEvidenceRegenerationPanel, CoverLetterStagedRevisionPanel (do not mount them).
+3. CL export gates — VERIFY and enforce:
+   - The 420-word (FORMAL_COVER_LETTER_MAX_WORDS) gate and banned-phrase gate are computed in CoverLetterTab (overLimit, bannedPhrases, exportBlocked). The CL download buttons are already gated on exportBlocked in OutputEditorPageClient (M4.6 change). VERIFY this actually fires correctly in the live Folio path — confirm the buttons really disable and show the error when over-limit or banned-phrase is present.
+   - If the gate is already working correctly after M4.6, note this in the Milestone Completion Log as "verified, no code change needed" and focus on items 1 and 2.
+4. Absorb CoverLetterPreviewPageClient editing behavior into the OutputEditorPageClient CL tab: quick-action buttons (Shorten, More formal, More conversational, Warmer, Remove AI phrases) and tone selector are already present in the CL tab. Confirm they are fully functional — no code changes needed if they work. If any quick action is non-functional, wire it.
+
+STAYS MOUNTED: OutputEditorPageClient (CL tab). /cover-letter-preview route (CoverLetterPreviewPageClient) is a grandfathered secondary route [M4.5] — it remains mounted at its own URL through M5c; mark it for retirement in M7 after this milestone absorbs its behavior into /output.
+
+REFERENCES (behavioral reference, do not remount): CoverLetterPreviewPageClient, CoverLetterEvidenceRegenerationPanel, CoverLetterStagedRevisionPanel.
+
+BACKEND/DEPS: updateGeneratedCoverLetterDraftInCloud (already imported in CoverLetterTab); existing CL regeneration route (POST /api/ai/generate-cover-letter already used); no schema changes; no new endpoints.
+
+MUST NOT CHANGE: CL generation engine, export engine, page-count truth, filename scheme, resume generation, model IDs, evidence spine, M4/M5a/M5b approval/export gate semantics (resume side).
+
+CHECKS: npm run test, npm run lint, npm run build. Add tests into existing suites only — extend cover-letter and application-package-ux (docs/TESTING.md). Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix unless explicitly scoped): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx. Report if they block your verification but do not expand scope.
+
+After completing M5c, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M5c complete in the Milestone Completion Log.
+- Write the M6 opening prompt into the Chat Prompts section.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
 
 ### M6 Opening Prompt
 
@@ -872,7 +919,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 | M4.5 — Post-M4 capability matrix reconciliation | ✅ Complete | 2026-06-28 | Roadmap-only update. Reconciled matrix, milestone owners, and post-rollback audit. Settled 8 decisions: A4 preview → M5a; model-tier selector → INV then M5b; Vault tool reuse → accepted debt, restyle MX (optional); preview route policy → grandfathered-secondary, retire M7; onboarding honesty → interim label/hide by M7; source-resume debug → parked; model IDs → investigate before M5b; CL export gate → verify M5c. Strengthened §6 safeguard and §10.9 to cover sub-panels. No application code changed. |
 | M4.6 — Pre-M5a bug fixes + M3 gap closure | ✅ Complete | 2026-06-28 | (1) CL export gate fixed in `OutputEditorPageClient`: imported `detectBannedPhrases`, computed `bannedPhrases` + `exportBlocked`, gated both download buttons on `overLimit \|\| bannedPhrases.length > 0`, added visible error message with reason (over-limit or banned-phrase list). (2) AI step cost estimate added to `embeddedMode` branch of `GenerateTailoredResumeSection`: dynamic `aiStepEstimate.headline` (already computed via `estimateGenerateAiSteps`) rendered as caption below Generate CTA; `data-testid="generate-ai-step-estimate"`. (3) Onboarding subtitle honest: `STEP_SUBS[1]` changed to "Upload your resume — you can add it to your career vault after setup." — no longer implies parsing. (4) Model-tier guardrail: `logGeminiCallMetadata` in `call-gemini.ts` now emits `console.warn` (with requested model ID, actual model used, and tier) when `fallbackApplied` is true; normal path unchanged (`console.info`). **Pre-existing red carried forward (not M4.6):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; test suite green (pre-existing fails only). |
 | M5a — Output: structured edit + revision queue + PDF-on-approve preview | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` — no backend/schema/engine changes. **(1) Structured editor:** In-place toggle (`isEditMode` state) swaps left panel between read-only `RenderedResume` and `StructuredResumeEditor` (Folio-native form). Editor covers all sections: header/contact, professional summary, experience bullets (add/remove/edit within existing roles — no creating brand-new roles), skills groups + items, education bullets, additional experience items. **(2) Dirty state + beforeunload:** `isDirty` bool tracked; `beforeunload` listener added while dirty; unsaved-edits banner (`editor-dirty-banner`) shown in panel; Cancel resets without saving. **(3) Re-approval invalidation:** Both structured-edit save handler and revision-queue accept handler call `resolveDraftStatusAfterContentEdit(draft.status)` before persisting — downgrades `approved`/`layout_changed` → `layout_changed`, strips `serverPdfValidation`. The M4 `exportReady` derivation and `layoutChangedAfterApproval` banner then re-derive automatically from the saved draft. Layout changes (font size etc.) are already handled by `areExportLayoutSettingsEqual` in the existing `exportReady` derivation — no additional change needed. **(4) Folio-native revision queue:** `ResumeRevisionQueue` component mounted in right 40% column as a collapsed `<details>`-style disclosure (chevron toggle, `revision-queue-toggle`). Features: scope select (professional summary / selected role), role select, instruction textarea, model tier select (standard/enhanced/premium via `resolveResumeModelTierForDraft`/`writeStoredResumeModelTier`), staged queue list (add/remove items), "Revise selected sections" triggers one batch Gemini call via `requestResumeBatchRevision(persist: false)`, preview panel shows proposed changes (summary + per-role bullet diff), Accept all saves via `handleRevisionQueueAccepted` (same invalidation path as structured edit), Reject all discards. Staging/typing NEVER calls AI. **(5) PDF-on-approve two-mode preview:** Before export-ready: `RenderedResume` HTML. After `exportReady` (approved + `serverPdfValidation.pageCount === 1` + layout equal): `ResumePdfPreview` with document model from `buildExportResumeDocumentModel` + `findReferenceResumeInInventory`. `ResumePreviewPageClient` never mounted. `app-shell` route-contract + forbidden-remount: green. `resume-draft-review` suite: green. **Pre-existing red carried forward (not M5a):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. **Alternatives noted for docs:** Q1 (editing placement): right-panel form and modal variants were considered; in-place left-panel toggle was chosen for direct context. |
-| M5b — Output: evidence controls + diagnostics + fit summary + model-tier | Not started | — | — |
+| M5b — Output: evidence controls + diagnostics + fit summary + model-tier | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` and `GenerateTailoredResumeSection.tsx` — no backend/schema/engine/endpoint changes. **(1) Line-level bullet controls:** New collapsed disclosure (`bullet-controls-toggle`) in the right panel. For included experience bullets with `sourceRefs[].bulletKey`: checkbox to exclude from next Regenerate → `lineLevelExcludedBulletKeys`. For excluded experience inventory bullets with `inventoryBulletKey`: checkbox to force into next Regenerate → `lineLevelForcedBulletKeys`. Both sets merged in `buildMergedControls()` (alongside existing whole-job toggles) before the Regenerate call. Changes staged only — no AI on toggle, no auto-save. **(2) Tailoring diagnostics:** New collapsed disclosure (`tailoring-diagnostics-toggle`) in the right panel. Calls `buildPackageTailoringDiagnostics({ resumeDraft: draft, jobDescription: linkedJob })` via `useMemo` — no AI. Displays selected evidence, omitted evidence (with "Advisory only — not a defect" label, `tailoring-omitted-evidence`), and warnings in Folio-native list rows. **(3) Fit summary:** New collapsed disclosure (`fit-summary-toggle`) in the right panel. Calls `buildPackageFitSummary({ rationale: draft.rationale })` via `useMemo` — no AI. Shows the derived text or `PACKAGE_FIT_SUMMARY_UNAVAILABLE` fallback. **(4) Model-tier selector in Generate flow:** `MODEL_TIERS` + `MODEL_TIER_LABELS` imported in `GenerateTailoredResumeSection.tsx`; two Folio-native selects added to the `embeddedMode` render path between context policy card and Generate button — resume model (`generate-resume-model-tier`) and cover letter model (`generate-cl-model-tier`) — using the existing internal `resumeModelTier`/`setCoverLetterModelTier` state and `writeStoredResumeModelTier`/`writeStoredCoverLetterModelTier` on change. **Tests:** 14 new checks added to `application-package-ux.test.ts`. **Pre-existing red carried forward (not M5b):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; M5b suites green. |
 | M5c — Cover-letter editing + evidence + export gates | Not started | — | — |
 | M6 — Applications parity | Not started | — | — |
 | M7 — Secondary surfaces & stub cleanup | Not started | — | — |
@@ -917,4 +964,40 @@ Each entry records what changed, what was verified, and the suggested git comman
 git status
 git add src/components/pages/OutputEditorPageClient.tsx docs/FOLIO_RECOVERY_ROADMAP.md
 git commit -m "M5a: structured editor, dirty/beforeunload, re-approval invalidation, Folio-native revision queue, PDF-on-approve two-mode preview"
+```
+
+---
+
+### 2026-06-29 — M5b implementation
+
+**Branch:** `folio-recovery`
+**Milestone:** M5b — Output: Evidence Controls + Tailoring Diagnostics + Fit Summary + Model-Tier
+
+**Files changed**
+- `src/components/pages/OutputEditorPageClient.tsx` — new imports (`buildPackageFitSummary`, `PACKAGE_FIT_SUMMARY_UNAVAILABLE`, `buildPackageTailoringDiagnostics`); new state (`lineLevelExcludedBulletKeys`, `lineLevelForcedBulletKeys`, `showBulletControls`, `showFitSummary`, `showDiagnostics`); `buildMergedControls()` updated to merge line-level keys; two new memos (`fitSummary`, `tailoringDiagnostics`); three new collapsible right-panel sections (bullet controls, fit summary, tailoring diagnostics)
+- `src/components/setup/GenerateTailoredResumeSection.tsx` — added `MODEL_TIERS`, `MODEL_TIER_LABELS` to model-tiers import; added two Folio-native model-tier selects (`generate-resume-model-tier`, `generate-cl-model-tier`) to the `embeddedMode` render path
+- `tests/suites/application-package-ux.test.ts` — added `generateSection` file read; 14 new M5b checks
+
+**Behavior changed**
+1. **Bullet controls** — collapsed disclosure in right panel. Included experience bullets: checkbox to exclude from next Regenerate (strikethrough when excluded). Excluded experience inventory bullets: checkbox to force into next Regenerate. Changes are staged in state and merged via `buildMergedControls()` before the Regenerate call — no AI on toggle, no auto-save. A note "Changes take effect on next Regenerate" shown when any staging is active.
+2. **Tailoring diagnostics** — collapsed disclosure in right panel. `buildPackageTailoringDiagnostics` called via `useMemo` (no AI). Shows selected evidence (strongest matches), omitted evidence (advisory only — not a defect), and warnings in Folio-native list rows. Falls back to "No diagnostics available" copy when draft has no rationale.
+3. **Fit summary** — collapsed disclosure in right panel. `buildPackageFitSummary` called via `useMemo` (no AI). Shows the derived verdict+strengths+gaps+positioning text, or `PACKAGE_FIT_SUMMARY_UNAVAILABLE` when rationale is too thin.
+4. **Model-tier selects in Generate** — two Folio-native `<select>` elements (`generate-resume-model-tier`, `generate-cl-model-tier`) added to the embedded mode branch of `GenerateTailoredResumeSection` between the context policy card and the Generate button. Use the component's existing `resumeModelTier`/`coverLetterModelTier` state and `setResumeModelTier`/`setCoverLetterModelTier` setters; call `writeStoredResumeModelTier`/`writeStoredCoverLetterModelTier` on change to persist selection. Both disabled while generating.
+
+**Checks run**
+- `npx tsx tests/suites/application-package-ux.test.ts` — ✅ 69/69 green (14 new M5b checks)
+- `npx tsx tests/suites/app-shell.test.ts` — ✅ 35/35 green
+- `npx tsx tests/suites/resume-draft-review.test.ts` — ✅ 21/21 green
+- `npx tsc --noEmit` — 0 new errors in changed files (pre-existing test-file TS errors unchanged)
+- Pre-existing red (not M5b): `resume-generation-validation.test.ts` (3 fails), `draft-inventory-safety.test.ts` (2 fails), 1 lint error in `ProfilePageClient.tsx`
+
+**Known risks**
+- Bullet controls only show bullets that have `sourceRefs[0]?.bulletKey` — bullets without a keyed sourceRef (possible in legacy drafts) are silently hidden in the controls panel. This is safe: unkeyed bullets cannot be targeted by the exclusion/force mechanism anyway.
+- Forced bullets from excluded experiences use `inventoryBulletKey` from `CollatedBullet`, which is set at runtime by `buildActiveCollatedInventory`. If the inventory is empty or the key is absent, the bullet is skipped. No error — just not shown.
+
+**Suggested git commands**
+```bash
+git status
+git add src/components/pages/OutputEditorPageClient.tsx src/components/setup/GenerateTailoredResumeSection.tsx tests/suites/application-package-ux.test.ts docs/FOLIO_RECOVERY_ROADMAP.md
+git commit -m "M5b: line-level bullet controls, tailoring diagnostics, fit summary, model-tier selects in Generate"
 ```

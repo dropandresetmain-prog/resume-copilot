@@ -35,6 +35,10 @@ function main() {
     join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
     "utf8",
   );
+  const generateSection = readFileSync(
+    join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
+    "utf8",
+  );
 
   const fitSummaryIndex = indexOrInfinity(resumePreview, 'data-testid="package-fit-summary-top"');
   const tailoringDiagnosticsIndex = indexOrInfinity(
@@ -143,6 +147,65 @@ function main() {
     [
       "review center still approves",
       resumePreview.includes("onApproveForExport={() => void handleApproveForExport()}"),
+    ],
+    // ── M5b — Evidence Controls + Diagnostics + Fit Summary + Model Tier ─────────
+    [
+      "output editor has bullet controls disclosure",
+      outputEditor.includes('data-testid="bullet-controls-toggle"'),
+    ],
+    [
+      "output editor bullet controls stage excluded bullet keys",
+      outputEditor.includes("lineLevelExcludedBulletKeys"),
+    ],
+    [
+      "output editor bullet controls stage forced bullet keys",
+      outputEditor.includes("lineLevelForcedBulletKeys"),
+    ],
+    [
+      "output editor bullet controls feed into buildMergedControls",
+      outputEditor.includes("lineLevelExcludedBulletKeys") &&
+        outputEditor.includes("buildMergedControls") &&
+        outputEditor.includes("lineLevelForcedBulletKeys"),
+    ],
+    [
+      "output editor has fit summary disclosure",
+      outputEditor.includes('data-testid="fit-summary-toggle"'),
+    ],
+    [
+      "output editor imports buildPackageFitSummary",
+      outputEditor.includes("buildPackageFitSummary"),
+    ],
+    [
+      "output editor has tailoring diagnostics disclosure",
+      outputEditor.includes('data-testid="tailoring-diagnostics-toggle"'),
+    ],
+    [
+      "output editor imports buildPackageTailoringDiagnostics",
+      outputEditor.includes("buildPackageTailoringDiagnostics"),
+    ],
+    [
+      "output editor tailoring diagnostics shows omitted evidence section",
+      outputEditor.includes('data-testid="tailoring-omitted-evidence"'),
+    ],
+    [
+      "generate section embedded mode has resume model tier select",
+      generateSection.includes('data-testid="generate-resume-model-tier"'),
+    ],
+    [
+      "generate section embedded mode has cover letter model tier select",
+      generateSection.includes('data-testid="generate-cl-model-tier"'),
+    ],
+    [
+      "generate section model tier selects use existing internal state",
+      generateSection.includes("resumeModelTier") &&
+        generateSection.includes("coverLetterModelTier") &&
+        generateSection.includes("setResumeModelTier") &&
+        generateSection.includes("setCoverLetterModelTier"),
+    ],
+    [
+      "generate section model tier selects write to storage on change",
+      generateSection.includes("writeStoredResumeModelTier") &&
+        generateSection.includes("writeStoredCoverLetterModelTier"),
     ],
     // ── M4 — Folio Output Editor trust/delivery surfaces ──────────────────────────
     [

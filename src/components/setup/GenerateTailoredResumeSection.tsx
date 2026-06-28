@@ -54,6 +54,7 @@ import {
   writeStoredCoverLetterModelTier,
   writeStoredResumeModelTier,
 } from "@/lib/ai/model-tier-storage";
+import { MODEL_TIERS, MODEL_TIER_LABELS } from "@/lib/ai/model-tiers";
 import type { ModelTier } from "@/lib/ai/model-tiers";
 import { planCompanyResearchForGeneration } from "@/lib/company-context/research-plan";
 import {
@@ -827,6 +828,67 @@ export function GenerateTailoredResumeSection({
               </p>
             </div>
           ) : null}
+          {/* Model tier selects — embedded mode only; non-embedded has its own controls */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="embedded-resume-model-tier"
+                className="block text-[12px] font-medium text-folio-outline mb-1"
+              >
+                Resume model
+              </label>
+              <select
+                id="embedded-resume-model-tier"
+                value={resumeModelTier}
+                onChange={(e) => {
+                  const tier = e.target.value as ModelTier;
+                  setResumeModelTier(tier);
+                  writeStoredResumeModelTier(tier);
+                }}
+                disabled={isGenerating}
+                className="w-full rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-sm text-folio-on-surface focus:border-folio-primary-container focus:outline-none"
+                data-testid="generate-resume-model-tier"
+              >
+                {MODEL_TIERS.map((tier) => (
+                  <option key={tier} value={tier}>
+                    {MODEL_TIER_LABELS[tier].label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-folio-outline">
+                {MODEL_TIER_LABELS[resumeModelTier].hint}
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="embedded-cl-model-tier"
+                className="block text-[12px] font-medium text-folio-outline mb-1"
+              >
+                Cover letter model
+              </label>
+              <select
+                id="embedded-cl-model-tier"
+                value={coverLetterModelTier}
+                onChange={(e) => {
+                  const tier = e.target.value as ModelTier;
+                  setCoverLetterModelTier(tier);
+                  writeStoredCoverLetterModelTier(tier);
+                }}
+                disabled={isGenerating}
+                className="w-full rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-sm text-folio-on-surface focus:border-folio-primary-container focus:outline-none"
+                data-testid="generate-cl-model-tier"
+              >
+                {MODEL_TIERS.map((tier) => (
+                  <option key={tier} value={tier}>
+                    {MODEL_TIER_LABELS[tier].label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-folio-outline">
+                {MODEL_TIER_LABELS[coverLetterModelTier].hint}
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => void handleGenerate()}
