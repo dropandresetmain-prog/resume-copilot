@@ -71,7 +71,7 @@ The rollback happened because the method to recover that depth was to remount th
 | C3 | "`profiles` table may not exist" | Migration exists (`supabase/migrations/20240001_profiles.sql`) with correct columns. Remaining risk is runtime: is it applied to the live Supabase project? → Investigate Now, not a code milestone. |
 | C4 | Onboarding upload listed under "real upload" parity | Still genuinely broken (`D3`): `onboarding/page.tsx` collects `file` in state but `handleFinish` only upserts `profiles` — the resume is never parsed or stored. Real upload lives in Career Vault. |
 | C5 | "fake Interview filter" | Confirmed (`S2`): `ApplicationsPageClient.tsx:47` hardcodes `return []` for `interview`; no `interview` status in `application-record.ts`. |
-| C6 | Model tiers treated as settled | `enhanced` = `gemini-3-flash-preview`, `premium` = `gemini-3.5-flash` are likely non-stable IDs → silent fallback. Investigate Now before exposing tier selection in Folio. |
+| C6 | Model tiers treated as settled | `enhanced` = `gemini-3-flash-preview`, `premium` = `gemini-3.5-flash` — **IDs verified stable (2026-06-28)**. Add runtime guardrail/diagnostic logging before M5b tier UI so fallback failures are traceable. No behavior change until M5b. |
 | C7 | Backend engines "may be reused" | Stronger: all API routes are connected and intact across both branches. Parity work is almost entirely UI re-wiring + trust-state surfacing, not backend rebuilds. |
 
 ---
@@ -105,7 +105,7 @@ Both diffs are a one-line import swap. That is the entire failure surface.
 |---|---|---|---|---|
 | Email/password, magic link, OAuth, reset | AuthPanel `/setup` | `/auth/*` pages | App unusable | **KV** — verify only |
 | Auth-aware landing routing | `LandingCta` | `LandingHero` static links | Low (annoyance) | **SIMPLIFY** — add redirect for signed-in users (`D6`) |
-| Onboarding resume upload + parse | Vault | decorative in onboarding step 2 | High — user thinks resume loaded | **INV → KV/MERGE** (`D3`) |
+| Onboarding resume upload + parse | Vault | ⚠️ **Live honesty risk** (`D3`): `handleFinish` in `onboarding/page.tsx` upserts `profiles` only — file is silently discarded; user believes resume was parsed/stored | High — user thinks resume loaded | **Honesty fix required before M7**: hide or label upload step "not yet connected" until real implementation; full fix M7 |
 | LinkedIn import (onboarding) | — | stub option (`S5`) | None | **REMOVE/PARK** |
 | `/setup` legacy uploads page | ManageUploads | orphaned, unprotected | Low | **MERGE/REMOVE** |
 
@@ -123,68 +123,71 @@ Both diffs are a one-line import swap. That is the entire failure surface.
 | Collated tabs (Work/Skills/Edu/Additional) | InventoryPageClient | Present | High | — | **KV** |
 | Non-destructive overlay edit / hide / restore | InventoryEditPanel | Inline edit partial; restore/hide partial | High | High | **KV** |
 | Add-from-Text (extract→review→apply) | `/inventory` | Present (`InventoryTextExtractionPanel`) | Med | Med (silent save) | **KV** — enforce extract≠save |
-| AI enrichment review | EnrichmentReviewPanel | **Missing** (`D2`) | Med | Med | **PD** |
-| Duplicate cleanup | InventoryDuplicateCleanupPanel | **Missing** | Med | Med | **PD** |
-| Project-pollution cleanup | InventoryProjectCleanupPanel | **Missing** | Low-Med | Med | **PD** |
-| Source-resume / parsed-debug audit | SourceResumesView | **Missing** | Low | Low | **PD/BE** |
-| "Add bullet point" button | — | dead button (`S4`) | — | — | **REMOVE or wire** |
+| AI enrichment review | EnrichmentReviewPanel | ⚠️ Done [M2] — `EnrichmentReviewPanel` mounted wholesale behind "Vault management tools" PD; **accepted temporary debt** (legacy slate-styled, not Folio-native tokens) | Med | Med | **PD — restyle/decompose → M5b** |
+| Duplicate cleanup | InventoryDuplicateCleanupPanel | ⚠️ Done [M2] — same; `InventoryDuplicateCleanupPanel` slate-styled panel behind PD | Med | Med | **PD — restyle/decompose → M5b** |
+| Project-pollution cleanup | InventoryProjectCleanupPanel | ⚠️ Done [M2] — same; `InventoryProjectCleanupPanel` | Low-Med | Med | **PD — restyle/decompose → M5b** |
+| Source-resume / parsed-debug audit | SourceResumesView | Missing | Low | Low | **PARK (M7 / v0.10.0)** |
+| "Add bullet point" button | — | dead button (`S4`) | — | — | **REMOVE or wire → M7** |
 | Full Inventory CRUD | — | parked | — | — | **PARK** (v0.10.0) |
+
+> **M4.5 debt note:** `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, and `UploadCard` are all legacy `setup/` components (slate-styled, ~176 `slate-*` uses across the folder, ~5 `folio-*`). They are wired correctly and functional. Their reuse is **accepted temporary debt** per §6 safeguard update; restyle/decomposition is assigned M5b. `shadow-md` on Vault FAB buttons also violates DESIGN.md — fix in M5b restyle pass.
 
 ### Generate (`/generate`)
 
 | Capability | Folio counterpart | Risk if omitted | Rec |
 |---|---|---|---|
 | Company/role/JD intake + metadata extract | `NewApplicationPageClient` + embedded `GenerateTailoredResumeSection` | High | **KV** |
-| Saved-job save/reuse/duplicate handling | Engine present; UI surfacing INV | Med | **KV / INV** |
-| Context-policy visibility (JD-only vs website+JD vs confidential) | Engine present; copy surfacing INV | Med (stale research leak) | **KV** |
-| Website discovery (Firecrawl, billable) | `CompanyWebsiteDiscoveryPanel` kept | Med | **PD** |
+| Saved-job save/reuse/duplicate handling | ✅ Done [M3] — match banner + reuse/start-fresh wired | Med | **KV** |
+| Context-policy visibility (JD-only vs website+JD vs confidential) | ✅ Done [M3] — `generate-context-policy-summary` in embedded mode | Med (stale research leak) | **KV** |
+| Website discovery (Firecrawl, billable) | `CompanyWebsiteDiscoveryPanel` kept — wiring in embedded mode **unverified** | Med | **PD — verify in M5b or park if confirmed absent** |
 | Output mode (resume / resume+CL) | Present | Low | **KV** |
-| AI step cost estimate | Present | Low-Med | **KV** |
-| Partial-failure recovery (CL fails, resume kept) | Engine present (`0877eb2` hardens) | **High** | **KV** |
-| Model-tier selector | `ModelTierSelect` kept | Low | **PD / INV** (unstable IDs, C6) |
+| AI step cost estimate | ⚠️ **Missing** — not visible in Folio Generate flow; "Present" was an incorrect matrix entry; confirmed M3 gap | Low-Med | **KV → M4.6** |
+| Partial-failure recovery (CL fails, resume kept) | ✅ Done [M1/M3] — `0877eb2` ported; full suite pass confirmed M3 | **High** | **KV** |
+| Model-tier selector | `ModelTierSelect` component exists; **no active UI in Generate flow** — state is read from storage but `setResumeModelTier`/`setCoverLetterModelTier` are never called in render; selector only appears inside unmounted M5 reference panels | Low | **INV (C6 ID stability) → M5b if IDs stable** — investigate before exposing any tier UI; see §9 M4.5 decision table |
 | Cover-letter-only mode | disabled | — | **PARK** |
 
 ### Output — Resume (`/output/[draftId]`)
 
 | Capability | Old location (reference only) | Folio counterpart | Risk if omitted | Rec |
 |---|---|---|---|---|
-| Persisted resume load + reload-by-URL | ResumePreview | Present | High | **KV** |
-| **Approve-for-export sequence** | ApplicationReviewCenter | **Missing** | Critical | **KV** |
-| **Server one-page PDF gate (Puppeteer, 422 block)** | `/api/approve`, `/api/validate` | **Missing in UI** | Critical | **KV** |
-| Export-fit reconciliation (browser vs server, fix suggestions) | ExportFitStatusPanel | **Missing** | High | **PD** |
-| PDF/DOCX export (approved, structured filenames) | export routes | Downloads present; **gate missing** | Critical | **KV** |
-| Repair banner (`needs_review`) | ResumePreview | **Missing** | High | **KV** |
-| Structured section/header editing + dirty/beforeunload + re-approval invalidation | ResumeDraftReviewWorkspace | **Missing** | High | **PD** |
-| Resume revision queue (batch scoped) | ResumeStagedCustomRevisionPanel | **Missing** | Med | **PD** |
-| Evidence controls (exclude/force/rewrite/regenerate, pending queue) | ResumeEvidenceRegenerationPanel | Partial (toggles) | Med-High | **PD** |
-| Tailoring diagnostics (selected/omitted/proof/warnings) | PackageTailoringDiagnosticsPanel | **Missing** | Med | **PD** |
-| Fit summary | PackageFitSummaryPanel | **Missing** | Med | **PD** |
-| Layout sliders | layout controls | **Missing** | Low-Med | **PD** |
+| Persisted resume load + reload-by-URL | ResumePreview | ✅ Done [M4] — `loadFailed` vs `notFound` honest; context-fetch isolated | High | **KV** |
+| **Approve-for-export sequence** | ApplicationReviewCenter | ✅ Done [M4] — `output-approve-export` two-step card; persists `status="approved"` | Critical | **KV** |
+| **Server one-page PDF gate (Puppeteer, 422 block)** | `/api/approve`, `/api/validate` | ✅ Done [M4] — `output-one-page-block` with actionable suggestions; topbar exports gated on `exportReady` | Critical | **KV** |
+| **A4 / PDF-truth resume preview** | `ResumePdfPreview` (A4 iframe, exists at `src/components/resume-drafts/ResumePdfPreview.tsx`) | **Two-mode [M4.5+]:** (1) Editing view = current `RenderedResume` formatted HTML — acceptable for bullet switching/editing, no change required; (2) Approve-for-export = show `ResumePdfPreview` after gate passes — renders exact Puppeteer HTML in A4-constrained iframe | High | **KV → M5a** |
+| Export-fit reconciliation (browser vs server, fix suggestions) | ExportFitStatusPanel | Missing — reference only | High | **PD → M5b** |
+| PDF/DOCX export (approved, structured filenames) | export routes | ✅ Done [M4] — gated on `exportReady`; structured filenames; private storage delivery | Critical | **KV** |
+| Repair banner (`needs_review`) | ResumePreview | ✅ Done [M4] — `output-needs-review-banner` before approve CTA | High | **KV** |
+| Structured section/header editing + dirty/beforeunload + re-approval invalidation | ResumeDraftReviewWorkspace | Missing | High | **PD → M5a** |
+| Resume revision queue (batch scoped) | ResumeStagedCustomRevisionPanel | Missing | Med | **PD → M5a** |
+| Evidence controls (exclude/force/rewrite/regenerate, pending queue) — **line-level** | ResumeEvidenceRegenerationPanel | Whole-job experience toggles only [M4] — line-level pending | Med-High | **PD → M5b** (whole-job acceptable at M4; line-level is M5b scope) |
+| Tailoring diagnostics (selected/omitted/proof/warnings) | PackageTailoringDiagnosticsPanel | Missing | Med | **PD → M5b** |
+| Fit summary | PackageFitSummaryPanel | Missing | Med | **PD → M5b** |
+| Layout sliders | layout controls | Missing — parked | Low-Med | **PARK** |
 
 ### Output — Cover Letter (`/output` CL tab + `/cover-letter-preview`)
 
 | Capability | Folio counterpart | Risk if omitted | Rec |
 |---|---|---|---|
-| Load CL by resume draft id; failed-load ≠ absent | Present + hardened by `0877eb2` | High (duplicate drafts) | **KV** |
-| Manual edit + dirty/save/beforeunload | Partial | Med | **KV** |
-| Quick revision chips + candidate preview accept/reject | Partial (`CoverLetterStagedRevisionPanel`) | Med | **PD** |
-| Pending-only evidence staging (use/avoid proof) | `CoverLetterEvidenceRegenerationPanel` kept | Med | **PD** |
-| Full regenerate in place | Engine present | Med | **KV** |
-| Export PDF/DOCX (420-word + banned-phrase gate) | Buttons kept; gate INV | High | **KV** |
-| Secondary formats (email/LinkedIn/DM/WhatsApp) | `SecondaryCommunicationsPanel` kept | Low | **PD** |
-| Schema-constrained CL Gemini output (`56bc7c5`) | Codex-only | Med | **PORT (BE)** |
+| Load CL by resume draft id; failed-load ≠ absent | ✅ Done [M1] — `0877eb2` ported; error + retry shown, no draft created on failure | High (duplicate drafts) | **KV** |
+| Manual edit + dirty/save/beforeunload | Partial — full implementation pending | Med | **KV → M5c** |
+| Quick revision chips + candidate preview accept/reject | Partial (`CoverLetterStagedRevisionPanel`) | Med | **PD → M5c** |
+| Pending-only evidence staging (use/avoid proof) | `CoverLetterEvidenceRegenerationPanel` kept | Med | **PD → M5c** |
+| Full regenerate in place | Engine present — Folio wiring pending | Med | **KV → M5c** |
+| Export PDF/DOCX (420-word + banned-phrase gate) | ⚠️ **LIVE BUG confirmed [M4.5+]**: `detectBannedPhrases` not imported in `OutputEditorPageClient`; download buttons gated only on `isBusy \|\| !body.trim()`; `overLimit` shown as red text only (not used to block export); banned-phrase check absent entirely | High | **KV — fix before M5a (M4.6)** |
+| Secondary formats (email/LinkedIn/DM/WhatsApp) | `SecondaryCommunicationsPanel` kept | Low | **PD → M5c / park** |
+| Schema-constrained CL Gemini output (`56bc7c5`) | ✅ Done [M1] — cherry-picked, `responseSchema` + `COVER_LETTER_RESPONSE_SCHEMA` in place | Med | **PORT (BE)** |
 
 ### Applications (`/records`)
 
 | Capability | Old (reference only) | Folio counterpart | Risk if omitted | Rec |
 |---|---|---|---|---|
 | Persisted records table + filters | RecordsPanel | `ApplicationsPageClient` present | High | **KV** |
-| Status edit + notes | ApplicationRecordsPanel | **Missing** (`D1`) | Med | **KV** |
-| Artifact presence/missing labels + open package/CL | RecordsPanel | Partial | Med | **KV** |
-| Archive-without-delete | RecordsPanel | Present (`archiveApplicationRecordInCloud`) | Med | **KV** |
-| Saved-job management | JDInputPanel | **Missing** | Low-Med | **PD** |
-| Unlinked draft history + delete/export | DraftHistoryPanel | **Missing** | Low | **PD** |
-| "Interview" filter | — | stub `return []` (`S2`) | — | **REMOVE or add status** |
+| Status edit + notes | ApplicationRecordsPanel | **Missing** (`D1`) | Med | **KV → M6** |
+| Artifact presence/missing labels + open package/CL | RecordsPanel | Partial | Med | **KV → M6** |
+| Archive-without-delete | RecordsPanel | ✅ Done — `archiveApplicationRecordInCloud` present | Med | **KV** |
+| Saved-job management | JDInputPanel | **Missing** | Low-Med | **PD → M6** |
+| Unlinked draft history + delete/export | DraftHistoryPanel | **Missing** | Low | **PD → M6** |
+| "Interview" filter | — | stub `return []` (`S2`) — live fake surface | — | **REMOVE or add status → M7** |
 
 ### Profile / Settings / Secondary
 
@@ -194,6 +197,17 @@ Both diffs are a one-line import swap. That is the entire failure surface.
 | Settings | stub (`S1`) | **SIMPLIFY** — minimal account + prefs, or hide |
 | Dev Tools | `notFound()` in prod | **KV (gated)** |
 | TopBar avatar/notifications | decorative (`S3`) | **REMOVE/PARK** |
+
+### Preview Routes — `/resume-preview` and `/cover-letter-preview` (policy, M4.5)
+
+These routes were listed in the forbidden-remount test comment as intentionally out of scope. **Policy settled in M4.5:**
+
+| Route | Client | Status | Policy | Retire |
+|---|---|---|---|---|
+| `/resume-preview/[draftId]` | `ResumePreviewPageClient` | Grandfathered secondary route — not linked from active Folio navigation; reachable by direct URL only | **Permitted secondary route** until M5a structured editing lands in `/output` | **M7** |
+| `/cover-letter-preview/[draftId]` | `CoverLetterPreviewPageClient` | Same — CL editing partially absorbed into Output CL tab; carries full editing until M5c | **Permitted secondary route** through M5c | **M7** |
+
+Neither client is imported by any active `page.tsx` — the route-contract test stays green. The §10 forbidden list should clarify that these are **grandfathered** (not newly forbidden), not reinstated. Retire both in M7 after `/output` reaches M5c parity.
 
 ### Backend-only / Shared Systems (keep regardless of UI)
 
@@ -230,6 +244,8 @@ Parity = a returning authenticated user with existing data can run the full job-
 - Add-from-Text: extract → review/edit → apply. Extraction alone never saves.
 - Project-like evidence must not silently enter Work Experience.
 - Package-level surfaces are for review, approval and export.
+- **Legacy sub-panel reuse requires explicit approval.** Mounting a legacy `setup/` component verbatim inside an active Folio route counts as wholesale legacy reuse unless logged as accepted debt in the Milestone Completion Log. "Behind a disclosure accordion" is not automatically compliant. Accepted debt must record: affected components; reason accepted; owner milestone for restyle/decomposition; whether it blocks the next milestone.
+- **Visible UI must be Folio-native or logged as debt.** Legacy behavior (data wiring, persistence logic) may be reused. Legacy slate-styled rendering must not ship without a restyle plan. Currently logged debt: `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` — slate-styled panels in Career Vault PD section [M2]; restyle deferred to MX (optional, after M8); does not block M5a–M8.
 
 ---
 
@@ -252,12 +268,15 @@ Parity = a returning authenticated user with existing data can run the full job-
 | **M2** | Career Vault minimum parity | Input gate; `D2` is a real degradation | Med |
 | **M3** | Generate minimum parity | Produces trustworthy drafts | Med |
 | **M4** | **Output core delivery** | Critical trust/export milestone; biggest gap; server gate must land here | **High** |
-| **M5a** | Output: structured edit + revision queue | Editing depth after core trust proven | Med |
-| **M5b** | Output: evidence controls + tailoring diagnostics + fit summary | PD depth | Med-High |
+| **M4.5** | **Post-M4 capability matrix reconciliation** | Roadmap-only: close matrix gaps, assign milestone owners, document accepted debt, settle preview-route policy — before M5a | Low |
+| **M4.6** | **Pre-M5a bug fixes + M3 gap closure** | CL gate live correctness bug; AI step cost M3 gap; onboarding trust label; model guardrail | Low |
+| **M5a** | Output: structured edit + revision queue + PDF-on-approve preview | Editing depth after core trust; `ResumePdfPreview` shown after Approve gate passes | Med |
+| **M5b** | Output: evidence controls + tailoring diagnostics + fit summary + model-tier | PD depth; model-tier UI (IDs verified stable) | Med-High |
 | **M5c** | Cover-letter editing, evidence staging, export gates | CL trust closure | Med |
 | **M6** | Applications parity | Closes `D1` | Med |
 | **M7** | Secondary surfaces & stub cleanup | Honesty pass | Low-Med |
 | **M8** | Authenticated E2E closure | Proves parity | — |
+| **MX (optional)** | Vault panel restyle | Folio-native tokens for legacy `setup/` panels; accepted debt since M2 | Low |
 
 ---
 
@@ -308,6 +327,7 @@ Parity = a returning authenticated user with existing data can run the full job-
 - **Must not change:** context-policy semantics, cost estimates, generation engine.
 - **Tests:** extend `generate-flow`, `generation-partial-failure`, `application-records`.
 - **DoD:** context mode explained pre-generation; partial failure never loses the resume.
+- **Known gap [M4.6]:** AI step cost estimate was listed as "Present" in the capability matrix but is not visible anywhere in the Folio Generate flow — confirmed absent. Add in M4.6.
 - **Dependencies:** M1.
 
 ---
@@ -325,29 +345,70 @@ Parity = a returning authenticated user with existing data can run the full job-
 - **Manual:** approve→export on a dense draft (force overflow), reload mid-flow, desktop/mobile.
 - **Authenticated E2E required.**
 - **DoD:** no export path bypasses the one-page gate; approval invalidates on edit.
+- **Known gap [M4.5]:** Visual resume preview is screen-scaled HTML (`RenderedResume` component) — not A4/PDF-truth faithful. Server Puppeteer one-page gate remains the export truth per parity contract §4. A4/PDF-truth visual preview is a capability gap logged in M4.5 and assigned to M5a.
 - **Dependencies:** M2, M3 (Generate must produce trustworthy drafts before Output approval is tested end-to-end).
 - **Independent Opus review before merge: required.**
 
 ---
 
-### M5a — Output: Structured Edit + Revision Queue
+### M4.5 — Post-M4 Capability Matrix Reconciliation
 
-- **Objective:** Editing depth after core trust proven.
-- **Outcome:** Structured section/header edit with dirty/beforeunload + re-approval invalidation; resume revision queue (batch scoped, Accept all / Reject all).
-- **Stays mounted:** `OutputEditorPageClient`.
-- **References:** `ResumeDraftReviewWorkspace` (`packageMode`), `ResumeStagedCustomRevisionPanel`.
-- **Must not change:** staging never calls AI; no page-load AI.
-- **Tests:** extend `resume-draft-review`, `forced-bullet-regeneration`.
+- **Objective:** Reconcile the Capability Decision Matrix, M1–M4 implementation reality, and the original post-rollback audit before proceeding to M5a. No application code changes in this milestone.
+- **Why this exists:** M4 is complete for export trust, but the roadmap has five specification gaps that, if left open, will surface as scope ambiguity in M5a–M5c: (1) model-tier selector has no milestone owner and no active UI; (2) A4/PDF-truth resume preview was in the original audit but dropped from the matrix and milestones entirely; (3) Vault management tool reuse of legacy slate-styled `setup/` panels is unresolved technical/design debt; (4) `/cover-letter-preview` and `/resume-preview` route policy contradicts the forbidden-remount list without explicit resolution; (5) onboarding upload honesty is unresolved and is a live user-trust risk.
+- **User-visible outcome:** None. This milestone produces only roadmap edits.
+- **Scope:** Update matrix row ownership; classify all gaps; assign milestone owners; strengthen sub-panel safeguard; clarify M4 known gaps; make M5a/M5b/M5c scopes unambiguous.
+- **Non-scope:** No application code, no UI changes, no test changes, no component rewrites, no new documents, no route deletion.
+- **Required decisions (settled in this milestone):**
+
+  | Decision | Resolution |
+  |---|---|
+  | **A4 / PDF-truth resume preview** | **Two-mode assigned M5a.** Editing view: current `RenderedResume` formatted HTML is acceptable for bullet switching/editing — no change required. Approve-for-export: after gate passes, show `ResumePdfPreview` (`src/components/resume-drafts/ResumePdfPreview.tsx`) — renders exact Puppeteer HTML in A4-constrained iframe via `renderResumePdfHtml` — in place of or adjacent to the current preview. Component already exists; use it directly. Do not remount `ResumePreviewPageClient`. Server gate remains export truth. |
+  | **AI model-tier selector** | **IDs verified stable (2026-06-28).** `gemini-3-flash-preview` / `gemini-3.5-flash` confirmed stable. M4.6 adds runtime guardrail for diagnostic logging on model fallback. M5b exposes simple tier select in the Generate flow (`ModelTierSelect` component exists; `setResumeModelTier`/`setCoverLetterModelTier` never called in active render path — wire in M5b). |
+  | **Vault management tools reuse** | **Accepted temporary debt.** `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` are mounted wholesale in the Vault PD section — legacy `setup/` components, slate-styled (176 `slate-*` uses), behind a disclosure accordion. They are wired correctly and functional. **Not a blocker for M5a.** Restyle to Folio-native tokens (folio-primary-container, folio-sage-border, rounded-xl, no shadows, sentence case per DESIGN.md) assigned **M5b**. `shadow-md` on Vault FAB buttons is an additional DESIGN.md violation to fix in the same pass. |
+  | **`/resume-preview` + `/cover-letter-preview` route policy** | **Grandfathered secondary routes.** Neither is linked from any active Folio navigation component; reachable by direct URL only (no active Folio page links to them). `CoverLetterPreviewPageClient` carries full CL editing M5c will absorb into `/output`; remains mounted through M5c, retire **M7**. `ResumePreviewPageClient` carries structured editing + PDF iframe preview that M5a absorbs into `/output`; remains mounted through M5a, retire **M7**. §10.2 forbidden note should clarify these are grandfathered-secondary, not banned. |
+  | **Onboarding upload honesty** | **Interim honesty action required before M7.** `onboarding/page.tsx` `handleFinish` discards the uploaded file silently — the UI implies the resume was parsed and stored, which is false. Interim: hide the upload step or add a visible label "Resume not yet connected — add your career history in Career Vault." Full real upload implementation remains M7. This is a user-trust issue, not cosmetic. |
+  | **Source-resume / parsed-debug audit** | **Parked** — M7 / v0.10.0. No milestone owns it. Low user-facing risk; purely diagnostic. |
+  | **Model ID stability (C6)** | **Investigate Now** before M5b model-tier UI. Record findings in the M5b opening prompt. Not a blocker for M5a or for starting M5b. |
+  | **CL export gate verification** | Assigned **M5c**. Confirm 420-word + banned-phrase gate fires on the Folio export path. Buttons exist but gate enforcement in the Folio path is unverified. |
+
+- **Decisions that block M5a:** **M4.6 must land before M5a begins** — CL gate bug, AI step cost gap, onboarding label, model guardrail. All other unresolved issues are M5b, M5c, or M7 scope.
+- **DoD:** Every matrix row has a milestone owner or explicit park decision; A4 preview is assigned M5a; model-tier selector is assigned M5b; legacy sub-panel reuse is logged in §6 with restyle target M5b; M4 completion notes the A4 gap; M5a/M5b/M5c scopes are unambiguous; M5a opening prompt includes A4 preview.
+- **Handoff:** Proceed to M4.6 immediately. M4.6 must complete before M5a begins.
 - **Dependencies:** M4.
 
 ---
 
-### M5b — Output: Evidence Controls + Tailoring Diagnostics + Fit Summary
+### M4.6 — Pre-M5a Bug Fixes + M3 Gap Closure
 
-- **Objective:** Restore PD depth for evidence tailoring.
-- **Outcome:** Exclude/force/rewrite/regenerate pending queue wired; tailoring diagnostics panel reading saved spine snapshot (no page-load AI); fit summary from saved rationale.
+- **Objective:** Close two live issues and one confirmed M3 gap before M5a begins.
+- **Outcome:** (1) CL export gate enforced in Folio path: `OutputEditorPageClient` download buttons gated on `overLimit || bannedPhrases.length > 0`, matching `CoverLetterPreviewPageClient`'s existing gate — import `detectBannedPhrases`, compute banned phrases, show error message, disable buttons. (2) AI step cost estimate visible in the Generate flow — confirmed missing from active Folio path (M3 gap); add a "1–2 AI steps" estimate or equivalent label near the Generate CTA in `GenerateTailoredResumeSection` or `NewApplicationPageClient`. (3) Onboarding upload subtitle honesty: `STEP_SUBS[1]` currently reads "Upload your existing resume and we'll parse it into your career vault" — replace with honest text that does not promise parsing (`handleFinish` never processes the file). (4) Model tier guardrail: add runtime diagnostic logging to model-tier read/write path so model ID failures surface clearly before M5b tier UI.
+- **Stays mounted:** `OutputEditorPageClient`, `NewApplicationPageClient` (or embedded `GenerateTailoredResumeSection`), `onboarding/page.tsx`.
+- **References:** `CoverLetterPreviewPageClient` (behavioral reference for CL gate logic — do not remount).
+- **Must not change:** gate logic in `CoverLetterPreviewPageClient`, generation engine, export engine, page-count truth.
+- **Tests:** verify at-limit and banned-phrase CL blocks download in `OutputEditorPageClient`.
+- **DoD:** (1) over-limit or banned-phrase CL cannot be downloaded from `/output`; (2) AI step cost estimate visible before Generate CTA; (3) onboarding upload step does not claim to parse the file; (4) model fallback is logged diagnostically.
+- **Dependencies:** M4.
+
+---
+
+### M5a — Output: Structured Edit + Revision Queue + PDF-on-Approve Preview
+
+- **Objective:** Editing depth after core trust proven; PDF preview after Approve.
+- **Outcome:** (1) Structured section/header edit with dirty/beforeunload + re-approval invalidation. (2) Resume revision queue (batch scoped, Accept all / Reject all). (3) PDF-on-approve preview [M4.5+, two-mode]: editing view stays as current `RenderedResume` formatted HTML (acceptable for bullet switching/editing — no replacement); after Approve for Export gate passes, show `ResumePdfPreview` (`src/components/resume-drafts/ResumePdfPreview.tsx`) — renders exact Puppeteer HTML in A4-constrained iframe — in place of or adjacent to the current preview panel. Do NOT remount `ResumePreviewPageClient`.
 - **Stays mounted:** `OutputEditorPageClient`.
-- **References:** `ResumeEvidenceRegenerationPanel`, `PackageTailoringDiagnosticsPanel`, `PackageFitSummaryPanel`.
+- **References:** `ResumeDraftReviewWorkspace` (`packageMode`), `ResumeStagedCustomRevisionPanel`, `ResumePdfPreview` (use directly for post-approve view — reusable component, not a page client).
+- **Must not change:** staging never calls AI; no page-load AI.
+- **Tests:** extend `resume-draft-review`, `forced-bullet-regeneration`.
+- **Dependencies:** M4, M4.6.
+
+---
+
+### M5b — Output: Evidence Controls + Tailoring Diagnostics + Fit Summary + Model-Tier
+
+- **Objective:** Restore PD depth for evidence tailoring; resolve model-tier selector (IDs verified stable).
+- **Outcome:** (1) Exclude/force/rewrite/regenerate **line-level** pending queue wired (not whole-job — whole-job toggles are the M4-era stand-in; line-level is this milestone's job); tailoring diagnostics panel reading saved spine snapshot (no page-load AI); fit summary from saved rationale. (2) Model-tier selector: IDs verified stable (C6, 2026-06-28); expose simple tier select in Generate flow (`ModelTierSelect` component exists — wire `setResumeModelTier`/`setCoverLetterModelTier` in active render path); runtime guardrail already added in M4.6. Vault panel restyle deferred to MX (optional — accepted debt since M2).
+- **Stays mounted:** `OutputEditorPageClient`.
+- **References:** `ResumeEvidenceRegenerationPanel`, `PackageTailoringDiagnosticsPanel`, `PackageFitSummaryPanel`, `ModelTierSelect` (Generate integration).
 - **Must not change:** no page-load AI for diagnostics; staging never auto-saves.
 - **Tests:** extend `application-package-ux`, `forced-bullet-regeneration`.
 - **Dependencies:** M5a.
@@ -357,9 +418,9 @@ Parity = a returning authenticated user with existing data can run the full job-
 ### M5c — Cover-Letter Editing, Evidence Staging, Export Gates
 
 - **Objective:** CL trust closure.
-- **Outcome:** Manual CL edit + dirty/save/beforeunload; pending-only evidence staging applied on regenerate only; export gates (420-word + banned-phrase) enforced in Folio UI.
-- **Stays mounted:** `OutputEditorPageClient` (CL tab), `/cover-letter-preview` editor.
-- **References:** `CoverLetterPreviewPageClient`, `CoverLetterEvidenceRegenerationPanel`, `CoverLetterStagedRevisionPanel`.
+- **Outcome:** Manual CL edit + dirty/save/beforeunload; pending-only evidence staging applied on regenerate only; export gates (420-word + banned-phrase) **verified and enforced** on the Folio `/output` export path (buttons exist but gate unverified [M4.5]); secondary formats under PD.
+- **Stays mounted:** `OutputEditorPageClient` (CL tab). `/cover-letter-preview` is a grandfathered secondary route [M4.5] — still mounted and navigable by direct URL through M5c; absorb its editing into `/output` during this milestone, then mark for retirement in M7.
+- **References:** `CoverLetterPreviewPageClient` (behavioral reference only — absorb its behavior, do not remount), `CoverLetterEvidenceRegenerationPanel`, `CoverLetterStagedRevisionPanel`.
 - **Tests:** extend `cover-letter`, `cover-letter-application-package`.
 - **Dependencies:** M4.
 
@@ -379,7 +440,7 @@ Parity = a returning authenticated user with existing data can run the full job-
 
 ### M7 — Secondary Surfaces & Stub Cleanup
 
-- **Outcome:** Onboarding upload made real or redirected (`D3`); interview filter removed or status added (`S2`); settings minimal-real or hidden (`S1`); landing signed-in redirect (`D6`); dead buttons wired/removed.
+- **Outcome:** Onboarding upload made real or hidden with honest labeling (`D3` — **user-trust issue, not cosmetic**; interim label/hide may land earlier as a no-code fix); interview filter removed or status added (`S2`); settings minimal-real or hidden (`S1`); landing signed-in redirect (`D6`); dead buttons wired/removed; retire `/resume-preview` and `/cover-letter-preview` routes after M5a and M5c absorb their behavior into `/output`; source-resume/parsed-debug audit implemented or explicitly dropped (parked since M4.5).
 - **Dependencies:** M2, M6.
 
 ---
@@ -395,16 +456,29 @@ Parity = a returning authenticated user with existing data can run the full job-
 
 ---
 
+### MX (optional) — Vault Panel Restyle
+
+- **Objective:** Close legacy styling debt in Career Vault PD panels accepted as temporary debt in M2. Optional — does not block M5a–M8.
+- **Outcome:** `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` restyled to Folio-native tokens (`folio-primary-container`, `folio-sage-border`, `rounded-xl`/`rounded-lg`, sentence case, no shadows per DESIGN.md). `shadow-md` on Vault FAB buttons fixed.
+- **Stays mounted:** `CareerVaultPageClient` (restyle only — client, wiring, and data contracts unchanged).
+- **References:** `setup/` panel components (restyle targets only — no behavior or interaction changes).
+- **Must not change:** Vault data wiring, evidence semantics, panel interaction logic.
+- **Tests:** no new suites; verify panels render without `shadow-*`/`slate-*` tokens in Folio Vault.
+- **Dependencies:** M2. Schedule after M8 when Folio polish cycle begins.
+
+---
+
 ## 10. Safeguards Against Another Legacy-UI Restoration
 
 1. **Route-contract tests (land in M1):** assert each active route renders its Folio client. A source-grep contract in `app-shell.test.ts` is the model.
-2. **Forbidden-remount rule (document in `FOLIO_REDESIGN.md`):** `InventoryPageClient`, `RecordsPageClient`, `GeneratePageClient`, `ResumePreviewPageClient`, `CoverLetterPreviewPageClient` must not be imported by any `page.tsx`. Test asserts this.
+2. **Forbidden-remount rule (document in `FOLIO_REDESIGN.md`):** `InventoryPageClient`, `RecordsPageClient`, `GeneratePageClient` must not be imported by any `page.tsx`. `ResumePreviewPageClient` and `CoverLetterPreviewPageClient` are **grandfathered secondary routes** [M4.5] — they remain mounted at their own `/resume-preview` and `/cover-letter-preview` routes (not at active workspace routes) and are scheduled for retirement in M7. The test correctly excludes them from the active-route forbidden check.
 3. **Capability-level behavior tests** for each restored slice (extraction≠save, one-page gate blocks, approval invalidation, partial-failure preserves resume).
 4. **Milestone stop rule:** each milestone names one Folio client that stays mounted; if a plan proposes swapping a route or importing a legacy client, stop and re-scope.
 5. **Independent Opus review before merge** for M4, M5b; review brief + diff only; no implementation history.
 6. **Screenshot + responsive QA** and **authenticated direct-reload testing** for every UI milestone.
 7. **Source-of-truth/persistence tests** retained (`draft-inventory-safety` is the model).
 8. **Documentation separates behavior from presentation:** `FOLIO_REDESIGN.md` owns presentation/routes; `HANDOFF.md`/`KNOWN_ISSUES.md` own behavior.
+9. **Legacy sub-panel reuse requires explicit approval and logging [M4.5].** Mounting a legacy `setup/` component verbatim inside an active Folio route counts as wholesale legacy reuse unless logged as accepted debt in §6 and the Milestone Completion Log. Hiding legacy UI behind a disclosure accordion is not automatically compliant. Accepted debt must record: components involved; reason accepted; owner milestone for restyle/decomposition; whether it blocks the next milestone. Current logged debt: `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` — Vault PD panels [M2]; restyle deferred to MX (optional, after M8); does not block M5a–M8.
 
 ---
 
@@ -417,13 +491,16 @@ Parity = a returning authenticated user with existing data can run the full job-
 | M2 — Career Vault minimum parity | Sonnet | Medium | Bounded page work; persistence touches `InventoryEdits` and `resume_inventories`; real UI complexity in edit/restore/extract flows |
 | M3 — Generate minimum parity | Sonnet | Medium | Mostly verification + small surface adds; orchestration state touches generation engine |
 | M4 — Output core delivery | Opus | High | Crosses approval + export + server gate + persistence trust; highest data-integrity risk in the milestone set; independent review required |
-| M5a — Output: structured edit + revision queue | Sonnet | Medium | Well-understood pattern (dirty state, beforeunload, staged accept/reject); re-approval invalidation is the sensitive path |
-| M5b — Output: evidence controls + tailoring diagnostics + fit summary | Sonnet | High | Complex pending-queue semantics, PD surface decisions, diagnostic reads from spine snapshot; must not introduce page-load AI |
+| M4.5 — Post-M4 matrix reconciliation | Sonnet | Low | Docs only; no code; reconcile matrix gaps, assign owners, settle decisions before M5a |
+| M4.6 — Pre-M5a bug fixes + M3 gap closure | Sonnet | Low | CL gate fix (~20 lines), AI step cost label, onboarding text change, model guardrail |
+| M5a — Output: structured edit + revision queue + PDF-on-approve preview | Sonnet | Medium | Well-understood pattern (dirty state, beforeunload, staged accept/reject); post-approve `ResumePdfPreview` add is straightforward; re-approval invalidation is the sensitive path |
+| M5b — Output: evidence controls + diagnostics + fit summary + model-tier | Sonnet | High | Complex pending-queue semantics (line-level, not whole-job); PD surface decisions; diagnostic reads from spine; model-tier wiring (IDs stable); must not introduce page-load AI |
 | M5c — Cover-letter editing, evidence staging, export gates | Sonnet | Medium | CL gate + pending-only staging are well-specified; primary work is UI mapping and gate wiring |
 | M6 — Applications parity | Sonnet | Low | Re-implementing status/notes/artifact links inside existing `ApplicationsPageClient`; no schema changes |
 | M7 — Secondary surfaces & stub cleanup | Sonnet | Low | Mechanical: remove stubs, wire real flows, add redirect |
 | M8 — Authenticated E2E closure | Sonnet (assist) | Low | Human-led; Claude assists from observations and screenshots only |
 | Independent milestone review (M4, M5b) | Opus (fresh session) | Low | Review brief + diff only; fresh context; no implementation history |
+| MX (optional) — Vault panel restyle | Sonnet | Low | Restyle only; no logic changes; scope bounded to `setup/` folder panels |
 
 ---
 
@@ -434,11 +511,12 @@ Parity = a returning authenticated user with existing data can run the full job-
 - No route-contract test exists → another one-line swap could recur silently. (M1)
 - Output Editor ships exports without the server one-page gate visible → users can believe a multi-page resume is export-ready. (M4)
 - Onboarding upload is decorative (`D3`) → user believes their resume loaded. Flag in docs immediately; fix in M7.
+- **CL export gate NOT enforced in Folio Output path (M4.6):** `detectBannedPhrases` not imported in `OutputEditorPageClient`; download buttons gated only on `isBusy || !body.trim()`; `overLimit` shown as red text only. Fix before M5a.
 
 ### Investigate Now
 
 - `profiles` migration applied to the live Supabase project? (runtime, not repo)
-- Model-tier IDs `gemini-3-flash-preview` / `gemini-3.5-flash` stability (C6) before exposing tier UI.
+- ~~Model-tier IDs stability (C6)~~ — **verified stable (2026-06-28)**; runtime guardrail added in M4.6 before M5b UI.
 - `BulletEnrichmentSuggestion.issueTitle` / vault app-count linkage runtime shape (`U1`).
 - Does `56bc7c5` apply cleanly on the Folio tip (check `call-gemini.ts` current shape)?
 - Generate→Output: confirm no lingering `/resume-preview` navigation in any Folio path.
@@ -632,9 +710,9 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 ### M5a Opening Prompt
 
 ```
-Implement Milestone M5a — Output: Structured Edit + Revision Queue — for Resume Copilot (Folio).
+Implement Milestone M5a — Output: Structured Edit + Revision Queue + A4 Preview — for Resume Copilot (Folio).
 
-CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M4 are complete. Read the M4 Milestone Completion Log row and §9 "M5a — Output: Structured Edit + Revision Queue".
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M4, M4.5 (roadmap reconciliation), and M4.6 (pre-M5a bug fixes) are complete. Read the M4, M4.5, and M4.6 Milestone Completion Log rows and §9 "M5a — Output: Structured Edit + Revision Queue + PDF-on-Approve Preview".
 
 REPO: C:\Dev\AIAP\resume-copilot
 BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
@@ -650,10 +728,11 @@ SCOPE (only this, nothing else):
 2. Dirty-state + beforeunload guard while structured edits are unsaved.
 3. Re-approval invalidation on structured edit: saving a structured edit after approval must downgrade approval to layout_changed (clear serverPdfValidation), exactly as the M4 Approve→Export card already consumes (exportReady / layoutChangedAfterApproval). M4 wired invalidation to Regenerate only; M5a extends it to structured edits.
 4. Resume revision queue: stage multiple scoped custom revision instructions (professional summary + one or more roles), run ONE batch Gemini call via the existing POST /api/ai/revise-resume-scope queue mode; preview all proposed changes; Accept all persists; Reject all discards. Staging/typing NEVER calls AI.
+5. PDF-on-approve preview [M4.5+, two-mode]: the editing view (current RenderedResume formatted HTML) is acceptable for bullet switching/editing and stays unchanged. After Approve for Export gate passes, show ResumePdfPreview (src/components/resume-drafts/ResumePdfPreview.tsx) — renders the exact Puppeteer HTML in a true A4-constrained iframe via renderResumePdfHtml — in place of or adjacent to the current preview panel. Do NOT mount ResumePreviewPageClient.
 
 STAYS MOUNTED: OutputEditorPageClient.
 
-REFERENCES (read only — behavioral reference, never mount): ResumeDraftReviewWorkspace (packageMode), ResumeStagedCustomRevisionPanel, and ResumePreviewPageClient's structured editor + markLayoutChangedAfterApproval invalidation path.
+REFERENCES (read only — behavioral reference, never mount): ResumeDraftReviewWorkspace (packageMode), ResumeStagedCustomRevisionPanel, ResumePreviewPageClient's structured editor + markLayoutChangedAfterApproval invalidation path, ResumePdfPreview (use directly for post-approve view — reusable component, not a page client).
 
 BACKEND/DEPS: existing draft update helper (updateGeneratedResumeDraftInCloud), POST /api/ai/revise-resume-scope (single-scope + queue batch modes already exist). No schema changes. No new endpoints.
 
@@ -699,12 +778,15 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 | Milestone | Status | Completed | Notes |
 |---|---|---|---|
 | M1 — Foundation lock, route-contract safeguards | ✅ Complete | 2026-06-28 | Cherry-picked `56bc7c5` + `0877eb2` (clean, sit directly on `7aec1d0`); added 10 route-contract + forbidden-remount checks to `app-shell.test.ts` (scoped to 5 active routes); refreshed 9 stale pre-Folio shell assertions to the Folio shell; verified sign-out / signup→confirm-email / profiles migration (no behavior change); documented the forbidden-remount rule + fixed a stale route table in `FOLIO_REDESIGN.md`. **Pre-existing red carried forward (not M1):** `resume-generation-validation` (3 fails, generation-semantics area — forbidden to touch in M1); lint has 2 pre-existing errors in untouched files (`ProfilePageClient.tsx`). `npm run build` green; M1 suites green when run directly. |
-| M2 — Career Vault minimum parity | ✅ Complete | 2026-06-28 | DOCX upload dialog keeps open while parsing and shows explicit saved/partial/failed states from inventory diff (no silent bad parse); revert-to-original per bullet clears `editedBulletTextByBulletKey` overlay (source resumes never touched); save error surfaced in `inventory-unsaved-changes-banner`; `InventoryTextExtractionPanel` wired with `onSaveApplied` only on Apply (extract≠save confirmed); `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel` brought into `CareerVaultPageClient` under "Vault management tools" progressive-disclosure section — legacy clients never mounted. New checks added to `inventory-edits`, `inventory-text-extraction`, `inventory-duplicate-cleanup`, and `draft-inventory-safety` suites. **Pre-existing red carried forward (not M2):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); lint errors in `NewApplicationPageClient.tsx` + `ProfilePageClient.tsx` (2 errors, all untouched files). Build green; M2 suites green when run directly. |
-| M3 — Generate minimum parity | ✅ Complete | 2026-06-28 | Saved-job match banner added to `NewApplicationPageClient`: live detection via `findDuplicateJobDescription` + `normalizeJobDescriptionInput`; "Reuse saved job" fills form + sets `editingJobId`; "Start fresh" dismisses per-match. Context policy summary (headline + detail, `data-testid="generate-context-policy-summary"`) added to `embeddedMode` path of `GenerateTailoredResumeSection` so users see JD-only vs website+JD vs confidential before clicking Generate. Partial-failure recovery (resume preserved, "Retry Cover Letter" offered, retry skips resume API) was already complete — confirmed by full `generation-partial-failure` suite pass. 4 new checks added to `generate-flow.test.ts`. Fixed 2 pre-existing lint errors in `NewApplicationPageClient.tsx` (unescaped apostrophe + unused `signInRequiredReason`). **Pre-existing red carried forward (not M3):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (2 fails); lint in `ProfilePageClient.tsx` (1 error). Build green; M3 suites green. |
-| M4 — Output core delivery | ✅ Complete | 2026-06-28 | All surfacing landed in `OutputEditorPageClient.tsx` (the only client touched) — backend approve/validate/export gate was already complete and correct, so **no route/schema/engine changes**. Added a dedicated **Review and export** card (`data-testid="output-approve-export"`) at the top of the Resume tab implementing the explicit two-step **Approve → Export** flow: Approve calls `approveResumeDraftForExport` (`/api/approve/resume-draft`), which server-validates one page and persists `status="approved"` + `serverPdfValidation`; export unlocks only when `exportReady` (approved + `serverPdfValidation.pageCount === 1` + layout equal). **Server one-page hard gate (422)** surfaced via `ResumePdfOnePageBlockedError` + `formatOnePageBlockedMessage` as an actionable block (`output-one-page-block`) listing server `suggestedActions` — never silent. PDF/DOCX export wired through the existing `exportResume*FromApi` + `deliverExportedFile` (structured filenames + private storage unchanged); **topbar exports gated** (`isExportingPdf \|\| !exportReady`) so there is no visual bypass. **needs_review banner** (`output-needs-review-banner`, banner-only per scope decision) shown before the approve CTA. **Post-approval invalidation** wired to Regenerate (clears `validationFailure`; fresh content downgrades status) — structured-edit invalidation deferred to M5a. **Failed-load vs confirmed-missing honesty**: load effect now distinguishes `loadFailed` (retryable, `output-load-failed`) from `notFound`, with the company-context fetch isolated so a context failure never masquerades as a missing draft. Mark-as-sent left untouched. Checks added to `resume-approve-validation`, `resume-pdf-page-count`, `resume-export-delivery`, `application-package-ux`; `/output` route-contract + forbidden-remount stay green. **Pre-existing red carried forward (not M4):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); 1 lint error in `ProfilePageClient.tsx` (untouched). Build green; M4 suites green when run directly. **Independent Opus review required before merge.** |
-| M5a — Output: structured edit + revision queue | Not started | — | — |
-| M5b — Output: evidence controls + diagnostics + fit summary | Not started | — | — |
+| M2 — Career Vault minimum parity | ✅ Complete | 2026-06-28 | DOCX upload dialog keeps open while parsing and shows explicit saved/partial/failed states from inventory diff (no silent bad parse); revert-to-original per bullet clears `editedBulletTextByBulletKey` overlay (source resumes never touched); save error surfaced in `inventory-unsaved-changes-banner`; `InventoryTextExtractionPanel` wired with `onSaveApplied` only on Apply (extract≠save confirmed); `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel` brought into `CareerVaultPageClient` under "Vault management tools" progressive-disclosure section — legacy clients never mounted. New checks added to `inventory-edits`, `inventory-text-extraction`, `inventory-duplicate-cleanup`, and `draft-inventory-safety` suites. **Pre-existing red carried forward (not M2):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); lint errors in `NewApplicationPageClient.tsx` + `ProfilePageClient.tsx` (2 errors, all untouched files). Build green; M2 suites green when run directly. **Known debt [M4.5]:** Vault management tools reuse legacy slate-styled `setup/` panels (`EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard`) — wired correctly and functional, but legacy styling accepted as temporary debt; restyle/decompose to Folio-native tokens assigned M5b. `shadow-md` on Vault FAB buttons is an additional DESIGN.md violation in the same pass. |
+| M3 — Generate minimum parity | ✅ Complete | 2026-06-28 | Saved-job match banner added to `NewApplicationPageClient`: live detection via `findDuplicateJobDescription` + `normalizeJobDescriptionInput`; "Reuse saved job" fills form + sets `editingJobId`; "Start fresh" dismisses per-match. Context policy summary (headline + detail, `data-testid="generate-context-policy-summary"`) added to `embeddedMode` path of `GenerateTailoredResumeSection` so users see JD-only vs website+JD vs confidential before clicking Generate. Partial-failure recovery (resume preserved, "Retry Cover Letter" offered, retry skips resume API) was already complete — confirmed by full `generation-partial-failure` suite pass. 4 new checks added to `generate-flow.test.ts`. Fixed 2 pre-existing lint errors in `NewApplicationPageClient.tsx` (unescaped apostrophe + unused `signInRequiredReason`). **Pre-existing red carried forward (not M3):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (2 fails); lint in `ProfilePageClient.tsx` (1 error). Build green; M3 suites green. **Known gap [M4.6]:** AI step cost estimate listed as "Present" in capability matrix but confirmed missing from active Folio Generate flow — add in M4.6. |
+| M4 — Output core delivery | ✅ Complete | 2026-06-28 | All surfacing landed in `OutputEditorPageClient.tsx` (the only client touched) — backend approve/validate/export gate was already complete and correct, so **no route/schema/engine changes**. Added a dedicated **Review and export** card (`data-testid="output-approve-export"`) at the top of the Resume tab implementing the explicit two-step **Approve → Export** flow: Approve calls `approveResumeDraftForExport` (`/api/approve/resume-draft`), which server-validates one page and persists `status="approved"` + `serverPdfValidation`; export unlocks only when `exportReady` (approved + `serverPdfValidation.pageCount === 1` + layout equal). **Server one-page hard gate (422)** surfaced via `ResumePdfOnePageBlockedError` + `formatOnePageBlockedMessage` as an actionable block (`output-one-page-block`) listing server `suggestedActions` — never silent. PDF/DOCX export wired through the existing `exportResume*FromApi` + `deliverExportedFile` (structured filenames + private storage unchanged); **topbar exports gated** (`isExportingPdf \|\| !exportReady`) so there is no visual bypass. **needs_review banner** (`output-needs-review-banner`, banner-only per scope decision) shown before the approve CTA. **Post-approval invalidation** wired to Regenerate (clears `validationFailure`; fresh content downgrades status) — structured-edit invalidation deferred to M5a. **Failed-load vs confirmed-missing honesty**: load effect now distinguishes `loadFailed` (retryable, `output-load-failed`) from `notFound`, with the company-context fetch isolated so a context failure never masquerades as a missing draft. Mark-as-sent left untouched. Checks added to `resume-approve-validation`, `resume-pdf-page-count`, `resume-export-delivery`, `application-package-ux`; `/output` route-contract + forbidden-remount stay green. **Pre-existing red carried forward (not M4):** `resume-generation-validation` (3 fails); `draft-inventory-safety` (`updateGeneratedResumeDraftInCloud` / `deleteGeneratedResumeDraftFromCloud`, 2 fails); 1 lint error in `ProfilePageClient.tsx` (untouched). Build green; M4 suites green when run directly. **Independent Opus review required before merge.** **Known gap [M4.5]:** Visual resume preview is screen-scaled HTML (`RenderedResume` component) — not A4/PDF-truth faithful; server gate remains export truth; A4 visual preview capability gap assigned to M5a. |
+| M4.5 — Post-M4 capability matrix reconciliation | ✅ Complete | 2026-06-28 | Roadmap-only update. Reconciled matrix, milestone owners, and post-rollback audit. Settled 8 decisions: A4 preview → M5a; model-tier selector → INV then M5b; Vault tool reuse → accepted debt, restyle MX (optional); preview route policy → grandfathered-secondary, retire M7; onboarding honesty → interim label/hide by M7; source-resume debug → parked; model IDs → investigate before M5b; CL export gate → verify M5c. Strengthened §6 safeguard and §10.9 to cover sub-panels. No application code changed. |
+| M4.6 — Pre-M5a bug fixes + M3 gap closure | Not started | — | CL export gate (live bug), AI step cost (M3 gap), onboarding subtitle (trust), model guardrail |
+| M5a — Output: structured edit + revision queue + PDF-on-approve preview | Not started | — | — |
+| M5b — Output: evidence controls + diagnostics + fit summary + model-tier | Not started | — | — |
 | M5c — Cover-letter editing + evidence + export gates | Not started | — | — |
 | M6 — Applications parity | Not started | — | — |
 | M7 — Secondary surfaces & stub cleanup | Not started | — | — |
 | M8 — Authenticated E2E closure | Not started | — | — |
+| MX (optional) — Vault panel restyle | Not started | — | Deferred from M5b per user decision; schedule after M8 |
