@@ -948,7 +948,56 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 
 ### M7 Opening Prompt
 
-*(To be written after M6.)*
+```
+Implement Milestone M7 — Secondary Surfaces & Stub Cleanup — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M6 are complete. Read the M6 Milestone Completion Log row and §9 "M7 — Secondary Surfaces & Stub Cleanup".
+
+WHAT IS COMPLETE (do not redo):
+- M6: status edit (inline select, updateApplicationRecordInCloud), notes edit (textarea + save), artifact presence/open-package links (/output/[draftId]), archive verify + fix (load includeArchived: true, all filter excludes archived), saved-job PD (listJobDescriptionsFromCloud, saved-jobs-disclosure, /generate?jobId), unlinked draft history PD (unlinked-drafts-disclosure, !applicationId filter, /output/[id]).
+- M5c: manual CL edit (clIsEditMode, clIsDirty, beforeunload, Save cover letter, Cancel), pending-only evidence staging, CL export gates verified, quick-action chips + tone selector verified functional.
+- M5b: line-level bullet controls, tailoring diagnostics, fit summary, model-tier selects in Generate.
+- M5a: structured editor, dirty/beforeunload, re-approval invalidation, Folio-native revision queue, PDF-on-approve two-mode preview.
+- M4: Approve→Export card, server one-page gate, needs_review banner, load-failure honesty, experience toggles (whole-job).
+- M4.6: CL export gate, AI step estimate, onboarding honesty, model-tier guardrail.
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. All five active route clients stay mounted. Never swap an active route to a legacy page client. No active page.tsx may import InventoryPageClient, RecordsPageClient, GeneratePageClient, ResumePreviewPageClient, or CoverLetterPreviewPageClient. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow the Folio design system in docs/DESIGN.md. Sentence case; no shadows; folio-* tokens; rounded-xl cards; rounded-lg controls.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. Onboarding upload: make the upload step real or remove it with honest labeling (D3 — user-trust issue). Option A: hide the upload UI entirely and add "Add your career history in Career Vault after setup." Option B: wire the file to parseDocxResume and save to resume_inventories (scope: full implementation). Recommend Option A (honesty, low risk) unless user directs otherwise; interim label was added in M4.6 but the upload UI is still present. Confirm choice before coding.
+2. "Interview" filter stub (S2): the Interview tab at /records hardcodes return [] — either remove the tab or add status "interview" to APPLICATION_RECORD_STATUSES and EDITABLE_APPLICATION_RECORD_STATUSES. Confirm which approach before coding.
+3. Settings page stub (S1): /settings is currently a placeholder — either add minimal account + preferences content (name, email display) or keep stub with honest "Coming soon" label rather than empty page. Confirm scope before coding.
+4. Landing signed-in redirect (D6): when a signed-in user visits /, redirect to /dashboard. Current LandingHero has static links. Add a useEffect redirect in the landing page or middleware.
+5. Dead buttons: audit for any remaining dead/stub UI elements in Folio shell (e.g., notifications icon in TopBar, "Add bullet point" button in Vault, any other non-functional CTAs). Remove or wire.
+6. Retire /resume-preview and /cover-letter-preview routes: M5a absorbed structured editing into /output; M5c absorbed CL editing into /output. Remove the page.tsx imports and return notFound() from each, or delete the route folders. Update FOLIO_REDESIGN.md.
+
+STAYS MOUNTED: all five active Folio route clients unchanged.
+
+REFERENCES (read only — behavioral reference, never mount): ResumePreviewPageClient, CoverLetterPreviewPageClient (retire these; do not add new functionality).
+
+BACKEND/DEPS: resume_inventories, stored_files for onboarding upload if implemented. application_records if interview status added. No new endpoints required for other items.
+
+MUST NOT CHANGE: generation engine, export engine, evidence spine, model IDs, M4/M5a/M5b/M5c/M6 approval/export/archive gate semantics.
+
+CHECKS: npm run test, npm run lint, npm run build. Add tests into existing suites only (docs/TESTING.md). Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix unless explicitly scoped): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx; 1 pre-existing TS error in application-records.test.ts (readonly tuple .includes() type narrowing). Report if they block your verification but do not expand scope.
+
+After completing M7, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M7 complete in the Milestone Completion Log.
+- Write the M8 opening prompt into the Chat Prompts section.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
 
 ### M8 Opening Prompt
 
@@ -969,7 +1018,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 | M5a — Output: structured edit + revision queue + PDF-on-approve preview | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` — no backend/schema/engine changes. **(1) Structured editor:** In-place toggle (`isEditMode` state) swaps left panel between read-only `RenderedResume` and `StructuredResumeEditor` (Folio-native form). Editor covers all sections: header/contact, professional summary, experience bullets (add/remove/edit within existing roles — no creating brand-new roles), skills groups + items, education bullets, additional experience items. **(2) Dirty state + beforeunload:** `isDirty` bool tracked; `beforeunload` listener added while dirty; unsaved-edits banner (`editor-dirty-banner`) shown in panel; Cancel resets without saving. **(3) Re-approval invalidation:** Both structured-edit save handler and revision-queue accept handler call `resolveDraftStatusAfterContentEdit(draft.status)` before persisting — downgrades `approved`/`layout_changed` → `layout_changed`, strips `serverPdfValidation`. The M4 `exportReady` derivation and `layoutChangedAfterApproval` banner then re-derive automatically from the saved draft. Layout changes (font size etc.) are already handled by `areExportLayoutSettingsEqual` in the existing `exportReady` derivation — no additional change needed. **(4) Folio-native revision queue:** `ResumeRevisionQueue` component mounted in right 40% column as a collapsed `<details>`-style disclosure (chevron toggle, `revision-queue-toggle`). Features: scope select (professional summary / selected role), role select, instruction textarea, model tier select (standard/enhanced/premium via `resolveResumeModelTierForDraft`/`writeStoredResumeModelTier`), staged queue list (add/remove items), "Revise selected sections" triggers one batch Gemini call via `requestResumeBatchRevision(persist: false)`, preview panel shows proposed changes (summary + per-role bullet diff), Accept all saves via `handleRevisionQueueAccepted` (same invalidation path as structured edit), Reject all discards. Staging/typing NEVER calls AI. **(5) PDF-on-approve two-mode preview:** Before export-ready: `RenderedResume` HTML. After `exportReady` (approved + `serverPdfValidation.pageCount === 1` + layout equal): `ResumePdfPreview` with document model from `buildExportResumeDocumentModel` + `findReferenceResumeInInventory`. `ResumePreviewPageClient` never mounted. `app-shell` route-contract + forbidden-remount: green. `resume-draft-review` suite: green. **Pre-existing red carried forward (not M5a):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. **Alternatives noted for docs:** Q1 (editing placement): right-panel form and modal variants were considered; in-place left-panel toggle was chosen for direct context. |
 | M5b — Output: evidence controls + diagnostics + fit summary + model-tier | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` and `GenerateTailoredResumeSection.tsx` — no backend/schema/engine/endpoint changes. **(1) Line-level bullet controls:** New collapsed disclosure (`bullet-controls-toggle`) in the right panel. For included experience bullets with `sourceRefs[].bulletKey`: checkbox to exclude from next Regenerate → `lineLevelExcludedBulletKeys`. For excluded experience inventory bullets with `inventoryBulletKey`: checkbox to force into next Regenerate → `lineLevelForcedBulletKeys`. Both sets merged in `buildMergedControls()` (alongside existing whole-job toggles) before the Regenerate call. Changes staged only — no AI on toggle, no auto-save. **(2) Tailoring diagnostics:** New collapsed disclosure (`tailoring-diagnostics-toggle`) in the right panel. Calls `buildPackageTailoringDiagnostics({ resumeDraft: draft, jobDescription: linkedJob })` via `useMemo` — no AI. Displays selected evidence, omitted evidence (with "Advisory only — not a defect" label, `tailoring-omitted-evidence`), and warnings in Folio-native list rows. **(3) Fit summary:** New collapsed disclosure (`fit-summary-toggle`) in the right panel. Calls `buildPackageFitSummary({ rationale: draft.rationale })` via `useMemo` — no AI. Shows the derived text or `PACKAGE_FIT_SUMMARY_UNAVAILABLE` fallback. **(4) Model-tier selector in Generate flow:** `MODEL_TIERS` + `MODEL_TIER_LABELS` imported in `GenerateTailoredResumeSection.tsx`; two Folio-native selects added to the `embeddedMode` render path between context policy card and Generate button — resume model (`generate-resume-model-tier`) and cover letter model (`generate-cl-model-tier`) — using the existing internal `resumeModelTier`/`setCoverLetterModelTier` state and `writeStoredResumeModelTier`/`writeStoredCoverLetterModelTier` on change. **Tests:** 14 new checks added to `application-package-ux.test.ts`. **Pre-existing red carried forward (not M5b):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; M5b suites green. |
 | M5c — Cover-letter editing + evidence + export gates | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` — no backend/schema/engine/endpoint changes. **(1) Manual CL edit:** `clIsEditMode` state toggles between read-only paragraph view and an editable textarea (`cl-edit-textarea`). `clIsDirty = body !== coverLetter.body` tracks unsaved edits. `beforeunload` guard fires while dirty. "Save cover letter" button (`cl-save-button`, disabled when `!clIsDirty`) calls `updateGeneratedCoverLetterDraftInCloud(coverLetter.id, { body })`, updates the loaded record in state (making dirty = false), and exits edit mode. "Cancel" button resets body to `coverLetter.body` and exits edit mode. Quick-action chips and tone selector disabled while in edit mode to prevent overwriting unsaved manual edits. Re-approval invalidation not needed (CL does not gate PDF export). **(2) Pending-only evidence staging:** `pendingEvidenceControls: CoverLetterEvidenceControls` state initialized to `{ forcedEvidenceIds: [], excludedEvidenceIds: [] }`. `evidenceRows` memo builds spine via `buildActiveCollatedInventory` + `buildAcceptedWordingByBulletKey` + `buildCompanyContext` + `buildEvidenceSpine` → `buildCoverLetterProofEvidenceList(spine, pendingControls)` (no AI, pure functions). Folio-native collapsible disclosure (`cl-evidence-staging-toggle`) shows per-row "Use in cover letter" / "Avoid in cover letter" buttons with staged state highlighted. Summary box (`cl-evidence-queue-summary`) shown when any controls are staged. `handleRegenerate` passes `evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls)` to `generateAndSaveCoverLetterDraft`; cleared to empty after success (single-use). Staging never calls AI; never auto-saves. **(3) CL export gates verified:** `exportBlocked = overLimit \|\| bannedPhrases.length > 0` already correctly computed; download buttons already gated on `exportBlocked` from M4.6. No code change needed — verified and noted. **(4) Quick-action chips + tone selector verified:** already fully functional from M4.6. No code change needed. **Tests:** 18 new M5c checks added to `application-package-ux.test.ts`. All 87 checks green. `app-shell.test.ts` (35/35) and `resume-draft-review.test.ts` (21/21) unchanged and green. **Pre-existing red carried forward (not M5c):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; test suites green. |
-| M6 — Applications parity | Not started | — | — |
+| M6 — Applications parity | ✅ Complete | 2026-06-29 | All surfacing landed in `ApplicationsPageClient.tsx` — no backend/schema/engine changes. **(1) Status edit:** Inline `<select>` in expanded row details using `EDITABLE_APPLICATION_RECORD_STATUSES`; `handleStatusChange` calls `updateApplicationRecordInCloud({ status })` and updates local state. **(2) Notes:** Textarea + "Save notes" button in expanded row details; `handleSaveNotes` calls `updateApplicationRecordInCloud({ notes })`; `notesDraftById` tracks per-record draft state initialized from loaded records. **(3) Artifact presence + open package links:** Artifact column shows resume ✓/— and cover letter ✓/✗/— via `formatApplicationArtifactSummary`; eye-icon link updated from `/resume-preview/[id]` → `/output/[id]`; expanded details shows dedicated resume draft link + cover letter presence row both linking to `/output/[draftId]`. **(4) Archive verify + fix:** Bug confirmed — `listApplicationRecordsFromCloud()` with no options omits archived records, making the Archived tab always empty. Fixed by loading with `{ includeArchived: true }` and updating `filterApplications("all")` to exclude archived (`status !== "archived"`). Archive action updates local state in-place (`status: "archived"`) so the record moves to Archived tab without a reload; archive-without-delete semantics unchanged. **(5) Saved-job management PD:** `<details>` disclosure (`saved-jobs-disclosure`) below the table, listing applications with a linked job description (`jobById` lookup via `listJobDescriptionsFromCloud`). Per-record: JD summary preview + link to `/generate?jobId=[id]` ("Re-use on Generate"). **(6) Unlinked draft history PD:** `<details>` disclosure (`unlinked-drafts-disclosure`) below the table, listing drafts where `!d.applicationId` via `buildDraftListDisplays`; each row links to `/output/[id]` — view only; no delete. **Tests:** 25 new M6 checks added to `application-records.test.ts` (55/55 total green). `app-shell.test.ts` (35/35) unchanged and green. **Pre-existing red carried forward (not M6):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`; 1 pre-existing TS error in `application-records.test.ts` (readonly tuple `.includes()` type narrowing — shifted from line 78 → 82 by test edits). Build green; lint 0 new errors. |
 | M7 — Secondary surfaces & stub cleanup | Not started | — | — |
 | M8 — Authenticated E2E closure | Not started | — | — |
 | MX (optional) — Vault panel restyle | Not started | — | Deferred from M5b per user decision; schedule after M8 |
@@ -1086,4 +1135,45 @@ git commit -m "M5b: line-level bullet controls, tailoring diagnostics, fit summa
 git status
 git add src/components/pages/OutputEditorPageClient.tsx tests/suites/application-package-ux.test.ts docs/FOLIO_RECOVERY_ROADMAP.md
 git commit -m "M5c: CL edit mode, dirty/save/beforeunload, pending evidence staging, export gates verified"
+```
+
+---
+
+### 2026-06-29 — M6 implementation
+
+**Branch:** `folio-recovery`
+**Milestone:** M6 — Applications Parity
+
+**Files changed**
+- `src/components/pages/ApplicationsPageClient.tsx` — full M6 implementation (status edit, notes edit, artifact presence + /output/ links, archive bug fix, saved-job PD, unlinked draft history PD)
+- `tests/suites/application-records.test.ts` — 25 new M6 checks (55/55 total)
+- `docs/FOLIO_RECOVERY_ROADMAP.md` — M6 completion log entry, M7 opening prompt, CLI session log
+
+**Behavior changed**
+1. **Status edit** — Expand any application row to see an inline status `<select>` (EDITABLE_APPLICATION_RECORD_STATUSES; excludes "archived"). Selecting a different value immediately calls `updateApplicationRecordInCloud({ status })` and updates local state.
+2. **Notes edit** — Expand any application row to see a textarea pre-populated from the stored notes; "Save notes" calls `updateApplicationRecordInCloud({ notes })`. State tracked per-record in `notesDraftById`.
+3. **Artifact presence labels** — New "Artifacts" column shows resume ✓/— and cover letter ✓/✗/— per row using `formatApplicationArtifactSummary`. Expanded details shows labeled links to `/output/[draftId]` for resume draft and cover letter (if present).
+4. **Open-package link** — Eye icon in Actions column now links to `/output/[draftId]` (was `/resume-preview/[id]`). Expanded details has explicit "Resume draft" and "Cover letter" links also targeting `/output/`.
+5. **Archive bug fixed** — The "Archived" tab was always empty: `listApplicationRecordsFromCloud()` omits archived records by default, so they never loaded. Fixed by loading with `{ includeArchived: true }` and updating `filterApplications("all")` to exclude archived (`status !== "archived"`). Archive action now updates local state in-place (`status: "archived"`) so the record moves to the Archived tab immediately. Archive-without-delete semantics unchanged.
+6. **Saved-job management PD** — `<details>` disclosure (`saved-jobs-disclosure`) below the table. Loads `listJobDescriptionsFromCloud()` and shows active applications with a linked JD — each with JD summary preview and "Re-use on Generate" link to `/generate?jobId=[id]`. Hidden when no linked JDs exist.
+7. **Unlinked draft history PD** — `<details>` disclosure (`unlinked-drafts-disclosure`) below the table. Shows resume drafts with no `applicationId`, using `buildDraftListDisplays` for labels; each row links to `/output/[id]`. View only. Hidden when no unlinked drafts exist.
+
+**Checks run**
+- `npx tsx tests/suites/application-records.test.ts` — ✅ 55/55 green (25 new M6 checks)
+- `npx tsx tests/suites/app-shell.test.ts` — ✅ 35/35 green
+- `npx tsc --noEmit` — 0 new errors in `ApplicationsPageClient.tsx`; all other TS errors are pre-existing test-file errors
+- `npm run lint` — 0 new errors; 1 pre-existing error in `ProfilePageClient.tsx` unchanged
+- `npm run build` — ✅ green
+- Pre-existing red (not M6): `resume-generation-validation.test.ts` (3 fails), `draft-inventory-safety.test.ts` (2 fails), 1 lint error in `ProfilePageClient.tsx`, 1 TS error in `application-records.test.ts` (readonly tuple `.includes()` type narrowing — pre-existing, shifted from line 78 → 82 by test additions)
+
+**Known risks**
+- Loaded job descriptions include all JDs the user has ever created; for users with many JDs and many applications, the `jobById` Map lookup is O(1) so performance is fine. No pagination needed at current scale.
+- The saved-job PD section only shows applications whose `jobDescriptionId` is found in `jobById` (i.e., the JD still exists in Supabase). If a JD was deleted externally, that application's row is simply not shown in the PD section.
+- Archive state update is optimistic (local state updated before backend confirms). The `archiveApplicationRecordInCloud` call can fail silently if the user closes the tab immediately after; this is consistent with the M3 archive behavior.
+
+**Suggested git commands**
+```bash
+git status
+git add src/components/pages/ApplicationsPageClient.tsx tests/suites/application-records.test.ts docs/FOLIO_RECOVERY_ROADMAP.md
+git commit -m "M6: status edit, notes edit, artifact links /output/, archive fix, saved-job PD, unlinked draft PD"
 ```

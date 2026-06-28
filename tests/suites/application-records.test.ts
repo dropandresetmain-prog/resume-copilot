@@ -71,6 +71,10 @@ async function main() {
     "utf8",
   );
   const schema = readFileSync(join(process.cwd(), "supabase/schema.sql"), "utf8");
+  const applicationsPageClient = readFileSync(
+    join(process.cwd(), "src/components/pages/ApplicationsPageClient.tsx"),
+    "utf8",
+  );
 
   const checks: [string, boolean][] = [
     ["application statuses include resume_generated", APPLICATION_RECORD_STATUSES.includes("resume_generated")],
@@ -105,6 +109,32 @@ async function main() {
     ["archive does not delete cover letter drafts", !recordsPanel.includes("deleteGeneratedCoverLetterDraftFromCloud")],
     ["archived helper detects archived status", isArchivedApplicationRecord({ status: "archived" })],
     ["cover letter drafts module has no application delete", !coverLetterDrafts.includes("deleteApplication")],
+
+    // M6 — ApplicationsPageClient checks
+    ["M6: loads with includeArchived true", applicationsPageClient.includes("includeArchived: true")],
+    ["M6: all filter excludes archived", applicationsPageClient.includes('status !== "archived"')],
+    ["M6: archived tab filter shows archived", applicationsPageClient.includes('status === "archived"')],
+    ["M6: loads cover letter drafts", applicationsPageClient.includes("listGeneratedCoverLetterDraftsFromCloud")],
+    ["M6: loads job descriptions", applicationsPageClient.includes("listJobDescriptionsFromCloud")],
+    ["M6: status select uses EDITABLE_APPLICATION_RECORD_STATUSES", applicationsPageClient.includes("EDITABLE_APPLICATION_RECORD_STATUSES")],
+    ["M6: status change calls updateApplicationRecordInCloud", applicationsPageClient.includes("updateApplicationRecordInCloud")],
+    ["M6: notes textarea present", applicationsPageClient.includes('data-testid="notes-textarea"')],
+    ["M6: save notes button present", applicationsPageClient.includes('data-testid="save-notes-button"')],
+    ["M6: artifact presence shown per record", applicationsPageClient.includes('data-testid="artifact-presence"')],
+    ["M6: resume draft link targets /output/", applicationsPageClient.includes('href={`/output/${latestDraft.id}')],
+    ["M6: resume draft link in expanded details", applicationsPageClient.includes('data-testid="resume-draft-link"')],
+    ["M6: cover letter presence shown in expanded details", applicationsPageClient.includes('data-testid="cover-letter-link"')],
+    ["M6: archive keeps linked drafts copy", applicationsPageClient.includes("Linked drafts are not deleted")],
+    ["M6: archive does not delete resume drafts", !applicationsPageClient.includes("deleteGeneratedResumeDraftFromCloud")],
+    ["M6: expand toggle per row", applicationsPageClient.includes('data-testid="app-details"')],
+    ["M6: saved jobs disclosure present", applicationsPageClient.includes('data-testid="saved-jobs-disclosure"')],
+    ["M6: saved job reuse links to /generate?jobId", applicationsPageClient.includes("/generate?jobId=")],
+    ["M6: saved job reuse link testid", applicationsPageClient.includes('data-testid="saved-job-reuse-link"')],
+    ["M6: unlinked drafts disclosure present", applicationsPageClient.includes('data-testid="unlinked-drafts-disclosure"')],
+    ["M6: unlinked drafts filters by !applicationId", applicationsPageClient.includes("!d.applicationId")],
+    ["M6: unlinked draft link targets /output/", applicationsPageClient.includes('data-testid="unlinked-draft-link"')],
+    ["M6: open-package link targets /output/", applicationsPageClient.includes('data-testid="open-package-link"')],
+    ["M6: ApplicationsPageClient does not import legacy clients", !applicationsPageClient.includes("RecordsPageClient") && !applicationsPageClient.includes("ApplicationRecordsPanel")],
   ];
 
   for (const [name, ok] of checks) {
