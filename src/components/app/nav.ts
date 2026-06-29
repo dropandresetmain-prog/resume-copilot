@@ -17,7 +17,7 @@ export type NavIconName =
 /** Primary nav — shown in the main section of the sidebar. */
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: "/dashboard",    label: "Dashboard",    icon: "dashboard" },
-  { href: "/inventory",    label: "Career vault",  icon: "vault" },
+  { href: "/inventory",    label: "Career Vault",  icon: "vault" },
   { href: "/generate",     label: "Generate",      icon: "generate" },
   { href: "/records",      label: "Applications",  icon: "applications" },
 ];

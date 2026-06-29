@@ -276,7 +276,10 @@ Parity = a returning authenticated user with existing data can run the full job-
 | **M6** | Applications parity | Closes `D1` | Med |
 | **M7** | Secondary surfaces & stub cleanup | Honesty pass | Low-Med |
 | **M8** | Authenticated E2E closure | Proves parity | — |
-| **MX (optional)** | Vault panel restyle | Folio-native tokens for legacy `setup/` panels; accepted debt since M2 | Low |
+| **M9** | E2E fix batch | Quick wins from M8 E2E findings: Dashboard, Applications columns/labels/summary, Career Vault layout + copy, Profile icons | Low |
+| **MX** | Career Vault overhaul | Closes visual + structural debt; layout reorganization + feature ports from legacy upload page; scope expanded from restyle-only | Low-Med |
+| **M10a** | Output Editor redesign — design session | UX architecture decisions before any implementation; no code produced | Med |
+| **M10b** | Output Editor redesign — implementation | Implement agreed design; independent review required before merge | High |
 
 ---
 
@@ -456,15 +459,74 @@ Parity = a returning authenticated user with existing data can run the full job-
 
 ---
 
-### MX (optional) — Vault Panel Restyle
+### M9 — E2E Fix Batch
 
-- **Objective:** Close legacy styling debt in Career Vault PD panels accepted as temporary debt in M2. Optional — does not block M5a–M8.
-- **Outcome:** `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` restyled to Folio-native tokens (`folio-primary-container`, `folio-sage-border`, `rounded-xl`/`rounded-lg`, sentence case, no shadows per DESIGN.md). `shadow-md` on Vault FAB buttons fixed.
-- **Stays mounted:** `CareerVaultPageClient` (restyle only — client, wiring, and data contracts unchanged).
-- **References:** `setup/` panel components (restyle targets only — no behavior or interaction changes).
-- **Must not change:** Vault data wiring, evidence semantics, panel interaction logic.
-- **Tests:** no new suites; verify panels render without `shadow-*`/`slate-*` tokens in Folio Vault.
-- **Dependencies:** M2. Schedule after M8 when Folio polish cycle begins.
+- **Objective:** Close the cross-page issues surfaced in the M8 E2E check. All changes are low-risk display/layout fixes; no backend, schema, or engine changes.
+- **Outcome:**
+  1. **Dashboard:** remove the duplicate "+" icon from the page body (keep the sidebar CTA only).
+  2. **Applications — status summary strip:** add a count-by-status summary above the table, derived from loaded records in local state — no new API call.
+  3. **Applications — "Resume Generated" display label:** rename display label to "Ready" everywhere it appears in the Applications UI. **Do NOT rename the underlying `resume_generated` status value** — that requires a DB migration and is out of scope; flag as a future schema task if needed.
+  4. **Applications — status column truncation:** fix CSS so the status badge does not truncate.
+  5. **Applications — Artifacts column:** split into two explicit columns — "Resume" (✓/—) and "Cover Letter" (✓/—) — replacing the combined `formatApplicationArtifactSummary` display.
+  6. **Career Vault — capital V:** sweep all visible copy in the app for "career vault" and ensure it reads "Career Vault" consistently.
+  7. **Career Vault — Add-from-Text position:** move the "Add Experience from text" panel / disclosure to appear directly below the vault summary, above the collated tabs (currently at the bottom).
+  8. **Career Vault — Keyword Bank:** promote Keyword Bank from the VMT section to the main Career Vault panel (as a persistent section, not buried in maintenance tools).
+  9. **Profile icons:** audit all avatar/profile icon surfaces across the app (TopBar was fixed in M7 — check Dashboard, sidebar, any other locations); wire all remaining ones to `/profile`.
+- **Stays mounted:** all five active Folio route clients unchanged.
+- **Must not change:** generation engine, export engine, evidence spine, model IDs, approval/export gate semantics, database schema, `resume_generated` status value.
+- **Tests:** no new suites needed; confirm `application-records.test.ts` (55/55) still green after label change.
+- **Model:** Sonnet. **Effort:** Low.
+- **Dependencies:** M8.
+
+---
+
+### MX — Career Vault Overhaul
+
+- **Objective:** Close the visual and structural debt in Career Vault that has been accepted since M2. Scope expanded from restyle-only to include layout reorganization and porting missing features from the legacy upload page.
+- **Outcome:**
+  1. **Restyle VMT panels:** `EnrichmentReviewPanel`, `InventoryDuplicateCleanupPanel`, `InventoryProjectCleanupPanel`, `InventoryTextExtractionPanel`, `UploadCard` restyled to Folio-native tokens (`folio-primary-container`, `folio-sage-border`, `rounded-xl`/`rounded-lg`, sentence case, no shadows per DESIGN.md). `shadow-md` on Vault FAB buttons fixed.
+  2. **Port Inventory Summary:** bring the upload summary box from the legacy upload page into the Career Vault main panel (above the upload CTA) — show parsed bullet counts, upload date, parse quality. Source: legacy `UploadCard` / inventory stats.
+  3. **Uploaded Resumes list:** add an "Uploaded resumes" list to the VMT section sourced from `stored_files` / `original-resume-files` — lets users see what raw files they have uploaded.
+  4. **Reorganize VMT:** rename section to "Vault maintenance" (sentence case); order: Enrichment Review → Duplicate Cleanup → Project Cleanup → Uploaded Resumes. Keyword Bank was promoted to main UI in M9 — remove it from here.
+  5. **Capitalize VMT items:** ensure all section headings and labels inside VMT use proper sentence case per DESIGN.md.
+- **Stays mounted:** `CareerVaultPageClient` (restyle + reorganization — client, wiring, and data contracts unchanged).
+- **References:** `setup/` panel components (restyle targets); legacy `UploadCard` + `stored_files` queries for Inventory Summary and Uploaded Resumes list.
+- **Must not change:** Vault data wiring, evidence semantics, panel interaction logic, upload/parse engine.
+- **Tests:** no new suites; verify panels render without `shadow-*`/`slate-*` tokens; verify Inventory Summary shows real data.
+- **Model:** Sonnet. **Effort:** Medium.
+- **Dependencies:** M9.
+
+---
+
+### M10a — Output Editor Redesign: Design Session
+
+- **Objective:** Produce a written, agreed layout proposal for the Output Editor redesign before any implementation code is written. This session produces a design document only — no application code changes.
+- **Why this exists:** M4–M5 correctly decomposed the legacy Output Editor capabilities but stacked them as collapsed disclosures rather than designing a coherent interaction layout. The resulting UX does not make sense as a whole. The redesign must be decided architecturally before implementation to avoid another round of capability-stacking.
+- **Topics the design session must settle:**
+  1. **Fit summary placement:** AI fit summary with score should appear prominently at the top of the Resume tab after generation — not buried in a right-panel disclosure.
+  2. **Dual-view toggle:** after generation, two views — Folio-themed text view (default) and PDF view. Define the toggle mechanic and where each view lives.
+  3. **Selectable bullet blocks:** in the text view, each bullet should be a selectable block with per-bullet actions (remove, edit, replace). Define how this interacts with the existing evidence controls and re-approval invalidation.
+  4. **Layout controls + live PDF view:** audit the legacy resume editor for layout controls (font size, spacing, margins); propose how these fit in the Folio layout alongside the live PDF view.
+  5. **Export UX consolidation:** two separate Export PDF / Export DOCX boxes currently exist — propose a single consolidated export card that replaces both.
+  6. **"Mark as sent" clarification:** determine what this actually does (sets application status to `applied`) and whether to surface it more clearly, move it, or remove it.
+  7. **Right panel reorganization:** decide what stays in the right panel (revision queue, evidence controls, diagnostics) vs what moves to the main left panel or a new layout zone.
+  8. **CL secondary formats:** Email, LinkedIn, Recruiter, WhatsApp intro formats are missing from the CL tab — decide placement and interaction model.
+- **Output:** a written layout proposal in `docs/OUTPUT_EDITOR_DESIGN.md` (or equivalent), agreed by the user before M10b begins.
+- **Non-scope:** no application code, no component changes, no test changes.
+- **Model:** Opus. **Effort:** Medium.
+- **Dependencies:** M9, MX.
+
+---
+
+### M10b — Output Editor Redesign: Implementation
+
+- **Objective:** Implement the Output Editor layout and interaction design agreed in M10a.
+- **Outcome:** (defined by M10a design session — implement exactly what was agreed, nothing more)
+- **Stays mounted:** `OutputEditorPageClient`.
+- **Must not change:** export engine, page-count truth, filename scheme, generation engine, model IDs, evidence spine, approval/export gate semantics.
+- **Independent review:** required before merge (same standard as M4).
+- **Model:** Opus. **Effort:** High.
+- **Dependencies:** M10a.
 
 ---
 
@@ -499,8 +561,11 @@ Parity = a returning authenticated user with existing data can run the full job-
 | M6 — Applications parity | Sonnet | Low | Re-implementing status/notes/artifact links inside existing `ApplicationsPageClient`; no schema changes |
 | M7 — Secondary surfaces & stub cleanup | Sonnet | Low | Mechanical: remove stubs, wire real flows, add redirect |
 | M8 — Authenticated E2E closure | Sonnet (assist) | Low | Human-led; Claude assists from observations and screenshots only |
-| Independent milestone review (M4, M5b) | Opus (fresh session) | Low | Review brief + diff only; fresh context; no implementation history |
-| MX (optional) — Vault panel restyle | Sonnet | Low | Restyle only; no logic changes; scope bounded to `setup/` folder panels |
+| Independent milestone review (M4, M5b, M10b) | Opus (fresh session) | Low | Review brief + diff only; fresh context; no implementation history |
+| M9 — E2E fix batch | Sonnet | Low | Cross-page display/layout fixes; no backend or schema changes |
+| MX — Career Vault overhaul | Sonnet | Medium | Restyle + layout reorganization + feature ports; wiring and data contracts unchanged |
+| M10a — Output Editor redesign: design session | Opus | Medium | UX architecture decisions; wrong choices cascade; no code produced |
+| M10b — Output Editor redesign: implementation | Opus | High | Highest-complexity redesign; selectable bullets + layout controls + export UX consolidation; independent review required |
 
 ---
 
@@ -1049,6 +1114,191 @@ After completing M8, update docs/FOLIO_RECOVERY_ROADMAP.md:
 - Record any remaining known issues in docs/KNOWN_ISSUES.md.
 ```
 
+### M9 Opening Prompt
+
+```
+Implement Milestone M9 — E2E Fix Batch — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M8 are complete. Read the M8 Milestone Completion Log row and §9 "M9 — E2E Fix Batch".
+
+WHAT IS COMPLETE (do not redo):
+- M8: authenticated E2E check passed; parity contract verified.
+- M7: onboarding upload wired, interview status real, settings account info, dead buttons removed, preview routes retired.
+- M6: status edit, notes edit, artifact links /output/, archive fix, saved-job PD, unlinked draft PD.
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. All five active route clients stay mounted. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow docs/DESIGN.md. Sentence case; no shadows; folio-* tokens.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. Dashboard: remove the duplicate "+" icon from the page body. The sidebar CTA stays; only the inline page body icon is removed.
+2. Applications — status summary strip: add a count-by-status summary row above the table, derived from loaded records in local state. No new API call. Show counts for: drafting, resume_generated (display as "Ready"), applied, interview, rejected, archived.
+3. Applications — "Resume Generated" display label: rename to "Ready" in all visible UI copy (status badges, filter tabs, expanded row details). DO NOT rename the underlying `resume_generated` status value in APPLICATION_RECORD_STATUSES or the database — that is a schema migration and is out of scope. Display label only.
+4. Applications — status column truncation: fix the CSS so the status badge does not truncate on narrow columns.
+5. Applications — Artifacts columns: split the current combined Artifacts column into two explicit columns — "Resume" (✓ if draft exists, — if not) and "Cover Letter" (✓ if draft exists, — if not). Replace formatApplicationArtifactSummary with per-column logic.
+6. Career Vault — capital V: sweep all visible UI copy in the app (page titles, nav labels, onboarding copy, button labels, any component text) and ensure it consistently reads "Career Vault" — capital C, capital V.
+7. Career Vault — Add-from-Text position: move the "Add experience from text" panel / disclosure to appear directly below the vault summary section, above the collated tabs. It currently appears at the bottom.
+8. Career Vault — Keyword Bank: promote the Keyword Bank from the VMT section to the main Career Vault panel as a persistent named section (not inside the VMT disclosure). Position: after Add-from-Text, before or alongside the collated tabs. Remove it from VMT once promoted.
+9. Profile icons: audit all avatar/profile icon surfaces across the app. TopBar avatar was wired to /profile in M7. Check: Dashboard header user display, sidebar user section, any other avatar or profile CTA. Wire all remaining ones to /profile.
+
+SAFETY NOTE: Item 3 — "Resume Generated" → "Ready" is display label only. The status value resume_generated must not be changed anywhere in APPLICATION_RECORD_STATUSES, application-record.ts, or any database write. Changing the value would require a migration. If you are unsure whether a change touches the value (not just the label), stop and ask.
+
+STAYS MOUNTED: all five active Folio route clients unchanged.
+
+MUST NOT CHANGE: generation engine, export engine, evidence spine, model IDs, approval/export gate semantics, database schema, resume_generated status value.
+
+CHECKS: npm run test, npm run lint, npm run build. Confirm application-records.test.ts (55/55) stays green after label changes. No new test suites needed. Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx; 1 TS error in application-records.test.ts (readonly tuple .includes() type narrowing).
+
+After completing M9, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M9 complete in the Milestone Completion Log.
+- Write the MX opening prompt into the Chat Prompts section (it already exists — update if needed).
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
+
+### MX Opening Prompt
+
+```
+Implement Milestone MX — Career Vault Overhaul — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M9 are complete. Read the M9 Milestone Completion Log row and §9 "MX — Career Vault Overhaul".
+
+WHAT IS COMPLETE (do not redo):
+- M9: Dashboard duplicate "+" removed; Applications summary strip, "Ready" label, artifacts columns, status truncation; Career Vault capital V sweep, Add-from-Text moved to top, Keyword Bank promoted to main UI; Profile icons wired.
+- M2: DOCX upload/parse with explicit states; overlay edit/hide/restore; Add-from-Text extract≠save; VMT panels wired (functional but legacy-styled).
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: Folio is the visual/product baseline. CareerVaultPageClient stays mounted at /inventory. Never swap an active route to a legacy page client. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow docs/DESIGN.md. Sentence case; no shadows (depth via hairline borders + tonal surfaces); rounded-xl cards (12px); rounded-lg controls (8px); folio-primary-container for primary actions; folio-sage-border for card borders.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+SCOPE (only this, nothing else):
+1. Restyle VMT panels to Folio-native tokens: EnrichmentReviewPanel, InventoryDuplicateCleanupPanel, InventoryProjectCleanupPanel, InventoryTextExtractionPanel, UploadCard. Replace slate-* classes with folio-* tokens, rounded-xl/rounded-lg, sentence case, no shadows. Do not change any interaction logic, data wiring, or panel behavior.
+2. Fix shadow-md on Vault FAB buttons — replace with folio-sage-border hairline border per DESIGN.md.
+3. Port Inventory Summary from the legacy upload page: add a summary section in the main Career Vault panel (above the upload CTA) showing parsed bullet counts, upload date, and parse quality for the user's current inventory. Source data from the loaded inventory state — no new API call required.
+4. Add Uploaded Resumes list to VMT: show the list of raw uploaded files (from stored_files / original-resume-files) inside the VMT section so users can see what source files they have. View only — no delete in this milestone.
+5. Reorganize VMT section: rename to "Vault maintenance" (sentence case); order inside: Enrichment Review → Duplicate Cleanup → Project Cleanup → Uploaded Resumes. Keyword Bank was promoted to the main panel in M9 — ensure it is not duplicated in VMT.
+6. Sentence case and capitalization sweep inside VMT: all section headings and item labels inside the VMT disclosure must follow sentence case per DESIGN.md.
+
+STAYS MOUNTED: CareerVaultPageClient (restyle + reorganization only — client, wiring, and data contracts unchanged).
+
+REFERENCES: setup/ panel components are the restyle targets. Legacy upload page (UploadCard, inventory stats display) is the behavioral reference for the Inventory Summary — do not mount the legacy page.
+
+MUST NOT CHANGE: Vault data wiring, evidence semantics, panel interaction logic, upload/parse engine, Add-from-Text extract≠save contract, source resumes.
+
+CHECKS: npm run test, npm run lint, npm run build. Verify panels render without shadow-*/slate-* tokens. Verify Inventory Summary shows real data. No new test suites needed. Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx; 1 TS error in application-records.test.ts.
+
+After completing MX, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark MX complete in the Milestone Completion Log.
+- Write the M10a opening prompt into the Chat Prompts section (it already exists — update if needed).
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
+
+### M10a Opening Prompt
+
+```
+Milestone M10a — Output Editor Redesign: Design Session — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M9 and MX are complete. Read the MX Milestone Completion Log row and §9 "M10a — Output Editor Redesign: Design Session".
+
+THIS IS A DESIGN SESSION ONLY. No application code will be written or changed in this milestone. The output is a written layout proposal that the user must agree on before M10b implementation begins.
+
+WHY THIS EXISTS: M4–M5b correctly decomposed the legacy Output Editor capabilities but stacked them as collapsed right-panel disclosures. The resulting UX does not work as a coherent whole. This session decides the layout and interaction architecture before any implementation.
+
+WHAT IS CURRENTLY IN THE OUTPUT EDITOR (do not assume, read the code):
+- OutputEditorPageClient.tsx is the only active client at /output/[draftId]
+- Left panel: RenderedResume HTML view (default) or StructuredResumeEditor (edit mode toggle); after exportReady: ResumePdfPreview A4 iframe
+- Right panel (collapsed disclosures): revision queue, bullet controls, fit summary, tailoring diagnostics
+- Review and export card at top: Approve → Export flow, one-page gate, needs_review banner
+- CL tab: body view/edit, evidence staging, quick-action chips, tone selector, export gate
+
+DESIGN DECISIONS TO SETTLE (read the legacy reference clients for behavioral context, then propose):
+
+1. Fit summary + score: should appear prominently at the top of the Resume tab after generation — not in a collapsed right-panel disclosure. Propose exact placement and what data to surface (score, headline verdict, key gaps).
+
+2. Dual-view toggle: after generation, two views should be available — Folio text view (default, current RenderedResume) and PDF view (current ResumePdfPreview). Propose the toggle mechanic: tab switch, button toggle, or split view. The PDF view does not require approval first in the redesign — it should be available on demand.
+
+3. Selectable bullet blocks: in the text view, each bullet should render as a selectable block. When selected, per-bullet actions appear: remove, edit (inline), replace (triggers single-bullet regeneration). Propose how this interacts with the existing re-approval invalidation (editing a bullet after approval must downgrade to layout_changed) and with the evidence controls (excluded bullets already tracked in lineLevelExcludedBulletKeys).
+
+4. Layout controls + live PDF view: audit the legacy ResumePreviewPageClient for layout controls (font size, line spacing, margins, section spacing). Propose how these fit in the Folio Output Editor alongside the PDF view — live preview on control change is the goal.
+
+5. Export UX consolidation: currently two separate Export PDF / Export DOCX cards/boxes exist. Propose a single consolidated export zone — one card or section that contains both actions, the approval state, the one-page gate result, and download buttons.
+
+6. "Mark as sent" behavior: this currently sets the application record status to "applied". Decide: surface it more clearly (e.g., a button in the export zone with a tooltip explaining what it does), move it, or remove it if it duplicates status edit in Applications.
+
+7. Right panel reorganization: given that fit summary moves to main, and bullet selection replaces the collapsed bullet controls, decide what remains in the right panel. Candidate: revision queue (batch scoped instructions), tailoring diagnostics (omitted evidence warnings). Everything else should either move to main panel or be removed.
+
+8. CL tab — secondary formats: Email intro, LinkedIn message, Recruiter note, WhatsApp intro are missing. These exist in the legacy SecondaryCommunicationsPanel. Propose placement in the CL tab — a separate sub-tab or a collapsible section below the main CL body.
+
+REFERENCES TO READ (for behavioral context — do not mount):
+- src/components/pages/OutputEditorPageClient.tsx — current state
+- src/components/pages/ResumePreviewPageClient.tsx — layout controls reference
+- src/components/setup/SecondaryCommunicationsPanel.tsx — secondary formats reference
+- src/components/resume-drafts/ResumePdfPreview.tsx — PDF view component
+- docs/DESIGN.md — visual language constraints
+
+OUTPUT OF THIS SESSION:
+- A written design proposal covering all 8 topics above, presented to the user for approval.
+- After user approves, record the agreed decisions in docs/OUTPUT_EDITOR_DESIGN.md.
+- Mark M10a complete in the Milestone Completion Log.
+- Write the M10b opening prompt (with the agreed design decisions embedded) into the Chat Prompts section.
+
+DO NOT write any application code. DO NOT edit OutputEditorPageClient.tsx or any other source file.
+```
+
+### M10b Opening Prompt
+
+```
+Implement Milestone M10b — Output Editor Redesign: Implementation — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md and docs/OUTPUT_EDITOR_DESIGN.md in full before doing anything else. The design document is the source of truth for this milestone. M1–M9, MX, and M10a are complete.
+
+IMPLEMENT EXACTLY THE AGREED DESIGN FROM M10a. Do not add features beyond what was agreed. Do not revisit design decisions — those are settled.
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: OutputEditorPageClient stays mounted at /output/[draftId]. Never swap an active route to a legacy page client. No active page.tsx may import any of the five forbidden legacy clients. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow docs/DESIGN.md and docs/OUTPUT_EDITOR_DESIGN.md. Sentence case; no shadows; folio-* tokens; rounded-xl cards; rounded-lg controls.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+STAYS MOUNTED: OutputEditorPageClient.
+
+MUST NOT CHANGE: export engine, page-count truth, filename scheme, generation engine, model IDs, evidence spine, approval/export gate semantics (server one-page gate remains the export truth).
+
+INDEPENDENT REVIEW: required before merge. After implementation and verification, open a fresh Opus chat with the review brief + diff only — no implementation history.
+
+CHECKS: npm run test, npm run lint, npm run build. Extend existing suites only. Update docs under /docs only.
+
+After completing M10b, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M10b complete in the Milestone Completion Log.
+- Record any remaining known issues in docs/KNOWN_ISSUES.md.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
+
 ---
 
 ## 14. Milestone Completion Log
@@ -1066,8 +1316,11 @@ After completing M8, update docs/FOLIO_RECOVERY_ROADMAP.md:
 | M5c — Cover-letter editing + evidence + export gates | ✅ Complete | 2026-06-29 | All surfacing landed in `OutputEditorPageClient.tsx` — no backend/schema/engine/endpoint changes. **(1) Manual CL edit:** `clIsEditMode` state toggles between read-only paragraph view and an editable textarea (`cl-edit-textarea`). `clIsDirty = body !== coverLetter.body` tracks unsaved edits. `beforeunload` guard fires while dirty. "Save cover letter" button (`cl-save-button`, disabled when `!clIsDirty`) calls `updateGeneratedCoverLetterDraftInCloud(coverLetter.id, { body })`, updates the loaded record in state (making dirty = false), and exits edit mode. "Cancel" button resets body to `coverLetter.body` and exits edit mode. Quick-action chips and tone selector disabled while in edit mode to prevent overwriting unsaved manual edits. Re-approval invalidation not needed (CL does not gate PDF export). **(2) Pending-only evidence staging:** `pendingEvidenceControls: CoverLetterEvidenceControls` state initialized to `{ forcedEvidenceIds: [], excludedEvidenceIds: [] }`. `evidenceRows` memo builds spine via `buildActiveCollatedInventory` + `buildAcceptedWordingByBulletKey` + `buildCompanyContext` + `buildEvidenceSpine` → `buildCoverLetterProofEvidenceList(spine, pendingControls)` (no AI, pure functions). Folio-native collapsible disclosure (`cl-evidence-staging-toggle`) shows per-row "Use in cover letter" / "Avoid in cover letter" buttons with staged state highlighted. Summary box (`cl-evidence-queue-summary`) shown when any controls are staged. `handleRegenerate` passes `evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls)` to `generateAndSaveCoverLetterDraft`; cleared to empty after success (single-use). Staging never calls AI; never auto-saves. **(3) CL export gates verified:** `exportBlocked = overLimit \|\| bannedPhrases.length > 0` already correctly computed; download buttons already gated on `exportBlocked` from M4.6. No code change needed — verified and noted. **(4) Quick-action chips + tone selector verified:** already fully functional from M4.6. No code change needed. **Tests:** 18 new M5c checks added to `application-package-ux.test.ts`. All 87 checks green. `app-shell.test.ts` (35/35) and `resume-draft-review.test.ts` (21/21) unchanged and green. **Pre-existing red carried forward (not M5c):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`. Build green; test suites green. |
 | M6 — Applications parity | ✅ Complete | 2026-06-29 | All surfacing landed in `ApplicationsPageClient.tsx` — no backend/schema/engine changes. **(1) Status edit:** Inline `<select>` in expanded row details using `EDITABLE_APPLICATION_RECORD_STATUSES`; `handleStatusChange` calls `updateApplicationRecordInCloud({ status })` and updates local state. **(2) Notes:** Textarea + "Save notes" button in expanded row details; `handleSaveNotes` calls `updateApplicationRecordInCloud({ notes })`; `notesDraftById` tracks per-record draft state initialized from loaded records. **(3) Artifact presence + open package links:** Artifact column shows resume ✓/— and cover letter ✓/✗/— via `formatApplicationArtifactSummary`; eye-icon link updated from `/resume-preview/[id]` → `/output/[id]`; expanded details shows dedicated resume draft link + cover letter presence row both linking to `/output/[draftId]`. **(4) Archive verify + fix:** Bug confirmed — `listApplicationRecordsFromCloud()` with no options omits archived records, making the Archived tab always empty. Fixed by loading with `{ includeArchived: true }` and updating `filterApplications("all")` to exclude archived (`status !== "archived"`). Archive action updates local state in-place (`status: "archived"`) so the record moves to Archived tab without a reload; archive-without-delete semantics unchanged. **(5) Saved-job management PD:** `<details>` disclosure (`saved-jobs-disclosure`) below the table, listing applications with a linked job description (`jobById` lookup via `listJobDescriptionsFromCloud`). Per-record: JD summary preview + link to `/generate?jobId=[id]` ("Re-use on Generate"). **(6) Unlinked draft history PD:** `<details>` disclosure (`unlinked-drafts-disclosure`) below the table, listing drafts where `!d.applicationId` via `buildDraftListDisplays`; each row links to `/output/[id]` — view only; no delete. **Tests:** 25 new M6 checks added to `application-records.test.ts` (55/55 total green). `app-shell.test.ts` (35/35) unchanged and green. **Pre-existing red carried forward (not M6):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`; 1 pre-existing TS error in `application-records.test.ts` (readonly tuple `.includes()` type narrowing — shifted from line 78 → 82 by test edits). Build green; lint 0 new errors. |
 | M7 — Secondary surfaces & stub cleanup | ✅ Complete | 2026-06-29 | **(1) Onboarding upload wired (Option B):** `onboarding/page.tsx` step 2 now calls `parseDocxResume(file)` + `upsertResume` + `saveResumeInventoryToCloud` on Continue; only `.docx` accepted (non-docx shows an honest error); "Skip for now" skips to profile without saving; status messages ("Parsing resume…" / "Saving to vault…") shown during async work; step 3 shows a success notice "Resume parsed and saved to your career vault" or a fallback notice on parse failure. **(2) Interview status (S2):** Added `"interview"` to `APPLICATION_RECORD_STATUSES` (after `"applied"`, before `"rejected"`) and corrected `filterApplications("interview")` from `return []` to `return applications.filter((a) => a.status === "interview")` — the Interview tab now shows real records. **(3) Settings minimal content (S1):** `settings/page.tsx` converted to a client component that reads the auth user email and profile name/target role from Supabase on mount — shown as read-only account info; preferences section has honest "coming soon" copy. **(4) Landing redirect (D6):** Already complete in middleware (`isRootPath && hasSession → redirect /dashboard`) — verified, no code change needed. **(5) Dead buttons removed:** Notification bell removed from `TopBar.tsx` (no notifications system); avatar wired as a `<Link href="/profile">` (previously a dead button). "Add bullet point" ghost button removed from `CareerVaultPageClient.tsx` (no handler, no structured edit at the Vault panel level). **(6) Preview routes retired:** `/resume-preview/[draftId]/page.tsx`, `/resume-preview/[draftId]/edit/page.tsx`, and `/cover-letter-preview/[draftId]/page.tsx` all replaced with `notFound()`. Their behavior was absorbed by `/output` in M5a/M5c. `FOLIO_REDESIGN.md` updated to mark routes retired. **Pre-existing red carried forward (not M7):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`; 1 pre-existing TS error in `application-records.test.ts` (readonly tuple `.includes()` type narrowing — now reflects updated union including "interview"). Build green; suites green. |
-| M8 — Authenticated E2E closure | Not started | — | — |
-| MX (optional) — Vault panel restyle | Not started | — | Deferred from M5b per user decision; schedule after M8 |
+| M8 — Authenticated E2E closure | ✅ Complete | 2026-06-30 | Human-led E2E check passed. All five parity contract clauses verified with authenticated data. Findings recorded: Dashboard duplicate CTA, Applications label/column issues, Career Vault layout/copy issues, Output Editor UX gaps, Profile icon wiring. Follow-up milestones M9, MX, M10a/b opened. |
+| M9 — E2E fix batch | ✅ Complete | 2026-06-30 | **(1) Dashboard duplicate "+":** Removed the `<Link href="/generate">` header button with plus icon from `DashboardPageClient.tsx` — sidebar CTA unchanged. **(2) Applications status summary strip:** Count-by-status pill row added above the filter tabs in `ApplicationsPageClient.tsx`, derived from loaded `applications` state — no new API call. Shows Drafting, Ready, Applied, Interview, Rejected, Archived counts (zeros hidden). **(3) "Resume Generated" → "Ready" display label:** `formatApplicationStatusLabel("resume_generated")` changed to `"Ready"` in `labels.ts`. Status value `resume_generated` untouched in `APPLICATION_RECORD_STATUSES`, types, DB. **(4) Status badge truncation:** Added `whitespace-nowrap` to status badge `<span>` in Applications table row. **(5) Artifacts split columns:** Single "Artifacts" column replaced with two explicit "Resume" and "Cover Letter" columns (✓/—) in the Applications table; `formatApplicationArtifactSummary` import removed; `colSpan` updated from 6 → 7; `application-records.test.ts` assertions updated for new `artifact-resume` / `artifact-cover-letter` testids and "Ready" label. **(6) Career Vault capital V:** Swept `nav.ts` ("Career Vault"), `CareerVaultPageClient.tsx` (page title + dialog description), `DashboardPageClient.tsx` (vault health banner), `onboarding/page.tsx` (step subtitle + success notice). **(7) Add-from-Text position:** `InventoryTextExtractionPanel` block moved from below the VMT section to between the vault health card and the tab nav in `CareerVaultPageClient.tsx`. FABs still control `extractionPanelOpen`. **(8) Keyword Bank promoted:** Keyword Bank rendered as a persistent named section in `CareerVaultPageClient.tsx` directly from `inventory.enrichment.keywordBank`, positioned after Add-from-Text and before the tabs. Added `hideKeywordBank?: boolean` prop to `EnrichmentReviewPanel`; passed `hideKeywordBank={true}` from VMT so the bank doesn't double-render. Folio-native tokens (no slate). **(9) Profile icons audit:** TopBar already links to /profile (M7); AppNav has Profile nav item; no other user-avatar surfaces found. No code change needed. **Tests:** `application-records.test.ts` 55/55 green. `app-shell.test.ts` 35/35 green. Pre-existing red unchanged: `resume-generation-validation.test.ts` (3 fails), `draft-inventory-safety.test.ts` (2 fails), 1 lint error in `ProfilePageClient.tsx`, 1 TS error in `application-records.test.ts`. Build green. |
+| MX — Career Vault overhaul | Not started | — | Scope expanded from restyle-only: adds Inventory Summary port, Uploaded Resumes list, VMT reorganization. Unblocked by M8. |
+| M10a — Output Editor redesign: design session | Not started | — | — |
+| M10b — Output Editor redesign: implementation | Not started | — | Blocked on M10a design approval. Independent Opus review required before merge. |
 
 ---
 

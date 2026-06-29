@@ -94,8 +94,8 @@ function main() {
     ["dev tools removed from main nav", !nav.includes('label: "Dev Tools"')],
     [
       "folio nav order dashboard → vault → generate → applications",
-      nav.indexOf('label: "Dashboard"') < nav.indexOf('label: "Career vault"') &&
-        nav.indexOf('label: "Career vault"') < nav.indexOf('label: "Generate"') &&
+      nav.indexOf('label: "Dashboard"') < nav.indexOf('label: "Career Vault"') &&
+        nav.indexOf('label: "Career Vault"') < nav.indexOf('label: "Generate"') &&
         nav.indexOf('label: "Generate"') < nav.indexOf('label: "Applications"'),
     ],
     [

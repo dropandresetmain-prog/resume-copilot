@@ -17,7 +17,7 @@ type VaultMethod = "upload" | "linkedin" | "scratch" | null;
 const STEP_LABELS = ["Let's build your vault", "Upload your resume", "About you"];
 const STEP_SUBS = [
   "Your career history is the foundation of every perfect application. How should we begin?",
-  "Upload a .docx resume and we'll parse it into your career vault.",
+  "Upload a .docx resume and we'll parse it into your Career Vault.",
   "Just a couple of details to personalize your experience.",
 ];
 
@@ -255,7 +255,7 @@ export default function OnboardingPage() {
         <form onSubmit={handleFinish} noValidate className="w-full max-w-[400px] flex flex-col gap-4">
           {method === "upload" && uploadStatus === "done" && (
             <p className="text-[12px] text-folio-primary bg-folio-primary-container/10 rounded-lg px-3 py-2">
-              Resume parsed and saved to your career vault.
+              Resume parsed and saved to your Career Vault.
             </p>
           )}
           {method === "upload" && uploadStatus === "error" && (

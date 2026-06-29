@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { formatApplicationStatusLabel } from "@/lib/application/labels";
-import { formatApplicationArtifactSummary } from "@/lib/generate/generation-artifact-status";
 import { buildDraftListDisplays } from "@/lib/resume-draft/draft-labels";
 import {
   archiveApplicationRecordInCloud,
@@ -253,8 +252,38 @@ export function ApplicationsPageClient() {
         <p className="mt-4 text-sm text-folio-outline">Sign in to view your applications.</p>
       ) : (
         <>
+          {/* Status summary strip — derived from local state, no API call */}
+          {applications.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {(
+                [
+                  { key: "drafting", label: "Drafting" },
+                  { key: "resume_generated", label: "Ready" },
+                  { key: "applied", label: "Applied" },
+                  { key: "interview", label: "Interview" },
+                  { key: "rejected", label: "Rejected" },
+                  { key: "archived", label: "Archived" },
+                ] as const
+              ).map(({ key, label }) => {
+                const count = applications.filter((a) => a.status === key).length;
+                if (count === 0) return null;
+                return (
+                  <span
+                    key={key}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(key)}`}
+                  >
+                    {label}
+                    <span className="rounded-full bg-white/40 px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                      {count}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           {/* Filter pills */}
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -295,7 +324,10 @@ export function ApplicationsPageClient() {
                       Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Artifacts
+                      Resume
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                      Cover letter
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
                       Actions
@@ -313,11 +345,7 @@ export function ApplicationsPageClient() {
                     });
                     const latestDraft = latestDraftByApplicationId.get(app.id);
                     const latestCoverLetter = latestCoverLetterByApplicationId.get(app.id);
-                    const artifactSummary = formatApplicationArtifactSummary({
-                      hasResume: Boolean(latestDraft),
-                      hasCoverLetter: Boolean(latestCoverLetter),
-                    });
-                    const isLast = i === filteredApplications.length - 1;
+const isLast = i === filteredApplications.length - 1;
                     const isExpanded = expandedAppId === app.id;
 
                     return (
@@ -338,21 +366,24 @@ export function ApplicationsPageClient() {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(app.status)}`}
+                              className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(app.status)}`}
                             >
                               {formatApplicationStatusLabel(app.status)}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className="text-xs text-folio-outline"
-                              data-testid="artifact-presence"
-                              title={`Resume: ${artifactSummary.resumeLabel} · Cover letter: ${artifactSummary.coverLetterLabel}`}
-                            >
-                              <span title="Resume">{artifactSummary.resumeLabel}</span>
-                              {" / "}
-                              <span title="Cover letter">{artifactSummary.coverLetterLabel}</span>
-                            </span>
+                          <td className="px-4 py-3 text-xs" data-testid="artifact-resume">
+                            {Boolean(latestDraft) ? (
+                              <span className="font-semibold text-[#016147]">✓</span>
+                            ) : (
+                              <span className="text-folio-outline-variant">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs" data-testid="artifact-cover-letter">
+                            {Boolean(latestCoverLetter) ? (
+                              <span className="font-semibold text-[#016147]">✓</span>
+                            ) : (
+                              <span className="text-folio-outline-variant">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
@@ -455,7 +486,7 @@ export function ApplicationsPageClient() {
                             className={isLast ? "" : "border-b border-folio-surface-container"}
                           >
                             <td
-                              colSpan={6}
+                              colSpan={7}
                               className="bg-folio-surface-container-low px-4 pb-4 pt-3"
                             >
                               <div

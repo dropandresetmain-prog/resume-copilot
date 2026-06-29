@@ -329,7 +329,7 @@ export function CareerVaultPageClient() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
-            Career vault
+            Career Vault
           </h1>
           <p className="mt-1 text-sm text-folio-outline">
             Manage and refine your professional inventory.
@@ -361,6 +361,46 @@ export function CareerVaultPageClient() {
         </div>
         <p className="mt-2 text-xs text-folio-outline">{hint}</p>
       </div>
+
+      {/* Add-from-Text panel — shown below vault summary, above tabs */}
+      {extractionPanelOpen && (
+        <div className="mt-6">
+          <InventoryTextExtractionPanel
+            collated={collated}
+            enrichment={inventory.enrichment}
+            draftEdits={draftEdits}
+            onDraftEditsChange={setDraftEdits}
+            onSaveApplied={async (edits, enrichment) => {
+              await handleSaveInventoryEdits(edits, { enrichment });
+            }}
+            isOpen={extractionPanelOpen}
+            onOpenChange={setExtractionPanelOpen}
+          />
+        </div>
+      )}
+
+      {/* Keyword Bank — promoted from VMT, shown as a persistent named section */}
+      {(inventory.enrichment?.keywordBank.length ?? 0) > 0 && (
+        <div className="mt-6 rounded-xl border border-folio-sage-border bg-white px-4 py-4">
+          <p className="mb-3 text-sm font-semibold text-folio-on-surface">
+            Keyword bank
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {inventory.enrichment!.keywordBank.map((item) => (
+              <span
+                key={item.id}
+                className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                  item.approved
+                    ? "border-[#88d6b5] bg-[#e8f5ef] text-[#016147]"
+                    : "border-folio-outline-variant bg-folio-surface-container text-folio-outline"
+                }`}
+              >
+                {item.keyword}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tab nav */}
       <div className="mt-6 flex border-b border-folio-sage-border">
@@ -686,7 +726,7 @@ export function CareerVaultPageClient() {
 
         {vaultToolsOpen && (
           <div className="mt-3 space-y-4">
-            {/* Enrichment review: AI suggestions, keyword bank, enrichment run. */}
+            {/* Enrichment review: AI suggestions and enrichment run. Keyword Bank promoted to main panel. */}
             <EnrichmentReviewPanel
               collated={collated}
               enrichment={inventory.enrichment}
@@ -694,6 +734,7 @@ export function CareerVaultPageClient() {
               isEnriching={isEnriching}
               enrichError={enrichError}
               enrichDebugRaw={enrichDebugRaw}
+              hideKeywordBank={true}
               onEnrichMissing={handleEnrichMissing}
               onFullRerunEnrich={handleFullRerunEnrich}
               onSuggestionStatus={handleSuggestionStatus}
@@ -739,23 +780,6 @@ export function CareerVaultPageClient() {
         </button>
       </div>
 
-      {/* Add-from-Text panel (M2 §3) — extract→review→apply; onSaveApplied only called on Apply */}
-      {extractionPanelOpen && (
-        <div className="mt-6">
-          <InventoryTextExtractionPanel
-            collated={collated}
-            enrichment={inventory.enrichment}
-            draftEdits={draftEdits}
-            onDraftEditsChange={setDraftEdits}
-            onSaveApplied={async (edits, enrichment) => {
-              await handleSaveInventoryEdits(edits, { enrichment });
-            }}
-            isOpen={extractionPanelOpen}
-            onOpenChange={setExtractionPanelOpen}
-          />
-        </div>
-      )}
-
       {/* Import from resume dialog with explicit parse states (M2 §1) */}
       <Dialog
         open={importPanelOpen}
@@ -767,7 +791,7 @@ export function CareerVaultPageClient() {
           <DialogHeader>
             <DialogTitle>Import from resume</DialogTitle>
             <DialogDescription>
-              Upload a DOCX resume to add it to your career vault.
+              Upload a DOCX resume to add it to your Career Vault.
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 pb-6">

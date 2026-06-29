@@ -27,6 +27,8 @@ type EnrichmentReviewPanelProps = {
   providerStatus: ProviderStatusResponse | null;
   isEnriching: boolean;
   enrichError: string | null;
+  /** When true, the Keyword Bank section is hidden (promoted to the main Vault UI). */
+  hideKeywordBank?: boolean;
   enrichDebugRaw: string | null;
   /** Hide small-batch test controls on Inventory; show on Dev Tools. */
   showTestBatchControls?: boolean;
@@ -579,6 +581,7 @@ export function EnrichmentReviewPanel({
   enrichDebugRaw,
   showTestBatchControls = false,
   testBatchOnly = false,
+  hideKeywordBank = false,
   onEnrichMissing,
   onFullRerunEnrich,
   onTestBatchEnrich,
@@ -862,34 +865,36 @@ export function EnrichmentReviewPanel({
           )}
         </CollapsibleSection>
 
-        <CollapsibleSection
-          title={`Keyword bank (${approvedKeywords.length} approved)`}
-        >
-          {enrichment.keywordBank.length === 0 ? (
-            <EmptyState
-              title="Keyword bank is empty"
-              description="Accepted keyword suggestions will appear here as approved reusable keywords."
-            />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {enrichment.keywordBank.map((item) => (
-                <span
-                  key={item.id}
-                  className={`rounded-lg border px-3 py-1.5 text-sm ${
-                    item.approved
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                      : "border-zinc-200 bg-white text-zinc-700"
-                  }`}
-                >
-                  {item.keyword}
-                  <span className="ml-2 text-xs text-zinc-500">
-                    {item.category} · {item.source}
+        {!hideKeywordBank && (
+          <CollapsibleSection
+            title={`Keyword bank (${approvedKeywords.length} approved)`}
+          >
+            {enrichment.keywordBank.length === 0 ? (
+              <EmptyState
+                title="Keyword bank is empty"
+                description="Accepted keyword suggestions will appear here as approved reusable keywords."
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {enrichment.keywordBank.map((item) => (
+                  <span
+                    key={item.id}
+                    className={`rounded-lg border px-3 py-1.5 text-sm ${
+                      item.approved
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : "border-zinc-200 bg-white text-zinc-700"
+                    }`}
+                  >
+                    {item.keyword}
+                    <span className="ml-2 text-xs text-zinc-500">
+                      {item.category} · {item.source}
+                    </span>
                   </span>
-                </span>
-              ))}
-            </div>
-          )}
-        </CollapsibleSection>
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
+        )}
 
         <CollapsibleSection
           title={`Reviewed suggestions (${reviewedSuggestions.length})`}

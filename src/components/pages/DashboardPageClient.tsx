@@ -87,25 +87,6 @@ export function DashboardPageClient() {
             Manage and track your active job pursuits.
           </p>
         </div>
-        <Link
-          href="/generate"
-          className="flex shrink-0 items-center gap-2 rounded-lg bg-folio-cta px-4 py-2.5 text-sm font-medium text-white transition hover:bg-folio-cta-hover"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          + Add a job
-        </Link>
       </div>
 
       {/* Vault health banner */}
@@ -125,7 +106,7 @@ export function DashboardPageClient() {
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span className="text-sm font-medium text-folio-on-surface">
-              Career vault is {vaultPct}% complete
+              Career Vault is {vaultPct}% complete
             </span>
           </div>
           <div className="flex items-center gap-3">

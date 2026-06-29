@@ -48,7 +48,7 @@ export function formatApplicationStatusLabel(status: string): string {
     case "drafting":
       return "Drafting";
     case "resume_generated":
-      return "Resume generated";
+      return "Ready";
     case "ready_to_apply":
       return "Ready to apply";
     case "applied":
