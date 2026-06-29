@@ -7,8 +7,10 @@ import {
 import { buildResumeBatchRevisionPrompt } from "@/lib/resume-draft/custom-revision-batch-prompt";
 import {
   buildResumeRoleCustomRevisionPrompt,
+  buildResumeSingleBulletRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
   type ResumeRoleCustomRevisionPromptInput,
+  type ResumeSingleBulletRevisionPromptInput,
   type ResumeSummaryCustomRevisionPromptInput,
 } from "@/lib/resume-draft/custom-revision-prompt";
 import { parseResumeBatchRevisionJson } from "@/lib/resume-draft/custom-revision-batch-parse";
@@ -16,11 +18,15 @@ import {
   sanitizeBatchRevisionOutput,
   type ResumeBatchRevisionCandidates,
 } from "@/lib/resume-draft/custom-revision-batch";
-import { parseResumeSummaryCustomRevisionJson } from "@/lib/resume-draft/custom-revision-parse";
+import {
+  parseResumeSingleBulletRevisionJson,
+  parseResumeSummaryCustomRevisionJson,
+} from "@/lib/resume-draft/custom-revision-parse";
 import { parseResumeRoleRewriteJson } from "@/lib/resume-draft/role-rewrite-parse";
 import type {
   ResumeCustomRevisionModelResult,
   ResumeBatchRevisionModelInput,
+  ResumeSingleBulletRevisionModelResult,
 } from "@/lib/ai/revise-resume-scope-mock";
 
 export type ResumeCustomRevisionGeminiResult = ResumeCustomRevisionModelResult & {
@@ -80,6 +86,42 @@ export async function reviseResumeRoleCustomWithGemini(
     scope: "selected_role",
     roleBullets: parsed.bullets,
     warnings: [],
+    modelName: selection.actualModelId,
+    requestedModelTier: selection.requestedTier,
+    modelFallbackApplied: geminiResult.fallbackApplied,
+  };
+}
+
+export type ResumeSingleBulletRevisionGeminiResult = ResumeSingleBulletRevisionModelResult & {
+  modelName: string;
+  requestedModelTier: ModelTier;
+  modelFallbackApplied: boolean;
+};
+
+export async function reviseResumeSingleBulletsWithGemini(
+  input: ResumeSingleBulletRevisionPromptInput,
+  apiKey: string,
+  modelTier: ModelTier = "standard",
+): Promise<ResumeSingleBulletRevisionGeminiResult> {
+  const prompt = buildResumeSingleBulletRevisionPrompt(input);
+  const geminiResult = await callGeminiWithRetry({
+    apiKey,
+    prompt,
+    temperature: 0.25,
+    responseMimeType: "application/json",
+    models: resolveModelsForTier(modelTier),
+    logicalStep: "revise_resume_single_bullet",
+    modelTier,
+  });
+  const parsed = parseResumeSingleBulletRevisionJson(geminiResult.text);
+  if (!parsed.ok || !parsed.value) {
+    throw new Error(parsed.error ?? "Failed to parse single-bullet revision.");
+  }
+  const selection = buildModelSelectionMetadata(modelTier, geminiResult.modelUsed);
+  return {
+    scope: "single_bullet",
+    bulletCandidates: parsed.value.bullets,
+    warnings: parsed.value.warnings,
     modelName: selection.actualModelId,
     requestedModelTier: selection.requestedTier,
     modelFallbackApplied: geminiResult.fallbackApplied,

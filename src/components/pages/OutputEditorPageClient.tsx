@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DownloadCoverLetterDocxButton } from "@/components/cover-letters/DownloadCoverLetterDocxButton";
 import { DownloadCoverLetterPdfButton } from "@/components/cover-letters/DownloadCoverLetterPdfButton";
+import { SecondaryCommunicationsPanel } from "@/components/cover-letters/SecondaryCommunicationsPanel";
 import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
@@ -33,6 +34,28 @@ import { buildActiveCollatedInventory } from "@/lib/inventory/active-collated";
 import { experienceKey } from "@/lib/inventory/normalize";
 import { requestResumeDraftGeneration } from "@/lib/resume-draft/client";
 import {
+  calculateFitScore,
+  type ResumeFitAssessment,
+} from "@/lib/resume-draft/layout";
+import { optimizeResumePreviewSettings } from "@/lib/resume-draft/preview-optimizer";
+import {
+  clampPreviewBodyFontPx,
+  PREVIEW_BODY_FONT_MAX_PX,
+  PREVIEW_BODY_FONT_MIN_PX,
+  PREVIEW_BODY_FONT_STEP_PX,
+  PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+  PREVIEW_LINE_SPACING_MAX,
+  PREVIEW_LINE_SPACING_MIN,
+  PREVIEW_MARGIN_MAX_MM,
+  PREVIEW_MARGIN_MIN_MM,
+  PREVIEW_MARGIN_TOP_MAX_MM,
+  PREVIEW_MARGIN_TOP_MIN_MM,
+  PREVIEW_SECTION_SPACING_MAX,
+  PREVIEW_SECTION_SPACING_MIN,
+} from "@/lib/resume-draft/preview-settings";
+import { requestResumeSingleBulletRevision } from "@/lib/resume-draft/custom-revision-client";
+import { applyResumeSingleBulletRevisions } from "@/lib/resume-draft/custom-revision";
+import {
   deliverExportedFile,
   exportResumeDocxFromApi,
   exportResumePdfFromApi,
@@ -43,7 +66,10 @@ import {
   MAX_RESUME_DRAFT_BULLETS,
 } from "@/lib/resume-draft/payload";
 import { buildAcceptedWordingByBulletKey } from "@/lib/resume-draft/enrichment-wording";
-import { DEFAULT_RESUME_LAYOUT_SETTINGS } from "@/lib/resume-draft/document-model";
+import {
+  DEFAULT_RESUME_LAYOUT_SETTINGS,
+  type ResumeLayoutSettings,
+} from "@/lib/resume-draft/document-model";
 import {
   approveResumeDraftForExport,
   formatOnePageBlockedMessage,
@@ -53,6 +79,7 @@ import { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evi
 import {
   isApprovedDraftStatus,
   isLayoutChangedAfterApprovalStatus,
+  RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
   RESUME_DRAFT_STATUS_NEEDS_REVIEW,
 } from "@/lib/resume-draft/draft-status";
 import { areExportLayoutSettingsEqual } from "@/lib/resume-draft/export-layout-settings";
@@ -71,10 +98,11 @@ import {
 import type { ModelTier } from "@/lib/ai/model-tiers";
 import {
   buildPackageFitSummary,
+  fitScoreToVerdict,
   PACKAGE_FIT_SUMMARY_UNAVAILABLE,
 } from "@/lib/package/fit-summary";
 import { buildPackageTailoringDiagnostics } from "@/lib/package/tailoring-diagnostics";
-import { getApplicationRecordFromCloud, updateApplicationRecordInCloud } from "@/lib/supabase/application-records";
+import { getApplicationRecordFromCloud } from "@/lib/supabase/application-records";
 import {
   findCoverLetterDraftByResumeDraftId,
   updateGeneratedCoverLetterDraftInCloud,
@@ -97,6 +125,7 @@ import type {
   ResumeDraftContent,
   ResumeDraftExperienceSection,
   ResumeRevisionQueueItem,
+  ResumeSingleBulletRevisionTarget,
 } from "@/types/resume-draft";
 
 type OutputEditorPageClientProps = {
@@ -234,138 +263,995 @@ function ExperienceToggleCard({
   );
 }
 
-// ── Rendered resume document (read-only, left panel) ──────────────────────────
+// ── Editable resume document (Text view, left panel) ──────────────────────────
+// Renders the resume and provides in-context editing:
+//  • each experience bullet is selectable → Edit / Replace / Remove
+//  • Edit (inline textarea) and Remove are immediate content edits (M5a invalidation)
+//  • Replace stages the bullet; staged bullets regenerate together in ONE AI call,
+//    preview → accept (single_bullet revision scope)
+//  • header / summary / skills / education / additional / role details each get a
+//    section-level inline Edit reveal reusing the structured mutators
 
-function RenderedResume({ draft }: { draft: GeneratedResumeDraftRecord }) {
-  const { content } = draft;
+const SECTION_HEADING_CLASS =
+  "border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar";
+
+const SECTION_EDIT_LINK_CLASS =
+  "text-[12px] font-medium text-folio-primary-container hover:underline focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+
+function bulletStageKey(roleIndex: number, bulletIndex: number): string {
+  return `${roleIndex}:${bulletIndex}`;
+}
+
+type ResumeTextDocumentProps = {
+  draft: GeneratedResumeDraftRecord;
+  linkedJob: StoredJobDescription | null;
+  /** Persists an edited content with the M5a invalidation path (downgrades approval). */
+  onApplyContentEdit: (next: ResumeDraftContent) => Promise<void>;
+  /** Page-level busy flag (regenerate/approve) — disables in-document mutations. */
+  disabled: boolean;
+};
+
+function ResumeTextDocument({
+  draft,
+  linkedJob,
+  onApplyContentEdit,
+  disabled,
+}: ResumeTextDocumentProps) {
+  const content = draft.content;
   const header = content.header;
   const contactLine = [header.location, header.email, header.phone, header.linkedin]
     .filter(Boolean)
     .join("  ·  ");
 
+  // Which section is open in inline edit mode; the working copy is held separately.
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [sectionDraft, setSectionDraft] = useState<ResumeDraftContent | null>(null);
+  const [isSavingSection, setIsSavingSection] = useState(false);
+
+  // Inline per-bullet edit state.
+  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
+  const [bulletEditText, setBulletEditText] = useState("");
+  const [selectedBulletKey, setSelectedBulletKey] = useState<string | null>(null);
+  const [busyBulletKey, setBusyBulletKey] = useState<string | null>(null);
+
+  // Replace staging — keyed by roleIndex:bulletIndex → optional per-bullet instruction.
+  const [stagedReplace, setStagedReplace] = useState<Map<string, string>>(new Map());
+  const [replacePreview, setReplacePreview] = useState<
+    { roleIndex: number; bulletIndex: number; text: string }[] | null
+  >(null);
+  const [replaceWarnings, setReplaceWarnings] = useState<string[]>([]);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+
+  const hasJob = Boolean(linkedJob?.rawText?.trim());
+  const modelTier = useMemo(
+    () => resolveResumeModelTierForDraft({ draftTier: draft.inputSnapshot?.resumeModelTier }),
+    [draft.inputSnapshot?.resumeModelTier],
+  );
+
+  function openSection(section: string) {
+    setSectionDraft(content);
+    setEditingSection(section);
+    setDocError(null);
+  }
+
+  function closeSection() {
+    setEditingSection(null);
+    setSectionDraft(null);
+  }
+
+  async function saveSection() {
+    if (!sectionDraft || isSavingSection) return;
+    setIsSavingSection(true);
+    setDocError(null);
+    try {
+      await onApplyContentEdit(sectionDraft);
+      closeSection();
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : "Failed to save changes.");
+    } finally {
+      setIsSavingSection(false);
+    }
+  }
+
+  function patchSection(updater: (current: ResumeDraftContent) => ResumeDraftContent) {
+    setSectionDraft((current) => (current ? updater(current) : current));
+  }
+
+  function startBulletEdit(roleIndex: number, bulletIndex: number, currentText: string) {
+    setEditingBulletKey(bulletStageKey(roleIndex, bulletIndex));
+    setBulletEditText(currentText);
+    setDocError(null);
+  }
+
+  async function saveBulletEdit(roleIndex: number, bulletIndex: number) {
+    const key = bulletStageKey(roleIndex, bulletIndex);
+    if (busyBulletKey) return;
+    const text = bulletEditText.trim();
+    if (!text) {
+      setDocError("Bullet text cannot be empty.");
+      return;
+    }
+    setBusyBulletKey(key);
+    setDocError(null);
+    try {
+      const next: ResumeDraftContent = {
+        ...content,
+        experience: content.experience.map((role, ri) =>
+          ri === roleIndex
+            ? {
+                ...role,
+                bullets: role.bullets.map((b, bi) =>
+                  bi === bulletIndex ? { ...b, text } : b,
+                ),
+              }
+            : role,
+        ),
+      };
+      await onApplyContentEdit(next);
+      setEditingBulletKey(null);
+      setSelectedBulletKey(null);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : "Failed to save bullet.");
+    } finally {
+      setBusyBulletKey(null);
+    }
+  }
+
+  async function removeBullet(roleIndex: number, bulletIndex: number) {
+    const key = bulletStageKey(roleIndex, bulletIndex);
+    if (busyBulletKey) return;
+    setBusyBulletKey(key);
+    setDocError(null);
+    try {
+      const next: ResumeDraftContent = {
+        ...content,
+        experience: content.experience.map((role, ri) =>
+          ri === roleIndex
+            ? { ...role, bullets: role.bullets.filter((_, bi) => bi !== bulletIndex) }
+            : role,
+        ),
+      };
+      await onApplyContentEdit(next);
+      // Drop any staging that referenced the removed bullet.
+      setStagedReplace((prev) => {
+        const nextMap = new Map(prev);
+        nextMap.delete(key);
+        return nextMap;
+      });
+      setSelectedBulletKey(null);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : "Failed to remove bullet.");
+    } finally {
+      setBusyBulletKey(null);
+    }
+  }
+
+  function toggleStageReplace(roleIndex: number, bulletIndex: number) {
+    const key = bulletStageKey(roleIndex, bulletIndex);
+    setStagedReplace((prev) => {
+      const nextMap = new Map(prev);
+      if (nextMap.has(key)) nextMap.delete(key);
+      else nextMap.set(key, "");
+      return nextMap;
+    });
+    setReplacePreview(null);
+    setReplaceError(null);
+  }
+
+  function setStageInstruction(key: string, instruction: string) {
+    setStagedReplace((prev) => {
+      const nextMap = new Map(prev);
+      if (nextMap.has(key)) nextMap.set(key, instruction);
+      return nextMap;
+    });
+    setReplacePreview(null);
+  }
+
+  async function runReplaceRegeneration() {
+    if (isReplacing || stagedReplace.size === 0 || !linkedJob) return;
+    const targets: ResumeSingleBulletRevisionTarget[] = [];
+    for (const [key, instruction] of stagedReplace.entries()) {
+      const [ri, bi] = key.split(":").map(Number);
+      const currentText = content.experience[ri]?.bullets[bi]?.text;
+      if (typeof currentText !== "string") continue;
+      targets.push({
+        roleIndex: ri,
+        bulletIndex: bi,
+        currentText,
+        customInstruction: instruction.trim() || undefined,
+      });
+    }
+    if (targets.length === 0) return;
+
+    setIsReplacing(true);
+    setReplaceError(null);
+    setReplacePreview(null);
+    try {
+      const response = await requestResumeSingleBulletRevision({
+        draftId: draft.id,
+        scope: "single_bullet",
+        content,
+        jobDescription: {
+          id: linkedJob.id,
+          rawText: linkedJob.rawText,
+          companyName: linkedJob.companyName,
+          roleTitle: linkedJob.roleTitle,
+        },
+        bullets: targets,
+        resumeModelTier: modelTier,
+        persist: false,
+      });
+      setReplacePreview(response.bulletCandidates);
+      setReplaceWarnings(response.warnings);
+    } catch (err) {
+      setReplaceError(err instanceof Error ? err.message : "Single-bullet revision failed.");
+    } finally {
+      setIsReplacing(false);
+    }
+  }
+
+  async function acceptReplacePreview() {
+    if (!replacePreview || isReplacing) return;
+    setIsReplacing(true);
+    setReplaceError(null);
+    try {
+      const next = applyResumeSingleBulletRevisions(content, replacePreview);
+      await onApplyContentEdit(next);
+      setReplacePreview(null);
+      setReplaceWarnings([]);
+      setStagedReplace(new Map());
+      setSelectedBulletKey(null);
+    } catch (err) {
+      setReplaceError(err instanceof Error ? err.message : "Failed to save revised bullets.");
+    } finally {
+      setIsReplacing(false);
+    }
+  }
+
+  function rejectReplacePreview() {
+    setReplacePreview(null);
+    setReplaceWarnings([]);
+  }
+
+  const previewByKey = new Map(
+    (replacePreview ?? []).map((c) => [bulletStageKey(c.roleIndex, c.bulletIndex), c.text]),
+  );
+  const docDisabled = disabled || isReplacing;
+
   return (
-    <div className="text-folio-on-surface">
+    <div className="text-folio-on-surface" data-testid="resume-text-document">
+      {docError ? (
+        <p className="mb-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-[13px] text-folio-error">
+          {docError}
+        </p>
+      ) : null}
+
       {/* Header */}
-      <header className="text-center">
-        {header.fullName ? (
-          <h2 className="text-2xl font-semibold tracking-tight">{header.fullName}</h2>
-        ) : null}
-        {contactLine ? (
-          <p className="mt-1.5 text-xs text-folio-outline">{contactLine}</p>
+      <header>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 text-center">
+            {header.fullName ? (
+              <h2 className="text-2xl font-semibold tracking-tight">{header.fullName}</h2>
+            ) : null}
+            {contactLine ? (
+              <p className="mt-1.5 text-xs text-folio-outline">{contactLine}</p>
+            ) : null}
+          </div>
+          {editingSection !== "header" ? (
+            <button
+              type="button"
+              onClick={() => openSection("header")}
+              disabled={docDisabled}
+              className={SECTION_EDIT_LINK_CLASS}
+              data-testid="section-edit-header"
+            >
+              Edit
+            </button>
+          ) : null}
+        </div>
+        {editingSection === "header" && sectionDraft ? (
+          <div className="mt-3 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  { field: "fullName", label: "Full name" },
+                  { field: "email", label: "Email" },
+                  { field: "phone", label: "Phone" },
+                  { field: "location", label: "Location" },
+                  { field: "linkedin", label: "LinkedIn" },
+                ] as const
+              ).map(({ field, label }) => (
+                <div key={field}>
+                  <label className={LABEL_CLASS}>{label}</label>
+                  <input
+                    type="text"
+                    value={(sectionDraft.header[field] as string | undefined) ?? ""}
+                    onChange={(e) =>
+                      patchSection((c) => ({
+                        ...c,
+                        header: { ...c.header, [field]: e.target.value },
+                      }))
+                    }
+                    className={INPUT_CLASS}
+                  />
+                </div>
+              ))}
+            </div>
+            <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+          </div>
         ) : null}
       </header>
+
+      {/* Professional summary */}
+      {content.professionalSummary.text !== undefined ? (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className={SECTION_HEADING_CLASS}>Professional summary</h3>
+            {editingSection !== "summary" ? (
+              <button
+                type="button"
+                onClick={() => openSection("summary")}
+                disabled={docDisabled}
+                className={SECTION_EDIT_LINK_CLASS}
+                data-testid="section-edit-summary"
+              >
+                Edit
+              </button>
+            ) : null}
+          </div>
+          {editingSection === "summary" && sectionDraft ? (
+            <div className="mt-3 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
+              <textarea
+                value={sectionDraft.professionalSummary.text ?? ""}
+                onChange={(e) =>
+                  patchSection((c) => ({
+                    ...c,
+                    professionalSummary: { ...c.professionalSummary, text: e.target.value },
+                  }))
+                }
+                rows={3}
+                className={TEXTAREA_CLASS}
+              />
+              <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+            </div>
+          ) : (
+            <p className="mt-2 text-[13px] leading-relaxed text-folio-on-surface-variant">
+              {content.professionalSummary.text}
+            </p>
+          )}
+        </section>
+      ) : null}
 
       {/* Experience */}
       {content.experience.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Experience
-          </h3>
+          <h3 className={SECTION_HEADING_CLASS}>Experience</h3>
           <div className="mt-3 space-y-4">
-            {content.experience.map((exp, i) => {
+            {content.experience.map((exp, roleIndex) => {
               const meta = [exp.location, exp.dateRange].filter(Boolean).join(" · ");
+              const roleEditKey = `role:${roleIndex}`;
+              const isEditingRole = editingSection === roleEditKey;
               return (
-                <div key={`${exp.company}-${exp.role}-${i}`}>
+                <div key={`${exp.company}-${exp.role}-${roleIndex}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                     <p className="text-sm font-semibold">
                       {exp.role}
                       <span className="font-normal text-folio-on-surface-variant"> · {exp.company}</span>
                     </p>
-                    {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
+                    <div className="flex items-center gap-3">
+                      {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
+                      {!isEditingRole ? (
+                        <button
+                          type="button"
+                          onClick={() => openSection(roleEditKey)}
+                          disabled={docDisabled}
+                          className={SECTION_EDIT_LINK_CLASS}
+                        >
+                          Edit details
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
+
+                  {isEditingRole && sectionDraft ? (
+                    <div className="mt-2 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {(
+                          [
+                            { field: "role", label: "Role" },
+                            { field: "company", label: "Company" },
+                            { field: "location", label: "Location" },
+                            { field: "dateRange", label: "Date range" },
+                          ] as const
+                        ).map(({ field, label }) => (
+                          <div key={field}>
+                            <label className={LABEL_CLASS}>{label}</label>
+                            <input
+                              type="text"
+                              value={(sectionDraft.experience[roleIndex]?.[field] as string | undefined) ?? ""}
+                              onChange={(e) =>
+                                patchSection((c) => ({
+                                  ...c,
+                                  experience: c.experience.map((r, ri) =>
+                                    ri === roleIndex ? { ...r, [field]: e.target.value } : r,
+                                  ),
+                                }))
+                              }
+                              className={INPUT_CLASS}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+                    </div>
+                  ) : null}
+
                   {exp.bullets.length > 0 ? (
                     <ul className="mt-1.5 space-y-1">
-                      {exp.bullets.map((b, bi) => (
-                        <li key={bi} className="flex gap-2 text-[13px] leading-relaxed">
-                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
-                          <span>{b.text}</span>
-                        </li>
-                      ))}
+                      {exp.bullets.map((b, bulletIndex) => {
+                        const key = bulletStageKey(roleIndex, bulletIndex);
+                        const isSelected = selectedBulletKey === key;
+                        const isEditing = editingBulletKey === key;
+                        const isStaged = stagedReplace.has(key);
+                        const proposed = previewByKey.get(key);
+                        const bulletBusy = busyBulletKey === key;
+                        return (
+                          <li key={bulletIndex} data-testid="resume-bullet">
+                            {isEditing ? (
+                              <div className="rounded-lg border border-folio-sage-border bg-folio-surface-container-low p-3">
+                                <textarea
+                                  value={bulletEditText}
+                                  onChange={(e) => setBulletEditText(e.target.value)}
+                                  rows={2}
+                                  className={TEXTAREA_CLASS}
+                                  data-testid="bullet-edit-textarea"
+                                  autoFocus
+                                />
+                                <div className="mt-2 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void saveBulletEdit(roleIndex, bulletIndex)}
+                                    disabled={bulletBusy}
+                                    className={PRIMARY_BUTTON}
+                                    data-testid="bullet-edit-save"
+                                  >
+                                    {bulletBusy ? "Saving…" : "Save"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingBulletKey(null)}
+                                    disabled={bulletBusy}
+                                    className={GHOST_BUTTON}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                className={`rounded-lg border px-2.5 py-1.5 transition ${
+                                  isStaged
+                                    ? "border-folio-olive-border bg-folio-mint-surface"
+                                    : isSelected
+                                      ? "border-folio-primary-container bg-folio-surface-container-low"
+                                      : "border-transparent hover:bg-folio-surface-container-low"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedBulletKey(isSelected ? null : key)}
+                                  className="flex w-full gap-2 text-left text-[13px] leading-relaxed focus:outline-none"
+                                  aria-expanded={isSelected}
+                                  data-testid="bullet-select"
+                                >
+                                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
+                                  <span>{b.text}</span>
+                                </button>
+
+                                {isStaged ? (
+                                  <p className="mt-1 pl-3 text-[11px] font-medium text-folio-olive-text">
+                                    Staged to replace
+                                    {proposed ? " — proposed below" : ""}
+                                  </p>
+                                ) : null}
+
+                                {proposed ? (
+                                  <p
+                                    className="mt-1 rounded-md border border-folio-olive-border bg-white px-2.5 py-1.5 text-[13px] leading-relaxed text-folio-on-surface"
+                                    data-testid="bullet-replace-proposed"
+                                  >
+                                    {proposed}
+                                  </p>
+                                ) : null}
+
+                                {isSelected ? (
+                                  <div className="mt-2 flex flex-wrap gap-2 pl-3" data-testid="bullet-actions">
+                                    <button
+                                      type="button"
+                                      onClick={() => startBulletEdit(roleIndex, bulletIndex, b.text)}
+                                      disabled={docDisabled || bulletBusy}
+                                      className={GHOST_BUTTON}
+                                      data-action="bullet-edit"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleStageReplace(roleIndex, bulletIndex)}
+                                      disabled={docDisabled || bulletBusy || !hasJob}
+                                      title={hasJob ? undefined : "Saved job description required to regenerate"}
+                                      className={GHOST_BUTTON}
+                                      data-action="bullet-replace"
+                                    >
+                                      {isStaged ? "Unstage replace" : "Replace"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void removeBullet(roleIndex, bulletIndex)}
+                                      disabled={docDisabled || bulletBusy}
+                                      className={GHOST_BUTTON}
+                                      data-action="bullet-remove"
+                                    >
+                                      {bulletBusy ? "Removing…" : "Remove"}
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : null}
                 </div>
               );
             })}
           </div>
+
+          {/* Replace staging bar — one AI call regenerates all staged bullets together */}
+          {stagedReplace.size > 0 ? (
+            <div
+              className="mt-4 rounded-xl border border-folio-olive-border bg-folio-mint-surface p-4"
+              data-testid="bullet-replace-staging"
+            >
+              <p className="text-[13px] font-medium text-folio-olive-text">
+                {stagedReplace.size} bullet{stagedReplace.size === 1 ? "" : "s"} staged to replace
+              </p>
+              <p className="mt-0.5 text-[12px] text-folio-olive-text">
+                Add an optional instruction per bullet. They regenerate together in one AI step.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {[...stagedReplace.entries()].map(([key, instruction]) => {
+                  const [ri, bi] = key.split(":").map(Number);
+                  const currentText = content.experience[ri]?.bullets[bi]?.text ?? "";
+                  return (
+                    <li key={key} className="rounded-lg border border-folio-sage-border bg-white p-3">
+                      <p className="text-[12px] text-folio-on-surface-variant">{currentText}</p>
+                      <input
+                        type="text"
+                        value={instruction}
+                        onChange={(e) => setStageInstruction(key, e.target.value)}
+                        placeholder="Optional instruction (e.g. more metrics-focused)"
+                        className={`${INPUT_CLASS} mt-2`}
+                        data-testid="bullet-replace-instruction"
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {replaceWarnings.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-[12px] text-folio-cta-secondary">
+                  {replaceWarnings.map((w) => (
+                    <li key={w}>⚠ {w}</li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {replaceError ? (
+                <p className="mt-2 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-[13px] text-folio-error">
+                  {replaceError}
+                </p>
+              ) : null}
+
+              {isApprovedDraftStatus(draft.status) && replacePreview ? (
+                <p className="mt-2 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary">
+                  Accepting will require re-approval before export.
+                </p>
+              ) : null}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {!replacePreview ? (
+                  <button
+                    type="button"
+                    onClick={() => void runReplaceRegeneration()}
+                    disabled={isReplacing || !hasJob}
+                    className={PRIMARY_BUTTON}
+                    data-testid="bullet-replace-regenerate"
+                  >
+                    {isReplacing
+                      ? "Regenerating… (1 AI step)"
+                      : `Regenerate ${stagedReplace.size} staged bullet${stagedReplace.size === 1 ? "" : "s"}`}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void acceptReplacePreview()}
+                      disabled={isReplacing}
+                      className={PRIMARY_BUTTON}
+                      data-testid="bullet-replace-accept"
+                    >
+                      {isReplacing ? "Saving…" : "Accept replacements"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={rejectReplacePreview}
+                      disabled={isReplacing}
+                      className={GHOST_BUTTON}
+                      data-testid="bullet-replace-reject"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStagedReplace(new Map());
+                    setReplacePreview(null);
+                    setReplaceError(null);
+                  }}
+                  disabled={isReplacing}
+                  className={GHOST_BUTTON}
+                >
+                  Clear staging
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
       {/* Skills */}
-      {content.skills.groups.length > 0 ? (
+      {content.skills.groups.length > 0 || editingSection === "skills" ? (
         <section className="mt-6">
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Skills
-          </h3>
-          <dl className="mt-3 space-y-1.5">
-            {content.skills.groups.map((group) => (
-              <div key={group.label} className="flex gap-2 text-[13px]">
-                <dt className="font-semibold">{group.label}:</dt>
-                <dd className="text-folio-on-surface-variant">{group.items.join(", ")}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="flex items-center justify-between">
+            <h3 className={SECTION_HEADING_CLASS}>Skills</h3>
+            {editingSection !== "skills" ? (
+              <button
+                type="button"
+                onClick={() => openSection("skills")}
+                disabled={docDisabled}
+                className={SECTION_EDIT_LINK_CLASS}
+                data-testid="section-edit-skills"
+              >
+                Edit
+              </button>
+            ) : null}
+          </div>
+          {editingSection === "skills" && sectionDraft ? (
+            <div className="mt-3 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4 space-y-2.5">
+              {sectionDraft.skills.groups.map((group, groupIdx) => (
+                <div key={groupIdx} className="flex items-start gap-2">
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="text"
+                      value={group.label}
+                      onChange={(e) =>
+                        patchSection((c) => ({
+                          ...c,
+                          skills: {
+                            ...c.skills,
+                            groups: c.skills.groups.map((g, i) =>
+                              i === groupIdx ? { ...g, label: e.target.value } : g,
+                            ),
+                          },
+                        }))
+                      }
+                      placeholder="Group label"
+                      className={INPUT_CLASS}
+                    />
+                    <input
+                      type="text"
+                      value={group.items.join(", ")}
+                      onChange={(e) =>
+                        patchSection((c) => ({
+                          ...c,
+                          skills: {
+                            ...c.skills,
+                            groups: c.skills.groups.map((g, i) =>
+                              i === groupIdx
+                                ? { ...g, items: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
+                                : g,
+                            ),
+                          },
+                        }))
+                      }
+                      placeholder="Item 1, Item 2"
+                      className={INPUT_CLASS}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchSection((c) => ({
+                        ...c,
+                        skills: { ...c.skills, groups: c.skills.groups.filter((_, i) => i !== groupIdx) },
+                      }))
+                    }
+                    className={`mt-1 ${REMOVE_BULLET_CLASS}`}
+                    aria-label="Remove skill group"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  patchSection((c) => ({
+                    ...c,
+                    skills: { ...c.skills, groups: [...c.skills.groups, { label: "", items: [] }] },
+                  }))
+                }
+                className={ADD_BULLET_CLASS}
+              >
+                + Add skill group
+              </button>
+              <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+            </div>
+          ) : (
+            <dl className="mt-3 space-y-1.5">
+              {content.skills.groups.map((group) => (
+                <div key={group.label} className="flex gap-2 text-[13px]">
+                  <dt className="font-semibold">{group.label}:</dt>
+                  <dd className="text-folio-on-surface-variant">{group.items.join(", ")}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </section>
       ) : null}
 
       {/* Education */}
       {content.education.length > 0 ? (
         <section className="mt-6">
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Education
-          </h3>
-          <div className="mt-3 space-y-3">
-            {content.education.map((edu, i) => {
-              const meta = [edu.location, edu.dateRange].filter(Boolean).join(" · ");
-              return (
-                <div key={`${edu.institution}-${i}`}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <p className="text-sm font-semibold">{edu.institution}</p>
-                    {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
-                  </div>
-                  {edu.programmes.length > 0 ? (
-                    <p className="text-[13px] text-folio-on-surface-variant">{edu.programmes.join(", ")}</p>
-                  ) : null}
-                  {edu.bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-1">
-                      {edu.bullets.map((b, bi) => (
-                        <li key={bi} className="flex gap-2 text-[13px] leading-relaxed">
-                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between">
+            <h3 className={SECTION_HEADING_CLASS}>Education</h3>
+            {editingSection !== "education" ? (
+              <button
+                type="button"
+                onClick={() => openSection("education")}
+                disabled={docDisabled}
+                className={SECTION_EDIT_LINK_CLASS}
+                data-testid="section-edit-education"
+              >
+                Edit
+              </button>
+            ) : null}
           </div>
+          {editingSection === "education" && sectionDraft ? (
+            <div className="mt-3 space-y-4">
+              {sectionDraft.education.map((edu, eduIdx) => (
+                <div key={eduIdx} className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className={LABEL_CLASS}>Institution</label>
+                      <input
+                        type="text"
+                        value={edu.institution}
+                        onChange={(e) =>
+                          patchSection((c) => ({
+                            ...c,
+                            education: c.education.map((ed, i) =>
+                              i === eduIdx ? { ...ed, institution: e.target.value } : ed,
+                            ),
+                          }))
+                        }
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+                    <div>
+                      <label className={LABEL_CLASS}>Location</label>
+                      <input
+                        type="text"
+                        value={edu.location ?? ""}
+                        onChange={(e) =>
+                          patchSection((c) => ({
+                            ...c,
+                            education: c.education.map((ed, i) =>
+                              i === eduIdx ? { ...ed, location: e.target.value } : ed,
+                            ),
+                          }))
+                        }
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+                    <div>
+                      <label className={LABEL_CLASS}>Date range</label>
+                      <input
+                        type="text"
+                        value={edu.dateRange ?? ""}
+                        onChange={(e) =>
+                          patchSection((c) => ({
+                            ...c,
+                            education: c.education.map((ed, i) =>
+                              i === eduIdx ? { ...ed, dateRange: e.target.value } : ed,
+                            ),
+                          }))
+                        }
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {content.education.map((edu, i) => {
+                const meta = [edu.location, edu.dateRange].filter(Boolean).join(" · ");
+                return (
+                  <div key={`${edu.institution}-${i}`}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <p className="text-sm font-semibold">{edu.institution}</p>
+                      {meta ? <p className="text-xs text-folio-outline">{meta}</p> : null}
+                    </div>
+                    {edu.programmes.length > 0 ? (
+                      <p className="text-[13px] text-folio-on-surface-variant">{edu.programmes.join(", ")}</p>
+                    ) : null}
+                    {edu.bullets.length > 0 ? (
+                      <ul className="mt-1 space-y-1">
+                        {edu.bullets.map((b, bi) => (
+                          <li key={bi} className="flex gap-2 text-[13px] leading-relaxed">
+                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : null}
 
       {/* Additional experience */}
-      {content.additionalExperience.length > 0 ? (
+      {content.additionalExperience.length > 0 || editingSection === "additional" ? (
         <section className="mt-6">
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Additional experience
-          </h3>
-          <ul className="mt-3 space-y-1">
-            {content.additionalExperience.map((item, i) => (
-              <li key={i} className="flex gap-2 text-[13px] leading-relaxed">
-                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
-                <span>
-                  {item.category ? <span className="font-semibold">{item.category}: </span> : null}
-                  {item.text}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center justify-between">
+            <h3 className={SECTION_HEADING_CLASS}>Additional experience</h3>
+            {editingSection !== "additional" ? (
+              <button
+                type="button"
+                onClick={() => openSection("additional")}
+                disabled={docDisabled}
+                className={SECTION_EDIT_LINK_CLASS}
+                data-testid="section-edit-additional"
+              >
+                Edit
+              </button>
+            ) : null}
+          </div>
+          {editingSection === "additional" && sectionDraft ? (
+            <div className="mt-3 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4 space-y-2.5">
+              {sectionDraft.additionalExperience.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      type="text"
+                      value={item.category ?? ""}
+                      onChange={(e) =>
+                        patchSection((c) => ({
+                          ...c,
+                          additionalExperience: c.additionalExperience.map((it, i) =>
+                            i === idx ? { ...it, category: e.target.value } : it,
+                          ),
+                        }))
+                      }
+                      placeholder="Category (optional)"
+                      className={INPUT_CLASS}
+                    />
+                    <textarea
+                      value={item.text}
+                      onChange={(e) =>
+                        patchSection((c) => ({
+                          ...c,
+                          additionalExperience: c.additionalExperience.map((it, i) =>
+                            i === idx ? { ...it, text: e.target.value } : it,
+                          ),
+                        }))
+                      }
+                      rows={2}
+                      placeholder="Description"
+                      className={TEXTAREA_CLASS}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchSection((c) => ({
+                        ...c,
+                        additionalExperience: c.additionalExperience.filter((_, i) => i !== idx),
+                      }))
+                    }
+                    className={`mt-1 ${REMOVE_BULLET_CLASS}`}
+                    aria-label="Remove additional experience item"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  patchSection((c) => ({
+                    ...c,
+                    additionalExperience: [
+                      ...c.additionalExperience,
+                      { category: "", text: "", riskFlags: [] },
+                    ],
+                  }))
+                }
+                className={ADD_BULLET_CLASS}
+              >
+                + Add item
+              </button>
+              <SectionEditActions onSave={() => void saveSection()} onCancel={closeSection} saving={isSavingSection} />
+            </div>
+          ) : (
+            <ul className="mt-3 space-y-1">
+              {content.additionalExperience.map((item, i) => (
+                <li key={i} className="flex gap-2 text-[13px] leading-relaxed">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-folio-outline" />
+                  <span>
+                    {item.category ? <span className="font-semibold">{item.category}: </span> : null}
+                    {item.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ) : null}
     </div>
   );
 }
 
-// ── Structured editor ─────────────────────────────────────────────────────────
+function SectionEditActions({
+  onSave,
+  onCancel,
+  saving,
+}: {
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="mt-3 flex gap-2">
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving}
+        className={PRIMARY_BUTTON}
+        data-testid="section-edit-save"
+      >
+        {saving ? "Saving…" : "Save"}
+      </button>
+      <button type="button" onClick={onCancel} disabled={saving} className={GHOST_BUTTON}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+// ── Shared form-field styles (used by inline section editors) ─────────────────
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-sm text-folio-on-surface placeholder:text-folio-outline focus:border-folio-primary-container focus:outline-none";
@@ -381,478 +1267,6 @@ const ADD_BULLET_CLASS =
 const REMOVE_BULLET_CLASS =
   "ml-2 shrink-0 text-[11px] text-folio-outline hover:text-folio-error focus:outline-none";
 
-type StructuredResumeEditorProps = {
-  content: ResumeDraftContent;
-  onChange: (updated: ResumeDraftContent) => void;
-};
-
-function StructuredResumeEditor({ content, onChange }: StructuredResumeEditorProps) {
-  function setHeader(field: keyof typeof content.header, value: string | boolean) {
-    onChange({ ...content, header: { ...content.header, [field]: value } });
-  }
-
-  function setSummary(text: string) {
-    onChange({ ...content, professionalSummary: { ...content.professionalSummary, text } });
-  }
-
-  // ── Experience ──
-
-  function setExpField(
-    expIdx: number,
-    field: keyof ResumeDraftExperienceSection,
-    value: string,
-  ) {
-    const experience = content.experience.map((exp, i) =>
-      i === expIdx ? { ...exp, [field]: value } : exp,
-    );
-    onChange({ ...content, experience });
-  }
-
-  function setExpBullet(expIdx: number, bulletIdx: number, text: string) {
-    const experience = content.experience.map((exp, i) => {
-      if (i !== expIdx) return exp;
-      const bullets = exp.bullets.map((b, bi) =>
-        bi === bulletIdx ? { ...b, text } : b,
-      );
-      return { ...exp, bullets };
-    });
-    onChange({ ...content, experience });
-  }
-
-  function addExpBullet(expIdx: number) {
-    const experience = content.experience.map((exp, i) => {
-      if (i !== expIdx) return exp;
-      return {
-        ...exp,
-        bullets: [
-          ...exp.bullets,
-          { text: "", sourceRefs: [], confidence: "medium" as const, riskFlags: [] },
-        ],
-      };
-    });
-    onChange({ ...content, experience });
-  }
-
-  function removeExpBullet(expIdx: number, bulletIdx: number) {
-    const experience = content.experience.map((exp, i) => {
-      if (i !== expIdx) return exp;
-      return { ...exp, bullets: exp.bullets.filter((_, bi) => bi !== bulletIdx) };
-    });
-    onChange({ ...content, experience });
-  }
-
-  // ── Education ──
-
-  function setEduField(
-    eduIdx: number,
-    field: "institution" | "location" | "dateRange",
-    value: string,
-  ) {
-    const education = content.education.map((edu, i) =>
-      i === eduIdx ? { ...edu, [field]: value } : edu,
-    );
-    onChange({ ...content, education });
-  }
-
-  function setEduBullet(eduIdx: number, bulletIdx: number, text: string) {
-    const education = content.education.map((edu, i) => {
-      if (i !== eduIdx) return edu;
-      const bullets = edu.bullets.map((b, bi) => (bi === bulletIdx ? text : b));
-      return { ...edu, bullets };
-    });
-    onChange({ ...content, education });
-  }
-
-  function addEduBullet(eduIdx: number) {
-    const education = content.education.map((edu, i) => {
-      if (i !== eduIdx) return edu;
-      return { ...edu, bullets: [...edu.bullets, ""] };
-    });
-    onChange({ ...content, education });
-  }
-
-  function removeEduBullet(eduIdx: number, bulletIdx: number) {
-    const education = content.education.map((edu, i) => {
-      if (i !== eduIdx) return edu;
-      return { ...edu, bullets: edu.bullets.filter((_, bi) => bi !== bulletIdx) };
-    });
-    onChange({ ...content, education });
-  }
-
-  // ── Skills ──
-
-  function setSkillGroupLabel(groupIdx: number, label: string) {
-    const groups = content.skills.groups.map((g, i) => (i === groupIdx ? { ...g, label } : g));
-    onChange({ ...content, skills: { ...content.skills, groups } });
-  }
-
-  function setSkillGroupItems(groupIdx: number, rawItems: string) {
-    const items = rawItems
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const groups = content.skills.groups.map((g, i) =>
-      i === groupIdx ? { ...g, items } : g,
-    );
-    onChange({ ...content, skills: { ...content.skills, groups } });
-  }
-
-  function addSkillGroup() {
-    const groups = [...content.skills.groups, { label: "", items: [] }];
-    onChange({ ...content, skills: { ...content.skills, groups } });
-  }
-
-  function removeSkillGroup(groupIdx: number) {
-    const groups = content.skills.groups.filter((_, i) => i !== groupIdx);
-    onChange({ ...content, skills: { ...content.skills, groups } });
-  }
-
-  // ── Additional experience ──
-
-  function setAdditionalItem(
-    idx: number,
-    field: "category" | "text",
-    value: string,
-  ) {
-    const additionalExperience = content.additionalExperience.map((item, i) =>
-      i === idx ? { ...item, [field]: value } : item,
-    );
-    onChange({ ...content, additionalExperience });
-  }
-
-  function addAdditionalItem() {
-    onChange({
-      ...content,
-      additionalExperience: [
-        ...content.additionalExperience,
-        { category: "", text: "", riskFlags: [] },
-      ],
-    });
-  }
-
-  function removeAdditionalItem(idx: number) {
-    onChange({
-      ...content,
-      additionalExperience: content.additionalExperience.filter((_, i) => i !== idx),
-    });
-  }
-
-  return (
-    <div
-      className="space-y-6 text-folio-on-surface"
-      data-testid="structured-resume-editor"
-    >
-      {/* Header / contact */}
-      <section>
-        <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-          Header
-        </h3>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              { field: "fullName", label: "Full name", placeholder: "Jane Smith" },
-              { field: "email", label: "Email", placeholder: "jane@example.com" },
-              { field: "phone", label: "Phone", placeholder: "+1 555 000 0000" },
-              { field: "location", label: "Location", placeholder: "San Francisco, CA" },
-              { field: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/jane" },
-            ] as const
-          ).map(({ field, label, placeholder }) => (
-            <div key={field}>
-              <label className={LABEL_CLASS}>{label}</label>
-              <input
-                type="text"
-                value={(content.header[field] as string | undefined) ?? ""}
-                onChange={(e) => setHeader(field, e.target.value)}
-                placeholder={placeholder}
-                className={INPUT_CLASS}
-                data-testid={`editor-header-${field}`}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Professional summary */}
-      {content.professionalSummary.text !== undefined ? (
-        <section>
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Professional summary
-          </h3>
-          <div className="mt-3">
-            <textarea
-              value={content.professionalSummary.text}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={3}
-              className={TEXTAREA_CLASS}
-              placeholder="A brief professional summary…"
-              data-testid="editor-summary"
-            />
-          </div>
-        </section>
-      ) : null}
-
-      {/* Experience */}
-      {content.experience.length > 0 ? (
-        <section>
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Experience
-          </h3>
-          <div className="mt-3 space-y-5">
-            {content.experience.map((exp, expIdx) => (
-              <div
-                key={expIdx}
-                className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4"
-                data-testid="editor-experience-item"
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className={LABEL_CLASS}>Role</label>
-                    <input
-                      type="text"
-                      value={exp.role}
-                      onChange={(e) => setExpField(expIdx, "role", e.target.value)}
-                      className={INPUT_CLASS}
-                      data-testid="editor-exp-role"
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASS}>Company</label>
-                    <input
-                      type="text"
-                      value={exp.company}
-                      onChange={(e) => setExpField(expIdx, "company", e.target.value)}
-                      className={INPUT_CLASS}
-                      data-testid="editor-exp-company"
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASS}>Location</label>
-                    <input
-                      type="text"
-                      value={exp.location ?? ""}
-                      onChange={(e) => setExpField(expIdx, "location", e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASS}>Date range</label>
-                    <input
-                      type="text"
-                      value={exp.dateRange ?? ""}
-                      onChange={(e) => setExpField(expIdx, "dateRange", e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className={LABEL_CLASS}>Bullets</label>
-                  <div className="space-y-1.5">
-                    {exp.bullets.map((bullet, bulletIdx) => (
-                      <div key={bulletIdx} className="flex items-start gap-1.5">
-                        <textarea
-                          value={bullet.text}
-                          onChange={(e) => setExpBullet(expIdx, bulletIdx, e.target.value)}
-                          rows={2}
-                          className={`${TEXTAREA_CLASS} flex-1`}
-                          data-testid="editor-exp-bullet"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeExpBullet(expIdx, bulletIdx)}
-                          className={REMOVE_BULLET_CLASS}
-                          aria-label="Remove bullet"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addExpBullet(expIdx)}
-                    className={ADD_BULLET_CLASS}
-                  >
-                    + Add bullet
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Skills */}
-      <section>
-        <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-          Skills
-        </h3>
-        <div className="mt-3 space-y-2.5">
-          {content.skills.groups.map((group, groupIdx) => (
-            <div
-              key={groupIdx}
-              className="flex items-start gap-2"
-              data-testid="editor-skills-group"
-            >
-              <div className="flex-1 space-y-1.5">
-                <input
-                  type="text"
-                  value={group.label}
-                  onChange={(e) => setSkillGroupLabel(groupIdx, e.target.value)}
-                  placeholder="Group label"
-                  className={INPUT_CLASS}
-                  data-testid="editor-skills-label"
-                />
-                <input
-                  type="text"
-                  value={group.items.join(", ")}
-                  onChange={(e) => setSkillGroupItems(groupIdx, e.target.value)}
-                  placeholder="Item 1, Item 2, Item 3"
-                  className={INPUT_CLASS}
-                  data-testid="editor-skills-items"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => removeSkillGroup(groupIdx)}
-                className={`mt-1 ${REMOVE_BULLET_CLASS}`}
-                aria-label="Remove skill group"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button type="button" onClick={addSkillGroup} className={ADD_BULLET_CLASS}>
-            + Add skill group
-          </button>
-        </div>
-      </section>
-
-      {/* Education */}
-      {content.education.length > 0 ? (
-        <section>
-          <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-            Education
-          </h3>
-          <div className="mt-3 space-y-4">
-            {content.education.map((edu, eduIdx) => (
-              <div
-                key={eduIdx}
-                className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4"
-                data-testid="editor-education-item"
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className={LABEL_CLASS}>Institution</label>
-                    <input
-                      type="text"
-                      value={edu.institution}
-                      onChange={(e) => setEduField(eduIdx, "institution", e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASS}>Location</label>
-                    <input
-                      type="text"
-                      value={edu.location ?? ""}
-                      onChange={(e) => setEduField(eduIdx, "location", e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                  <div>
-                    <label className={LABEL_CLASS}>Date range</label>
-                    <input
-                      type="text"
-                      value={edu.dateRange ?? ""}
-                      onChange={(e) => setEduField(eduIdx, "dateRange", e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className={LABEL_CLASS}>Bullets</label>
-                  <div className="space-y-1.5">
-                    {edu.bullets.map((bullet, bulletIdx) => (
-                      <div key={bulletIdx} className="flex items-start gap-1.5">
-                        <input
-                          type="text"
-                          value={bullet}
-                          onChange={(e) => setEduBullet(eduIdx, bulletIdx, e.target.value)}
-                          className={`${INPUT_CLASS} flex-1`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeEduBullet(eduIdx, bulletIdx)}
-                          className={REMOVE_BULLET_CLASS}
-                          aria-label="Remove education bullet"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addEduBullet(eduIdx)}
-                    className={ADD_BULLET_CLASS}
-                  >
-                    + Add bullet
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Additional experience */}
-      <section>
-        <h3 className="border-b border-folio-sage-border pb-1 text-[11px] font-semibold uppercase tracking-wide text-folio-sidebar">
-          Additional experience
-        </h3>
-        <div className="mt-3 space-y-2.5">
-          {content.additionalExperience.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex items-start gap-2"
-              data-testid="editor-additional-item"
-            >
-              <div className="flex-1 space-y-1.5">
-                <input
-                  type="text"
-                  value={item.category ?? ""}
-                  onChange={(e) => setAdditionalItem(idx, "category", e.target.value)}
-                  placeholder="Category (optional)"
-                  className={INPUT_CLASS}
-                />
-                <textarea
-                  value={item.text}
-                  onChange={(e) => setAdditionalItem(idx, "text", e.target.value)}
-                  rows={2}
-                  placeholder="Description"
-                  className={TEXTAREA_CLASS}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => removeAdditionalItem(idx)}
-                className={`mt-1 ${REMOVE_BULLET_CLASS}`}
-                aria-label="Remove additional experience item"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button type="button" onClick={addAdditionalItem} className={ADD_BULLET_CLASS}>
-            + Add item
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 // ── Revision queue (Folio-native) ─────────────────────────────────────────────
 
@@ -1886,6 +2300,124 @@ function CoverLetterTab({
           {error}
         </p>
       ) : null}
+
+      {/* Other formats — precomputed copy-paste outreach versions (no AI) */}
+      <SecondaryCommunicationsPanel rationale={coverLetter.rationale} />
+    </div>
+  );
+}
+
+// ── Layout sliders (Folio-native, PDF view only) ──────────────────────────────
+// Ported from the legacy preview layout controls, restyled to DESIGN.md. Each change
+// rebuilds the document model → live ResumePdfPreview re-render.
+
+const SLIDER_CLASS = "mt-1 block w-full accent-folio-primary-container";
+const SLIDER_LABEL_CLASS = "block text-[12px] font-medium text-folio-outline";
+
+function LayoutSliders({
+  settings,
+  onChange,
+  optimizationNote,
+  disabled,
+}: {
+  settings: ResumeLayoutSettings;
+  onChange: (next: ResumeLayoutSettings) => void;
+  optimizationNote?: string;
+  disabled: boolean;
+}) {
+  const bodyFontSteps = Math.round(
+    (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
+  );
+  function update(patch: Partial<ResumeLayoutSettings>) {
+    onChange({ ...settings, ...patch });
+  }
+
+  return (
+    <div
+      className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4"
+      data-testid="output-layout-sliders"
+    >
+      <p className="text-[13px] font-medium text-folio-on-surface">Layout</p>
+      <p className="mt-0.5 text-[12px] text-folio-outline">
+        Adjust spacing and margins to fit one page. The server one-page check stays the export gate.
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <label className={SLIDER_LABEL_CLASS}>
+          Body font ({settings.bodyFontPx}px)
+          <input
+            type="range"
+            min={0}
+            max={bodyFontSteps}
+            step={1}
+            disabled={disabled}
+            value={Math.round((settings.bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
+            onChange={(e) =>
+              update({
+                bodyFontPx: clampPreviewBodyFontPx(
+                  PREVIEW_BODY_FONT_MIN_PX + Number(e.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+                ),
+              })
+            }
+            className={SLIDER_CLASS}
+          />
+        </label>
+        <label className={SLIDER_LABEL_CLASS}>
+          Side margins ({settings.marginMm}mm)
+          <input
+            type="range"
+            min={PREVIEW_MARGIN_MIN_MM}
+            max={PREVIEW_MARGIN_MAX_MM}
+            disabled={disabled}
+            value={settings.marginMm}
+            onChange={(e) => update({ marginMm: Number(e.target.value) })}
+            className={SLIDER_CLASS}
+          />
+        </label>
+        <label className={SLIDER_LABEL_CLASS}>
+          Top margin ({settings.marginTopMm}mm)
+          <input
+            type="range"
+            min={PREVIEW_MARGIN_TOP_MIN_MM}
+            max={PREVIEW_MARGIN_TOP_MAX_MM}
+            disabled={disabled}
+            value={settings.marginTopMm}
+            onChange={(e) => update({ marginTopMm: Number(e.target.value) })}
+            className={SLIDER_CLASS}
+          />
+        </label>
+        <label className={SLIDER_LABEL_CLASS}>
+          Line spacing ({settings.lineSpacing.toFixed(2)})
+          <input
+            type="range"
+            min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+            max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
+            disabled={disabled}
+            value={Math.round(settings.lineSpacing * 100)}
+            onChange={(e) => update({ lineSpacing: Number(e.target.value) / 100 })}
+            className={SLIDER_CLASS}
+          />
+        </label>
+        <label className={SLIDER_LABEL_CLASS}>
+          Section spacing ({settings.sectionSpacing.toFixed(2)}rem)
+          <input
+            type="range"
+            min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+            max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
+            disabled={disabled}
+            value={Math.round(settings.sectionSpacing * 100)}
+            onChange={(e) => update({ sectionSpacing: Number(e.target.value) / 100 })}
+            className={SLIDER_CLASS}
+          />
+        </label>
+      </div>
+      {optimizationNote ? (
+        <p
+          className="mt-3 rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-[12px] text-folio-outline"
+          data-testid="output-layout-optimizer-note"
+        >
+          {optimizationNote}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -1904,17 +2436,10 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   const [activeTab, setActiveTab] = useState<OutputTab>("resume");
+  // Document column view — Text (default, editable) or PDF (A4 truth + layout sliders).
+  const [documentView, setDocumentView] = useState<"text" | "pdf">("text");
   const [showExcluded, setShowExcluded] = useState(false);
   const [showRevisionQueue, setShowRevisionQueue] = useState(false);
-
-  // ── Structured editor state ──────────────────────────────────────────────────
-  // isEditMode: true = editable form; false = read-only RenderedResume.
-  const [isEditMode, setIsEditMode] = useState(false);
-  // editedContent: local working copy while in edit mode (null = not yet opened).
-  const [editedContent, setEditedContent] = useState<ResumeDraftContent | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSavingEdits, setIsSavingEdits] = useState(false);
-  const [saveEditsError, setSaveEditsError] = useState<string | null>(null);
 
   // Approval state
   const [isApproving, setIsApproving] = useState(false);
@@ -1929,30 +2454,31 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   const [excludedDraftKeys, setExcludedDraftKeys] = useState<Set<string>>(new Set());
   const [includedExtraKeys, setIncludedExtraKeys] = useState<Set<string>>(new Set());
 
-  // Line-level bullet controls — staged for next Regenerate, not applied live
+  // Line-level bullet controls — staged for next Regenerate, not applied live.
+  // These shape AI evidence input for the next full Regenerate (NOT the current document).
   const [lineLevelExcludedBulletKeys, setLineLevelExcludedBulletKeys] = useState<Set<string>>(new Set());
   const [lineLevelForcedBulletKeys, setLineLevelForcedBulletKeys] = useState<Set<string>>(new Set());
   const [showBulletControls, setShowBulletControls] = useState(false);
-  const [showFitSummary, setShowFitSummary] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  // Manual layout overrides (PDF-view sliders) — null = use optimizer/stored defaults.
+  const [manualSettings, setManualSettings] = useState<
+    (ResumeLayoutSettings & { draftId: string }) | null
+  >(null);
+  const layoutChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
-  const [isMarkingSent, setIsMarkingSent] = useState(false);
-  const [markedSent, setMarkedSent] = useState(false);
 
-  // ── beforeunload guard ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isDirty) return;
-    function handleBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+    return () => {
+      if (layoutChangeTimerRef.current) {
+        clearTimeout(layoutChangeTimerRef.current);
+      }
+    };
+  }, []);
 
   // ── Draft load ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1986,6 +2512,17 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       }
       setDraft(record);
 
+      // Seed manual layout overrides from any stored export layout settings so the
+      // PDF-view sliders reflect the validated layout on reload.
+      const storedLayout = record.content.exportLayoutSettings;
+      if (storedLayout) {
+        setManualSettings({
+          draftId: record.id,
+          ...storedLayout,
+          itemLineSpacing: storedLayout.itemLineSpacing ?? PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+        });
+      }
+
       if (!record.applicationId) {
         setCompanyContext(null);
         return;
@@ -1994,7 +2531,6 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         const application = await getApplicationRecordFromCloud(record.applicationId);
         if (!cancelled) {
           setCompanyContext(application?.companyContext ?? null);
-          setMarkedSent(application?.status === "applied");
         }
       } catch {
         if (!cancelled) setCompanyContext(null);
@@ -2036,10 +2572,50 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     );
   }, [inventory, includedKeys]);
 
-  const fitSummary = useMemo(
-    () => buildPackageFitSummary({ rationale: draft?.rationale }),
+  // Deterministic fit assessment (NO page-load AI). Passing fitAssessment alongside
+  // rationale is what surfaces the numeric NN/100 score in the banner.
+  const fitAssessment = useMemo<ResumeFitAssessment | null>(
+    () => (draft ? calculateFitScore(draft.content, draft.rationale) : null),
     [draft],
   );
+
+  const fitSummary = useMemo(
+    () => buildPackageFitSummary({ rationale: draft?.rationale, fitAssessment }),
+    [draft, fitAssessment],
+  );
+
+  // Layout settings: optimizer baseline, overridden by manual slider state when present.
+  const autoSettings = useMemo(
+    () => (draft ? optimizeResumePreviewSettings(draft.content) : null),
+    [draft],
+  );
+  const layoutOverride = manualSettings?.draftId === draftId ? manualSettings : null;
+  const activeLayoutSettings = useMemo<ResumeLayoutSettings>(() => {
+    const stored = draft?.content.exportLayoutSettings;
+    return {
+      bodyFontPx:
+        layoutOverride?.bodyFontPx ?? stored?.bodyFontPx ?? autoSettings?.bodyFontPx ??
+        DEFAULT_RESUME_LAYOUT_SETTINGS.bodyFontPx,
+      marginMm:
+        layoutOverride?.marginMm ?? stored?.marginMm ?? autoSettings?.marginMm ??
+        DEFAULT_RESUME_LAYOUT_SETTINGS.marginMm,
+      marginTopMm:
+        layoutOverride?.marginTopMm ?? stored?.marginTopMm ?? autoSettings?.marginTopMm ??
+        DEFAULT_RESUME_LAYOUT_SETTINGS.marginTopMm,
+      lineSpacing:
+        layoutOverride?.lineSpacing ?? stored?.lineSpacing ?? autoSettings?.lineSpacing ??
+        DEFAULT_RESUME_LAYOUT_SETTINGS.lineSpacing,
+      itemLineSpacing:
+        layoutOverride?.itemLineSpacing ?? stored?.itemLineSpacing ?? autoSettings?.itemLineSpacing ??
+        PREVIEW_ITEM_LINE_SPACING_DEFAULT,
+      sectionSpacing:
+        layoutOverride?.sectionSpacing ?? stored?.sectionSpacing ?? autoSettings?.sectionSpacing ??
+        DEFAULT_RESUME_LAYOUT_SETTINGS.sectionSpacing,
+    };
+  }, [layoutOverride, draft, autoSettings]);
+  // The auto-optimizer note only applies while the user has not manually overridden layout.
+  const optimizationNote =
+    layoutOverride === null ? autoSettings?.optimizationNote ?? autoSettings?.warning : undefined;
 
   const tailoringDiagnostics = useMemo(
     () =>
@@ -2102,81 +2678,58 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     });
   }
 
-  // ── Enter edit mode ──────────────────────────────────────────────────────────
-  function handleEnterEditMode() {
-    if (!draft) return;
-    setEditedContent(draft.content);
-    setIsDirty(false);
-    setSaveEditsError(null);
-    setIsEditMode(true);
-  }
-
-  function handleCancelEdits() {
-    setIsEditMode(false);
-    setEditedContent(null);
-    setIsDirty(false);
-    setSaveEditsError(null);
-  }
-
-  function handleContentChange(updated: ResumeDraftContent) {
-    setEditedContent(updated);
-    setIsDirty(true);
-  }
-
-  // ── Save structured edits ────────────────────────────────────────────────────
-  // Saving after approval downgrades status to layout_changed via
-  // resolveDraftStatusAfterContentEdit, which also clears serverPdfValidation.
-  // The M4 exportReady derivation and layoutChangedAfterApproval banner then
-  // update automatically from the returned draft.
-  async function handleSaveStructuredEdits() {
-    if (!draft || !editedContent || isSavingEdits) return;
-    setIsSavingEdits(true);
-    setSaveEditsError(null);
-    try {
-      const newStatus = resolveDraftStatusAfterContentEdit(draft.status);
-      const contentToSave: ResumeDraftContent = {
-        ...editedContent,
-        // Clear server validation — any content change invalidates the prior result.
-        serverPdfValidation: undefined,
-      };
-      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
-        content: contentToSave,
-        status: newStatus,
-      });
-      setDraft(updated);
-      setIsEditMode(false);
-      setEditedContent(null);
-      setIsDirty(false);
-      // Regeneration/approval validation failure is stale after a content save.
-      setValidationFailure(null);
-    } catch (saveError) {
-      setSaveEditsError(
-        saveError instanceof Error ? saveError.message : "Failed to save resume edits.",
-      );
-    } finally {
-      setIsSavingEdits(false);
-    }
-  }
-
-  // ── Revision queue accept ────────────────────────────────────────────────────
-  // Same invalidation path as structured edit: resolveDraftStatusAfterContentEdit
-  // downgrades approved → layout_changed and strips serverPdfValidation.
-  async function handleRevisionQueueAccepted(
-    updatedContent: ResumeDraftContent,
-    _warnings: string[],
-  ) {
+  // ── Shared content-edit persistence (M5a invalidation path) ───────────────────
+  // Every in-document content mutation (bullet Edit/Remove/Replace, section edit) and
+  // the revision-queue accept route through here. resolveDraftStatusAfterContentEdit
+  // downgrades approved/layout_changed → layout_changed and clears serverPdfValidation,
+  // which automatically updates the exportReady derivation and re-approve notice.
+  async function applyContentEdit(updatedContent: ResumeDraftContent) {
     if (!draft) return;
     const newStatus = resolveDraftStatusAfterContentEdit(draft.status);
-    const contentToSave: ResumeDraftContent = {
-      ...updatedContent,
-      serverPdfValidation: undefined,
-    };
     const saved = await updateGeneratedResumeDraftInCloud(draft.id, {
-      content: contentToSave,
+      content: { ...updatedContent, serverPdfValidation: undefined },
       status: newStatus,
     });
     setDraft(saved);
     setValidationFailure(null);
+  }
+
+  async function handleRevisionQueueAccepted(updatedContent: ResumeDraftContent) {
+    await applyContentEdit(updatedContent);
+  }
+
+  // ── Layout sliders (PDF view) → live document model + approval invalidation ────
+  // Mirrors ResumePreviewPageClient: a layout change after approval downgrades the
+  // draft to layout_changed (debounced) and clears the validated PDF result.
+  async function markLayoutChangedAfterApproval(next: ResumeLayoutSettings) {
+    if (!draft || !isApprovedDraftStatus(draft.status)) return;
+    if (areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, next)) return;
+    try {
+      const updated = await updateGeneratedResumeDraftInCloud(draft.id, {
+        content: { ...draft.content, serverPdfValidation: undefined },
+        status: RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
+      });
+      setDraft(updated);
+      setValidationFailure(null);
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : "Failed to mark layout change after approval.",
+      );
+    }
+  }
+
+  function updateLayoutSettings(next: ResumeLayoutSettings) {
+    if (!draftId) return;
+    setManualSettings({ draftId, ...next });
+    setValidationFailure(null);
+    if (layoutChangeTimerRef.current) {
+      clearTimeout(layoutChangeTimerRef.current);
+    }
+    layoutChangeTimerRef.current = setTimeout(() => {
+      void markLayoutChangedAfterApproval(next);
+    }, 300);
   }
 
   async function handleRegenerate() {
@@ -2230,8 +2783,10 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     setError(null);
     setValidationFailure(null);
     try {
-      const layoutSettings = draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS;
-      const result = await approveResumeDraftForExport({ draftId: draft.id, layoutSettings });
+      const result = await approveResumeDraftForExport({
+        draftId: draft.id,
+        layoutSettings: activeLayoutSettings,
+      });
       setDraft(result.draft);
       setExportMessage(null);
     } catch (approveError) {
@@ -2261,7 +2816,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     try {
       const result = await exportResumePdfFromApi({
         draftId: draft.id,
-        layoutSettings: draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS,
+        layoutSettings: activeLayoutSettings,
       });
       if (!result.downloadUrl) throw new Error("Export did not return a download URL.");
       const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "pdf");
@@ -2282,7 +2837,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     try {
       const result = await exportResumeDocxFromApi({
         draftId: draft.id,
-        layoutSettings: draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS,
+        layoutSettings: activeLayoutSettings,
       });
       if (!result.downloadUrl) throw new Error("Export did not return a download URL.");
       const delivery = await deliverExportedFile(result.fileName, result.downloadUrl, "docx");
@@ -2293,22 +2848,6 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       );
     } finally {
       setIsExportingDocx(false);
-    }
-  }
-
-  async function handleMarkSent() {
-    if (!draft?.applicationId || isMarkingSent) return;
-    setIsMarkingSent(true);
-    setError(null);
-    try {
-      await updateApplicationRecordInCloud(draft.applicationId, { status: "applied" });
-      setMarkedSent(true);
-    } catch (markError) {
-      setError(
-        markError instanceof Error ? markError.message : "Failed to mark application as sent.",
-      );
-    } finally {
-      setIsMarkingSent(false);
     }
   }
 
@@ -2363,11 +2902,12 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   if (!draft) return null;
 
   // ── Approval / export trust state ─────────────────────────────────────────────
-  const resolvedLayoutSettings = draft.content.exportLayoutSettings ?? DEFAULT_RESUME_LAYOUT_SETTINGS;
+  // exportReady compares the validated stored layout against the active layout; a
+  // slider change after approval makes them differ → exportReady false (re-approve).
   const exportReady = Boolean(
     isApprovedDraftStatus(draft.status) &&
       draft.content.serverPdfValidation?.pageCount === 1 &&
-      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, resolvedLayoutSettings),
+      areExportLayoutSettingsEqual(draft.content.exportLayoutSettings, activeLayoutSettings),
   );
   const layoutChangedAfterApproval = isLayoutChangedAfterApprovalStatus(draft.status);
   const needsReview = draft.status === RESUME_DRAFT_STATUS_NEEDS_REVIEW;
@@ -2377,25 +2917,31 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       ? "Re-approve for export"
       : "Approve for export";
 
-  // ── PDF-on-approve document model ─────────────────────────────────────────────
-  // Only built when exportReady — avoids unnecessary work during editing.
-  const pdfDocumentModel = exportReady
-    ? buildExportResumeDocumentModel({
-        draft,
-        jobDescription: linkedJob,
-        companyContext,
-        referenceResume: findReferenceResumeInInventory(
-          inventory.resumes,
-          draft.referenceResumeId,
-        ),
-        layoutSettings: resolvedLayoutSettings,
-      })
-    : null;
+  // ── PDF preview document model ────────────────────────────────────────────────
+  // Built on demand whenever the PDF view is active — NO approval required. Uses the
+  // active layout (manual slider override or optimizer/stored baseline) so the A4
+  // iframe re-renders live as the sliders change.
+  const pdfDocumentModel =
+    documentView === "pdf"
+      ? buildExportResumeDocumentModel({
+          draft,
+          jobDescription: linkedJob,
+          companyContext,
+          referenceResume: findReferenceResumeInInventory(
+            inventory.resumes,
+            draft.referenceResumeId,
+          ),
+          layoutSettings: activeLayoutSettings,
+        })
+      : null;
+
+  const fitScore = fitAssessment ? fitAssessment.fitScore : null;
+  const fitVerdict = fitScore !== null ? fitScoreToVerdict(fitScore) : null;
 
   return (
     <div className="max-w-[1100px]">
-      {/* ── Topbar ─────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* ── Header (title + status only — export lives in the bottom card) ─── */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
             {roleTitle} · {displayCompany}
@@ -2404,46 +2950,57 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
             Generated
           </span>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void handleExportPdf()}
-            disabled={isExportingPdf || !exportReady}
-            title={exportReady ? undefined : "Approve for export first"}
-            className={GHOST_BUTTON}
-          >
-            {isExportingPdf ? "Exporting…" : "Export PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleExportDocx()}
-            disabled={isExportingDocx || !exportReady}
-            title={exportReady ? undefined : "Approve for export first"}
-            className={GHOST_BUTTON}
-          >
-            {isExportingDocx ? "Exporting…" : "Export DOCX"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleMarkSent()}
-            disabled={isMarkingSent || markedSent || !draft.applicationId}
-            className="inline-flex items-center justify-center rounded-lg bg-folio-cta px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {markedSent ? "Marked as sent" : isMarkingSent ? "Marking…" : "Mark as sent"}
-          </button>
-        </div>
       </div>
 
-      {exportMessage ? (
-        <p className="mt-3 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-sm text-folio-cta-secondary">
-          {exportMessage}
-        </p>
-      ) : null}
       {error ? (
         <p className="mt-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-sm text-[#ba1a1a]">
           {error}
         </p>
+      ) : null}
+
+      {/* ── Fit summary banner (full width, under header) ──────────────────── */}
+      <section
+        data-testid="output-fit-summary-banner"
+        className="mt-5 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-5"
+      >
+        <div className="flex flex-wrap items-start gap-4">
+          {fitScore !== null ? (
+            <div
+              data-testid="output-fit-score-chip"
+              className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-folio-olive-border bg-folio-mint-surface px-4 py-3 text-center"
+            >
+              <span className="text-2xl font-semibold leading-none text-folio-olive-text">
+                {fitScore}
+                <span className="text-sm font-normal">/100</span>
+              </span>
+              {fitVerdict ? (
+                <span className="mt-1 text-[12px] font-medium text-folio-olive-text">{fitVerdict}</span>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[13px] font-medium uppercase tracking-wide text-folio-outline">
+              Fit summary
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-folio-on-surface">
+              {fitSummary ?? PACKAGE_FIT_SUMMARY_UNAVAILABLE}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── needs_review trust banner — stays at the top, near the fit read ── */}
+      {needsReview ? (
+        <div
+          data-testid="output-needs-review-banner"
+          className="mt-4 rounded-xl border border-folio-warning-border bg-folio-warning-surface px-4 py-3 text-sm text-folio-cta-secondary"
+        >
+          <p className="font-medium">Resume needs a structure review</p>
+          <p className="mt-1 leading-relaxed">
+            Automatic repair flagged possible structure issues. Regenerate the resume below to re-run
+            automatic repair before you approve for export.
+          </p>
+        </div>
       ) : null}
 
       {/* ── Tabs ───────────────────────────────────────────────── */}
@@ -2473,234 +3030,74 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       {/* ── Resume tab ─────────────────────────────────────────── */}
       {activeTab === "resume" ? (
         <div className="mt-5 space-y-5">
-          {/* ── Review & export ──────────────────────────────────── */}
-          <section
-            data-testid="output-approve-export"
-            className="rounded-xl border border-folio-sage-border bg-white p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-[18px] font-medium tracking-[-0.01em] text-folio-on-surface">
-                  Review and export
-                </h2>
-                <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-folio-outline">
-                  {exportReady
-                    ? "Approved for export. The server confirmed this resume fits one page."
-                    : "Approve runs a server one-page check. Export unlocks only after it passes."}
-                </p>
-              </div>
-              {exportReady ? (
-                <span className="rounded-full border border-folio-olive-border bg-folio-mint-surface px-2.5 py-0.5 text-[11px] font-medium text-folio-olive-text">
-                  Approved for export
-                </span>
-              ) : null}
-            </div>
-
-            {needsReview ? (
-              <div
-                data-testid="output-needs-review-banner"
-                className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2.5 text-sm text-folio-cta-secondary"
-              >
-                <p className="font-medium">Resume needs a structure review</p>
-                <p className="mt-1 leading-relaxed">
-                  Automatic repair flagged possible structure issues. Regenerate the resume below to
-                  re-run automatic repair before you approve for export.
-                </p>
-              </div>
-            ) : null}
-
-            {validationFailure ? (
-              <div
-                data-testid="output-one-page-block"
-                className="mt-4 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2.5 text-sm text-[#ba1a1a]"
-              >
-                <p className="font-medium">
-                  Export blocked — server PDF is {validationFailure.pageCount} pages
-                </p>
-                <p className="mt-1 leading-relaxed">{validationFailure.message}</p>
-                {validationFailure.suggestedActions.length > 0 ? (
-                  <ul className="mt-2 list-disc space-y-1 pl-5">
-                    {validationFailure.suggestedActions.slice(0, 4).map((action) => (
-                      <li key={action}>{action}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : null}
-
-            {layoutChangedAfterApproval ? (
-              <div className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2.5 text-sm text-folio-cta-secondary">
-                Layout or content changed after approval. Re-approve for export before downloading.
-              </div>
-            ) : null}
-
-            {exportReady ? (
-              <div className="mt-4 space-y-3">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
-                    Export
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleExportPdf()}
-                      disabled={isExportingPdf}
-                      className={PRIMARY_BUTTON}
-                    >
-                      {isExportingPdf ? "Exporting…" : "Export PDF"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleExportDocx()}
-                      disabled={isExportingDocx}
-                      className={GHOST_BUTTON}
-                    >
-                      {isExportingDocx ? "Exporting…" : "Export DOCX"}
-                    </button>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleApprove()}
-                  disabled={isApproving}
-                  data-action="reapprove-for-export"
-                  className={GHOST_BUTTON}
-                >
-                  {isApproving ? "Validating server PDF…" : "Re-approve for export"}
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
-                    Step 1 — Approve
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void handleApprove()}
-                    disabled={isApproving}
-                    data-action="approve-for-export"
-                    className={`mt-2 w-full ${PRIMARY_BUTTON}`}
-                  >
-                    {approveLabel}
-                  </button>
-                </div>
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline/70">
-                    Step 2 — Export (after approval)
-                  </p>
-                  <p className="mt-1 text-xs text-folio-outline">Approve first to enable export.</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button type="button" disabled className={PRIMARY_BUTTON}>
-                      Export PDF
-                    </button>
-                    <button type="button" disabled className={GHOST_BUTTON}>
-                      Export DOCX
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-            {/* ── Left panel — preview or editable form (60%) ─────── */}
+            {/* ── Document column (≈62%) — Text | PDF ─────────────── */}
             <div className="lg:w-3/5">
-              {/* Edit / cancel controls */}
-              <div className="mb-3 flex items-center justify-between">
-                {isEditMode ? (
-                  <span className="text-[13px] font-medium text-folio-on-surface">
-                    Editing resume
-                  </span>
-                ) : (
-                  <span className="text-[13px] font-medium text-folio-outline">
-                    {exportReady ? "PDF preview (approved)" : "Resume preview"}
-                  </span>
-                )}
-                <div className="flex items-center gap-2">
-                  {isEditMode ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdits}
-                        disabled={isSavingEdits}
-                        className={GHOST_BUTTON}
-                        data-testid="editor-cancel"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveStructuredEdits()}
-                        disabled={isSavingEdits || !isDirty}
-                        className={PRIMARY_BUTTON}
-                        data-testid="editor-save"
-                      >
-                        {isSavingEdits ? "Saving…" : "Save edits"}
-                      </button>
-                    </>
-                  ) : (
+              <div
+                className="mb-3 inline-flex rounded-lg border border-folio-sage-border bg-white p-0.5"
+                data-testid="document-view-toggle"
+                role="tablist"
+                aria-label="Document view"
+              >
+                {([
+                  { key: "text", label: "Text" },
+                  { key: "pdf", label: "PDF" },
+                ] as const).map((seg) => {
+                  const active = documentView === seg.key;
+                  return (
                     <button
+                      key={seg.key}
                       type="button"
-                      onClick={handleEnterEditMode}
-                      className={GHOST_BUTTON}
-                      data-testid="editor-enter"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setDocumentView(seg.key)}
+                      data-testid={`document-view-${seg.key}`}
+                      className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+                        active
+                          ? "bg-folio-primary-container text-white"
+                          : "text-folio-outline hover:text-folio-on-surface"
+                      }`}
                     >
-                      Edit resume
+                      {seg.label}
                     </button>
-                  )}
-                </div>
+                  );
+                })}
               </div>
 
-              {/* Dirty / unsaved banner */}
-              {isDirty && isEditMode ? (
-                <div
-                  className="mb-3 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[13px] text-folio-cta-secondary"
-                  data-testid="editor-dirty-banner"
-                >
-                  You have unsaved edits — save or cancel before leaving.
+              {documentView === "pdf" && pdfDocumentModel ? (
+                <div className="space-y-3">
+                  {/* Layout sliders — PDF view only; live re-render */}
+                  <LayoutSliders
+                    settings={activeLayoutSettings}
+                    onChange={updateLayoutSettings}
+                    optimizationNote={optimizationNote}
+                    disabled={isRegenerating || isApproving}
+                  />
+                  <ResumePdfPreview documentModel={pdfDocumentModel} data-testid="output-pdf-preview" />
                 </div>
-              ) : null}
-
-              {saveEditsError ? (
-                <p className="mb-3 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2 text-[13px] text-folio-error">
-                  {saveEditsError}
-                </p>
-              ) : null}
-
-              {/* Content area — edit form / RenderedResume / ResumePdfPreview */}
-              <div className="rounded-xl border border-folio-sage-border bg-white p-6">
-                {isEditMode && editedContent ? (
-                  <StructuredResumeEditor
-                    content={editedContent}
-                    onChange={handleContentChange}
+              ) : (
+                <div className="rounded-xl border border-folio-sage-border bg-white p-6">
+                  <ResumeTextDocument
+                    draft={draft}
+                    linkedJob={linkedJob}
+                    onApplyContentEdit={applyContentEdit}
+                    disabled={isRegenerating || isApproving}
                   />
-                ) : exportReady && pdfDocumentModel ? (
-                  /* Two-mode: after approval, show exact Puppeteer HTML in A4 iframe */
-                  <ResumePdfPreview
-                    documentModel={pdfDocumentModel}
-                    data-testid="output-pdf-preview"
-                  />
-                ) : (
-                  <RenderedResume draft={draft} />
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Regenerate — only shown when not in edit mode */}
-              {!isEditMode ? (
-                <button
-                  type="button"
-                  onClick={() => void handleRegenerate()}
-                  disabled={isRegenerating || !linkedJob || !draft.referenceResumeId}
-                  className={`mt-4 w-full ${GHOST_BUTTON}`}
-                >
-                  <RefreshIcon />
-                  {isRegenerating ? "Regenerating resume…" : "Regenerate resume"}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => void handleRegenerate()}
+                disabled={isRegenerating || !linkedJob || !draft.referenceResumeId}
+                className={`mt-4 w-full ${GHOST_BUTTON}`}
+              >
+                <RefreshIcon />
+                {isRegenerating ? "Regenerating resume…" : "Regenerate resume"}
+              </button>
             </div>
 
-            {/* ── Right panel — experience toggles + revision queue (40%) ── */}
+            {/* ── Controls column (≈38%) — controls only ──────────── */}
             <div className="lg:w-2/5">
               <p className="text-[13px] font-medium uppercase tracking-wide text-folio-outline">
                 Included experience
@@ -2763,7 +3160,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               ) : null}
 
               <p className="mt-4 text-xs text-folio-outline">
-                Selected experiences will be prioritised for generation
+                Selected experiences will be prioritised for the next regeneration.
               </p>
 
               {/* ── Custom AI revision (collapsed disclosure) ─────── */}
@@ -2790,23 +3187,27 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                 ) : null}
               </div>
 
-              {/* ── Bullet controls (collapsed disclosure) ─────────── */}
-              {/* Exclude individual included bullets or force individual excluded bullets */}
-              {/* into the next Regenerate call via lineLevelExcludedBulletKeys / lineLevelForcedBulletKeys. */}
+              {/* ── Shape next regeneration (collapsed disclosure) ── */}
+              {/* Line-level force/exclude that shapes AI evidence input for the NEXT */}
+              {/* full Regenerate — NOT the current document. Merged in buildMergedControls. */}
               <div className="mt-5 border-t border-folio-sage-border pt-5">
                 <button
                   type="button"
                   onClick={() => setShowBulletControls((v) => !v)}
                   className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
                   aria-expanded={showBulletControls}
-                  data-testid="bullet-controls-toggle"
+                  data-testid="shape-next-regeneration-toggle"
                 >
-                  <span>Bullet controls</span>
+                  <span>Shape next regeneration</span>
                   <ChevronIcon open={showBulletControls} />
                 </button>
 
                 {showBulletControls ? (
                   <div className="mt-3 space-y-4">
+                    <p className="rounded-lg border border-folio-sage-border bg-folio-surface-container-low px-3 py-2 text-[11px] text-folio-outline">
+                      Affects regeneration, not the current document. Force or exclude evidence for the
+                      next full Regenerate.
+                    </p>
                     {includedExperiences.map((exp, i) => {
                       const expKey = experienceKey(exp.company, exp.role);
                       const bulletsWithKey = exp.bullets.filter(
@@ -2919,28 +3320,6 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                 ) : null}
               </div>
 
-              {/* ── Fit summary (collapsed disclosure) ─────────────── */}
-              <div className="mt-5 border-t border-folio-sage-border pt-5">
-                <button
-                  type="button"
-                  onClick={() => setShowFitSummary((v) => !v)}
-                  className="flex w-full items-center justify-between text-[13px] font-medium uppercase tracking-wide text-folio-outline transition hover:text-folio-on-surface"
-                  aria-expanded={showFitSummary}
-                  data-testid="fit-summary-toggle"
-                >
-                  <span>Fit summary</span>
-                  <ChevronIcon open={showFitSummary} />
-                </button>
-
-                {showFitSummary ? (
-                  <div className="mt-3 rounded-lg border border-folio-sage-border bg-folio-surface-container-low px-3 py-3">
-                    <p className="text-sm leading-relaxed text-folio-on-surface">
-                      {fitSummary ?? PACKAGE_FIT_SUMMARY_UNAVAILABLE}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
               {/* ── Tailoring diagnostics (collapsed disclosure) ────── */}
               <div className="mt-5 border-t border-folio-sage-border pt-5">
                 <button
@@ -3023,6 +3402,129 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               </div>
             </div>
           </div>
+
+          {/* ── Export & delivery (full width, bottom) ───────────── */}
+          <section
+            data-testid="output-approve-export"
+            className="rounded-xl border border-folio-sage-border bg-white p-5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[18px] font-medium tracking-[-0.01em] text-folio-on-surface">
+                  Export and delivery
+                </h2>
+                <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-folio-outline">
+                  {exportReady
+                    ? "Approved for export. The server confirmed this resume fits one page."
+                    : "Approve runs a server one-page check. Export unlocks only after it passes."}
+                </p>
+              </div>
+              {exportReady ? (
+                <span className="rounded-full border border-folio-olive-border bg-folio-mint-surface px-2.5 py-0.5 text-[11px] font-medium text-folio-olive-text">
+                  Approved for export
+                </span>
+              ) : null}
+            </div>
+
+            {validationFailure ? (
+              <div
+                data-testid="output-one-page-block"
+                className="mt-4 rounded-lg border border-[#f3c0bd] bg-[#fdeceb] px-3 py-2.5 text-sm text-[#ba1a1a]"
+              >
+                <p className="font-medium">
+                  Export blocked — server PDF is {validationFailure.pageCount} pages
+                </p>
+                <p className="mt-1 leading-relaxed">{validationFailure.message}</p>
+                {validationFailure.suggestedActions.length > 0 ? (
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    {validationFailure.suggestedActions.slice(0, 4).map((action) => (
+                      <li key={action}>{action}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+
+            {layoutChangedAfterApproval ? (
+              <div className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2.5 text-sm text-folio-cta-secondary">
+                Layout or content changed after approval. Re-approve for export before downloading.
+              </div>
+            ) : null}
+
+            {exportMessage ? (
+              <p className="mt-4 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-sm text-folio-cta-secondary">
+                {exportMessage}
+              </p>
+            ) : null}
+
+            {exportReady ? (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                    Export
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleExportPdf()}
+                      disabled={isExportingPdf}
+                      className={PRIMARY_BUTTON}
+                    >
+                      {isExportingPdf ? "Exporting…" : "Export PDF"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleExportDocx()}
+                      disabled={isExportingDocx}
+                      className={GHOST_BUTTON}
+                    >
+                      {isExportingDocx ? "Exporting…" : "Export DOCX"}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleApprove()}
+                  disabled={isApproving}
+                  data-action="reapprove-for-export"
+                  className={GHOST_BUTTON}
+                >
+                  {isApproving ? "Validating server PDF…" : "Re-approve for export"}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                    Step 1 — Approve
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleApprove()}
+                    disabled={isApproving}
+                    data-action="approve-for-export"
+                    className={`mt-2 w-full ${PRIMARY_BUTTON}`}
+                  >
+                    {approveLabel}
+                  </button>
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline/70">
+                    Step 2 — Export (after approval)
+                  </p>
+                  <p className="mt-1 text-xs text-folio-outline">Approve first to enable export.</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" disabled className={PRIMARY_BUTTON}>
+                      Export PDF
+                    </button>
+                    <button type="button" disabled className={GHOST_BUTTON}>
+                      Export DOCX
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
         </div>
       ) : (
         /* ── Cover letter tab ─────────────────────────────────── */

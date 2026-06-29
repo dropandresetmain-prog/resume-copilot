@@ -100,6 +100,93 @@ export function applyResumeCustomRevision(
   return content;
 }
 
+/**
+ * Applies single-bullet (Replace) revisions: swaps only the `text` of each targeted
+ * bullet, preserving its sourceRefs/confidence/riskFlags so the evidence spine stays intact.
+ * Candidates targeting a missing role/bullet are ignored. Clears serverPdfValidation when
+ * any bullet text actually changed.
+ */
+export function applyResumeSingleBulletRevisions(
+  content: ResumeDraftContent,
+  candidates: readonly { roleIndex: number; bulletIndex: number; text: string }[],
+): ResumeDraftContent {
+  let changed = false;
+  const experience = content.experience.map((role, roleIdx) => {
+    const roleCandidates = candidates.filter((c) => c.roleIndex === roleIdx);
+    if (roleCandidates.length === 0) {
+      return role;
+    }
+    const bullets = role.bullets.map((bullet, bulletIdx) => {
+      const candidate = roleCandidates.find((c) => c.bulletIndex === bulletIdx);
+      const nextText = candidate?.text.trim();
+      if (!nextText || nextText === bullet.text) {
+        return bullet;
+      }
+      changed = true;
+      return { ...bullet, text: nextText };
+    });
+    return { ...role, bullets };
+  });
+
+  if (!changed) {
+    return content;
+  }
+
+  return {
+    ...content,
+    experience,
+    serverPdfValidation: undefined,
+  };
+}
+
+export function validateResumeSingleBulletRevisionRequest(
+  request: Partial<{
+    draftId: string;
+    scope: ResumeCustomRevisionScope;
+    content: ResumeDraftContent;
+    jobDescription: { rawText: string };
+    bullets: { roleIndex: number; bulletIndex: number; currentText: string }[];
+  }>,
+): string | null {
+  if (!request.draftId?.trim()) {
+    return "draftId is required.";
+  }
+  if (request.scope !== "single_bullet") {
+    return "scope must be single_bullet.";
+  }
+  if (!request.content) {
+    return "content is required.";
+  }
+  if (!request.jobDescription?.rawText?.trim()) {
+    return "jobDescription.rawText is required.";
+  }
+  if (!Array.isArray(request.bullets) || request.bullets.length === 0) {
+    return "bullets must include at least one target.";
+  }
+  const seen = new Set<string>();
+  for (const target of request.bullets) {
+    if (typeof target.roleIndex !== "number" || target.roleIndex < 0) {
+      return "each bullet target requires a roleIndex.";
+    }
+    if (typeof target.bulletIndex !== "number" || target.bulletIndex < 0) {
+      return "each bullet target requires a bulletIndex.";
+    }
+    const role = request.content.experience[target.roleIndex];
+    if (!role) {
+      return `roleIndex ${target.roleIndex} does not match a work experience role.`;
+    }
+    if (!role.bullets[target.bulletIndex]) {
+      return `bulletIndex ${target.bulletIndex} does not match a bullet in role ${target.roleIndex}.`;
+    }
+    const key = `${target.roleIndex}:${target.bulletIndex}`;
+    if (seen.has(key)) {
+      return `duplicate bullet target ${key}.`;
+    }
+    seen.add(key);
+  }
+  return null;
+}
+
 export function resumeCustomRevisionShouldPersist(
   request: Pick<{ persist?: boolean }, "persist">,
 ): boolean {

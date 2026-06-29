@@ -5,13 +5,16 @@ import {
   getResumeCustomRevisionProviderLabel,
   reviseResumeBatchWithAI,
   reviseResumeScopeWithAI,
+  reviseResumeSingleBulletsWithAI,
 } from "@/lib/ai/revise-resume-scope-provider";
 import { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evidence-changes";
 import {
   applyResumeCustomRevision,
+  applyResumeSingleBulletRevisions,
   resumeCustomRevisionShouldPersist,
   validateCustomRevisedRoleBullets,
   validateResumeCustomRevisionRequest,
+  validateResumeSingleBulletRevisionRequest,
 } from "@/lib/resume-draft/custom-revision";
 import {
   applyResumeBatchRevision,
@@ -31,12 +34,24 @@ import {
 import type {
   ResumeBatchRevisionRequest,
   ResumeCustomRevisionRequest,
+  ResumeSingleBulletRevisionRequest,
 } from "@/types/resume-draft";
 
+type ReviseResumeScopeRequestBody =
+  | ResumeCustomRevisionRequest
+  | ResumeBatchRevisionRequest
+  | ResumeSingleBulletRevisionRequest;
+
 function isBatchRequest(
-  body: ResumeCustomRevisionRequest | ResumeBatchRevisionRequest,
+  body: ReviseResumeScopeRequestBody,
 ): body is ResumeBatchRevisionRequest {
   return Array.isArray((body as ResumeBatchRevisionRequest).queue);
+}
+
+function isSingleBulletRequest(
+  body: ReviseResumeScopeRequestBody,
+): body is ResumeSingleBulletRevisionRequest {
+  return (body as ResumeSingleBulletRevisionRequest).scope === "single_bullet";
 }
 
 export async function POST(request: Request) {
@@ -50,7 +65,11 @@ export async function POST(request: Request) {
 
     const userId = await getAuthenticatedUserId(accessToken);
     const supabase = createSupabaseClientWithAccessToken(accessToken);
-    const body = (await request.json()) as ResumeCustomRevisionRequest | ResumeBatchRevisionRequest;
+    const body = (await request.json()) as ReviseResumeScopeRequestBody;
+
+    if (isSingleBulletRequest(body)) {
+      return handleSingleBulletRevision(body, supabase, userId, timestamp);
+    }
 
     if (isBatchRequest(body)) {
       return handleBatchRevision(body, supabase, userId, timestamp);
@@ -182,6 +201,106 @@ async function handleSingleRevision(
       revision.scope === "professional_summary" ? revision.professionalSummaryText : undefined,
     roleBullets: revision.scope === "selected_role" ? revision.roleBullets : undefined,
     warnings: revision.warnings,
+    provider,
+    isMock: provider === "mock",
+    providerLabel: getResumeCustomRevisionProviderLabel(provider),
+    modelName: revision.modelName,
+    requestedModelTier: resumeModelTier,
+    modelFallbackApplied: revision.modelFallbackApplied,
+    persisted: shouldPersist,
+    timestamp,
+  });
+}
+
+async function handleSingleBulletRevision(
+  body: ResumeSingleBulletRevisionRequest,
+  supabase: ReturnType<typeof createSupabaseClientWithAccessToken>,
+  userId: string,
+  timestamp: string,
+) {
+  const validationError = validateResumeSingleBulletRevisionRequest(body);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
+  }
+
+  let resumeModelTier;
+  try {
+    resumeModelTier = parseModelTier(body.resumeModelTier);
+  } catch (error) {
+    if (error instanceof InvalidModelTierError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
+
+  const draft = await getGeneratedResumeDraftForUser(supabase, body.draftId, userId);
+  if (!draft) {
+    return NextResponse.json({ error: "Resume draft not found." }, { status: 404 });
+  }
+
+  const revision = await reviseResumeSingleBulletsWithAI(
+    {
+      targets: body.bullets.map((target) => {
+        const role = body.content.experience[target.roleIndex]!;
+        return {
+          roleIndex: target.roleIndex,
+          bulletIndex: target.bulletIndex,
+          company: role.company,
+          role: role.role,
+          currentText: target.currentText,
+          customInstruction: target.customInstruction,
+        };
+      }),
+      jobDescriptionText: body.jobDescription.rawText,
+      targetRoleTitle: body.jobDescription.roleTitle,
+      bulletStyle: undefined,
+    },
+    process.env.AI_PROVIDER,
+    { modelTier: resumeModelTier },
+  );
+
+  // Keep only candidates that target a staged bullet — the model must not edit anything else.
+  const stagedKeys = new Set(body.bullets.map((t) => `${t.roleIndex}:${t.bulletIndex}`));
+  const warnings = [...revision.warnings];
+  const bulletCandidates = revision.bulletCandidates.filter((candidate) => {
+    const matched = stagedKeys.has(`${candidate.roleIndex}:${candidate.bulletIndex}`);
+    if (!matched) {
+      warnings.push(
+        `Ignored revised bullet for unstaged target ${candidate.roleIndex}:${candidate.bulletIndex}.`,
+      );
+    }
+    return matched;
+  });
+
+  if (bulletCandidates.length === 0) {
+    return NextResponse.json(
+      {
+        error: "Single-bullet revision produced no valid candidates.",
+        validationIssues: warnings,
+        timestamp,
+      },
+      { status: 422 },
+    );
+  }
+
+  const shouldPersist = resumeCustomRevisionShouldPersist(body);
+
+  if (shouldPersist) {
+    const nextContent = applyResumeSingleBulletRevisions(draft.content, bulletCandidates);
+    const updated = await updateGeneratedResumeDraftInCloudForUser(supabase, draft.id, userId, {
+      content: nextContent,
+      status: resolveDraftStatusAfterContentEdit(draft.status),
+    });
+    if (!updated) {
+      return NextResponse.json({ error: "Failed to save revised resume draft." }, { status: 500 });
+    }
+  }
+
+  const provider = process.env.AI_PROVIDER ?? "mock";
+  return NextResponse.json({
+    scope: "single_bullet",
+    bulletCandidates,
+    warnings,
     provider,
     isMock: provider === "mock",
     providerLabel: getResumeCustomRevisionProviderLabel(provider),

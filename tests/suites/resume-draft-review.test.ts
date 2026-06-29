@@ -1,5 +1,5 @@
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
-import { reviseMockResumeRoleCustom, reviseMockResumeSummary, reviseMockResumeBatch } from "../../src/lib/ai/revise-resume-scope-mock";
+import { reviseMockResumeRoleCustom, reviseMockResumeSummary, reviseMockResumeBatch, reviseMockResumeSingleBullets } from "../../src/lib/ai/revise-resume-scope-mock";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -13,8 +13,11 @@ import {
 } from "../../src/lib/resume-draft/review-state";
 import {
   applyResumeCustomRevision,
+  applyResumeSingleBulletRevisions,
   resumeCustomRevisionShouldPersist,
+  validateResumeSingleBulletRevisionRequest,
 } from "../../src/lib/resume-draft/custom-revision";
+import { parseResumeSingleBulletRevisionJson } from "../../src/lib/resume-draft/custom-revision-parse";
 import {
   applyResumeBatchRevision,
   sanitizeBatchRevisionOutput,
@@ -25,8 +28,10 @@ import {
 } from "../../src/lib/resume-draft/custom-revision-batch-prompt";
 import {
   buildResumeRoleCustomRevisionPrompt,
+  buildResumeSingleBulletRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
   promptIncludesRoleCustomRevisionScope,
+  promptIncludesSingleBulletRevisionScope,
   promptIncludesSummaryCustomRevisionScope,
 } from "../../src/lib/resume-draft/custom-revision-prompt";
 import type { InventoryState } from "../../src/types/resume";
@@ -277,6 +282,67 @@ function main() {
     },
   });
 
+  // ── M10b — single_bullet (Replace) revision scope ──────────────────────────────
+  const singleBulletPrompt = buildResumeSingleBulletRevisionPrompt({
+    targets: [
+      {
+        roleIndex: 0,
+        bulletIndex: 0,
+        company: originalContent.experience[0]!.company,
+        role: originalContent.experience[0]!.role,
+        currentText: originalContent.experience[0]!.bullets[0]!.text,
+        customInstruction: "More metrics-focused.",
+      },
+    ],
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const singleBulletRevision = reviseMockResumeSingleBullets({
+    targets: [
+      {
+        roleIndex: 0,
+        bulletIndex: 0,
+        company: originalContent.experience[0]!.company,
+        role: originalContent.experience[0]!.role,
+        currentText: originalContent.experience[0]!.bullets[0]!.text,
+        customInstruction: "More metrics-focused.",
+      },
+    ],
+    jobDescriptionText: sampleJd.rawText,
+    targetRoleTitle: sampleJd.roleTitle,
+  });
+  const priorBullet0 = originalContent.experience[0]!.bullets[0]!;
+  const singleBulletContent = applyResumeSingleBulletRevisions(
+    originalContent,
+    singleBulletRevision.bulletCandidates,
+  );
+  const singleBulletApplied = singleBulletContent.experience[0]!.bullets[0]!;
+  // Out-of-range / unstaged candidates are ignored, not applied.
+  const singleBulletIgnoresUnknown = applyResumeSingleBulletRevisions(originalContent, [
+    { roleIndex: 0, bulletIndex: 999, text: "Should be ignored" },
+    { roleIndex: 42, bulletIndex: 0, text: "Should be ignored" },
+  ]);
+  const singleBulletValidationOk = validateResumeSingleBulletRevisionRequest({
+    draftId: "draft-1",
+    scope: "single_bullet",
+    content: originalContent,
+    jobDescription: { rawText: sampleJd.rawText },
+    bullets: [{ roleIndex: 0, bulletIndex: 0, currentText: priorBullet0.text }],
+  });
+  const singleBulletValidationMissingBullet = validateResumeSingleBulletRevisionRequest({
+    draftId: "draft-1",
+    scope: "single_bullet",
+    content: originalContent,
+    jobDescription: { rawText: sampleJd.rawText },
+    bullets: [{ roleIndex: 0, bulletIndex: 999, currentText: "x" }],
+  });
+  const singleBulletParse = parseResumeSingleBulletRevisionJson(
+    JSON.stringify({
+      bullets: [{ roleIndex: 0, bulletIndex: 0, text: "Operations: Cut cycle time 30%." }],
+      warnings: [],
+    }),
+  );
+
   const checks: [string, boolean][] = [
     ["initial review state pending summary", initialReview.professionalSummary.status === "pending"],
     ["edited bullet in preview", editedBullet.includes("Edited bullet")],
@@ -347,6 +413,50 @@ function main() {
     [
       "professional summary revision unavailable copy",
       PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY.includes("not exported"),
+    ],
+    // ── M10b — single_bullet (Replace) revision scope ────────────────────────────
+    [
+      "single-bullet revision prompt scope",
+      promptIncludesSingleBulletRevisionScope(singleBulletPrompt),
+    ],
+    [
+      "single-bullet mock returns one candidate per target",
+      singleBulletRevision.bulletCandidates.length === 1 &&
+        singleBulletRevision.bulletCandidates[0]?.roleIndex === 0 &&
+        singleBulletRevision.bulletCandidates[0]?.bulletIndex === 0,
+    ],
+    [
+      "single-bullet apply swaps only the targeted bullet text",
+      singleBulletApplied.text !== priorBullet0.text &&
+        singleBulletContent.experience[0]!.bullets.length ===
+          originalContent.experience[0]!.bullets.length,
+    ],
+    [
+      "single-bullet apply preserves sourceRefs and confidence",
+      JSON.stringify(singleBulletApplied.sourceRefs) === JSON.stringify(priorBullet0.sourceRefs) &&
+        singleBulletApplied.confidence === priorBullet0.confidence,
+    ],
+    [
+      "single-bullet apply clears server validation (invalidation)",
+      singleBulletContent.serverPdfValidation === undefined,
+    ],
+    [
+      "single-bullet apply ignores out-of-range candidates",
+      singleBulletIgnoresUnknown === originalContent,
+    ],
+    [
+      "single-bullet request validation accepts a valid target",
+      singleBulletValidationOk === null,
+    ],
+    [
+      "single-bullet request validation rejects a missing bullet target",
+      typeof singleBulletValidationMissingBullet === "string",
+    ],
+    [
+      "single-bullet response parser reads role/bullet/text",
+      singleBulletParse.ok &&
+        singleBulletParse.value?.bullets[0]?.roleIndex === 0 &&
+        singleBulletParse.value?.bullets[0]?.bulletIndex === 0,
     ],
   ];
 

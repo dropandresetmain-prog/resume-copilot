@@ -149,27 +149,42 @@ function main() {
       resumePreview.includes("onApproveForExport={() => void handleApproveForExport()}"),
     ],
     // ── M5b — Evidence Controls + Diagnostics + Fit Summary + Model Tier ─────────
+    // M10b — "Bullet controls" disclosure renamed to "Shape next regeneration"
+    // (still right-column, line-level, fed into buildMergedControls).
     [
-      "output editor has bullet controls disclosure",
-      outputEditor.includes('data-testid="bullet-controls-toggle"'),
+      "output editor has shape-next-regeneration disclosure",
+      outputEditor.includes('data-testid="shape-next-regeneration-toggle"'),
     ],
     [
-      "output editor bullet controls stage excluded bullet keys",
+      "output editor shape-next-regeneration labels it as not the current document",
+      outputEditor.includes("affects regeneration, not the current document") ||
+        outputEditor.includes("Affects regeneration, not the current document"),
+    ],
+    [
+      "output editor shape-next-regeneration stages excluded bullet keys",
       outputEditor.includes("lineLevelExcludedBulletKeys"),
     ],
     [
-      "output editor bullet controls stage forced bullet keys",
+      "output editor shape-next-regeneration stages forced bullet keys",
       outputEditor.includes("lineLevelForcedBulletKeys"),
     ],
     [
-      "output editor bullet controls feed into buildMergedControls",
+      "output editor shape-next-regeneration feeds into buildMergedControls",
       outputEditor.includes("lineLevelExcludedBulletKeys") &&
         outputEditor.includes("buildMergedControls") &&
         outputEditor.includes("lineLevelForcedBulletKeys"),
     ],
+    // M10b — fit summary is now a full-width top banner (not a right-column disclosure),
+    // with the numeric score wired via calculateFitScore + fitAssessment.
     [
-      "output editor has fit summary disclosure",
-      outputEditor.includes('data-testid="fit-summary-toggle"'),
+      "output editor has fit summary top banner",
+      outputEditor.includes('data-testid="output-fit-summary-banner"'),
+    ],
+    [
+      "output editor wires numeric fit score",
+      outputEditor.includes("calculateFitScore") &&
+        outputEditor.includes("fitAssessment") &&
+        outputEditor.includes('data-testid="output-fit-score-chip"'),
     ],
     [
       "output editor imports buildPackageFitSummary",
@@ -186,6 +201,48 @@ function main() {
     [
       "output editor tailoring diagnostics shows omitted evidence section",
       outputEditor.includes('data-testid="tailoring-omitted-evidence"'),
+    ],
+    // ── M10b — Output Editor redesign ────────────────────────────────────────────
+    [
+      "output editor has Text | PDF dual-view toggle",
+      outputEditor.includes('data-testid="document-view-toggle"') &&
+        outputEditor.includes("document-view-${seg.key}") &&
+        outputEditor.includes("setDocumentView"),
+    ],
+    [
+      "output editor PDF view is on demand (not gated on exportReady)",
+      outputEditor.includes('documentView === "pdf" && pdfDocumentModel'),
+    ],
+    [
+      "output editor PDF view shows folio layout sliders",
+      outputEditor.includes('data-testid="output-layout-sliders"') &&
+        outputEditor.includes("updateLayoutSettings"),
+    ],
+    [
+      "output editor selectable bullets expose Edit / Replace / Remove",
+      outputEditor.includes('data-action="bullet-edit"') &&
+        outputEditor.includes('data-action="bullet-replace"') &&
+        outputEditor.includes('data-action="bullet-remove"'),
+    ],
+    [
+      "output editor Replace uses staged single_bullet regeneration",
+      outputEditor.includes("requestResumeSingleBulletRevision") &&
+        outputEditor.includes('scope: "single_bullet"') &&
+        outputEditor.includes('data-testid="bullet-replace-regenerate"'),
+    ],
+    [
+      "output editor in-document edits use the M5a invalidation path",
+      outputEditor.includes("applyContentEdit") &&
+        outputEditor.includes("resolveDraftStatusAfterContentEdit"),
+    ],
+    [
+      "output editor export consolidated to bottom card (no topbar export buttons or mark-as-sent)",
+      !outputEditor.includes("Mark as sent") &&
+        !outputEditor.includes("handleMarkSent"),
+    ],
+    [
+      "output editor CL tab surfaces Other formats (secondary communications)",
+      outputEditor.includes("SecondaryCommunicationsPanel"),
     ],
     [
       "generate section embedded mode has resume model tier select",

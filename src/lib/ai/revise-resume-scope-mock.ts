@@ -1,8 +1,10 @@
 import { rewriteMockResumeRole } from "@/lib/ai/resume-role-rewrite-mock";
 import {
   buildResumeRoleCustomRevisionPrompt,
+  buildResumeSingleBulletRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
   type ResumeRoleCustomRevisionPromptInput,
+  type ResumeSingleBulletRevisionPromptInput,
   type ResumeSummaryCustomRevisionPromptInput,
 } from "@/lib/resume-draft/custom-revision-prompt";
 import { buildResumeBatchRevisionPrompt } from "@/lib/resume-draft/custom-revision-batch-prompt";
@@ -84,6 +86,35 @@ export function reviseMockResumeRoleCustom(
   };
 }
 
+export type ResumeSingleBulletRevisionModelResult = {
+  scope: "single_bullet";
+  bulletCandidates: { roleIndex: number; bulletIndex: number; text: string }[];
+  warnings: string[];
+};
+
+export function reviseMockResumeSingleBullets(
+  input: ResumeSingleBulletRevisionPromptInput,
+): ResumeSingleBulletRevisionModelResult {
+  const bulletCandidates = input.targets.map((target) => {
+    const base = target.currentText.trim();
+    const instruction = target.customInstruction?.trim();
+    const text = instruction
+      ? `${base} (${instruction.slice(0, 48)})`
+      : `${base} — refined`;
+    return {
+      roleIndex: target.roleIndex,
+      bulletIndex: target.bulletIndex,
+      text: text.slice(0, 400),
+    };
+  });
+
+  return {
+    scope: "single_bullet",
+    bulletCandidates,
+    warnings: [],
+  };
+}
+
 export type ResumeBatchRevisionModelInput = {
   content: ResumeDraftContent;
   queue: readonly ResumeRevisionQueueItem[];
@@ -142,6 +173,7 @@ export function reviseMockResumeBatch(
 export {
   buildResumeBatchRevisionPrompt,
   buildResumeRoleCustomRevisionPrompt,
+  buildResumeSingleBulletRevisionPrompt,
   buildResumeSummaryCustomRevisionPrompt,
   parseResumeRoleRewriteJson,
   parseResumeSummaryCustomRevisionJson,

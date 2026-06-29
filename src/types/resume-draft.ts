@@ -381,7 +381,64 @@ export type ResumeRoleRewriteResponse = {
   timestamp: string;
 };
 
-export type ResumeCustomRevisionScope = "professional_summary" | "selected_role";
+export type ResumeCustomRevisionScope =
+  | "professional_summary"
+  | "selected_role"
+  | "single_bullet";
+
+/**
+ * One staged single-bullet replacement. The client stages one of these per bullet
+ * the user chose to "Replace"; they are revised together in a single AI call.
+ */
+export type ResumeSingleBulletRevisionTarget = {
+  roleIndex: number;
+  bulletIndex: number;
+  /** Current bullet text — passed so the model revises the existing statement, not a fresh one. */
+  currentText: string;
+  /** Optional per-bullet instruction (e.g. "make it more metrics-focused"). */
+  customInstruction?: string;
+};
+
+/**
+ * Single-bullet (Replace) revision request. Additive M10b scope on the existing
+ * /api/ai/revise-resume-scope endpoint — revises only the listed bullets' text,
+ * preserving each bullet's sourceRefs/confidence. One AI call for all targets.
+ */
+export type ResumeSingleBulletRevisionRequest = {
+  draftId: string;
+  scope: "single_bullet";
+  content: ResumeDraftContent;
+  jobDescription: {
+    id?: string;
+    rawText: string;
+    companyName?: string;
+    roleTitle?: string;
+  };
+  bullets: ResumeSingleBulletRevisionTarget[];
+  resumeModelTier?: ModelTier;
+  /** When false (default), returns staged candidates without saving. */
+  persist?: boolean;
+};
+
+export type ResumeSingleBulletRevisionCandidate = {
+  roleIndex: number;
+  bulletIndex: number;
+  text: string;
+};
+
+export type ResumeSingleBulletRevisionResponse = {
+  scope: "single_bullet";
+  bulletCandidates: ResumeSingleBulletRevisionCandidate[];
+  warnings: string[];
+  provider: AIProviderId;
+  isMock: boolean;
+  providerLabel: string;
+  modelName?: string;
+  requestedModelTier?: ModelTier;
+  modelFallbackApplied?: boolean;
+  persisted: boolean;
+  timestamp: string;
+};
 
 export type ResumeCustomRevisionRequest = {
   draftId: string;

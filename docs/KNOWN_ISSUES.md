@@ -1,5 +1,13 @@
 # Known Issues
 
+## Output Editor redesign (M10b)
+
+- **`single_bullet` Replace is batched, not per-bullet** — staged bullets regenerate together in one AI call (one revised statement per staged target), per the agreed UX. The scope is additive on `/api/ai/revise-resume-scope`; existing scopes and the generation/repair engine are untouched.
+- **Per-section inline edits hold transient working copies** — header/summary/skills/education/additional/role-details editors save explicitly (Save/Cancel) and persist immediately; there is no page-level `beforeunload` guard for the resume side (the whole-panel dirty-state editor was retired). The cover-letter `beforeunload` guard is unchanged. Mid-edit navigation discards an unsaved section editor.
+- **Bullet Remove is immediate, no undo** — matches the agreed "immediate content edit" model; recoverable only via Regenerate. Approval invalidates on every edit.
+- **Layout sliders expose 5 of 6 settings** — body font, side margins, top margin, line spacing, section spacing. `itemLineSpacing` passes through from stored/optimizer defaults (no slider), consistent with the legacy preview controls.
+- **Independent Opus review still required before merge** (same standard as M4).
+
 ## Folio UI redesign
 
 - **Dual output routes** — `/output/[draftId]` (new Output Editor) and `/resume-preview/[draftId]` (legacy Application Package) both exist. Generate and Applications links still target `/resume-preview`. Migration pending — see `docs/FOLIO_REDESIGN.md`.

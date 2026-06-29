@@ -64,7 +64,7 @@ export function ResumeStagedCustomRevisionPanel({
   disabled = false,
   onAccepted,
 }: ResumeStagedCustomRevisionPanelProps) {
-  const [scope, setScope] = useState<ResumeCustomRevisionScope>("selected_role");
+  const [scope, setScope] = useState<"professional_summary" | "selected_role">("selected_role");
   const [roleIndex, setRoleIndex] = useState(0);
   const [customInstruction, setCustomInstruction] = useState("");
   const [queue, setQueue] = useState<ResumeRevisionQueueItem[]>([]);
@@ -300,7 +300,7 @@ export function ResumeStagedCustomRevisionPanel({
               value={scope}
               disabled={disabled || isRevising}
               onChange={(event) => {
-                setScope(event.target.value as ResumeCustomRevisionScope);
+                setScope(event.target.value as "professional_summary" | "selected_role");
                 setPendingRevision(null);
               }}
               className={formFieldClassName}

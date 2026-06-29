@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd C:\\\\Dev\\\\AIAP\\\\resume-copilot; npm run test 2>&1 | Where-Object { $_ -match \"^FAIL\" })",
+      "Bash(grep -n \"// ── Structured editor\\\\|^const INPUT_CLASS\\\\|^const REMOVE_BULLET_CLASS\\\\|^type StructuredResumeEditorProps\\\\|^function StructuredResumeEditor\\\\|// ── Revision queue \\(Folio-native\\)\" src/components/pages/OutputEditorPageClient.tsx)",
+      "Bash(sed -i '1265,1736d' src/components/pages/OutputEditorPageClient.tsx)",
+      "Bash(grep -n \"// ── Structured editor\\\\|^const INPUT_CLASS\\\\|^const REMOVE_BULLET_CLASS\\\\|StructuredResumeEditor\\\\|// ── Revision queue \\(Folio-native\\)\" src/components/pages/OutputEditorPageClient.tsx)",
+      "Bash(grep -n \"const fitVerdict = fitScore\\\\|^  return \\(\\\\|^}$\" src/components/pages/OutputEditorPageClient.tsx)",
+      "Bash(echo \"exit=$?\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

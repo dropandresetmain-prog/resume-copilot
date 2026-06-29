@@ -15,6 +15,22 @@ export type ResumeRoleCustomRevisionPromptInput = {
   bulletStyle?: "keyword_colon" | "plain";
 };
 
+export type ResumeSingleBulletRevisionPromptTarget = {
+  roleIndex: number;
+  bulletIndex: number;
+  company: string;
+  role: string;
+  currentText: string;
+  customInstruction?: string;
+};
+
+export type ResumeSingleBulletRevisionPromptInput = {
+  targets: ResumeSingleBulletRevisionPromptTarget[];
+  jobDescriptionText: string;
+  targetRoleTitle?: string;
+  bulletStyle?: "keyword_colon" | "plain";
+};
+
 export const RESUME_SUMMARY_CUSTOM_REVISION_INSTRUCTIONS = `You revise ONLY the professional summary paragraph for a resume draft.
 
 Critical output rules:
@@ -50,6 +66,65 @@ Bullet format:
 
 One-page discipline:
 - Keep bullets concise. Prefer stronger selection over exhaustive listing.`;
+
+export const RESUME_SINGLE_BULLET_REVISION_INSTRUCTIONS = `You revise specific individual Work Experience bullets the user selected to replace.
+
+Critical output rules:
+- Return strict JSON only. No markdown, no code fences, no commentary outside JSON.
+- The response must parse with JSON.parse().
+
+Scope rules (critical):
+- Revise ONLY the bullets listed in "targets" — one revised statement per target.
+- Return exactly one entry per target, echoing its roleIndex and bulletIndex.
+- Do NOT add, remove, reorder, or merge bullets. Do NOT touch any other bullet, role, or section.
+- Preserve the original meaning and the underlying achievement of each bullet — improve phrasing/alignment, do not invent new facts, employers, titles, dates, metrics, or tools.
+
+Bullet format:
+- Use "Specific Keyword: Experience statement" unless bulletStyle is plain.
+- Never use generic keywords like "Experience:" or "Achievement:".
+
+One-page discipline:
+- Keep each revised bullet concise (single line where possible).`;
+
+export function buildResumeSingleBulletRevisionPrompt(
+  input: ResumeSingleBulletRevisionPromptInput,
+): string {
+  const payload = {
+    bulletStyle: input.bulletStyle ?? "keyword_colon",
+    jobDescription: {
+      rawText: input.jobDescriptionText,
+      roleTitle: input.targetRoleTitle,
+    },
+    targets: input.targets.map((target) => ({
+      roleIndex: target.roleIndex,
+      bulletIndex: target.bulletIndex,
+      company: target.company,
+      role: target.role,
+      currentText: target.currentText,
+      customInstruction: target.customInstruction?.trim() || undefined,
+    })),
+  };
+
+  return `${RESUME_SINGLE_BULLET_REVISION_INSTRUCTIONS}
+
+Return JSON with this exact shape:
+{
+  "bullets": [
+    { "roleIndex": number, "bulletIndex": number, "text": "Specific Keyword: Experience statement" }
+  ],
+  "warnings": string[]
+}
+
+Single-bullet revision input:
+${JSON.stringify(payload, null, 2)}`;
+}
+
+export function promptIncludesSingleBulletRevisionScope(prompt: string): boolean {
+  return (
+    prompt.includes("revise specific individual Work Experience bullets") &&
+    prompt.includes("Revise ONLY the bullets listed in")
+  );
+}
 
 export function buildResumeSummaryCustomRevisionPrompt(
   input: ResumeSummaryCustomRevisionPromptInput,

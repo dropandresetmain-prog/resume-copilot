@@ -1,13 +1,16 @@
 import {
   reviseMockResumeRoleCustom,
+  reviseMockResumeSingleBullets,
   reviseMockResumeSummary,
   reviseMockResumeBatch,
   type ResumeCustomRevisionModelResult,
   type ResumeBatchRevisionModelInput,
+  type ResumeSingleBulletRevisionModelResult,
 } from "@/lib/ai/revise-resume-scope-mock";
 import {
   reviseResumeBatchWithGemini,
   reviseResumeRoleCustomWithGemini,
+  reviseResumeSingleBulletsWithGemini,
   reviseResumeSummaryWithGemini,
 } from "@/lib/ai/revise-resume-scope-gemini";
 import {
@@ -21,6 +24,7 @@ import type { AIProviderId } from "@/lib/ai/types";
 import type { ResumeBatchRevisionCandidates } from "@/lib/resume-draft/custom-revision-batch";
 import type {
   ResumeRoleCustomRevisionPromptInput,
+  ResumeSingleBulletRevisionPromptInput,
   ResumeSummaryCustomRevisionPromptInput,
 } from "@/lib/resume-draft/custom-revision-prompt";
 import type { ResumeCustomRevisionScope } from "@/types/resume-draft";
@@ -77,6 +81,50 @@ export async function reviseResumeScopeWithAI(
   };
 }
 
+export async function reviseResumeSingleBulletsWithAI(
+  input: ResumeSingleBulletRevisionPromptInput,
+  providerId?: string | null,
+  options?: { modelTier?: ModelTier },
+): Promise<
+  ResumeSingleBulletRevisionModelResult & {
+    providerId: AIProviderId;
+    modelName?: string;
+    requestedModelTier: ModelTier;
+    modelFallbackApplied: boolean;
+  }
+> {
+  const provider = resolveActiveProviderId(providerId);
+  const modelTier = options?.modelTier ?? "standard";
+
+  if (provider === "gemini") {
+    const result = await reviseResumeSingleBulletsWithGemini(
+      input,
+      requireGeminiApiKey(),
+      modelTier,
+    );
+    return {
+      ...result,
+      providerId: "gemini",
+      modelName: result.modelName,
+      requestedModelTier: result.requestedModelTier,
+      modelFallbackApplied: result.modelFallbackApplied,
+    };
+  }
+
+  if (provider === "openai") {
+    assertOpenAiFeatureNotImplemented("resume single-bullet revision");
+  }
+
+  const result = reviseMockResumeSingleBullets(input);
+  return {
+    ...result,
+    providerId: "mock",
+    modelName: undefined,
+    requestedModelTier: modelTier,
+    modelFallbackApplied: false,
+  };
+}
+
 export async function reviseResumeBatchWithAI(
   input: ResumeBatchRevisionModelInput,
   providerId?: string | null,
@@ -122,5 +170,9 @@ export function getResumeCustomRevisionProviderLabel(providerId?: string | null)
 }
 
 export function isResumeCustomRevisionScope(value: string): value is ResumeCustomRevisionScope {
-  return value === "professional_summary" || value === "selected_role";
+  return (
+    value === "professional_summary" ||
+    value === "selected_role" ||
+    value === "single_bullet"
+  );
 }

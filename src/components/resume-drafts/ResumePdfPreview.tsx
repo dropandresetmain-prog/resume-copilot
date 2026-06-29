@@ -149,7 +149,7 @@ export function ResumePdfPreview({
           page break. Server validation below is the export gate.
         </div>
       ) : null}
-      <div className="flex min-w-0 justify-center rounded-lg bg-slate-100 p-3 ring-1 ring-slate-200 sm:p-5">
+      <div className="flex min-w-0 justify-center rounded-lg border border-folio-sage-border bg-folio-surface-container-low p-3 sm:p-5">
         <div
           ref={frameRef}
           data-testid={RESUME_PDF_PREVIEW_FRAME_TEST_ID}
@@ -157,7 +157,7 @@ export function ResumePdfPreview({
           style={{ maxWidth: `${A4_WIDTH_MM}mm` }}
         >
           <div
-            className="relative mx-auto shadow-xl ring-1 ring-slate-300"
+            className="relative mx-auto border border-folio-sage-border"
             style={{
               width: `${A4_WIDTH_MM * scale}mm`,
               height: `${displayHeightPx}px`,
@@ -190,7 +190,7 @@ export function ResumePdfPreview({
           </div>
         </div>
       </div>
-      <p className="mt-2 text-center text-xs text-slate-500">
+      <p className="mt-2 text-center text-xs text-folio-outline">
         PDF Preview uses the same print HTML/CSS as export ({A4_WIDTH_MM} × {A4_HEIGHT_MM} mm). It is
         the closest visual preview in your browser; downloaded PDFs are rendered on the server and
         may differ slightly at line breaks. Scales to fit on narrow screens without reflowing
