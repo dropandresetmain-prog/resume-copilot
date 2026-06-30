@@ -35,6 +35,13 @@ function main() {
     join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
     "utf8",
   );
+  const secondaryCommunications = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/cover-letters/SecondaryCommunicationsPanel.tsx",
+    ),
+    "utf8",
+  );
   const generateSection = readFileSync(
     join(process.cwd(), "src/components/setup/GenerateTailoredResumeSection.tsx"),
     "utf8",
@@ -219,6 +226,13 @@ function main() {
         outputEditor.includes("updateLayoutSettings"),
     ],
     [
+      "desktop PDF view uses an 80/20 preview and layout rail",
+      outputEditor.includes('data-testid="output-pdf-layout-split"') &&
+        outputEditor.includes('className="min-w-0 xl:w-4/5"') &&
+        outputEditor.includes('className="min-w-0 xl:w-1/5"') &&
+        outputEditor.includes("grid grid-cols-1"),
+    ],
+    [
       "output editor selectable bullets expose Edit / Replace / Remove",
       outputEditor.includes('data-action="bullet-edit"') &&
         outputEditor.includes('data-action="bullet-replace"') &&
@@ -241,8 +255,12 @@ function main() {
         !outputEditor.includes("handleMarkSent"),
     ],
     [
-      "output editor CL tab surfaces Other formats (secondary communications)",
-      outputEditor.includes("SecondaryCommunicationsPanel"),
+      "output editor CL tab surfaces email and message formats",
+      outputEditor.includes("SecondaryCommunicationsPanel") &&
+        secondaryCommunications.includes("Email and message formats") &&
+        secondaryCommunications.includes(
+          "Open copy-ready email, LinkedIn, recruiter, and WhatsApp versions.",
+        ),
     ],
     [
       "generate section embedded mode has resume model tier select",
@@ -398,6 +416,16 @@ function main() {
     [
       "Content edit re-locks the gate (M11)",
       outputEditor.includes("setContentConfirmed(false)"),
+    ],
+    [
+      "all approve paths and layout handler enforce the content gate",
+      outputEditor.includes(
+        "if (!draft || isApproving || !contentConfirmed || resumeStage.size > 0) return;",
+      ) &&
+        outputEditor.match(/disabled=\{isApproving \|\| !contentConfirmed\}/g)?.length === 2 &&
+        outputEditor.includes(
+          "if (!draftId || !contentConfirmed || resumeStage.size > 0) return;",
+        ),
     ],
   ];
 

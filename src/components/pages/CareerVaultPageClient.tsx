@@ -675,25 +675,27 @@ export function CareerVaultPageClient() {
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     {items.map((item) => {
-                      const isHidden = hiddenSkills.has(item.id);
+                      const overlayKey = item.inventoryOverlayKey ?? item.id;
+                      const isHidden = hiddenSkills.has(overlayKey);
                       const hasOverride =
-                        draftEdits.editedSkillTextById?.[item.id] !== undefined;
-                      if (editingItemId === item.id) {
+                        draftEdits.editedSkillTextById?.[overlayKey] !== undefined;
+                      if (editingItemId === overlayKey) {
                         return (
-                          <span key={item.id} className="inline-flex items-center gap-1">
+                          <span key={overlayKey} className="inline-flex items-center gap-1">
                             <input
                               autoFocus
                               value={editItemText}
                               onChange={(e) => setEditItemText(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") void commitItemEdit(skillOps, item.id);
+                                if (e.key === "Enter")
+                                  void commitItemEdit(skillOps, overlayKey);
                                 if (e.key === "Escape") cancelItemEdit();
                               }}
                               className="rounded-lg border border-folio-outline-variant px-2 py-1 text-[13px] focus:border-folio-primary-container focus:outline-none"
                             />
                             <button
                               type="button"
-                              onClick={() => void commitItemEdit(skillOps, item.id)}
+                              onClick={() => void commitItemEdit(skillOps, overlayKey)}
                               className="rounded-lg bg-folio-primary-container px-2.5 py-1 text-[11px] font-medium text-white"
                             >
                               Save
@@ -710,7 +712,7 @@ export function CareerVaultPageClient() {
                       }
                       return (
                         <span
-                          key={item.id}
+                          key={overlayKey}
                           className={`group inline-flex items-center gap-1 rounded-full border border-folio-sage-border px-3 py-1 text-[13px] text-folio-on-surface ${
                             isHidden ? "opacity-40" : ""
                           }`}
@@ -724,7 +726,7 @@ export function CareerVaultPageClient() {
                           <span className="ml-0.5 hidden items-center gap-1 group-hover:inline-flex">
                             <button
                               type="button"
-                              onClick={() => startItemEdit(item.id, item.text)}
+                              onClick={() => startItemEdit(overlayKey, item.text)}
                               aria-label="Edit skill"
                               className="text-folio-outline hover:text-folio-on-surface"
                             >
@@ -732,7 +734,9 @@ export function CareerVaultPageClient() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void toggleItemHidden(skillOps, item.id, isHidden)}
+                              onClick={() =>
+                                void toggleItemHidden(skillOps, overlayKey, isHidden)
+                              }
                               className="text-[11px] text-folio-outline hover:text-folio-on-surface"
                             >
                               {isHidden ? "Show" : "Hide"}
@@ -740,7 +744,7 @@ export function CareerVaultPageClient() {
                             {hasOverride && (
                               <button
                                 type="button"
-                                onClick={() => void revertItemEdit(skillOps, item.id)}
+                                onClick={() => void revertItemEdit(skillOps, overlayKey)}
                                 className="text-[11px] text-folio-outline hover:text-folio-on-surface"
                               >
                                 Revert
@@ -762,12 +766,14 @@ export function CareerVaultPageClient() {
             <EmptyTabState message="No education yet. Upload a resume to populate education." />
           ) : (
             editingCollated.educationItems.map((edu) => {
-              const isHidden = hiddenEducation.has(edu.id);
-              const hasOverride = draftEdits.editedEducationTextById?.[edu.id] !== undefined;
-              const isEditing = editingItemId === edu.id;
+              const overlayKey = edu.inventoryOverlayKey ?? edu.id;
+              const isHidden = hiddenEducation.has(overlayKey);
+              const hasOverride =
+                draftEdits.editedEducationTextById?.[overlayKey] !== undefined;
+              const isEditing = editingItemId === overlayKey;
               return (
                 <div
-                  key={edu.id}
+                  key={overlayKey}
                   className={`group rounded-xl border border-folio-sage-border bg-white p-4 ${
                     isHidden ? "opacity-40" : ""
                   }`}
@@ -781,14 +787,15 @@ export function CareerVaultPageClient() {
                             value={editItemText}
                             onChange={(e) => setEditItemText(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") void commitItemEdit(educationOps, edu.id);
+                              if (e.key === "Enter")
+                                void commitItemEdit(educationOps, overlayKey);
                               if (e.key === "Escape") cancelItemEdit();
                             }}
                             className="flex-1 rounded-lg border border-folio-outline-variant px-2 py-1 text-[14px] focus:border-folio-primary-container focus:outline-none"
                           />
                           <button
                             type="button"
-                            onClick={() => void commitItemEdit(educationOps, edu.id)}
+                            onClick={() => void commitItemEdit(educationOps, overlayKey)}
                             className="rounded-lg bg-folio-primary-container px-3 py-1.5 text-xs font-medium text-white"
                           >
                             Save
@@ -837,7 +844,7 @@ export function CareerVaultPageClient() {
                       <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
-                          onClick={() => startItemEdit(edu.id, edu.institution)}
+                          onClick={() => startItemEdit(overlayKey, edu.institution)}
                           aria-label="Edit institution"
                           className="rounded p-1 text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                         >
@@ -845,7 +852,9 @@ export function CareerVaultPageClient() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => void toggleItemHidden(educationOps, edu.id, isHidden)}
+                          onClick={() =>
+                            void toggleItemHidden(educationOps, overlayKey, isHidden)
+                          }
                           className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                         >
                           {isHidden ? "Show" : "Hide"}
@@ -853,7 +862,7 @@ export function CareerVaultPageClient() {
                         {hasOverride && (
                           <button
                             type="button"
-                            onClick={() => void revertItemEdit(educationOps, edu.id)}
+                            onClick={() => void revertItemEdit(educationOps, overlayKey)}
                             className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                             title="Revert to original source text"
                           >
@@ -876,13 +885,14 @@ export function CareerVaultPageClient() {
             <div className="rounded-xl border border-folio-sage-border bg-white p-4">
               <ul className="space-y-2">
                 {editingCollated.additionalExperienceItems.map((item) => {
-                  const isHidden = hiddenAdditional.has(item.id);
+                  const overlayKey = item.inventoryOverlayKey ?? item.id;
+                  const isHidden = hiddenAdditional.has(overlayKey);
                   const hasOverride =
-                    draftEdits.editedAdditionalTextById?.[item.id] !== undefined;
-                  const isEditing = editingItemId === item.id;
+                    draftEdits.editedAdditionalTextById?.[overlayKey] !== undefined;
+                  const isEditing = editingItemId === overlayKey;
                   return (
                     <li
-                      key={item.id}
+                      key={overlayKey}
                       className={`group border-t border-folio-surface-container pt-2 first:border-t-0 first:pt-0 ${
                         isHidden ? "opacity-40" : ""
                       }`}
@@ -896,7 +906,7 @@ export function CareerVaultPageClient() {
                             onChange={(e) => setEditItemText(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
-                                void commitItemEdit(additionalOps, item.id);
+                                void commitItemEdit(additionalOps, overlayKey);
                               if (e.key === "Escape") cancelItemEdit();
                             }}
                             className="flex-1 rounded-lg border border-folio-outline-variant p-2 text-[14px] focus:border-folio-primary-container focus:outline-none"
@@ -904,7 +914,7 @@ export function CareerVaultPageClient() {
                           <div className="flex shrink-0 flex-col gap-1">
                             <button
                               type="button"
-                              onClick={() => void commitItemEdit(additionalOps, item.id)}
+                              onClick={() => void commitItemEdit(additionalOps, overlayKey)}
                               className="rounded-lg bg-folio-primary-container px-3 py-1.5 text-xs font-medium text-white"
                             >
                               Save
@@ -932,7 +942,7 @@ export function CareerVaultPageClient() {
                           <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                             <button
                               type="button"
-                              onClick={() => startItemEdit(item.id, item.text)}
+                              onClick={() => startItemEdit(overlayKey, item.text)}
                               aria-label="Edit item"
                               className="rounded p-1 text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                             >
@@ -940,7 +950,9 @@ export function CareerVaultPageClient() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void toggleItemHidden(additionalOps, item.id, isHidden)}
+                              onClick={() =>
+                                void toggleItemHidden(additionalOps, overlayKey, isHidden)
+                              }
                               className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                             >
                               {isHidden ? "Show" : "Hide"}
@@ -948,7 +960,7 @@ export function CareerVaultPageClient() {
                             {hasOverride && (
                               <button
                                 type="button"
-                                onClick={() => void revertItemEdit(additionalOps, item.id)}
+                                onClick={() => void revertItemEdit(additionalOps, overlayKey)}
                                 className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
                                 title="Revert to original source text"
                               >

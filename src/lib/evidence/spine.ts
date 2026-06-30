@@ -5,7 +5,7 @@ import {
   EVIDENCE_SCORE,
   MAX_RANKED_ADDITIONAL_ITEMS,
   MAX_RANKED_EDUCATION_ITEMS,
-  MAX_RANKED_SKILL_ITEMS,
+  MAX_RANKED_SKILL_ITEMS_PER_CATEGORY,
   OMITTED_BUT_RELEVANT_MIN_SCORE,
 } from "@/lib/evidence/constants";
 import type {
@@ -210,46 +210,37 @@ function selectWorkBullets(
   return { selections: selected, unavailableForcedKeys };
 }
 
+function parseSkillCategoryFromDisplayLabel(displayLabel: string): string | null {
+  const separatorIndex = displayLabel.indexOf(": ");
+  if (separatorIndex === -1) {
+    return null;
+  }
+  return displayLabel.slice(0, separatorIndex);
+}
+
 function selectSkillIds(ranked: readonly EvidenceItem[]): string[] {
   const skills = ranked.filter((item) => item.sourceType === "skill");
-  const selected: EvidenceItem[] = [];
+  const selectedSourceIds: string[] = [];
   const selectedIds = new Set<string>();
-
-  const countForPrefix = (prefix: string) =>
-    selected.filter((item) => item.displayLabel.startsWith(prefix)).length;
-
-  const pickTop = (prefix: string, limit: number) => {
-    for (const item of skills) {
-      if (selected.length >= MAX_RANKED_SKILL_ITEMS) {
-        return;
-      }
-      if (!item.displayLabel.startsWith(prefix) || selectedIds.has(item.id)) {
-        continue;
-      }
-      if (countForPrefix(prefix) >= limit) {
-        continue;
-      }
-      selected.push(item);
-      selectedIds.add(item.id);
-    }
-  };
-
-  pickTop("Technical Skills:", 3);
-  pickTop("Languages:", 1);
-  pickTop("Interests:", 1);
+  const countByCategory = new Map<string, number>();
 
   for (const item of skills) {
-    if (selected.length >= MAX_RANKED_SKILL_ITEMS) {
-      break;
-    }
-    if (selectedIds.has(item.id)) {
+    const category = parseSkillCategoryFromDisplayLabel(item.displayLabel);
+    if (!category || selectedIds.has(item.id)) {
       continue;
     }
-    selected.push(item);
+
+    const categoryCount = countByCategory.get(category) ?? 0;
+    if (categoryCount >= MAX_RANKED_SKILL_ITEMS_PER_CATEGORY) {
+      continue;
+    }
+
+    selectedSourceIds.push(item.sourceId);
     selectedIds.add(item.id);
+    countByCategory.set(category, categoryCount + 1);
   }
 
-  return selected.map((item) => item.sourceId);
+  return selectedSourceIds;
 }
 
 function selectAdditionalIds(

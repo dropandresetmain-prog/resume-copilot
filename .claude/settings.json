@@ -8,8 +8,8 @@
       "Bash(grep -n \"const fitVerdict = fitScore\\\\|^  return \\(\\\\|^}$\" src/components/pages/OutputEditorPageClient.tsx)",
       "Bash(echo \"exit=$?\")",
       "Read(//tmp/**)",
-      "Bash(ls -dt ~/.claude/projects/*/ 2>/dev/null | head -50)",
-      "Read(//c/Users/sethl/.claude/projects/**)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

@@ -59,8 +59,8 @@ export type InventoryEdits = {
   /** Set when project overlay cleanup is applied — prompts draft regeneration (v0.9.16D). */
   projectInventoryCleanupAt?: string;
   // ── Structured overlay editing for non-Work sections (M11) ──────────────────
-  // Same non-destructive contract as work bullets: hide/edit/revert by collated
-  // item id. Source resumes are never mutated. "Add" for these sections is
+  // Same non-destructive contract as work bullets: hide/edit/revert by stable
+  // logical item key. Source resumes are never mutated. "Add" for these sections is
   // deferred to a later milestone (Education add especially) — see roadmap M11.
   /** Education item IDs hidden from generation/output (M11). */
   hiddenEducationIds?: string[];

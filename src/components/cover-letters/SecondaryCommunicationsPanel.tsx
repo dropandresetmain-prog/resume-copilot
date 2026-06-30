@@ -90,15 +90,14 @@ export function SecondaryCommunicationsPanel({ rationale }: SecondaryCommunicati
         aria-expanded={open}
         data-testid="cl-other-formats-toggle"
       >
-        <span>Other formats ({blocks.length})</span>
+        <span>Email and message formats ({blocks.length})</span>
         <ChevronIcon open={open} />
       </button>
 
       {open ? (
         <div className="mt-2 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4">
           <p className="text-[12px] text-folio-outline">
-            Shorter outreach versions — copy and paste. The formal letter above is the downloadable
-            artifact.
+            Open copy-ready email, LinkedIn, recruiter, and WhatsApp versions.
           </p>
           <div className="mt-3 space-y-3">
             {blocks.map((block) => (

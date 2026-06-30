@@ -32,6 +32,8 @@ export type CollatedExperience = {
 
 export type CollatedEducationItem = {
   id: string;
+  /** Stable non-source identifier used by the persisted inventory edit overlay. */
+  inventoryOverlayKey?: string;
   institution: string;
   location?: string;
   programmes: string[];
@@ -45,6 +47,8 @@ export type CollatedEducationItem = {
 
 export type CollatedTextItem = {
   id: string;
+  /** Stable non-source identifier used by the persisted inventory edit overlay. */
+  inventoryOverlayKey?: string;
   category?: string;
   text: string;
   rawTexts: string[];
@@ -59,6 +63,8 @@ export type CollatedSkillCategory =
 
 export type CollatedSkillItem = {
   id: string;
+  /** Stable non-source identifier used by the persisted inventory edit overlay. */
+  inventoryOverlayKey?: string;
   category: CollatedSkillCategory;
   text: string;
   sourceCitations: SourceCitation[];

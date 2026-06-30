@@ -20,6 +20,11 @@ import {
   resumeCustomRevisionShouldPersist,
   validateResumeSingleBulletRevisionRequest,
 } from "../../src/lib/resume-draft/custom-revision";
+import {
+  buildResumeExperienceDisplayEntries,
+  isResumeStageTargetCurrent,
+  updateResumeSkillGroupItems,
+} from "../../src/lib/resume-draft/editor-display";
 import { parseResumeSingleBulletRevisionJson } from "../../src/lib/resume-draft/custom-revision-parse";
 import {
   applyResumeBatchRevision,
@@ -38,6 +43,7 @@ import {
   promptIncludesSummaryCustomRevisionScope,
 } from "../../src/lib/resume-draft/custom-revision-prompt";
 import type { InventoryState } from "../../src/types/resume";
+import type { StoredJobDescription } from "../../src/types/jd";
 import {
   isProfessionalSummaryRevisionScopeAvailable,
   PROFESSIONAL_SUMMARY_REVISION_UNAVAILABLE_COPY,
@@ -351,6 +357,35 @@ function main() {
     join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
     "utf8",
   );
+  const fiveSkills = ["SQL", "Tableau", "Python", "Figma", "Jira"];
+  const fiveSkillContent = updateResumeSkillGroupItems(
+    {
+      ...originalContent,
+      skills: {
+        ...originalContent.skills,
+        groups: [{ label: "Tools", items: [] }],
+      },
+    },
+    0,
+    fiveSkills,
+  );
+  const baseRole = originalContent.experience[0]!;
+  const reverseChronologicalContent = {
+    ...originalContent,
+    experience: [
+      { ...baseRole, company: "Old Co", dateRange: "2010 - 2012" },
+      { ...baseRole, company: "Current Co", dateRange: "2022 - Present" },
+      { ...baseRole, company: "Middle Co", dateRange: "2018 - 2020" },
+    ],
+  };
+  const displayEntries = buildResumeExperienceDisplayEntries(
+    reverseChronologicalContent.experience,
+    new Date("2026-06-30T00:00:00.000Z"),
+  );
+  const originalIndexMutation = applyResumeSingleBulletRevisions(
+    reverseChronologicalContent,
+    [{ roleIndex: 0, bulletIndex: 0, text: "Changed the original index only." }],
+  );
 
   const checks: [string, boolean][] = [
     // ── M11: Replace = pick spine alternative → stage → apply via single_bullet ──
@@ -382,6 +417,69 @@ function main() {
       "Resume apply persists via the M5a invalidation path (M11)",
       outputEditor.includes("applyResumeSingleBulletRevisions(content, response.bulletCandidates)") &&
         outputEditor.includes("await onApplyContentEdit(next)"),
+    ],
+    [
+      "staged replacements lock structural Edit and Remove actions",
+      outputEditor.includes("structuralEditDisabled") &&
+        outputEditor.includes('data-testid="resume-structural-edit-lock"') &&
+        outputEditor.includes(
+          "Apply or clear staged replacements before editing document structure.",
+        ),
+    ],
+    [
+      "newly staged replacement relocks the content gate",
+      outputEditor.includes("onStageCreated();") &&
+        outputEditor.includes("onStageCreated={() => setContentConfirmed(false)}"),
+    ],
+    [
+      "staged target drift is rejected before applying",
+      isResumeStageTargetCurrent(reverseChronologicalContent, {
+        roleIndex: 0,
+        bulletIndex: 0,
+        originalText: baseRole.bullets[0]!.text,
+      }) &&
+        !isResumeStageTargetCurrent(
+          {
+            ...reverseChronologicalContent,
+            experience: reverseChronologicalContent.experience.map((role, index) =>
+              index === 0 ? { ...role, bullets: [] } : role,
+            ),
+          },
+          {
+            roleIndex: 0,
+            bulletIndex: 0,
+            originalText: baseRole.bullets[0]!.text,
+          },
+        ),
+    ],
+    [
+      "Replace alternatives are role-scoped and exclude the current bullet",
+      outputEditor.includes("alternative.roleKey === roleKey") &&
+        outputEditor.includes("alternative.text !== b.text") &&
+        outputEditor.includes("currentBulletKeys.has(alternative.bulletKey)"),
+    ],
+    [
+      "Text view sorts roles reverse-chronologically without mutating content",
+      displayEntries.map((entry) => entry.experience.company).join("|") ===
+        "Current Co|Middle Co|Old Co" &&
+        reverseChronologicalContent.experience[0]?.company === "Old Co",
+    ],
+    [
+      "Text-view mutation targets retain original content indices",
+      displayEntries[0]?.originalIndex === 1 &&
+        originalIndexMutation.experience[0]?.bullets[0]?.text ===
+          "Changed the original index only." &&
+        originalIndexMutation.experience[1]?.bullets[0]?.text ===
+          reverseChronologicalContent.experience[1]?.bullets[0]?.text,
+    ],
+    [
+      "five saved skills remain visible and editable",
+      fiveSkillContent.skills.groups[0]?.items.length === 5 &&
+        fiveSkillContent.skills.groups[0]?.items.every(
+          (item, index) => item === fiveSkills[index],
+        ) &&
+        outputEditor.includes("content.skills.groups.map((group)") &&
+        !outputEditor.includes("content.skills.groups.slice("),
     ],
     ["initial review state pending summary", initialReview.professionalSummary.status === "pending"],
     ["edited bullet in preview", editedBullet.includes("Edited bullet")],

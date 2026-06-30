@@ -76,6 +76,11 @@ import {
 } from "@/lib/resume-draft/approve-resume-draft-client";
 import { resolveDraftStatusAfterContentEdit } from "@/lib/resume-draft/apply-evidence-changes";
 import {
+  buildResumeExperienceDisplayEntries,
+  isResumeStageTargetCurrent,
+  updateResumeSkillGroupItems,
+} from "@/lib/resume-draft/editor-display";
+import {
   isApprovedDraftStatus,
   isLayoutChangedAfterApprovalStatus,
   RESUME_DRAFT_STATUS_LAYOUT_CHANGED,
@@ -288,6 +293,8 @@ type AlternativeBullet = {
   text: string;
   label: string;
   score: number;
+  roleKey: string;
+  bulletKey?: string;
 };
 
 // One staged replacement: the picked alternative text + an optional per-bullet
@@ -295,6 +302,7 @@ type AlternativeBullet = {
 type ResumeStageEntry = {
   pickedText: string;
   instruction: string;
+  originalText: string;
 };
 type ResumeStageMap = Map<string, ResumeStageEntry>;
 
@@ -314,6 +322,8 @@ type ResumeTextDocumentProps = {
   /** Bucket-level custom instruction applied to every staged bullet on Apply. */
   stageInstruction: string;
   setStageInstruction: (value: string) => void;
+  /** Relocks layout and approval as soon as a replacement is newly staged. */
+  onStageCreated: () => void;
 };
 
 function ResumeTextDocument({
@@ -326,6 +336,7 @@ function ResumeTextDocument({
   setStage,
   stageInstruction,
   setStageInstruction,
+  onStageCreated,
 }: ResumeTextDocumentProps) {
   const content = draft.content;
   const header = content.header;
@@ -358,8 +369,13 @@ function ResumeTextDocument({
     () => resolveResumeModelTierForDraft({ draftTier: draft.inputSnapshot?.resumeModelTier }),
     [draft.inputSnapshot?.resumeModelTier],
   );
+  const displayExperiences = useMemo(
+    () => buildResumeExperienceDisplayEntries(content.experience),
+    [content.experience],
+  );
 
   function openSection(section: string) {
+    if (stage.size > 0) return;
     setSectionDraft(content);
     setEditingSection(section);
     setDocError(null);
@@ -371,7 +387,7 @@ function ResumeTextDocument({
   }
 
   async function saveSection() {
-    if (!sectionDraft || isSavingSection) return;
+    if (!sectionDraft || isSavingSection || stage.size > 0) return;
     setIsSavingSection(true);
     setDocError(null);
     try {
@@ -389,6 +405,7 @@ function ResumeTextDocument({
   }
 
   function startBulletEdit(roleIndex: number, bulletIndex: number, currentText: string) {
+    if (stage.size > 0) return;
     setEditingBulletKey(bulletStageKey(roleIndex, bulletIndex));
     setBulletEditText(currentText);
     setDocError(null);
@@ -396,7 +413,7 @@ function ResumeTextDocument({
 
   async function saveBulletEdit(roleIndex: number, bulletIndex: number) {
     const key = bulletStageKey(roleIndex, bulletIndex);
-    if (busyBulletKey) return;
+    if (busyBulletKey || stage.size > 0) return;
     const text = bulletEditText.trim();
     if (!text) {
       setDocError("Bullet text cannot be empty.");
@@ -430,7 +447,7 @@ function ResumeTextDocument({
 
   async function removeBullet(roleIndex: number, bulletIndex: number) {
     const key = bulletStageKey(roleIndex, bulletIndex);
-    if (busyBulletKey) return;
+    if (busyBulletKey || stage.size > 0) return;
     setBusyBulletKey(key);
     setDocError(null);
     try {
@@ -464,13 +481,20 @@ function ResumeTextDocument({
   }
 
   // Stage a picked alternative as the replacement for the bullet at `key`.
-  function pickAlternative(key: string, alternativeText: string) {
+  function pickAlternative(key: string, alternativeText: string, originalText: string) {
     setStage((prev) => {
       const nextMap = new Map(prev);
       const existing = nextMap.get(key);
-      nextMap.set(key, { pickedText: alternativeText, instruction: existing?.instruction ?? "" });
+      nextMap.set(key, {
+        pickedText: alternativeText,
+        instruction: existing?.instruction ?? "",
+        originalText,
+      });
       return nextMap;
     });
+    closeSection();
+    setEditingBulletKey(null);
+    onStageCreated();
     setPickingForKey(null);
   }
 
@@ -499,7 +523,18 @@ function ResumeTextDocument({
     const targets: ResumeSingleBulletRevisionTarget[] = [];
     for (const [key, entry] of stage.entries()) {
       const [ri, bi] = key.split(":").map(Number);
-      if (typeof content.experience[ri]?.bullets[bi]?.text !== "string") continue;
+      if (
+        !isResumeStageTargetCurrent(content, {
+          roleIndex: ri,
+          bulletIndex: bi,
+          originalText: entry.originalText,
+        })
+      ) {
+        setReplaceError(
+          "The resume changed after replacements were staged. Clear staging and pick again.",
+        );
+        return;
+      }
       const instruction = [entry.instruction, stageInstruction]
         .map((value) => value.trim())
         .filter(Boolean)
@@ -546,6 +581,8 @@ function ResumeTextDocument({
   }
 
   const docDisabled = disabled || isReplacing;
+  const structuralEditsLocked = stage.size > 0;
+  const structuralEditDisabled = docDisabled || structuralEditsLocked;
 
   return (
     <div className="text-folio-on-surface" data-testid="resume-text-document">
@@ -570,7 +607,7 @@ function ResumeTextDocument({
             <button
               type="button"
               onClick={() => openSection("header")}
-              disabled={docDisabled}
+              disabled={structuralEditDisabled}
               className={SECTION_EDIT_LINK_CLASS}
               data-testid="section-edit-header"
             >
@@ -619,7 +656,7 @@ function ResumeTextDocument({
               <button
                 type="button"
                 onClick={() => openSection("summary")}
-                disabled={docDisabled}
+                disabled={structuralEditDisabled}
                 className={SECTION_EDIT_LINK_CLASS}
                 data-testid="section-edit-summary"
               >
@@ -654,9 +691,18 @@ function ResumeTextDocument({
       {content.experience.length > 0 ? (
         <section className="mt-6">
           <h3 className={SECTION_HEADING_CLASS}>Experience</h3>
+          {structuralEditsLocked ? (
+            <p
+              className="mt-2 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary"
+              data-testid="resume-structural-edit-lock"
+            >
+              Apply or clear staged replacements before editing document structure.
+            </p>
+          ) : null}
           <div className="mt-3 space-y-4">
-            {content.experience.map((exp, roleIndex) => {
+            {displayExperiences.map(({ experience: exp, originalIndex: roleIndex }) => {
               const meta = [exp.location, exp.dateRange].filter(Boolean).join(" · ");
+              const roleKey = experienceKey(exp.company, exp.role);
               const roleEditKey = `role:${roleIndex}`;
               const isEditingRole = editingSection === roleEditKey;
               return (
@@ -672,7 +718,7 @@ function ResumeTextDocument({
                         <button
                           type="button"
                           onClick={() => openSection(roleEditKey)}
-                          disabled={docDisabled}
+                          disabled={structuralEditDisabled}
                           className={SECTION_EDIT_LINK_CLASS}
                         >
                           Edit details
@@ -718,6 +764,16 @@ function ResumeTextDocument({
                     <ul className="mt-1.5 space-y-1">
                       {exp.bullets.map((b, bulletIndex) => {
                         const key = bulletStageKey(roleIndex, bulletIndex);
+                        const currentBulletKeys = new Set(
+                          b.sourceRefs.flatMap((ref) => (ref.bulletKey ? [ref.bulletKey] : [])),
+                        );
+                        const roleAlternatives = alternatives.filter(
+                          (alternative) =>
+                            alternative.roleKey === roleKey &&
+                            alternative.text !== b.text &&
+                            (!alternative.bulletKey ||
+                              !currentBulletKeys.has(alternative.bulletKey)),
+                        );
                         const isSelected = selectedBulletKey === key;
                         const isEditing = editingBulletKey === key;
                         const stagedEntry = stage.get(key);
@@ -796,7 +852,7 @@ function ResumeTextDocument({
                                     <button
                                       type="button"
                                       onClick={() => startBulletEdit(roleIndex, bulletIndex, b.text)}
-                                      disabled={docDisabled || bulletBusy}
+                                      disabled={structuralEditDisabled || bulletBusy}
                                       className={GHOST_BUTTON}
                                       data-action="bullet-edit"
                                     >
@@ -830,7 +886,7 @@ function ResumeTextDocument({
                                     <button
                                       type="button"
                                       onClick={() => void removeBullet(roleIndex, bulletIndex)}
-                                      disabled={docDisabled || bulletBusy}
+                                      disabled={structuralEditDisabled || bulletBusy}
                                       className={GHOST_BUTTON}
                                       data-action="bullet-remove"
                                     >
@@ -848,17 +904,19 @@ function ResumeTextDocument({
                                     <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-folio-outline">
                                       Pick a spine-ranked alternative
                                     </p>
-                                    {alternatives.length === 0 ? (
+                                    {roleAlternatives.length === 0 ? (
                                       <p className="px-1 py-2 text-[12px] text-folio-outline">
                                         No alternative bullets available from your vault.
                                       </p>
                                     ) : (
                                       <ul className="max-h-64 space-y-1 overflow-y-auto">
-                                        {alternatives.map((alt) => (
+                                        {roleAlternatives.map((alt) => (
                                           <li key={alt.id}>
                                             <button
                                               type="button"
-                                              onClick={() => pickAlternative(key, alt.text)}
+                                              onClick={() =>
+                                                pickAlternative(key, alt.text, b.text)
+                                              }
                                               className="w-full rounded-md border border-transparent px-2 py-1.5 text-left transition hover:border-folio-sage-border hover:bg-folio-surface-container-low"
                                               data-testid="bullet-replace-option"
                                             >
@@ -996,7 +1054,7 @@ function ResumeTextDocument({
               <button
                 type="button"
                 onClick={() => openSection("skills")}
-                disabled={docDisabled}
+                disabled={structuralEditDisabled}
                 className={SECTION_EDIT_LINK_CLASS}
                 data-testid="section-edit-skills"
               >
@@ -1030,17 +1088,16 @@ function ResumeTextDocument({
                       type="text"
                       value={group.items.join(", ")}
                       onChange={(e) =>
-                        patchSection((c) => ({
-                          ...c,
-                          skills: {
-                            ...c.skills,
-                            groups: c.skills.groups.map((g, i) =>
-                              i === groupIdx
-                                ? { ...g, items: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }
-                                : g,
-                            ),
-                          },
-                        }))
+                        patchSection((c) =>
+                          updateResumeSkillGroupItems(
+                            c,
+                            groupIdx,
+                            e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          ),
+                        )
                       }
                       placeholder="Item 1, Item 2"
                       className={INPUT_CLASS}
@@ -1097,7 +1154,7 @@ function ResumeTextDocument({
               <button
                 type="button"
                 onClick={() => openSection("education")}
-                disabled={docDisabled}
+                disabled={structuralEditDisabled}
                 className={SECTION_EDIT_LINK_CLASS}
                 data-testid="section-edit-education"
               >
@@ -1203,7 +1260,7 @@ function ResumeTextDocument({
               <button
                 type="button"
                 onClick={() => openSection("additional")}
-                disabled={docDisabled}
+                disabled={structuralEditDisabled}
                 className={SECTION_EDIT_LINK_CLASS}
                 data-testid="section-edit-additional"
               >
@@ -2493,14 +2550,14 @@ function LayoutSliders({
 
   return (
     <div
-      className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-4"
+      className="rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-3"
       data-testid="output-layout-sliders"
     >
       <p className="text-[13px] font-medium text-folio-on-surface">Layout</p>
-      <p className="mt-0.5 text-[12px] text-folio-outline">
-        Adjust spacing and margins to fit one page. The server one-page check stays the export gate.
+      <p className="mt-0.5 text-[11px] leading-snug text-folio-outline">
+        Fine-tune the PDF. Server validation remains the export gate.
       </p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-3">
         <label className={SLIDER_LABEL_CLASS}>
           Body font ({settings.bodyFontPx}px)
           <input
@@ -2831,8 +2888,13 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         text: (item.editedText ?? item.originalText).trim(),
         label: item.displayLabel,
         score: item.relevanceScore,
+        roleKey: experienceKey(
+          item.experience?.company ?? "",
+          item.experience?.role ?? "",
+        ),
+        bulletKey: item.bulletKey,
       }))
-      .filter((alt) => alt.text.length > 0);
+      .filter((alt) => alt.text.length > 0 && alt.roleKey !== experienceKey("", ""));
   }, [draft, linkedJob, inventory, companyContext]);
 
   function toggleDraftExperience(key: string) {
@@ -2933,7 +2995,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   }
 
   function updateLayoutSettings(next: ResumeLayoutSettings) {
-    if (!draftId) return;
+    if (!draftId || !contentConfirmed || resumeStage.size > 0) return;
     setManualSettings({ draftId, ...next });
     setValidationFailure(null);
     if (layoutChangeTimerRef.current) {
@@ -2945,7 +3007,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   }
 
   async function handleRegenerate() {
-    if (!draft || isRegenerating) return;
+    if (!draft || isRegenerating || resumeStage.size > 0) return;
     if (!linkedJob || !draft.referenceResumeId) {
       setError("Saved job description or base resume is missing for this draft.");
       return;
@@ -2995,7 +3057,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   }
 
   async function handleApprove() {
-    if (!draft || isApproving) return;
+    if (!draft || isApproving || !contentConfirmed || resumeStage.size > 0) return;
     setIsApproving(true);
     setError(null);
     setValidationFailure(null);
@@ -3325,23 +3387,32 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               </div>
 
               {documentView === "pdf" && pdfDocumentModel ? (
-                <div className="space-y-3">
-                  {/* Layout sliders — PDF view only; locked until content confirmed (M11). */}
-                  {!contentConfirmed ? (
-                    <p
-                      className="rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary"
-                      data-testid="output-layout-locked-note"
-                    >
-                      Confirm content to adjust layout.
-                    </p>
-                  ) : null}
-                  <LayoutSliders
-                    settings={activeLayoutSettings}
-                    onChange={updateLayoutSettings}
-                    optimizationNote={optimizationNote}
-                    disabled={isRegenerating || isApproving || !contentConfirmed}
-                  />
-                  <ResumePdfPreview documentModel={pdfDocumentModel} data-testid="output-pdf-preview" />
+                <div
+                  className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start"
+                  data-testid="output-pdf-layout-split"
+                >
+                  <div className="min-w-0 xl:w-4/5">
+                    <ResumePdfPreview
+                      documentModel={pdfDocumentModel}
+                      data-testid="output-pdf-preview"
+                    />
+                  </div>
+                  <aside className="min-w-0 xl:w-1/5">
+                    {!contentConfirmed ? (
+                      <p
+                        className="mb-3 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary"
+                        data-testid="output-layout-locked-note"
+                      >
+                        Confirm content to adjust layout.
+                      </p>
+                    ) : null}
+                    <LayoutSliders
+                      settings={activeLayoutSettings}
+                      onChange={updateLayoutSettings}
+                      optimizationNote={optimizationNote}
+                      disabled={isRegenerating || isApproving || !contentConfirmed}
+                    />
+                  </aside>
                 </div>
               ) : (
                 <div className="rounded-xl border border-folio-sage-border bg-white p-6">
@@ -3355,6 +3426,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                     setStage={setResumeStage}
                     stageInstruction={resumeStageInstruction}
                     setStageInstruction={setResumeStageInstruction}
+                    onStageCreated={() => setContentConfirmed(false)}
                   />
                 </div>
               )}
@@ -3362,7 +3434,12 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               <button
                 type="button"
                 onClick={() => void handleRegenerate()}
-                disabled={isRegenerating || !linkedJob || !draft.referenceResumeId}
+                disabled={
+                  isRegenerating ||
+                  resumeStage.size > 0 ||
+                  !linkedJob ||
+                  !draft.referenceResumeId
+                }
                 className={`mt-4 w-full ${GHOST_BUTTON}`}
               >
                 <RefreshIcon />
@@ -3452,11 +3529,17 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
 
                 {showRevisionQueue ? (
                   <div className="mt-4">
-                    <ResumeRevisionQueue
-                      draft={draft}
-                      linkedJob={linkedJob}
-                      onAccepted={handleRevisionQueueAccepted}
-                    />
+                    {resumeStage.size > 0 ? (
+                      <p className="rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary">
+                        Apply or clear staged replacements before editing document structure.
+                      </p>
+                    ) : (
+                      <ResumeRevisionQueue
+                        draft={draft}
+                        linkedJob={linkedJob}
+                        onAccepted={handleRevisionQueueAccepted}
+                      />
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -3757,7 +3840,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                   <button
                     type="button"
                     onClick={() => void handleApprove()}
-                    disabled={isApproving}
+                    disabled={isApproving || !contentConfirmed}
                     data-action="reapprove-for-export"
                     className={GHOST_BUTTON}
                   >

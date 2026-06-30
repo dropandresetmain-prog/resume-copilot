@@ -109,7 +109,7 @@ M1 Unified Evidence Spine: deterministic cross-category evidence ranking before 
 
 **Spine:** `src/lib/evidence/` collects work bullets, additional experience, education, skills, evidence-tied keywords, and company-context positioning notes; scores JD overlap, role signals, metrics, recency, accepted wording, forced/excluded state, and within-role redundancy.
 
-**Resume generation:** `buildResumeDraftGenerationInput` uses spine shortlist for work bullets (cap still **40**); education/skills/additional capped at 3/5/5 by JD rank. Phase 0 compact prompt payload preserved.
+**Resume generation:** `buildResumeDraftGenerationInput` uses spine shortlist for work bullets (cap still **40**); education capped at **3**, additional at **5**, and skills at **5 per inventory category** (Technical Skills, Languages, Interests, Other) by JD rank. Phase 0 compact prompt payload preserved.
 
 **Rationale:** deterministic `selectionAudit` fields merged from spine snapshot on save (Gemini still writes prose).
 

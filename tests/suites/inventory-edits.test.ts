@@ -7,11 +7,20 @@ import { buildActiveCollatedInventory } from "../../src/lib/inventory/active-col
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import {
   applyInventoryEditsToCollated,
+  buildAdditionalOverlayKey,
+  buildEducationOverlayKey,
+  buildSkillOverlayKey,
+  hideInventoryAdditional,
   hideInventoryBullet,
+  hideInventoryEducation,
   hideInventorySkill,
   inventoryEditsEqual,
+  restoreInventoryAdditional,
+  restoreInventoryEducation,
   restoreInventorySkill,
+  setInventoryAdditionalEdit,
   setInventoryBulletEdit,
+  setInventoryEducationEdit,
   setInventorySkillEdit,
 } from "../../src/lib/inventory/edits";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
@@ -76,13 +85,24 @@ function buildInventory(): InventoryState {
             ],
           },
         ],
-        education: [],
+        education: [
+          {
+            id: "edu-1",
+            sourceResumeId: "resume-1",
+            institution: "National University of Singapore",
+            programmes: ["BSc Information Systems"],
+            dateRange: "2014 - 2018",
+            bullets: [],
+            rawText: "National University of Singapore — BSc Information Systems",
+            parseWarnings: [],
+          },
+        ],
         additionalExperience: {
           id: "additional-1",
           sourceResumeId: "resume-1",
           title: "Additional",
-          lines: [],
-          rawText: "",
+          lines: ["Community: Volunteer mentor"],
+          rawText: "Community: Volunteer mentor",
           parseWarnings: [],
         },
         skills: {
@@ -121,6 +141,7 @@ function main() {
 
   const inventory = buildInventory();
   const rawCollated = buildCollatedInventory(inventory);
+  const rebuiltCollated = buildCollatedInventory(inventory);
   const key60 = buildBulletEnrichmentKey("Drop & Reset", "Founder", "Hosted 60+ community events");
   const key100 = buildBulletEnrichmentKey("Drop & Reset", "Founder", "Hosted 100+ community events");
   const keyCrm = buildBulletEnrichmentKey("Drop & Reset", "Founder", "Built CRM workflows for partners");
@@ -161,7 +182,7 @@ function main() {
 
   // ── M11: structured overlay for non-Work sections (Skills exercised here; the
   // Education/Additional helpers share the identical generic implementation). ──
-  const skillId = rawCollated.skillItems[0]?.id ?? "";
+  const skillId = buildSkillOverlayKey(rawCollated.skillItems[0]!);
   const skillEditEdits = setInventorySkillEdit(createEmptyInventoryEdits(), skillId, "Advanced SQL");
   const skillEditedCollated = applyInventoryEditsToCollated(rawCollated, skillEditEdits);
   const skillRevertedEdits = setInventorySkillEdit(skillEditEdits, skillId, null);
@@ -173,6 +194,84 @@ function main() {
   const skillRestoredEdits = restoreInventorySkill(skillHiddenEdits, skillId);
   const skillSourceJson = JSON.stringify(inventory.resumes);
   applyInventoryEditsToCollated(rawCollated, skillEditEdits);
+
+  // M11 corrective coverage: persisted source overlays must survive a fresh
+  // collation even though the derived UUIDs are regenerated.
+  const sourceEducationKey = buildEducationOverlayKey(rawCollated.educationItems[0]!);
+  const sourceSkillKey = buildSkillOverlayKey(rawCollated.skillItems[0]!);
+  const sourceAdditionalKey = buildAdditionalOverlayKey(
+    rawCollated.additionalExperienceItems[0]!,
+  );
+  let stableSourceEdits = setInventoryEducationEdit(
+    createEmptyInventoryEdits(),
+    sourceEducationKey,
+    "NUS",
+  );
+  stableSourceEdits = setInventorySkillEdit(
+    stableSourceEdits,
+    sourceSkillKey,
+    "Advanced SQL",
+  );
+  stableSourceEdits = hideInventoryAdditional(stableSourceEdits, sourceAdditionalKey);
+  const rebuiltWithSourceOverlays = applyInventoryEditsToCollated(
+    rebuiltCollated,
+    stableSourceEdits,
+  );
+  const hiddenSourceSections = hideInventoryAdditional(
+    hideInventorySkill(
+      hideInventoryEducation(createEmptyInventoryEdits(), sourceEducationKey),
+      sourceSkillKey,
+    ),
+    sourceAdditionalKey,
+  );
+  const hiddenSourceCollated = applyInventoryEditsToCollated(
+    rebuiltCollated,
+    hiddenSourceSections,
+  );
+  const restoredSourceSections = restoreInventoryAdditional(
+    restoreInventorySkill(
+      restoreInventoryEducation(hiddenSourceSections, sourceEducationKey),
+      sourceSkillKey,
+    ),
+    sourceAdditionalKey,
+  );
+
+  const importedSkillId = "text-skill-1";
+  const importedAdditionalId = "text-additional-1";
+  const importedBaseEdits = {
+    ...createEmptyInventoryEdits(),
+    addedSkillItems: [
+      {
+        id: importedSkillId,
+        category: "Technical Skills" as const,
+        text: "Tableau",
+        addedAt: "2025-01-01T00:00:00.000Z",
+      },
+    ],
+    addedAdditionalExperienceItems: [
+      {
+        id: importedAdditionalId,
+        category: "Projects",
+        text: "Built a volunteer scheduling tool",
+        addedAt: "2025-01-01T00:00:00.000Z",
+      },
+    ],
+  };
+  const importedEdited = setInventoryAdditionalEdit(
+    setInventorySkillEdit(importedBaseEdits, importedSkillId, "Tableau Desktop"),
+    importedAdditionalId,
+    "Built and shipped a volunteer scheduling tool",
+  );
+  const importedEditedCollated = applyInventoryEditsToCollated(rawCollated, importedEdited);
+  const importedHidden = hideInventoryAdditional(
+    hideInventorySkill(importedBaseEdits, importedSkillId),
+    importedAdditionalId,
+  );
+  const importedHiddenCollated = applyInventoryEditsToCollated(rawCollated, importedHidden);
+  const importedRestored = restoreInventoryAdditional(
+    restoreInventorySkill(importedHidden, importedSkillId),
+    importedAdditionalId,
+  );
 
   const checks: [string, boolean][] = [
     ["source resumes unchanged after edits overlay", JSON.stringify(inventoryWithEdits.resumes) === originalResumeJson],
@@ -259,11 +358,11 @@ function main() {
     ],
     [
       "hidden skill removed from active collated (M11)",
-      !skillHiddenCollated.skillItems.some((item) => item.id === skillId),
+      !skillHiddenCollated.skillItems.some((item) => item.inventoryOverlayKey === skillId),
     ],
     [
       "includeHidden keeps hidden skill for edit UI (M11)",
-      skillHiddenIncludeCollated.skillItems.some((item) => item.id === skillId),
+      skillHiddenIncludeCollated.skillItems.some((item) => item.inventoryOverlayKey === skillId),
     ],
     [
       "restore un-hides the skill (M11)",
@@ -276,6 +375,96 @@ function main() {
     [
       "inventoryEditsEqual detects section overlay changes (M11)",
       !inventoryEditsEqual(skillEditEdits, createEmptyInventoryEdits()),
+    ],
+    [
+      "fresh collation regenerates source UUIDs",
+      rawCollated.educationItems[0]?.id !== rebuiltCollated.educationItems[0]?.id &&
+        rawCollated.skillItems[0]?.id !== rebuiltCollated.skillItems[0]?.id &&
+        rawCollated.additionalExperienceItems[0]?.id !==
+          rebuiltCollated.additionalExperienceItems[0]?.id,
+    ],
+    [
+      "source education edit survives fresh collation",
+      rebuiltWithSourceOverlays.educationItems[0]?.institution === "NUS",
+    ],
+    [
+      "source skill edit survives fresh collation",
+      rebuiltWithSourceOverlays.skillItems.some((item) => item.text === "Advanced SQL"),
+    ],
+    [
+      "source additional hide survives fresh collation",
+      rebuiltWithSourceOverlays.additionalExperienceItems.length === 0,
+    ],
+    [
+      "source education, skill, and additional hide together",
+      hiddenSourceCollated.educationItems.length === 0 &&
+        hiddenSourceCollated.skillItems.length === 0 &&
+        hiddenSourceCollated.additionalExperienceItems.length === 0,
+    ],
+    [
+      "source education, skill, and additional restore together",
+      (() => {
+        const restored = applyInventoryEditsToCollated(
+          rebuiltCollated,
+          restoredSourceSections,
+        );
+        return (
+          restored.educationItems.length === 1 &&
+          restored.skillItems.length === 1 &&
+          restored.additionalExperienceItems.length === 1
+        );
+      })(),
+    ],
+    [
+      "source section overlays revert by deterministic key",
+      (() => {
+        const reverted = restoreInventoryAdditional(
+          setInventorySkillEdit(
+            setInventoryEducationEdit(stableSourceEdits, sourceEducationKey, null),
+            sourceSkillKey,
+            null,
+          ),
+          sourceAdditionalKey,
+        );
+        const result = applyInventoryEditsToCollated(rebuiltCollated, reverted);
+        return (
+          result.educationItems[0]?.institution === "National University of Singapore" &&
+          result.skillItems.some((item) => item.text === "SQL") &&
+          result.additionalExperienceItems.length === 1
+        );
+      })(),
+    ],
+    [
+      "Add-from-Text skill and additional edits use the overlay",
+      importedEditedCollated.skillItems.some((item) => item.text === "Tableau Desktop") &&
+        importedEditedCollated.additionalExperienceItems.some((item) =>
+          item.text.includes("shipped"),
+        ),
+    ],
+    [
+      "Add-from-Text skill and additional hides use the overlay",
+      !importedHiddenCollated.skillItems.some((item) => item.id === importedSkillId) &&
+        !importedHiddenCollated.additionalExperienceItems.some(
+          (item) => item.id === importedAdditionalId,
+        ),
+    ],
+    [
+      "Add-from-Text skill and additional restore without source mutation",
+      applyInventoryEditsToCollated(rawCollated, importedRestored).skillItems.some(
+        (item) => item.id === importedSkillId,
+      ) &&
+        applyInventoryEditsToCollated(
+          rawCollated,
+          importedRestored,
+        ).additionalExperienceItems.some((item) => item.id === importedAdditionalId) &&
+        JSON.stringify(inventory.resumes) === skillSourceJson,
+    ],
+    [
+      "Add-from-Text education remains preview-only",
+      readFileSync(
+        join(process.cwd(), "src/lib/inventory-text-extraction/classify.ts"),
+        "utf8",
+      ).includes('coerced.kind === "education"'),
     ],
     // ── M11: Vault wires edit/hide/revert controls for all three sections ─────
     [

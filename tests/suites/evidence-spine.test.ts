@@ -1,12 +1,11 @@
 import { buildBulletEnrichmentKey } from "../../src/lib/enrichment/keys";
 import { createEmptyEnrichmentState } from "../../src/lib/enrichment/state";
-import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import { applyInventoryEditsToCollated } from "../../src/lib/inventory/edits";
 import { buildEvidenceSpine, mergeSpineSnapshotIntoSelectionAudit } from "../../src/lib/evidence/spine";
 import { collectEvidenceItems } from "../../src/lib/evidence/collect";
 import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-payload";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
-import type { CollatedInventory } from "../../src/types/collated";
+import type { CollatedInventory, CollatedSkillItem } from "../../src/types/collated";
 import type { InventoryState } from "../../src/types/resume";
 import type { StoredJobDescription } from "../../src/types/jd";
 
@@ -67,6 +66,57 @@ function buildCrossCategoryCollated(): CollatedInventory {
       },
     ],
   };
+}
+
+function buildSkillCategoryCollated(skillItems: CollatedSkillItem[]): CollatedInventory {
+  return {
+    experiences: [],
+    educationItems: [],
+    additionalExperienceItems: [],
+    skillItems,
+  };
+}
+
+function buildPerCategorySkillItems(options: {
+  technical?: readonly string[];
+  languages?: readonly string[];
+  interests?: readonly string[];
+  other?: readonly string[];
+}): CollatedSkillItem[] {
+  const items: CollatedSkillItem[] = [];
+  for (const [index, text] of (options.technical ?? []).entries()) {
+    items.push({
+      id: `tech-${index}`,
+      category: "Technical Skills",
+      text,
+      sourceCitations: [],
+    });
+  }
+  for (const [index, text] of (options.languages ?? []).entries()) {
+    items.push({
+      id: `lang-${index}`,
+      category: "Languages",
+      text,
+      sourceCitations: [],
+    });
+  }
+  for (const [index, text] of (options.interests ?? []).entries()) {
+    items.push({
+      id: `interest-${index}`,
+      category: "Interests",
+      text,
+      sourceCitations: [],
+    });
+  }
+  for (const [index, text] of (options.other ?? []).entries()) {
+    items.push({
+      id: `other-${index}`,
+      category: "Other",
+      text,
+      sourceCitations: [],
+    });
+  }
+  return items;
 }
 
 function main() {
@@ -273,6 +323,92 @@ function main() {
     maxBullets: 5,
   });
 
+  const languageJd: StoredJobDescription = {
+    ...blockchainJd,
+    rawText: "Bilingual product leader with Mandarin fluency and stakeholder leadership.",
+  };
+  const fourLanguageCollated = buildSkillCategoryCollated(
+    buildPerCategorySkillItems({
+      languages: ["English", "Mandarin", "Japanese", "French"],
+    }),
+  );
+  const fourLanguageSpine = buildEvidenceSpine({
+    collated: fourLanguageCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jdText: languageJd.rawText,
+    maxWorkBullets: 5,
+  });
+  const fourLanguagePayload = buildResumeDraftGenerationInput({
+    collated: fourLanguageCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jobDescription: languageJd,
+    referenceResume,
+    maxBullets: 5,
+  });
+
+  const sixLanguageCollated = buildSkillCategoryCollated(
+    buildPerCategorySkillItems({
+      languages: ["English", "Mandarin", "Japanese", "French", "Spanish", "German"],
+    }),
+  );
+  const sixLanguageSpine = buildEvidenceSpine({
+    collated: sixLanguageCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jdText: languageJd.rawText,
+    maxWorkBullets: 5,
+  });
+  const sixLanguagePayload = buildResumeDraftGenerationInput({
+    collated: sixLanguageCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jobDescription: languageJd,
+    referenceResume,
+    maxBullets: 5,
+  });
+
+  const mixedSkillCollated = buildSkillCategoryCollated(
+    buildPerCategorySkillItems({
+      technical: ["SQL", "Python", "Tableau", "Figma", "Jira"],
+      languages: ["English", "Mandarin", "Japanese", "French", "Spanish"],
+      interests: ["Cycling", "Chess", "Photography", "Volunteering", "Reading", "Hiking"],
+    }),
+  );
+  const mixedSkillSpine = buildEvidenceSpine({
+    collated: mixedSkillCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jdText: languageJd.rawText,
+    maxWorkBullets: 5,
+  });
+  const mixedSkillPayload = buildResumeDraftGenerationInput({
+    collated: mixedSkillCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jobDescription: languageJd,
+    referenceResume,
+    maxBullets: 5,
+  });
+  const mixedSkillCollatedSnapshot = JSON.stringify(mixedSkillCollated);
+
+  const rankedLanguageTexts = mixedSkillSpine.ranked
+    .filter((item) => item.sourceType === "skill" && item.displayLabel.startsWith("Languages:"))
+    .map((item) => item.originalText);
+  const selectedLanguageTexts = mixedSkillPayload.skills
+    .filter((item) => item.category === "Languages")
+    .map((item) => item.text);
+  const expectedTopLanguages = rankedLanguageTexts.slice(0, 5);
+
+  const otherSkillCollated = buildSkillCategoryCollated(
+    buildPerCategorySkillItems({
+      technical: ["SQL"],
+      other: ["PMP", "Six Sigma", "Change Management"],
+    }),
+  );
+  const otherSkillPayload = buildResumeDraftGenerationInput({
+    collated: otherSkillCollated,
+    enrichment: createEmptyEnrichmentState(),
+    jobDescription: languageJd,
+    referenceResume,
+    maxBullets: 5,
+  });
+
   const checks: [string, boolean][] = [
     ["spine ranks work bullets", sourceTypes.has("work_bullet")],
     ["spine ranks additional experience", sourceTypes.has("additional_experience")],
@@ -340,6 +476,45 @@ function main() {
         acceptedWordingByBulletKey: new Map(),
         forcedBulletKeys: [forcedKey],
       }).selected.some((item) => item.bulletKey === forcedKey),
+    ],
+    [
+      "four languages all reach generation payload",
+      fourLanguageSpine.skillIds.length === 4 &&
+        fourLanguagePayload.skills.length === 4 &&
+        fourLanguagePayload.skills.every((item) => item.category === "Languages"),
+    ],
+    [
+      "more than five languages are capped at five",
+      sixLanguageSpine.skillIds.length === 5 &&
+        sixLanguagePayload.skills.length === 5 &&
+        sixLanguagePayload.skills.every((item) => item.category === "Languages"),
+    ],
+    [
+      "five technical skills and five languages can coexist",
+      mixedSkillPayload.skills.filter((item) => item.category === "Technical Skills").length ===
+          5 &&
+        mixedSkillPayload.skills.filter((item) => item.category === "Languages").length === 5,
+    ],
+    [
+      "interests use an independent five-item quota",
+      mixedSkillPayload.skills.filter((item) => item.category === "Interests").length === 5,
+    ],
+    [
+      "one category does not reduce another category allowance",
+      mixedSkillPayload.skills.length === 15,
+    ],
+    [
+      "ranking order within each category remains deterministic",
+      selectedLanguageTexts.join("|") === expectedTopLanguages.join("|"),
+    ],
+    [
+      "source inventory is not mutated by skill selection",
+      JSON.stringify(mixedSkillCollated) === mixedSkillCollatedSnapshot,
+    ],
+    [
+      "Other skills still reach generation payload when present",
+      otherSkillPayload.skills.some((item) => item.category === "Other") &&
+        otherSkillPayload.skills.some((item) => item.category === "Technical Skills"),
     ],
   ];
 

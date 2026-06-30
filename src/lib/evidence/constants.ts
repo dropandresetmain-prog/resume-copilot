@@ -1,6 +1,7 @@
 /** Ranked slices sent to resume generation — work bullets still use MAX_RESUME_DRAFT_BULLETS. */
 export const MAX_RANKED_EDUCATION_ITEMS = 3;
-export const MAX_RANKED_SKILL_ITEMS = 5;
+/** Maximum ranked skill items per inventory category (Technical Skills, Languages, etc.). */
+export const MAX_RANKED_SKILL_ITEMS_PER_CATEGORY = 5;
 export const MAX_RANKED_ADDITIONAL_ITEMS = 5;
 
 export const EVIDENCE_SCORE = {

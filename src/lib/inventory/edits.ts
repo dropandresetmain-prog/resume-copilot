@@ -1,6 +1,13 @@
 import { buildBulletEnrichmentKey } from "@/lib/enrichment/keys";
-import { bulletsAreSimilar, experienceKey } from "@/lib/inventory/normalize";
-import type { CollatedBullet, CollatedExperience, CollatedInventory } from "@/types/collated";
+import { bulletsAreSimilar, experienceKey, normalizeItemText } from "@/lib/inventory/normalize";
+import type {
+  CollatedBullet,
+  CollatedEducationItem,
+  CollatedExperience,
+  CollatedInventory,
+  CollatedSkillItem,
+  CollatedTextItem,
+} from "@/types/collated";
 import type { SourceCitation } from "@/types/collated";
 import {
   createEmptyInventoryEdits,
@@ -29,6 +36,37 @@ export function buildTextImportBulletKey(
   bulletId: string,
 ): string {
   return `text-import::${experienceKey(experienceCompany, experienceRole)}::${bulletId}`;
+}
+
+export function buildEducationOverlayKey(
+  item: Pick<CollatedEducationItem, "institution" | "dateRange" | "programmes">,
+): string {
+  const programmes = [...item.programmes]
+    .map(normalizeItemText)
+    .sort()
+    .join("|");
+  return [
+    "source-education",
+    normalizeItemText(item.institution),
+    normalizeItemText(item.dateRange ?? ""),
+    programmes,
+  ].join("::");
+}
+
+export function buildSkillOverlayKey(
+  item: Pick<CollatedSkillItem, "category" | "text">,
+): string {
+  return ["source-skill", item.category, normalizeItemText(item.text)].join("::");
+}
+
+export function buildAdditionalOverlayKey(
+  item: Pick<CollatedTextItem, "category" | "text">,
+): string {
+  return [
+    "source-additional",
+    normalizeItemText(item.category ?? ""),
+    normalizeItemText(item.text),
+  ].join("::");
 }
 
 export function normalizeInventoryEdits(edits: InventoryEdits | undefined): InventoryEdits {
@@ -437,45 +475,58 @@ export function applyInventoryEditsToCollated(
     ...overlayExperiences.map(mapExperienceBullets),
   ];
 
-  const addedSkills = (edits.addedSkillItems ?? []).map((item) => ({
-    id: item.id,
-    category: item.category,
-    text: item.text,
-    sourceCitations: [TEXT_IMPORT_CITATION],
-  }));
-
-  const addedAdditional = (edits.addedAdditionalExperienceItems ?? []).map((item) => ({
-    id: item.id,
-    category: item.category,
-    text: item.text,
-    rawTexts: [item.text],
-    sourceCitations: [TEXT_IMPORT_CITATION],
-  }));
-
   // ── Structured overlay for non-Work sections (M11) ──────────────────────────
   // Hide drops the item from the active view (unless includeHidden, for the edit
-  // UI); an edit override replaces the displayed/generated text. Source untouched.
+  // UI); an edit override replaces the displayed/generated text. Source-derived
+  // items use logical keys because collation UUIDs are intentionally ephemeral.
+  // Add-from-Text item IDs are already stable and use the same overlay pipeline.
   const hiddenEducation = new Set(edits.hiddenEducationIds ?? []);
   const educationItems = collated.educationItems
-    .filter((item) => includeHidden || !hiddenEducation.has(item.id))
-    .map((item) => {
-      const override = edits.editedEducationTextById?.[item.id];
-      return override ? { ...item, institution: override } : item;
-    });
+    .map((item) => ({ ...item, inventoryOverlayKey: buildEducationOverlayKey(item) }))
+    .filter((item) => includeHidden || !hiddenEducation.has(item.inventoryOverlayKey))
+    .map((item) => ({
+      ...item,
+      institution: edits.editedEducationTextById?.[item.inventoryOverlayKey] ?? item.institution,
+    }));
 
   const hiddenSkills = new Set(edits.hiddenSkillIds ?? []);
-  const baseSkills = collated.skillItems
-    .filter((item) => includeHidden || !hiddenSkills.has(item.id))
+  const skillItems = [
+    ...collated.skillItems.map((item) => ({
+      ...item,
+      inventoryOverlayKey: buildSkillOverlayKey(item),
+    })),
+    ...(edits.addedSkillItems ?? []).map((item) => ({
+      id: item.id,
+      inventoryOverlayKey: item.id,
+      category: item.category,
+      text: item.text,
+      sourceCitations: [TEXT_IMPORT_CITATION],
+    })),
+  ]
+    .filter((item) => includeHidden || !hiddenSkills.has(item.inventoryOverlayKey))
     .map((item) => {
-      const override = edits.editedSkillTextById?.[item.id];
+      const override = edits.editedSkillTextById?.[item.inventoryOverlayKey];
       return override ? { ...item, text: override } : item;
     });
 
   const hiddenAdditional = new Set(edits.hiddenAdditionalIds ?? []);
-  const baseAdditional = collated.additionalExperienceItems
-    .filter((item) => includeHidden || !hiddenAdditional.has(item.id))
+  const additionalExperienceItems = [
+    ...collated.additionalExperienceItems.map((item) => ({
+      ...item,
+      inventoryOverlayKey: buildAdditionalOverlayKey(item),
+    })),
+    ...(edits.addedAdditionalExperienceItems ?? []).map((item) => ({
+      id: item.id,
+      inventoryOverlayKey: item.id,
+      category: item.category,
+      text: item.text,
+      rawTexts: [item.text],
+      sourceCitations: [TEXT_IMPORT_CITATION],
+    })),
+  ]
+    .filter((item) => includeHidden || !hiddenAdditional.has(item.inventoryOverlayKey))
     .map((item) => {
-      const override = edits.editedAdditionalTextById?.[item.id];
+      const override = edits.editedAdditionalTextById?.[item.inventoryOverlayKey];
       return override ? { ...item, text: override } : item;
     });
 
@@ -483,8 +534,8 @@ export function applyInventoryEditsToCollated(
     ...collated,
     experiences,
     educationItems,
-    skillItems: [...baseSkills, ...addedSkills],
-    additionalExperienceItems: [...baseAdditional, ...addedAdditional],
+    skillItems,
+    additionalExperienceItems,
   };
 }
 
