@@ -10,16 +10,9 @@ See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
 | 1 | Design system — Folio tokens in `globals.css` | ✅ |
 | 2 | Shell + pages — Dashboard, Vault, Generate, Output, Landing, Auth, Onboarding, Profile, Settings | ✅ |
 | 3 | Feature wiring — extraction panel + upload in Career Vault | ✅ |
-| 4 | Polish — FAB wiring, app counts, token sweep, balanced tone | ✅ Mostly |
+| 4 | Polish (FAB wiring, app counts, token sweep, balanced tone) + full parity recovery | ✅ Complete |
 
-**Remaining (Phase 4):**
-
-| Item | Priority |
-|------|----------|
-| E2E flow test (upload → vault → generate → output) | High |
-| Route migration `/resume-preview` → `/output` | Medium |
-| Cover letter only generate mode | Deferred |
-| Settings page content | Low |
+**Active branch:** `folio-recovery`. Phase 4 parity recovery milestones M1–M10b are complete on `folio-recovery`. See [`docs/FOLIO_RECOVERY_ROADMAP.md`](FOLIO_RECOVERY_ROADMAP.md) for the full milestone log. Route migration (`/resume-preview` → `notFound()`) landed in M7. Authenticated E2E verified in M8. Output Editor redesigned in M10a/M10b. **Next step:** independent Opus review of M10b, then merge to `main`.
 
 ---
 
@@ -425,9 +418,11 @@ See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for full detail.
 
 ## Next (planned)
 
-### Folio Phase 4 closure
+### Merge `folio-recovery` → `main`
 
-E2E test, output route migration, cover letter only mode. See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md).
+1. **Independent Opus review of M10b** (required — same standard as M4): fresh Opus chat, review brief + diff only, no implementation history.
+2. Merge `folio-recovery` to `main` after review passes.
+3. **MX — Career Vault overhaul** (optional, post-merge): restyle legacy VMT panels to Folio-native tokens; port Inventory Summary; add Uploaded Resumes list. See `docs/FOLIO_RECOVERY_ROADMAP.md` §9 MX.
 
 ### Live end-to-end QA (v0.9.19 follow-up)
 

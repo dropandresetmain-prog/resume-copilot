@@ -1,10 +1,10 @@
 # HANDOFF
 
-## Folio UI redesign (current focus)
+## Folio UI redesign
 
-**Product:** Folio — resume tailoring app. **Branch:** `folio-redesign` (merge to `main` per phase).
+**Product:** Folio — resume tailoring app. **Active branch:** `folio-recovery` (from `folio-claude-stable` `7aec1d0`). **Production main:** `a4d17e3` (v0.9.19B) — untouched.
 
-Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting docs: [`FOLIO_DESIGN_TOKENS.md`](FOLIO_DESIGN_TOKENS.md), [`CAREER_VAULT.md`](CAREER_VAULT.md).
+Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Recovery roadmap + milestone log: [`docs/FOLIO_RECOVERY_ROADMAP.md`](FOLIO_RECOVERY_ROADMAP.md). Supporting docs: [`FOLIO_DESIGN_TOKENS.md`](FOLIO_DESIGN_TOKENS.md), [`CAREER_VAULT.md`](CAREER_VAULT.md).
 
 ### Redesign status (Phases 1–4)
 
@@ -13,15 +13,38 @@ Full redesign brief: [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md). Supporting d
 | 1 — Design system & Folio tokens | ✅ Complete |
 | 2 — Shell + page rebuild (Dashboard, Vault, Generate, Output, Landing, Auth, Onboarding, Profile, Settings) | ✅ Complete |
 | 3 — Wire extraction panel + upload to Career Vault | ✅ Complete |
-| 4 — Polish (FAB wiring, app counts, token sweep, balanced tone) | ✅ Mostly complete |
+| 4 — Polish (FAB wiring, app counts, token sweep, balanced tone) | ✅ Complete |
 
-**Phase 4 remaining:** Task 6 (cover letter only mode — deferred); Task 10 (authenticated E2E flow test). Generate now uses `/output/[draftId]`; full Output Editor parity remains a separate milestone.
+### Folio Recovery — milestone status (branch `folio-recovery`)
+
+All parity milestones are complete. See `docs/FOLIO_RECOVERY_ROADMAP.md` §14 for full per-milestone notes.
+
+| Milestone | Status | Completed |
+|-----------|--------|-----------|
+| M1 — Foundation lock + route-contract safeguards | ✅ | 2026-06-28 |
+| M2 — Career Vault minimum parity | ✅ | 2026-06-28 |
+| M3 — Generate minimum parity | ✅ | 2026-06-28 |
+| M4 — Output core delivery (approve + export + server gate) | ✅ | 2026-06-28 |
+| M4.5 — Post-M4 capability matrix reconciliation (docs only) | ✅ | 2026-06-28 |
+| M4.6 — Pre-M5a bug fixes + M3 gap closure | ✅ | 2026-06-28 |
+| M5a — Output: structured edit + revision queue + PDF-on-approve | ✅ | 2026-06-29 |
+| M5b — Output: evidence controls + diagnostics + fit summary + model-tier | ✅ | 2026-06-29 |
+| M5c — Cover-letter editing + evidence staging + export gates | ✅ | 2026-06-29 |
+| M6 — Applications parity | ✅ | 2026-06-29 |
+| M7 — Secondary surfaces + stub cleanup | ✅ | 2026-06-29 |
+| M8 — Authenticated E2E closure | ✅ | 2026-06-30 |
+| M9 — E2E fix batch | ✅ | 2026-06-30 |
+| MX — Career Vault overhaul | Not started (parked — unblocked by M8) | — |
+| M10a — Output Editor redesign: design session | ✅ | 2026-06-30 |
+| M10b — Output Editor redesign: implementation | ✅ (pending independent review) | 2026-06-30 |
+
+**Next step:** independent Opus review of M10b diff (same standard as M4), then merge `folio-recovery` → `main`. MX (Career Vault overhaul — restyle + Inventory Summary port) is optional and can be done after merge.
 
 ### Current shell & routes
 
-- Sidebar nav: Dashboard → Career vault (`/inventory`) → Generate → Applications (`/records`) → Profile / Settings
-- New Output Editor: `/output/[draftId]` (`OutputEditorPageClient`)
-- Legacy application package: `/resume-preview/[draftId]` (retained, but no longer the post-generate destination)
+- Sidebar nav: Dashboard → Career Vault (`/inventory`) → Generate → Applications (`/records`) → Profile / Settings
+- Output Editor: `/output/[draftId]` (`OutputEditorPageClient`) — canonical post-generate destination
+- `/resume-preview` and `/cover-letter-preview` — retired (return `notFound()` since M7)
 - `/dev-tools` returns 404 in production
 
 AI generation, evidence spine, export, and package behaviour documented in v0.9.x notes below — engines were remounted, not rewritten.
@@ -565,12 +588,10 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 ## Next milestone
 
-**Folio Phase 4 closure**
+**Merge `folio-recovery` to `main`**
 
-1. E2E flow test — upload → Career vault → generate → output (see `docs/FOLIO_REDESIGN.md` Task 10)
-2. Cover letter only mode (deferred Task 6)
-3. Output Editor parity — restore only as bounded follow-up tasks after the canonical route is verified
+1. **Independent Opus review of M10b** (required before merge — same standard as M4): fresh Opus chat with review brief + diff only; no implementation history.
+2. **MX — Career Vault overhaul** (optional, after merge): restyle legacy `setup/` VMT panels to Folio-native tokens; port Inventory Summary; add Uploaded Resumes list; reorganize VMT. Unblocked by M9.
+3. **Cover letter only mode** — deferred (requires existing tailored resume draft; no milestone owner).
 
-Then: live end-to-end QA for evidence controls + tailoring diagnostics (see `docs/TEST_CHECKLIST.md`).
-
-Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; v0.9.15A+ candidates (per-section resume revision accept, selected-bullet custom revision, skills/education scoped revision, whole-resume custom rewrite, cover-letter version history, unsaved resume header edits warning before cover-letter revision, education overlay, full Inventory CRUD).
+Parked: education/skill/keyword resume controls; persisted cover-letter evidence controls; package-side inline cover-letter evidence staging; per-section resume revision accept; skills/education scoped revision; whole-resume custom rewrite; cover-letter version history; education overlay; full Inventory CRUD.

@@ -584,11 +584,10 @@ function ResumeTextDocument({
         ) : null}
       </header>
 
-      {/* Professional summary */}
+      {/* Professional summary — heading omitted; it is the opening block of the resume */}
       {content.professionalSummary.text !== undefined ? (
         <section className="mt-6">
-          <div className="flex items-center justify-between">
-            <h3 className={SECTION_HEADING_CLASS}>Professional summary</h3>
+          <div className="flex items-center justify-end">
             {editingSection !== "summary" ? (
               <button
                 type="button"
@@ -3031,8 +3030,9 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       {activeTab === "resume" ? (
         <div className="mt-5 space-y-5">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-            {/* ── Document column (≈62%) — Text | PDF ─────────────── */}
-            <div className="lg:w-3/5">
+            {/* ── Document column — Text | PDF. Goes full width in PDF view ── */}
+            {/* (controls live in Text view only; PDF view shows just Layout). */}
+            <div className={documentView === "pdf" ? "lg:w-full" : "lg:w-3/5"}>
               <div
                 className="mb-3 inline-flex rounded-lg border border-folio-sage-border bg-white p-0.5"
                 data-testid="document-view-toggle"
@@ -3097,7 +3097,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
               </button>
             </div>
 
-            {/* ── Controls column (≈38%) — controls only ──────────── */}
+            {/* ── Controls column (≈38%) — Text view only. PDF view shows only Layout. ── */}
+            {documentView !== "pdf" ? (
             <div className="lg:w-2/5">
               <p className="text-[13px] font-medium uppercase tracking-wide text-folio-outline">
                 Included experience
@@ -3401,6 +3402,7 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                 ) : null}
               </div>
             </div>
+            ) : null}
           </div>
 
           {/* ── Export & delivery (full width, bottom) ───────────── */}
@@ -3458,39 +3460,37 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
             ) : null}
 
             {exportReady ? (
-              <div className="mt-4 space-y-3">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
-                    Export
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleExportPdf()}
-                      disabled={isExportingPdf}
-                      className={PRIMARY_BUTTON}
-                    >
-                      {isExportingPdf ? "Exporting…" : "Export PDF"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleExportDocx()}
-                      disabled={isExportingDocx}
-                      className={GHOST_BUTTON}
-                    >
-                      {isExportingDocx ? "Exporting…" : "Export DOCX"}
-                    </button>
-                  </div>
+              <div className="mt-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                  Export
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleExportPdf()}
+                    disabled={isExportingPdf}
+                    className={PRIMARY_BUTTON}
+                  >
+                    {isExportingPdf ? "Exporting…" : "Export PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleExportDocx()}
+                    disabled={isExportingDocx}
+                    className={GHOST_BUTTON}
+                  >
+                    {isExportingDocx ? "Exporting…" : "Export DOCX"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleApprove()}
+                    disabled={isApproving}
+                    data-action="reapprove-for-export"
+                    className={GHOST_BUTTON}
+                  >
+                    {isApproving ? "Validating server PDF…" : "Re-approve for export"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handleApprove()}
-                  disabled={isApproving}
-                  data-action="reapprove-for-export"
-                  className={GHOST_BUTTON}
-                >
-                  {isApproving ? "Validating server PDF…" : "Re-approve for export"}
-                </button>
               </div>
             ) : (
               <div className="mt-4 space-y-4">

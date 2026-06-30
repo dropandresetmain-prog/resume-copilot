@@ -36,13 +36,14 @@ type UploadResult = {
 // Import dialog phases: idle (show upload card) → processing → result.
 type UploadPhase = "idle" | "processing" | UploadResult;
 
-type VaultTab = "work" | "skills" | "education" | "additional";
+type VaultTab = "work" | "education" | "skills" | "additional" | "keywords";
 
 const TABS: { key: VaultTab; label: string }[] = [
   { key: "work", label: "Work experience" },
-  { key: "skills", label: "Skills" },
   { key: "education", label: "Education" },
+  { key: "skills", label: "Skills" },
   { key: "additional", label: "Additional" },
+  { key: "keywords", label: "Keywords" },
 ];
 
 function vaultHealthPercent(totals: {
@@ -379,29 +380,6 @@ export function CareerVaultPageClient() {
         </div>
       )}
 
-      {/* Keyword Bank — promoted from VMT, shown as a persistent named section */}
-      {(inventory.enrichment?.keywordBank.length ?? 0) > 0 && (
-        <div className="mt-6 rounded-xl border border-folio-sage-border bg-white px-4 py-4">
-          <p className="mb-3 text-sm font-semibold text-folio-on-surface">
-            Keyword bank
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {inventory.enrichment!.keywordBank.map((item) => (
-              <span
-                key={item.id}
-                className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                  item.approved
-                    ? "border-[#88d6b5] bg-[#e8f5ef] text-[#016147]"
-                    : "border-folio-outline-variant bg-folio-surface-container text-folio-outline"
-                }`}
-              >
-                {item.keyword}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Tab nav */}
       <div className="mt-6 flex border-b border-folio-sage-border">
         {TABS.map((tab) => {
@@ -686,6 +664,29 @@ export function CareerVaultPageClient() {
                   </li>
                 ))}
               </ul>
+            </div>
+          ))}
+
+        {/* ── Keywords ── */}
+        {activeTab === "keywords" &&
+          ((inventory.enrichment?.keywordBank.length ?? 0) === 0 ? (
+            <EmptyTabState message="No keywords yet. Run enrichment or add experience to populate the keyword bank." />
+          ) : (
+            <div className="rounded-xl border border-folio-sage-border bg-white p-4">
+              <div className="flex flex-wrap gap-2">
+                {inventory.enrichment!.keywordBank.map((item) => (
+                  <span
+                    key={item.id}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      item.approved
+                        ? "border-[#88d6b5] bg-[#e8f5ef] text-[#016147]"
+                        : "border-folio-outline-variant bg-folio-surface-container text-folio-outline"
+                    }`}
+                  >
+                    {item.keyword}
+                  </span>
+                ))}
+              </div>
             </div>
           ))}
       </div>
