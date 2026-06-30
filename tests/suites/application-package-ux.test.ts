@@ -373,6 +373,17 @@ function main() {
       outputEditor.includes("setStage(createEmptyCoverLetterStage())"),
     ],
     [
+      "CL apply is blocked while manual edits are active",
+      outputEditor.includes("if (clIsEditMode || clIsDirty)") &&
+        outputEditor.includes("Save or Cancel your manual cover letter edits before applying changes.") &&
+        outputEditor.includes("isBusy || !linkedJob || clIsEditMode || clIsDirty"),
+    ],
+    [
+      "CL staging controls are disabled during manual edits",
+      outputEditor.includes("disabled={clIsEditMode || clIsDirty}") &&
+        outputEditor.includes("disabled={isBusy || clIsEditMode || clIsDirty}"),
+    ],
+    [
       "CL export gate blocks download on overLimit",
       outputEditor.includes("exportBlocked") &&
         outputEditor.includes("overLimit || bannedPhrases.length > 0"),
@@ -401,7 +412,12 @@ function main() {
     [
       "CL Apply button folds staged changes into one regenerate (M11)",
       outputEditor.includes('data-testid="apply-cover-letter-changes"') &&
-        outputEditor.includes("composeCoverLetterInstructions"),
+        outputEditor.includes("composeStagedCoverLetterInstructions"),
+    ],
+    [
+      "CL one-shot prompt instructions are saved separately from persistent instructions",
+      outputEditor.includes("buildCoverLetterInstructionPolicy") &&
+        outputEditor.includes("persistentAdditionalInstructions: instructionPolicy.persistentInstructions"),
     ],
     [
       "Content gate present: confirm content unlocks layout + approve (M11)",
@@ -416,6 +432,13 @@ function main() {
     [
       "Content edit re-locks the gate (M11)",
       outputEditor.includes("setContentConfirmed(false)"),
+    ],
+    [
+      "content gate reload trusts approved status only",
+      outputEditor.includes("setContentConfirmed(isApprovedDraftStatus(record.status))") &&
+        !outputEditor.includes(
+          "isApprovedDraftStatus(record.status) || isLayoutChangedAfterApprovalStatus(record.status)",
+        ),
     ],
     [
       "all approve paths and layout handler enforce the content gate",

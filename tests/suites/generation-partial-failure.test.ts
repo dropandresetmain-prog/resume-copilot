@@ -159,7 +159,7 @@ function main() {
     ],
     [
       "output does not treat a failed cover letter lookup as confirmed missing",
-      outputEditor.includes("A failed persisted lookup is not proof that no cover letter exists.") &&
+      outputEditor.includes("loadError") &&
         outputEditor.includes("We could not verify whether a cover letter is already saved.") &&
         outputEditor.includes("No new draft was created.") &&
         outputEditor.includes("Retry loading"),

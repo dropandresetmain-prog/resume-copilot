@@ -248,11 +248,11 @@ function main() {
     { text: "Volunteer tutor", riskFlags: [] },
   ]);
 
-  let assertFailed = false;
+  let repairedDraftAccepted = true;
   try {
-    assertGeneratedResumeContentValid(invalidDraft);
+    assertGeneratedResumeContentValid(invalidPrepared.content);
   } catch {
-    assertFailed = true;
+    repairedDraftAccepted = false;
   }
 
   let plainExamplesAssertFailed = false;
@@ -316,7 +316,7 @@ function main() {
     ["prompt includes sourceRefs rules", promptIncludesSourceRefsRules(prompt)],
     ["prompt uses compact json payload", promptUsesCompactJsonPayload(prompt)],
     ["mock draft passes validation", validateGeneratedResumeContent(mockDraft.content).ok],
-    ["invalid draft still missing skills after repair", !invalidPrepared.validation.ok],
+    ["invalid draft is valid after required skill groups are repaired", invalidPrepared.validation.ok],
     [
       "invalid draft repairs excess roles before skills check",
       invalidPrepared.content.experience.length === MAX_WORK_EXPERIENCE_ROLES,
@@ -326,8 +326,9 @@ function main() {
       !invalidPrepared.validation.errors.some((issue) => issue.code === "too_many_roles"),
     ],
     [
-      "invalid draft still flags missing skills groups",
-      invalidPrepared.validation.errors.some((issue) => issue.code === "skills_group_missing"),
+      "invalid draft repair restores all required skill groups",
+      !invalidPrepared.validation.errors.some((issue) => issue.code === "skills_group_missing") &&
+        invalidPrepared.content.skills.groups.length >= 3,
     ],
     [
       "invalid draft does not flag additional format after normalization",
@@ -358,7 +359,7 @@ function main() {
       "listed plain examples emit normalization warning",
       plainExamplesPrepared.validation.warnings.some((issue) => issue.code === "additional_experience_normalized"),
     ],
-    ["assertGeneratedResumeContentValid throws on invalid draft", assertFailed],
+    ["assertGeneratedResumeContentValid accepts repaired draft", repairedDraftAccepted],
     ["additional experience parser accepts title detail", parsedAdditional?.title === "Other Past Roles"],
     ["layout renders plain examples as Title: Detail", layoutEntries.length === 1 && layoutEntries[0]?.title === DEFAULT_ADDITIONAL_EXPERIENCE_TITLE],
     ["max roles constant is 4", MAX_WORK_EXPERIENCE_ROLES === 4],

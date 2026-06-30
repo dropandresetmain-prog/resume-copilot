@@ -98,9 +98,11 @@ function main() {
       outputClientSource.includes("serverPdfValidation?.pageCount === 1"),
     ],
     [
-      "output editor gates export behind approval",
-      outputClientSource.includes("exportReady") &&
-        outputClientSource.includes("!exportReady"),
+      "bottom Export and delivery card renders downloads only when export ready",
+      outputClientSource.includes('data-testid="output-approve-export"') &&
+        outputClientSource.includes("{exportReady ? (") &&
+        outputClientSource.includes("handleExportPdf") &&
+        outputClientSource.includes("handleExportDocx"),
     ],
   ];
 

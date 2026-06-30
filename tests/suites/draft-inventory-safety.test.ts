@@ -115,7 +115,7 @@ function draftEditPathsAvoidInventorySaveHelpers(): boolean {
 function generatedDraftUpdateTargetsDraftTableOnly(): boolean {
   const source = readSource("src/lib/supabase/generated-resume-drafts.ts");
   const match = source.match(
-    /export async function updateGeneratedResumeDraftInCloud[\s\S]*?return mapped;\n}/,
+    /export async function updateGeneratedResumeDraftInCloud[\s\S]*?return mapped;\r?\n}/,
   );
   if (!match) {
     return false;
@@ -131,7 +131,7 @@ function generatedDraftUpdateTargetsDraftTableOnly(): boolean {
 function deleteGeneratedDraftTargetsDraftTableOnly(): boolean {
   const source = readSource("src/lib/supabase/generated-resume-drafts.ts");
   const match = source.match(
-    /export async function deleteGeneratedResumeDraftFromCloud[\s\S]*?}\n$/,
+    /export async function deleteGeneratedResumeDraftFromCloud[\s\S]*?}\r?\n?$/,
   );
   if (!match) {
     return false;

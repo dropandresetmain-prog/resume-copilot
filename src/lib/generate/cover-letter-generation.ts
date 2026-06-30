@@ -24,6 +24,22 @@ export const REGENERATE_COVER_LETTER_CONFIRM =
   "Regenerate the cover letter using your current Communication Profile and inventory evidence?\n\n" +
   "This is 1 AI step. Your resume draft will not change. The current cover letter will be replaced.";
 
+export function buildCoverLetterInstructionPolicy(
+  persistentInstructions: string | undefined,
+  oneShotInstructions: string | undefined,
+): {
+  promptInstructions: string | undefined;
+  persistentInstructions: string | null;
+} {
+  const persistent = persistentInstructions?.trim() || "";
+  const oneShot = oneShotInstructions?.trim() || "";
+  const promptInstructions = [persistent, oneShot].filter(Boolean).join(" ").trim();
+  return {
+    promptInstructions: promptInstructions || undefined,
+    persistentInstructions: persistent || null,
+  };
+}
+
 export type CoverLetterGenerationOptions = {
   job: StoredJobDescription;
   resumeDraft: GeneratedResumeDraftRecord;
@@ -32,7 +48,13 @@ export type CoverLetterGenerationOptions = {
   companyName?: string;
   country?: string;
   companyWebsite?: string;
+  /** Instructions sent to this AI call. May include one-shot staged guidance. */
   additionalInstructions?: string;
+  /**
+   * Base instructions to save on the draft. Pass null to persist no base instructions
+   * while keeping one-shot `additionalInstructions` prompt-only.
+   */
+  persistentAdditionalInstructions?: string | null;
   savedCompanyContext?: CompanyContext | null;
   coverLetterModelTier?: ModelTier;
   /** When set, replaces this cover letter draft in place instead of creating a new row. */
@@ -139,6 +161,10 @@ export async function generateAndSaveCoverLetterDraft(
     companyContext: reconciledContext,
     coverLetterModelTier,
   });
+  const instructionsToPersist =
+    options.persistentAdditionalInstructions === undefined
+      ? options.additionalInstructions
+      : options.persistentAdditionalInstructions ?? undefined;
 
   const saveInput = {
     applicationId: options.applicationId,
@@ -147,7 +173,7 @@ export async function generateAndSaveCoverLetterDraft(
     companyName: companyDisplayName,
     country,
     companyWebsite,
-    additionalInstructions: options.additionalInstructions,
+    additionalInstructions: instructionsToPersist,
     companyContext: reconciledContext,
     body: response.formalContent,
     rationale: {

@@ -6,9 +6,8 @@
 - **Staging is in-memory for the mounted session** — the resume bucket (picked replacements + custom instruction) and the CL bucket (tone + chips + evidence use/avoid + custom instruction) survive Resume↔Cover-letter view switches but are cleared on a hard page reload. By design (no sessionStorage).
 - **Content gate is UI-only** — "Confirm content" unlocks Layout sliders and the Step-1 Approve button; any content edit/apply/regenerate re-locks it. This sits in front of, and does not replace, the server one-page 422 export gate (still the export truth). Already-approved drafts load pre-confirmed.
 - **"Apply changes to Resume" tailors only staged bullets** — it sends only the picked/changed bullets through the additive `single_bullet` `revise-resume-scope` branch; it never regenerates or re-touches the rest of the resume. A full "Regenerate resume" is a separate, explicit action that re-locks the content gate.
-- **Replace alternatives = all ranked work bullets (any role)** — per the approved decision, the picker shows the full spine-ranked work-bullet pool, not just the selected bullet's role. Alternatives are deterministic from the saved spine inputs (no extra AI on open).
+- **Replace alternatives are role-scoped** — the picker shows spine-ranked work bullets for the selected bullet's role. Alternatives are deterministic from the saved spine inputs (no extra AI on open).
 - **Vault overlay item ids** — Education/Skills/Additional edits/hides are keyed by collated item `id`; like the existing add-from-text overlays, an override can become orphaned if a re-parse changes the item id. Accepted, consistent with prior overlay behavior.
-- **Independent Opus review still required before merge** (same standard as M4/M10b).
 
 ## Output Editor redesign (M10b)
 
@@ -16,11 +15,10 @@
 - **Per-section inline edits hold transient working copies** — header/summary/skills/education/additional/role-details editors save explicitly (Save/Cancel) and persist immediately; there is no page-level `beforeunload` guard for the resume side (the whole-panel dirty-state editor was retired). The cover-letter `beforeunload` guard is unchanged. Mid-edit navigation discards an unsaved section editor.
 - **Bullet Remove is immediate, no undo** — matches the agreed "immediate content edit" model; recoverable only via Regenerate. Approval invalidates on every edit.
 - **Layout sliders expose 5 of 6 settings** — body font, side margins, top margin, line spacing, section spacing. `itemLineSpacing` passes through from stored/optimizer defaults (no slider), consistent with the legacy preview controls.
-- **Independent Opus review still required before merge** (same standard as M4).
 
 ## Folio UI redesign
 
-- **Dual output routes** — `/output/[draftId]` (new Output Editor) and `/resume-preview/[draftId]` (legacy Application Package) both exist. Generate and Applications links still target `/resume-preview`. Migration pending — see `docs/FOLIO_REDESIGN.md`.
+- **Canonical output route** — Generate and Applications target `/output/[draftId]` (`OutputEditorPageClient`). Legacy preview routes are retired.
 - **Token discipline** — new UI must use Folio CSS tokens from `globals.css`; occasional inline hex may remain on status chips until swept.
 - **Settings page** — route shell only; preferences not implemented.
 - **Legacy `/setup`** — still available; onboarding is the preferred first-run path.

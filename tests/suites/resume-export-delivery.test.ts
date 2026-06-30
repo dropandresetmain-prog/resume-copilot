@@ -116,9 +116,11 @@ function main() {
         outputClientSource.includes("await deliverExportedFile"),
     ],
     [
-      "output editor topbar export disabled until export ready",
-      outputClientSource.includes("isExportingPdf || !exportReady") &&
-        outputClientSource.includes("isExportingDocx || !exportReady"),
+      "bottom Export and delivery card conditionally renders export controls",
+      outputClientSource.includes('data-testid="output-approve-export"') &&
+        outputClientSource.includes("{exportReady ? (") &&
+        outputClientSource.includes("handleExportPdf") &&
+        outputClientSource.includes("handleExportDocx"),
     ],
   ];
 

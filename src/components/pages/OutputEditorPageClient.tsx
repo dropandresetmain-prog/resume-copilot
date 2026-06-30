@@ -26,6 +26,7 @@ import {
 } from "@/lib/cover-letter/word-limits";
 import { buildCoverLetterGenerationOptions } from "@/lib/generate/build-cover-letter-options";
 import {
+  buildCoverLetterInstructionPolicy,
   generateAndSaveCoverLetterDraft,
   REGENERATE_COVER_LETTER_CONFIRM,
 } from "@/lib/generate/cover-letter-generation";
@@ -1884,13 +1885,10 @@ const TONE_INSTRUCTION: Record<ToneOption, string> = {
   conversational: "Write in a conversational tone.",
 };
 
-// Compose all staged CL changes into one additionalInstructions string.
-function composeCoverLetterInstructions(
-  base: string | undefined,
-  stage: CoverLetterStageBucket,
-): string {
+// Compose prompt-only staged CL changes. Persistent base instructions are joined
+// at call time and saved separately so one-shot staging cannot leak into later applies.
+function composeStagedCoverLetterInstructions(stage: CoverLetterStageBucket): string {
   const parts = [
-    base?.trim() || "",
     ...stage.chipActions.map((action) => CHIP_ACTION_INSTRUCTION[action]),
     TONE_INSTRUCTION[stage.tone],
     stage.customInstruction.trim(),
@@ -2086,6 +2084,10 @@ function CoverLetterTab({
 
   async function handleRegenerate() {
     if (!coverLetter || isBusy) return;
+    if (clIsEditMode || clIsDirty) {
+      setError("Save or Cancel your manual cover letter edits before applying changes.");
+      return;
+    }
     if (!linkedJob) {
       setError("Saved job description is required to regenerate the cover letter.");
       return;
@@ -2097,9 +2099,10 @@ function CoverLetterTab({
     try {
       // Fold ALL staged CL changes (tone + chips + custom instruction) into the
       // single regenerate call, alongside the staged evidence controls (M11).
-      const composedInstructions = composeCoverLetterInstructions(
+      const stagedInstructions = composeStagedCoverLetterInstructions(stage);
+      const instructionPolicy = buildCoverLetterInstructionPolicy(
         coverLetter.additionalInstructions,
-        stage,
+        stagedInstructions,
       );
       const updated = await generateAndSaveCoverLetterDraft({
         ...buildCoverLetterGenerationOptions({
@@ -2110,11 +2113,14 @@ function CoverLetterTab({
           fields: {
             country: coverLetter.country,
             companyWebsite: coverLetter.companyWebsite,
-            additionalInstructions: composedInstructions || undefined,
+            additionalInstructions: instructionPolicy.promptInstructions,
           },
           savedCompanyContext: companyContext ?? coverLetter.companyContext,
         }),
         existingCoverLetterId: coverLetter.id,
+        // One-shot staged guidance affects this prompt only. The saved draft keeps
+        // its persistent base instructions so the next Apply starts clean.
+        persistentAdditionalInstructions: instructionPolicy.persistentInstructions,
         // Pending-only evidence staging — applied on regenerate only, never persisted.
         evidenceControls: normalizeCoverLetterEvidenceControls(stage.evidenceControls),
       });
@@ -2291,7 +2297,7 @@ function CoverLetterTab({
               key={action}
               type="button"
               onClick={() => toggleChipAction(action)}
-              disabled={clIsEditMode}
+              disabled={clIsEditMode || clIsDirty}
               aria-pressed={staged}
               className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 staged
@@ -2317,7 +2323,7 @@ function CoverLetterTab({
                 key={segment.key}
                 type="button"
                 onClick={() => handleSelectTone(segment.key)}
-                disabled={clIsEditMode}
+                disabled={clIsEditMode || clIsDirty}
                 aria-pressed={active}
                 className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   active ? "bg-folio-primary-container text-white" : "text-folio-outline hover:text-folio-on-surface"
@@ -2336,6 +2342,7 @@ function CoverLetterTab({
           <button
             type="button"
             onClick={() => setShowEvidenceStaging((prev) => !prev)}
+            disabled={clIsEditMode || clIsDirty}
             className="flex w-full items-center justify-between rounded-lg border border-folio-sage-border bg-white px-4 py-2.5 text-sm font-medium text-folio-on-surface hover:bg-folio-surface-container-low"
             data-testid="cl-evidence-staging-toggle"
           >
@@ -2390,7 +2397,7 @@ function CoverLetterTab({
                         <div className="mt-2 flex flex-wrap gap-2">
                           <button
                             type="button"
-                            disabled={isBusy}
+                            disabled={isBusy || clIsEditMode || clIsDirty}
                             onClick={() => toggleForceEvidence(row.id)}
                             className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                               isForced
@@ -2403,7 +2410,7 @@ function CoverLetterTab({
                           </button>
                           <button
                             type="button"
-                            disabled={isBusy}
+                            disabled={isBusy || clIsEditMode || clIsDirty}
                             onClick={() => toggleExcludeEvidence(row.id)}
                             className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                               isExcluded
@@ -2456,7 +2463,7 @@ function CoverLetterTab({
           rows={2}
           value={stage.customInstruction}
           onChange={(e) => setStage((prev) => ({ ...prev, customInstruction: e.target.value }))}
-          disabled={clIsEditMode}
+          disabled={clIsEditMode || clIsDirty}
           placeholder="e.g. mention my relocation timeline; lead with the fintech project"
           className={TEXTAREA_CLASS}
           data-testid="cl-custom-instruction"
@@ -2483,7 +2490,7 @@ function CoverLetterTab({
         <button
           type="button"
           onClick={() => void handleRegenerate()}
-          disabled={isBusy || !linkedJob}
+          disabled={isBusy || !linkedJob || clIsEditMode || clIsDirty}
           className={`w-full ${hasStagedChanges ? PRIMARY_BUTTON : GHOST_BUTTON}`}
           data-testid="apply-cover-letter-changes"
         >
@@ -2494,6 +2501,11 @@ function CoverLetterTab({
               ? "Apply changes to Cover Letter"
               : "Regenerate cover letter"}
         </button>
+        {clIsEditMode || clIsDirty ? (
+          <p className="mt-2 text-sm text-folio-outline" data-testid="cl-apply-edit-guard">
+            Save or Cancel your manual edits before applying staged changes.
+          </p>
+        ) : null}
         <p className={`mt-2 text-right text-xs ${overLimit ? "text-folio-error" : "text-folio-outline"}`}>
           {wordCount} / {FORMAL_COVER_LETTER_MAX_WORDS} words
         </p>
@@ -2737,12 +2749,9 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       }
       setDraft(record);
 
-      // A draft that is already approved (or layout-changed-after-approval) on load
-      // has confirmed content — don't re-gate a returning user (M11). Fresh content
-      // edits re-lock it via applyContentEdit.
-      setContentConfirmed(
-        isApprovedDraftStatus(record.status) || isLayoutChangedAfterApprovalStatus(record.status),
-      );
+      // Only persisted approval proves content confirmation after reload.
+      // layout_changed may include a later content edit, so it re-locks.
+      setContentConfirmed(isApprovedDraftStatus(record.status));
 
       // Seed manual layout overrides from any stored export layout settings so the
       // PDF-view sliders reflect the validated layout on reload.
@@ -2857,8 +2866,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     [draft, linkedJob],
   );
 
-  // Spine-ranked alternative bullets for the Replace picker (M11). All ranked work
-  // bullets across every role, deterministic from the saved spine inputs — no AI.
+  // Spine-ranked work bullets for the Replace picker (M11). The picker filters
+  // this deterministic pool to the selected role before displaying alternatives.
   const bulletAlternatives = useMemo<AlternativeBullet[]>(() => {
     if (!draft || !linkedJob) return [];
     const collated = buildActiveCollatedInventory(inventory);

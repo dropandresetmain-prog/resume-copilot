@@ -14,6 +14,7 @@ import {
   resumeCustomRevisionShouldPersist,
   validateCustomRevisedRoleBullets,
   validateResumeCustomRevisionRequest,
+  validateResumeSingleBulletRevisionCandidates,
   validateResumeSingleBulletRevisionRequest,
 } from "@/lib/resume-draft/custom-revision";
 import {
@@ -259,29 +260,25 @@ async function handleSingleBulletRevision(
     { modelTier: resumeModelTier },
   );
 
-  // Keep only candidates that target a staged bullet — the model must not edit anything else.
-  const stagedKeys = new Set(body.bullets.map((t) => `${t.roleIndex}:${t.bulletIndex}`));
-  const warnings = [...revision.warnings];
-  const bulletCandidates = revision.bulletCandidates.filter((candidate) => {
-    const matched = stagedKeys.has(`${candidate.roleIndex}:${candidate.bulletIndex}`);
-    if (!matched) {
-      warnings.push(
-        `Ignored revised bullet for unstaged target ${candidate.roleIndex}:${candidate.bulletIndex}.`,
-      );
-    }
-    return matched;
-  });
-
-  if (bulletCandidates.length === 0) {
+  // Validate the unfiltered provider response before any apply or persistence.
+  // Applying a subset would silently change the user's staged intent and could
+  // persist a partially tailored resume, so this AI contract is all-or-nothing.
+  const candidateValidationError = validateResumeSingleBulletRevisionCandidates(
+    body.bullets,
+    revision.bulletCandidates,
+  );
+  if (candidateValidationError) {
     return NextResponse.json(
       {
-        error: "Single-bullet revision produced no valid candidates.",
-        validationIssues: warnings,
+        error: "Single-bullet revision did not return the exact requested targets.",
+        validationIssues: [candidateValidationError, ...revision.warnings],
         timestamp,
       },
       { status: 422 },
     );
   }
+  const bulletCandidates = revision.bulletCandidates;
+  const warnings = [...revision.warnings];
 
   const shouldPersist = resumeCustomRevisionShouldPersist(body);
 

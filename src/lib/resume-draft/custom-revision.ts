@@ -139,6 +139,35 @@ export function applyResumeSingleBulletRevisions(
   };
 }
 
+export function validateResumeSingleBulletRevisionCandidates(
+  targets: readonly { roleIndex: number; bulletIndex: number }[],
+  candidates: readonly { roleIndex: number; bulletIndex: number; text: string }[],
+): string | null {
+  const requestedKeys = new Set(targets.map((target) => `${target.roleIndex}:${target.bulletIndex}`));
+  const returnedKeys = new Set<string>();
+
+  for (const candidate of candidates) {
+    const key = `${candidate.roleIndex}:${candidate.bulletIndex}`;
+    if (!requestedKeys.has(key)) {
+      return `AI returned an unexpected bullet target ${key}.`;
+    }
+    if (returnedKeys.has(key)) {
+      return `AI returned duplicate bullet target ${key}.`;
+    }
+    returnedKeys.add(key);
+  }
+
+  const missingKeys = [...requestedKeys].filter((key) => !returnedKeys.has(key));
+  if (missingKeys.length > 0) {
+    return `AI omitted requested bullet target${missingKeys.length === 1 ? "" : "s"} ${missingKeys.join(", ")}.`;
+  }
+  if (candidates.length !== targets.length) {
+    return `AI returned ${candidates.length} bullet candidates for ${targets.length} requested targets.`;
+  }
+
+  return null;
+}
+
 export function validateResumeSingleBulletRevisionRequest(
   request: Partial<{
     draftId: string;

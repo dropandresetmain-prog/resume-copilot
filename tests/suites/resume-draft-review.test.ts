@@ -18,6 +18,7 @@ import {
   applyResumeCustomRevision,
   applyResumeSingleBulletRevisions,
   resumeCustomRevisionShouldPersist,
+  validateResumeSingleBulletRevisionCandidates,
   validateResumeSingleBulletRevisionRequest,
 } from "../../src/lib/resume-draft/custom-revision";
 import {
@@ -351,11 +352,45 @@ function main() {
       warnings: [],
     }),
   );
+  const threeTargets = [
+    { roleIndex: 0, bulletIndex: 0 },
+    { roleIndex: 0, bulletIndex: 1 },
+    { roleIndex: 1, bulletIndex: 0 },
+  ];
+  const threeExactCandidates = threeTargets.map((target, index) => ({
+    ...target,
+    text: `Revised bullet ${index + 1}`,
+  }));
+  const exactOneCandidateValidation = validateResumeSingleBulletRevisionCandidates(
+    [{ roleIndex: 0, bulletIndex: 0 }],
+    [{ roleIndex: 0, bulletIndex: 0, text: "Exact revision" }],
+  );
+  const exactThreeCandidateValidation = validateResumeSingleBulletRevisionCandidates(
+    threeTargets,
+    threeExactCandidates,
+  );
+  const missingCandidateValidation = validateResumeSingleBulletRevisionCandidates(
+    threeTargets,
+    threeExactCandidates.slice(0, 2),
+  );
+  const duplicateCandidateValidation = validateResumeSingleBulletRevisionCandidates(threeTargets, [
+    threeExactCandidates[0]!,
+    threeExactCandidates[0]!,
+    threeExactCandidates[2]!,
+  ]);
+  const extraCandidateValidation = validateResumeSingleBulletRevisionCandidates(threeTargets, [
+    ...threeExactCandidates,
+    { roleIndex: 9, bulletIndex: 9, text: "Unexpected revision" },
+  ]);
 
   // M11 resume staging is UI behaviour in the Output editor — assert its wiring.
   const outputEditor = readFileSync(
     join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
     "utf8",
+  );
+  const applyResumeStageSource = outputEditor.slice(
+    outputEditor.indexOf("async function applyResumeStage()"),
+    outputEditor.indexOf("const docDisabled"),
   );
   const fiveSkills = ["SQL", "Tableau", "Python", "Figma", "Jira"];
   const fiveSkillContent = updateResumeSkillGroupItems(
@@ -417,6 +452,13 @@ function main() {
       "Resume apply persists via the M5a invalidation path (M11)",
       outputEditor.includes("applyResumeSingleBulletRevisions(content, response.bulletCandidates)") &&
         outputEditor.includes("await onApplyContentEdit(next)"),
+    ],
+    [
+      "resume staging clears only after complete apply success",
+      applyResumeStageSource.indexOf("await onApplyContentEdit(next)") <
+        applyResumeStageSource.indexOf("setStage(new Map())") &&
+        applyResumeStageSource.indexOf("setStage(new Map())") <
+          applyResumeStageSource.indexOf("} catch (err)"),
     ],
     [
       "staged replacements lock structural Edit and Remove actions",
@@ -594,6 +636,20 @@ function main() {
       singleBulletParse.ok &&
         singleBulletParse.value?.bullets[0]?.roleIndex === 0 &&
         singleBulletParse.value?.bullets[0]?.bulletIndex === 0,
+    ],
+    ["single-bullet exact contract accepts 1 requested and 1 returned", exactOneCandidateValidation === null],
+    ["single-bullet exact contract accepts exactly 3 requested targets", exactThreeCandidateValidation === null],
+    [
+      "single-bullet exact contract rejects a missing candidate without partial acceptance",
+      missingCandidateValidation?.includes("omitted requested bullet target") === true,
+    ],
+    [
+      "single-bullet exact contract rejects a duplicate candidate",
+      duplicateCandidateValidation?.includes("duplicate bullet target") === true,
+    ],
+    [
+      "single-bullet exact contract rejects an extra candidate",
+      extraCandidateValidation?.includes("unexpected bullet target") === true,
     ],
   ];
 

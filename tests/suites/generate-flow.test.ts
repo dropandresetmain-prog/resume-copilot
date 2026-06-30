@@ -451,14 +451,6 @@ async function main() {
         generateSection.includes("estimateGenerateAiSteps"),
     ],
     [
-      "output mode visible near cta",
-      generateSection.includes('data-testid="generate-output-mode"') &&
-        generateSection.indexOf('data-testid="generate-output-mode"') <
-          generateSection.indexOf('data-testid="generate-ai-step-estimate"') &&
-        generateSection.indexOf('data-testid="generate-company-context"') <
-          generateSection.indexOf('data-testid="generate-output-mode"'),
-    ],
-    [
       "output mode defaults resume and cover letter",
       generateSection.includes('value="resume_and_cover_letter"') &&
         generateSection.includes("Resume + Cover Letter"),

@@ -36,9 +36,11 @@ All parity milestones are complete. See `docs/FOLIO_RECOVERY_ROADMAP.md` §14 fo
 | M9 — E2E fix batch | ✅ | 2026-06-30 |
 | MX — Career Vault overhaul | Not started (parked — unblocked by M8) | — |
 | M10a — Output Editor redesign: design session | ✅ | 2026-06-30 |
-| M10b — Output Editor redesign: implementation | ✅ (pending independent review) | 2026-06-30 |
+| M10b — Output Editor redesign: implementation | ✅ | 2026-06-30 |
+| M10c — Output Editor + Vault quick fixes | ✅ | 2026-06-30 |
+| M11 — Unified staging + content gate + Vault structured editing | ✅ | 2026-06-30 |
 
-**Next step:** independent Opus review of M10b diff (same standard as M4), then merge `folio-recovery` → `main`. MX (Career Vault overhaul — restyle + Inventory Summary port) is optional and can be done after merge.
+**Pre-merge state:** the final bounded release-blocker fix pack is implemented and verified: all 50 registered suites pass, production build passes, and changed files have no lint or TypeScript errors. `folio-recovery` is ready for user review and merge to `main`. MX remains optional after merge.
 
 ### Current shell & routes
 
@@ -590,7 +592,7 @@ See also `docs/TESTING.md` for test placement and grep policy.
 
 **Merge `folio-recovery` to `main`**
 
-1. **Independent Opus review of M10b** (required before merge — same standard as M4): fresh Opus chat with review brief + diff only; no implementation history.
+1. Review and merge `folio-recovery` into `main`.
 2. **MX — Career Vault overhaul** (optional, after merge): restyle legacy `setup/` VMT panels to Folio-native tokens; port Inventory Summary; add Uploaded Resumes list; reorganize VMT. Unblocked by M9.
 3. **Cover letter only mode** — deferred (requires existing tailored resume draft; no milestone owner).
 

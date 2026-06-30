@@ -27,7 +27,10 @@ import {
   rankExperiencesForRole,
   documentStoryRankingMethodology,
 } from "../../src/lib/cover-letter/story-ranking";
-import { REGENERATE_COVER_LETTER_CONFIRM } from "../../src/lib/generate/cover-letter-generation";
+import {
+  buildCoverLetterInstructionPolicy,
+  REGENERATE_COVER_LETTER_CONFIRM,
+} from "../../src/lib/generate/cover-letter-generation";
 import { RESUME_DRAFT_SCHEMA_VERSION } from "../../src/types/resume-draft";
 import type { GeneratedResumeDraftRecord } from "../../src/types/resume-draft";
 
@@ -138,6 +141,15 @@ function main() {
   const applicationPackageCoverLetterPanel = readFileSync(
     join(process.cwd(), "src/components/application-package/ApplicationPackageCoverLetterPanel.tsx"),
     "utf8",
+  );
+  const persistentInstructions = "Always mention willingness to relocate.";
+  const firstApplyPolicy = buildCoverLetterInstructionPolicy(
+    persistentInstructions,
+    "Write in a formal tone.",
+  );
+  const secondApplyPolicy = buildCoverLetterInstructionPolicy(
+    firstApplyPolicy.persistentInstructions ?? undefined,
+    "Write in a conversational tone.",
   );
   const coverLetterPreviewPage = readFileSync(
     join(process.cwd(), "src/components/pages/CoverLetterPreviewPageClient.tsx"),
@@ -291,6 +303,13 @@ function main() {
       "cover letter generation replaces existing draft in place",
       coverLetterGeneration.includes("replaceGeneratedCoverLetterDraftInCloud") &&
         coverLetterGeneration.includes("existingCoverLetterId"),
+    ],
+    [
+      "consecutive cover letter applies do not inherit prior one-shot instructions",
+      firstApplyPolicy.promptInstructions?.includes("formal tone") === true &&
+        firstApplyPolicy.persistentInstructions === persistentInstructions &&
+        secondApplyPolicy.promptInstructions?.includes("conversational tone") === true &&
+        !secondApplyPolicy.promptInstructions.includes("formal tone"),
     ],
     [
       "generate page cover letter only remains disabled",
