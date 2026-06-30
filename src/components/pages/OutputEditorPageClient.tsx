@@ -20,7 +20,6 @@ import { buildEvidenceSpine } from "@/lib/evidence/spine";
 import { formatCompanyNameForDisplay } from "@/lib/cover-letter/company-name";
 import { splitCoverLetterParagraphs } from "@/lib/cover-letter/format-body";
 import { countWords } from "@/lib/cover-letter/resume-evidence";
-import { requestCoverLetterRevision } from "@/lib/cover-letter/revision-client";
 import {
   FORMAL_COVER_LETTER_MAX_WORDS,
   isOverWordLimit,
@@ -282,6 +281,23 @@ function bulletStageKey(roleIndex: number, bulletIndex: number): string {
   return `${roleIndex}:${bulletIndex}`;
 }
 
+// ── M11 staging model ─────────────────────────────────────────────────────────
+// A spine-ranked alternative bullet the user can pick to replace a bullet.
+type AlternativeBullet = {
+  id: string;
+  text: string;
+  label: string;
+  score: number;
+};
+
+// One staged replacement: the picked alternative text + an optional per-bullet
+// instruction. Applied via the additive single_bullet revise-resume-scope branch.
+type ResumeStageEntry = {
+  pickedText: string;
+  instruction: string;
+};
+type ResumeStageMap = Map<string, ResumeStageEntry>;
+
 type ResumeTextDocumentProps = {
   draft: GeneratedResumeDraftRecord;
   linkedJob: StoredJobDescription | null;
@@ -289,6 +305,15 @@ type ResumeTextDocumentProps = {
   onApplyContentEdit: (next: ResumeDraftContent) => Promise<void>;
   /** Page-level busy flag (regenerate/approve) — disables in-document mutations. */
   disabled: boolean;
+  // ── Lifted staging bucket (M11) — survives Resume↔Cover-letter view switches.
+  /** Spine-ranked alternative bullets (all roles) offered by the Replace picker. */
+  alternatives: AlternativeBullet[];
+  /** Staged replacements, keyed by bulletStageKey. Owned by the parent. */
+  stage: ResumeStageMap;
+  setStage: React.Dispatch<React.SetStateAction<ResumeStageMap>>;
+  /** Bucket-level custom instruction applied to every staged bullet on Apply. */
+  stageInstruction: string;
+  setStageInstruction: (value: string) => void;
 };
 
 function ResumeTextDocument({
@@ -296,6 +321,11 @@ function ResumeTextDocument({
   linkedJob,
   onApplyContentEdit,
   disabled,
+  alternatives,
+  stage,
+  setStage,
+  stageInstruction,
+  setStageInstruction,
 }: ResumeTextDocumentProps) {
   const content = draft.content;
   const header = content.header;
@@ -314,13 +344,12 @@ function ResumeTextDocument({
   const [selectedBulletKey, setSelectedBulletKey] = useState<string | null>(null);
   const [busyBulletKey, setBusyBulletKey] = useState<string | null>(null);
 
-  // Replace staging — keyed by roleIndex:bulletIndex → optional per-bullet instruction.
-  const [stagedReplace, setStagedReplace] = useState<Map<string, string>>(new Map());
-  const [replacePreview, setReplacePreview] = useState<
-    { roleIndex: number; bulletIndex: number; text: string }[] | null
-  >(null);
-  const [replaceWarnings, setReplaceWarnings] = useState<string[]>([]);
+  // Replace = pick-from-spine then tailor (M11). The picker for one bullet is
+  // open when pickingForKey matches its stage key. Staged picks live in the
+  // parent (props.stage) so they survive Resume↔Cover-letter view switches.
+  const [pickingForKey, setPickingForKey] = useState<string | null>(null);
   const [isReplacing, setIsReplacing] = useState(false);
+  const [replaceWarnings, setReplaceWarnings] = useState<string[]>([]);
   const [replaceError, setReplaceError] = useState<string | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
 
@@ -415,7 +444,7 @@ function ResumeTextDocument({
       };
       await onApplyContentEdit(next);
       // Drop any staging that referenced the removed bullet.
-      setStagedReplace((prev) => {
+      setStage((prev) => {
         const nextMap = new Map(prev);
         nextMap.delete(key);
         return nextMap;
@@ -428,46 +457,66 @@ function ResumeTextDocument({
     }
   }
 
-  function toggleStageReplace(roleIndex: number, bulletIndex: number) {
-    const key = bulletStageKey(roleIndex, bulletIndex);
-    setStagedReplace((prev) => {
-      const nextMap = new Map(prev);
-      if (nextMap.has(key)) nextMap.delete(key);
-      else nextMap.set(key, "");
-      return nextMap;
-    });
-    setReplacePreview(null);
+  // Open/close the spine-ranked alternatives picker for one bullet.
+  function openPicker(roleIndex: number, bulletIndex: number) {
+    setPickingForKey(bulletStageKey(roleIndex, bulletIndex));
     setReplaceError(null);
   }
 
-  function setStageInstruction(key: string, instruction: string) {
-    setStagedReplace((prev) => {
+  // Stage a picked alternative as the replacement for the bullet at `key`.
+  function pickAlternative(key: string, alternativeText: string) {
+    setStage((prev) => {
       const nextMap = new Map(prev);
-      if (nextMap.has(key)) nextMap.set(key, instruction);
+      const existing = nextMap.get(key);
+      nextMap.set(key, { pickedText: alternativeText, instruction: existing?.instruction ?? "" });
       return nextMap;
     });
-    setReplacePreview(null);
+    setPickingForKey(null);
   }
 
-  async function runReplaceRegeneration() {
-    if (isReplacing || stagedReplace.size === 0 || !linkedJob) return;
+  function unstageReplace(key: string) {
+    setStage((prev) => {
+      const nextMap = new Map(prev);
+      nextMap.delete(key);
+      return nextMap;
+    });
+  }
+
+  function setEntryInstruction(key: string, instruction: string) {
+    setStage((prev) => {
+      const nextMap = new Map(prev);
+      const existing = nextMap.get(key);
+      if (existing) nextMap.set(key, { ...existing, instruction });
+      return nextMap;
+    });
+  }
+
+  // Apply changes to Resume (M11): tailor ONLY the staged (picked) bullets via the
+  // additive single_bullet branch and persist. Never re-touches the rest of the
+  // resume; never a full regenerate. One-shot — picked text in, tailored text out.
+  async function applyResumeStage() {
+    if (isReplacing || stage.size === 0 || !linkedJob) return;
     const targets: ResumeSingleBulletRevisionTarget[] = [];
-    for (const [key, instruction] of stagedReplace.entries()) {
+    for (const [key, entry] of stage.entries()) {
       const [ri, bi] = key.split(":").map(Number);
-      const currentText = content.experience[ri]?.bullets[bi]?.text;
-      if (typeof currentText !== "string") continue;
+      if (typeof content.experience[ri]?.bullets[bi]?.text !== "string") continue;
+      const instruction = [entry.instruction, stageInstruction]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(" ");
       targets.push({
         roleIndex: ri,
         bulletIndex: bi,
-        currentText,
-        customInstruction: instruction.trim() || undefined,
+        // The picked alternative is the basis the model tailors to JD context.
+        currentText: entry.pickedText,
+        customInstruction: instruction || undefined,
       });
     }
     if (targets.length === 0) return;
 
     setIsReplacing(true);
     setReplaceError(null);
-    setReplacePreview(null);
+    setReplaceWarnings([]);
     try {
       const response = await requestResumeSingleBulletRevision({
         draftId: draft.id,
@@ -483,41 +532,19 @@ function ResumeTextDocument({
         resumeModelTier: modelTier,
         persist: false,
       });
-      setReplacePreview(response.bulletCandidates);
-      setReplaceWarnings(response.warnings);
-    } catch (err) {
-      setReplaceError(err instanceof Error ? err.message : "Single-bullet revision failed.");
-    } finally {
-      setIsReplacing(false);
-    }
-  }
-
-  async function acceptReplacePreview() {
-    if (!replacePreview || isReplacing) return;
-    setIsReplacing(true);
-    setReplaceError(null);
-    try {
-      const next = applyResumeSingleBulletRevisions(content, replacePreview);
+      const next = applyResumeSingleBulletRevisions(content, response.bulletCandidates);
       await onApplyContentEdit(next);
-      setReplacePreview(null);
-      setReplaceWarnings([]);
-      setStagedReplace(new Map());
+      setReplaceWarnings(response.warnings);
+      setStage(new Map());
+      setStageInstruction("");
       setSelectedBulletKey(null);
     } catch (err) {
-      setReplaceError(err instanceof Error ? err.message : "Failed to save revised bullets.");
+      setReplaceError(err instanceof Error ? err.message : "Failed to apply resume changes.");
     } finally {
       setIsReplacing(false);
     }
   }
 
-  function rejectReplacePreview() {
-    setReplacePreview(null);
-    setReplaceWarnings([]);
-  }
-
-  const previewByKey = new Map(
-    (replacePreview ?? []).map((c) => [bulletStageKey(c.roleIndex, c.bulletIndex), c.text]),
-  );
   const docDisabled = disabled || isReplacing;
 
   return (
@@ -693,8 +720,9 @@ function ResumeTextDocument({
                         const key = bulletStageKey(roleIndex, bulletIndex);
                         const isSelected = selectedBulletKey === key;
                         const isEditing = editingBulletKey === key;
-                        const isStaged = stagedReplace.has(key);
-                        const proposed = previewByKey.get(key);
+                        const stagedEntry = stage.get(key);
+                        const isStaged = stagedEntry !== undefined;
+                        const isPicking = pickingForKey === key;
                         const bulletBusy = busyBulletKey === key;
                         return (
                           <li key={bulletIndex} data-testid="resume-bullet">
@@ -750,19 +778,17 @@ function ResumeTextDocument({
                                 </button>
 
                                 {isStaged ? (
-                                  <p className="mt-1 pl-3 text-[11px] font-medium text-folio-olive-text">
-                                    Staged to replace
-                                    {proposed ? " — proposed below" : ""}
-                                  </p>
-                                ) : null}
-
-                                {proposed ? (
-                                  <p
-                                    className="mt-1 rounded-md border border-folio-olive-border bg-white px-2.5 py-1.5 text-[13px] leading-relaxed text-folio-on-surface"
-                                    data-testid="bullet-replace-proposed"
-                                  >
-                                    {proposed}
-                                  </p>
+                                  <div className="mt-1 pl-3" data-testid="bullet-replace-staged">
+                                    <p className="text-[11px] font-medium text-folio-olive-text">
+                                      Replacement picked — tailored on Apply:
+                                    </p>
+                                    <p
+                                      className="mt-0.5 rounded-md border border-folio-olive-border bg-white px-2.5 py-1.5 text-[13px] leading-relaxed text-folio-on-surface"
+                                      data-testid="bullet-replace-picked"
+                                    >
+                                      {stagedEntry.pickedText}
+                                    </p>
+                                  </div>
                                 ) : null}
 
                                 {isSelected ? (
@@ -778,14 +804,29 @@ function ResumeTextDocument({
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => toggleStageReplace(roleIndex, bulletIndex)}
+                                      onClick={() =>
+                                        isPicking
+                                          ? setPickingForKey(null)
+                                          : openPicker(roleIndex, bulletIndex)
+                                      }
                                       disabled={docDisabled || bulletBusy || !hasJob}
-                                      title={hasJob ? undefined : "Saved job description required to regenerate"}
+                                      title={hasJob ? undefined : "Saved job description required to tailor"}
                                       className={GHOST_BUTTON}
                                       data-action="bullet-replace"
                                     >
-                                      {isStaged ? "Unstage replace" : "Replace"}
+                                      {isPicking ? "Close" : isStaged ? "Change pick" : "Replace"}
                                     </button>
+                                    {isStaged ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => unstageReplace(key)}
+                                        disabled={docDisabled || bulletBusy}
+                                        className={GHOST_BUTTON}
+                                        data-action="bullet-unstage"
+                                      >
+                                        Unstage
+                                      </button>
+                                    ) : null}
                                     <button
                                       type="button"
                                       onClick={() => void removeBullet(roleIndex, bulletIndex)}
@@ -795,6 +836,43 @@ function ResumeTextDocument({
                                     >
                                       {bulletBusy ? "Removing…" : "Remove"}
                                     </button>
+                                  </div>
+                                ) : null}
+
+                                {/* Spine-ranked alternatives picker (M11): pick → stage → tailor on Apply. */}
+                                {isPicking ? (
+                                  <div
+                                    className="mt-2 rounded-lg border border-folio-sage-border bg-white p-2"
+                                    data-testid="bullet-replace-picker"
+                                  >
+                                    <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-folio-outline">
+                                      Pick a spine-ranked alternative
+                                    </p>
+                                    {alternatives.length === 0 ? (
+                                      <p className="px-1 py-2 text-[12px] text-folio-outline">
+                                        No alternative bullets available from your vault.
+                                      </p>
+                                    ) : (
+                                      <ul className="max-h-64 space-y-1 overflow-y-auto">
+                                        {alternatives.map((alt) => (
+                                          <li key={alt.id}>
+                                            <button
+                                              type="button"
+                                              onClick={() => pickAlternative(key, alt.text)}
+                                              className="w-full rounded-md border border-transparent px-2 py-1.5 text-left transition hover:border-folio-sage-border hover:bg-folio-surface-container-low"
+                                              data-testid="bullet-replace-option"
+                                            >
+                                              <span className="block text-[12px] leading-relaxed text-folio-on-surface">
+                                                {alt.text}
+                                              </span>
+                                              <span className="mt-0.5 block text-[10px] text-folio-outline">
+                                                {alt.label}
+                                              </span>
+                                            </button>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
                                   </div>
                                 ) : null}
                               </div>
@@ -809,30 +887,37 @@ function ResumeTextDocument({
             })}
           </div>
 
-          {/* Replace staging bar — one AI call regenerates all staged bullets together */}
-          {stagedReplace.size > 0 ? (
+          {/* Resume staging bucket (M11) — picked replacements + custom instruction.
+              "Apply changes to Resume" tailors ONLY these bullets in one AI step. */}
+          {stage.size > 0 ? (
             <div
               className="mt-4 rounded-xl border border-folio-olive-border bg-folio-mint-surface p-4"
-              data-testid="bullet-replace-staging"
+              data-testid="resume-stage-bar"
             >
               <p className="text-[13px] font-medium text-folio-olive-text">
-                {stagedReplace.size} bullet{stagedReplace.size === 1 ? "" : "s"} staged to replace
+                {stage.size} bullet{stage.size === 1 ? "" : "s"} staged for the resume
               </p>
               <p className="mt-0.5 text-[12px] text-folio-olive-text">
-                Add an optional instruction per bullet. They regenerate together in one AI step.
+                Picked replacements are tailored to the job in one AI step. Only these bullets change —
+                the rest of the resume is left untouched.
               </p>
               <ul className="mt-3 space-y-2">
-                {[...stagedReplace.entries()].map(([key, instruction]) => {
+                {[...stage.entries()].map(([key, entry]) => {
                   const [ri, bi] = key.split(":").map(Number);
                   const currentText = content.experience[ri]?.bullets[bi]?.text ?? "";
                   return (
                     <li key={key} className="rounded-lg border border-folio-sage-border bg-white p-3">
-                      <p className="text-[12px] text-folio-on-surface-variant">{currentText}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-folio-outline">Replacing</p>
+                      <p className="text-[12px] text-folio-on-surface-variant line-through">{currentText}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-wide text-folio-outline">
+                        With (tailored on apply)
+                      </p>
+                      <p className="text-[12px] text-folio-on-surface">{entry.pickedText}</p>
                       <input
                         type="text"
-                        value={instruction}
-                        onChange={(e) => setStageInstruction(key, e.target.value)}
-                        placeholder="Optional instruction (e.g. more metrics-focused)"
+                        value={entry.instruction}
+                        onChange={(e) => setEntryInstruction(key, e.target.value)}
+                        placeholder="Optional instruction for this bullet (e.g. more metrics-focused)"
                         className={`${INPUT_CLASS} mt-2`}
                         data-testid="bullet-replace-instruction"
                       />
@@ -840,6 +925,18 @@ function ResumeTextDocument({
                   );
                 })}
               </ul>
+
+              <div className="mt-3">
+                <label className={LABEL_CLASS}>Custom instruction (applies to all staged bullets)</label>
+                <input
+                  type="text"
+                  value={stageInstruction}
+                  onChange={(e) => setStageInstruction(e.target.value)}
+                  placeholder="e.g. emphasise measurable outcomes"
+                  className={INPUT_CLASS}
+                  data-testid="resume-custom-instruction"
+                />
+              </div>
 
               {replaceWarnings.length > 0 ? (
                 <ul className="mt-2 space-y-1 text-[12px] text-folio-cta-secondary">
@@ -855,56 +952,32 @@ function ResumeTextDocument({
                 </p>
               ) : null}
 
-              {isApprovedDraftStatus(draft.status) && replacePreview ? (
+              {isApprovedDraftStatus(draft.status) ? (
                 <p className="mt-2 rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary">
-                  Accepting will require re-approval before export.
+                  Applying will require re-approval before export.
                 </p>
               ) : null}
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {!replacePreview ? (
-                  <button
-                    type="button"
-                    onClick={() => void runReplaceRegeneration()}
-                    disabled={isReplacing || !hasJob}
-                    className={PRIMARY_BUTTON}
-                    data-testid="bullet-replace-regenerate"
-                  >
-                    {isReplacing
-                      ? "Regenerating… (1 AI step)"
-                      : `Regenerate ${stagedReplace.size} staged bullet${stagedReplace.size === 1 ? "" : "s"}`}
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void acceptReplacePreview()}
-                      disabled={isReplacing}
-                      className={PRIMARY_BUTTON}
-                      data-testid="bullet-replace-accept"
-                    >
-                      {isReplacing ? "Saving…" : "Accept replacements"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={rejectReplacePreview}
-                      disabled={isReplacing}
-                      className={GHOST_BUTTON}
-                      data-testid="bullet-replace-reject"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void applyResumeStage()}
+                  disabled={isReplacing || !hasJob}
+                  className={PRIMARY_BUTTON}
+                  data-testid="apply-resume-changes"
+                >
+                  {isReplacing ? "Applying… (1 AI step)" : "Apply changes to Resume"}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setStagedReplace(new Map());
-                    setReplacePreview(null);
+                    setStage(new Map());
+                    setStageInstruction("");
                     setReplaceError(null);
                   }}
                   disabled={isReplacing}
                   className={GHOST_BUTTON}
+                  data-testid="resume-clear-staging"
                 >
                   Clear staging
                 </button>
@@ -1716,11 +1789,66 @@ const QUICK_ACTIONS: { action: CoverLetterRevisionAction; label: string }[] = [
   { action: "remove_ai_phrases", label: "Remove AI phrases" },
 ];
 
+// ── M11 cover-letter staging bucket ───────────────────────────────────────────
+// Tone, quick-action chips, pending evidence use/avoid, and a custom instruction
+// are STAGED (no AI on click). They apply only on "Apply changes to Cover Letter",
+// which folds them all into one CL regenerate call.
+type CoverLetterStageBucket = {
+  tone: ToneOption;
+  chipActions: CoverLetterRevisionAction[];
+  evidenceControls: CoverLetterEvidenceControls;
+  customInstruction: string;
+};
+
+function createEmptyCoverLetterStage(): CoverLetterStageBucket {
+  return {
+    tone: "balanced",
+    chipActions: [],
+    evidenceControls: { forcedEvidenceIds: [], excludedEvidenceIds: [] },
+    customInstruction: "",
+  };
+}
+
+// Natural-language instruction for each staged quick-action chip, folded into the
+// CL regenerate prompt via additionalInstructions.
+// Only the staged quick-action chips need an instruction; other revision actions
+// are not surfaced as chips, hence Partial.
+const CHIP_ACTION_INSTRUCTION: Partial<Record<CoverLetterRevisionAction, string>> = {
+  shorten: "Make the cover letter more concise.",
+  more_formal: "Use a more formal, professional tone.",
+  more_conversational: "Use a more conversational, natural tone.",
+  warmer: "Make the tone warmer and more personable.",
+  remove_ai_phrases: "Remove generic AI-sounding phrases; keep it specific and human.",
+};
+
+const TONE_INSTRUCTION: Record<ToneOption, string> = {
+  formal: "Write in a formal tone.",
+  balanced: "",
+  conversational: "Write in a conversational tone.",
+};
+
+// Compose all staged CL changes into one additionalInstructions string.
+function composeCoverLetterInstructions(
+  base: string | undefined,
+  stage: CoverLetterStageBucket,
+): string {
+  const parts = [
+    base?.trim() || "",
+    ...stage.chipActions.map((action) => CHIP_ACTION_INSTRUCTION[action]),
+    TONE_INSTRUCTION[stage.tone],
+    stage.customInstruction.trim(),
+  ];
+  return parts.filter(Boolean).join(" ").trim();
+}
+
 type CoverLetterTabProps = {
   resumeDraft: GeneratedResumeDraftRecord;
   companyContext: CompanyContext | null;
   inventory: ReturnType<typeof useWorkspace>["inventory"];
   jobDescriptions: StoredJobDescription[];
+  /** Lifted CL staging bucket (M11) — survives Resume↔Cover-letter view switches. */
+  stage: CoverLetterStageBucket;
+  setStage: React.Dispatch<React.SetStateAction<CoverLetterStageBucket>>;
 };
 
 function CoverLetterTab({
@@ -1728,6 +1856,8 @@ function CoverLetterTab({
   companyContext,
   inventory,
   jobDescriptions,
+  stage,
+  setStage,
 }: CoverLetterTabProps) {
   const [coverLetter, setCoverLetter] = useState<GeneratedCoverLetterDraftRecord | null>(null);
   const [body, setBody] = useState("");
@@ -1735,16 +1865,15 @@ function CoverLetterTab({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState<CoverLetterRevisionAction | null>(null);
-  const [tone, setTone] = useState<ToneOption>("balanced");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingCl, setIsSavingCl] = useState(false);
   const [clIsEditMode, setClIsEditMode] = useState(false);
-  const [pendingEvidenceControls, setPendingEvidenceControls] =
-    useState<CoverLetterEvidenceControls>({ forcedEvidenceIds: [], excludedEvidenceIds: [] });
   const [showEvidenceStaging, setShowEvidenceStaging] = useState(false);
   const originalCoverLetterBodyRef = useRef<string | null>(null);
+  // Tone and evidence controls now live in the staged bucket (props.stage).
+  const tone = stage.tone;
+  const pendingEvidenceControls = stage.evidenceControls;
 
   useEffect(() => {
     let cancelled = false;
@@ -1801,7 +1930,12 @@ function CoverLetterTab({
   const overLimit = isOverWordLimit(wordCount);
   const bannedPhrases = detectBannedPhrases(body);
   const exportBlocked = overLimit || bannedPhrases.length > 0;
-  const isBusy = busyAction !== null || isRegenerating || isGenerating || isSavingCl;
+  const isBusy = isRegenerating || isGenerating || isSavingCl;
+  const hasStagedChanges =
+    stage.chipActions.length > 0 ||
+    stage.tone !== "balanced" ||
+    stage.customInstruction.trim().length > 0 ||
+    hasCoverLetterEvidenceControls(stage.evidenceControls);
 
   // Pending-only evidence rows — rebuilt when job, inventory, or pending controls change.
   // Never calls AI; never auto-saves. Applied on Regenerate only.
@@ -1828,29 +1962,37 @@ function CoverLetterTab({
     return buildCoverLetterProofEvidenceList(spine, pendingEvidenceControls);
   }, [linkedJob, inventory, resumeDraft, pendingEvidenceControls, coverLetter]);
 
+  // Evidence use/avoid is staged (M11) — applied only on "Apply changes to Cover
+  // Letter". Toggling never calls AI and never persists on its own.
   function toggleForceEvidence(id: string) {
-    setPendingEvidenceControls((prev) => {
-      const norm = normalizeCoverLetterEvidenceControls(prev);
+    setStage((prev) => {
+      const norm = normalizeCoverLetterEvidenceControls(prev.evidenceControls);
       const isForced = norm.forcedEvidenceIds.includes(id);
-      return normalizeCoverLetterEvidenceControls({
-        forcedEvidenceIds: isForced
-          ? norm.forcedEvidenceIds.filter((x) => x !== id)
-          : [...norm.forcedEvidenceIds, id],
-        excludedEvidenceIds: norm.excludedEvidenceIds.filter((x) => x !== id),
-      });
+      return {
+        ...prev,
+        evidenceControls: normalizeCoverLetterEvidenceControls({
+          forcedEvidenceIds: isForced
+            ? norm.forcedEvidenceIds.filter((x) => x !== id)
+            : [...norm.forcedEvidenceIds, id],
+          excludedEvidenceIds: norm.excludedEvidenceIds.filter((x) => x !== id),
+        }),
+      };
     });
   }
 
   function toggleExcludeEvidence(id: string) {
-    setPendingEvidenceControls((prev) => {
-      const norm = normalizeCoverLetterEvidenceControls(prev);
+    setStage((prev) => {
+      const norm = normalizeCoverLetterEvidenceControls(prev.evidenceControls);
       const isExcluded = norm.excludedEvidenceIds.includes(id);
-      return normalizeCoverLetterEvidenceControls({
-        forcedEvidenceIds: norm.forcedEvidenceIds.filter((x) => x !== id),
-        excludedEvidenceIds: isExcluded
-          ? norm.excludedEvidenceIds.filter((x) => x !== id)
-          : [...norm.excludedEvidenceIds, id],
-      });
+      return {
+        ...prev,
+        evidenceControls: normalizeCoverLetterEvidenceControls({
+          forcedEvidenceIds: norm.forcedEvidenceIds.filter((x) => x !== id),
+          excludedEvidenceIds: isExcluded
+            ? norm.excludedEvidenceIds.filter((x) => x !== id)
+            : [...norm.excludedEvidenceIds, id],
+        }),
+      };
     });
   }
 
@@ -1869,50 +2011,20 @@ function CoverLetterTab({
     }
   }
 
-  async function applyRevision(action: CoverLetterRevisionAction) {
-    if (!coverLetter || isBusy || !body.trim()) return;
-    setBusyAction(action);
-    setError(null);
-    try {
-      const response = await requestCoverLetterRevision({
-        draftId: coverLetter.id,
-        currentBody: body,
-        action,
-        persist: true,
-      });
-      setBody(response.body);
-      setCoverLetter((prev) => (prev ? { ...prev, body: response.body } : prev));
-    } catch (revisionError) {
-      setError(
-        revisionError instanceof Error
-          ? revisionError.message
-          : "Cover letter revision failed.",
-      );
-    } finally {
-      setBusyAction(null);
-    }
+  // Quick-action chips are STAGED, not applied immediately (M11). Toggling adds or
+  // removes the action from the bucket; it applies on "Apply changes to Cover Letter".
+  function toggleChipAction(action: CoverLetterRevisionAction) {
+    setStage((prev) => ({
+      ...prev,
+      chipActions: prev.chipActions.includes(action)
+        ? prev.chipActions.filter((a) => a !== action)
+        : [...prev.chipActions, action],
+    }));
   }
 
-  async function handleSelectTone(next: ToneOption) {
-    if (isBusy || next === tone) return;
-    setTone(next);
-    if (next === "formal") {
-      await applyRevision("more_formal");
-    } else if (next === "conversational") {
-      await applyRevision("more_conversational");
-    } else if (next === "balanced" && originalCoverLetterBodyRef.current !== null && coverLetter) {
-      const original = originalCoverLetterBodyRef.current;
-      setBody(original);
-      setCoverLetter((prev) => (prev ? { ...prev, body: original } : prev));
-      setError(null);
-      try {
-        await updateGeneratedCoverLetterDraftInCloud(coverLetter.id, { body: original });
-      } catch (restoreError) {
-        setError(
-          restoreError instanceof Error ? restoreError.message : "Failed to restore original text.",
-        );
-      }
-    }
+  // Tone is staged (M11) — no immediate AI. It is folded into the regenerate prompt.
+  function handleSelectTone(next: ToneOption) {
+    setStage((prev) => ({ ...prev, tone: next }));
   }
 
   async function handleRegenerate() {
@@ -1926,6 +2038,12 @@ function CoverLetterTab({
     setIsRegenerating(true);
     setError(null);
     try {
+      // Fold ALL staged CL changes (tone + chips + custom instruction) into the
+      // single regenerate call, alongside the staged evidence controls (M11).
+      const composedInstructions = composeCoverLetterInstructions(
+        coverLetter.additionalInstructions,
+        stage,
+      );
       const updated = await generateAndSaveCoverLetterDraft({
         ...buildCoverLetterGenerationOptions({
           job: linkedJob,
@@ -1935,20 +2053,19 @@ function CoverLetterTab({
           fields: {
             country: coverLetter.country,
             companyWebsite: coverLetter.companyWebsite,
-            additionalInstructions: coverLetter.additionalInstructions,
+            additionalInstructions: composedInstructions || undefined,
           },
           savedCompanyContext: companyContext ?? coverLetter.companyContext,
         }),
         existingCoverLetterId: coverLetter.id,
         // Pending-only evidence staging — applied on regenerate only, never persisted.
-        evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls),
+        evidenceControls: normalizeCoverLetterEvidenceControls(stage.evidenceControls),
       });
       setCoverLetter(updated);
       setBody(updated.body);
       originalCoverLetterBodyRef.current = updated.body;
-      setTone("balanced");
-      // Clear staged evidence after regeneration (staging is single-use).
-      setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] });
+      // Staging is single-use: clear the whole CL bucket after applying.
+      setStage(createEmptyCoverLetterStage());
     } catch (regenError) {
       setError(
         regenError instanceof Error ? regenError.message : "Cover letter regeneration failed.",
@@ -2107,23 +2224,32 @@ function CoverLetterTab({
         ) : null}
       </div>
 
-      {/* Quick-action chips — disabled while in manual-edit mode to prevent overwriting unsaved edits */}
+      {/* Quick-action chips (M11) — STAGED, not applied on click. A staged chip is
+          highlighted; it applies on "Apply changes to Cover Letter". */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {QUICK_ACTIONS.map(({ action, label }) => (
-          <button
-            key={action}
-            type="button"
-            onClick={() => void applyRevision(action)}
-            disabled={isBusy || clIsEditMode}
-            className={GHOST_BUTTON}
-            aria-busy={busyAction === action}
-          >
-            {busyAction === action ? "Revising…" : label}
-          </button>
-        ))}
+        {QUICK_ACTIONS.map(({ action, label }) => {
+          const staged = stage.chipActions.includes(action);
+          return (
+            <button
+              key={action}
+              type="button"
+              onClick={() => toggleChipAction(action)}
+              disabled={clIsEditMode}
+              aria-pressed={staged}
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                staged
+                  ? "border border-folio-olive-border bg-folio-mint-surface text-folio-olive-text"
+                  : "border border-folio-sage-border bg-white text-folio-on-surface hover:bg-folio-surface-container-low"
+              }`}
+              data-action="stage-cl-chip"
+            >
+              {staged ? `Staged: ${label}` : label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tone selector — disabled while in manual-edit mode */}
+      {/* Tone selector (M11) — staged, applied on "Apply changes to Cover Letter" */}
       <div className="mt-5">
         <p className="text-[13px] font-medium text-folio-outline">Tone</p>
         <div className="mt-2 inline-flex rounded-lg border border-folio-sage-border bg-white p-0.5">
@@ -2133,8 +2259,8 @@ function CoverLetterTab({
               <button
                 key={segment.key}
                 type="button"
-                onClick={() => void handleSelectTone(segment.key)}
-                disabled={isBusy || clIsEditMode}
+                onClick={() => handleSelectTone(segment.key)}
+                disabled={clIsEditMode}
                 aria-pressed={active}
                 className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   active ? "bg-folio-primary-container text-white" : "text-folio-outline hover:text-folio-on-surface"
@@ -2266,16 +2392,50 @@ function CoverLetterTab({
         </div>
       ) : null}
 
-      {/* Regenerate */}
+      {/* Custom instruction (M11) — staged into the CL bucket; applied on Apply. */}
       <div className="mt-5">
+        <label className={LABEL_CLASS}>Custom instruction (optional)</label>
+        <textarea
+          rows={2}
+          value={stage.customInstruction}
+          onChange={(e) => setStage((prev) => ({ ...prev, customInstruction: e.target.value }))}
+          disabled={clIsEditMode}
+          placeholder="e.g. mention my relocation timeline; lead with the fintech project"
+          className={TEXTAREA_CLASS}
+          data-testid="cl-custom-instruction"
+        />
+      </div>
+
+      {/* Apply staged CL changes (M11) — one full regenerate folding tone + chips +
+          evidence use/avoid + custom instruction. Separate from the resume Apply. */}
+      <div className="mt-5">
+        {hasStagedChanges ? (
+          <p
+            className="mb-2 rounded-lg border border-folio-olive-border bg-folio-mint-surface px-3 py-2 text-[12px] text-folio-olive-text"
+            data-testid="cl-staged-summary"
+          >
+            Staged changes will be folded into one regenerate:
+            {stage.tone !== "balanced" ? ` ${stage.tone} tone;` : ""}
+            {stage.chipActions.length > 0 ? ` ${stage.chipActions.length} quick action(s);` : ""}
+            {hasCoverLetterEvidenceControls(stage.evidenceControls)
+              ? ` ${stage.evidenceControls.forcedEvidenceIds.length + stage.evidenceControls.excludedEvidenceIds.length} evidence choice(s);`
+              : ""}
+            {stage.customInstruction.trim() ? " custom instruction;" : ""}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={() => void handleRegenerate()}
           disabled={isBusy || !linkedJob}
-          className={`w-full ${GHOST_BUTTON}`}
+          className={`w-full ${hasStagedChanges ? PRIMARY_BUTTON : GHOST_BUTTON}`}
+          data-testid="apply-cover-letter-changes"
         >
           <RefreshIcon />
-          {isRegenerating ? "Regenerating cover letter…" : "Regenerate cover letter"}
+          {isRegenerating
+            ? "Applying… (1 AI step)"
+            : hasStagedChanges
+              ? "Apply changes to Cover Letter"
+              : "Regenerate cover letter"}
         </button>
         <p className={`mt-2 text-right text-xs ${overLimit ? "text-folio-error" : "text-folio-outline"}`}>
           {wordCount} / {FORMAL_COVER_LETTER_MAX_WORDS} words
@@ -2460,6 +2620,15 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
   const [showBulletControls, setShowBulletControls] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
 
+  // ── M11 staging buckets (in-memory; survive Resume↔Cover-letter view switches) ──
+  const [resumeStage, setResumeStage] = useState<ResumeStageMap>(new Map());
+  const [resumeStageInstruction, setResumeStageInstruction] = useState("");
+  const [clStage, setClStage] = useState<CoverLetterStageBucket>(createEmptyCoverLetterStage);
+  // Content gate (UI-only): Layout sliders + Approve unlock only once the user
+  // confirms content; any new content edit re-locks them. The persisted server
+  // one-page 422 gate is unchanged — this lock sits in front of it.
+  const [contentConfirmed, setContentConfirmed] = useState(false);
+
   // Manual layout overrides (PDF-view sliders) — null = use optimizer/stored defaults.
   const [manualSettings, setManualSettings] = useState<
     (ResumeLayoutSettings & { draftId: string }) | null
@@ -2510,6 +2679,13 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
         return;
       }
       setDraft(record);
+
+      // A draft that is already approved (or layout-changed-after-approval) on load
+      // has confirmed content — don't re-gate a returning user (M11). Fresh content
+      // edits re-lock it via applyContentEdit.
+      setContentConfirmed(
+        isApprovedDraftStatus(record.status) || isLayoutChangedAfterApprovalStatus(record.status),
+      );
 
       // Seed manual layout overrides from any stored export layout settings so the
       // PDF-view sliders reflect the validated layout on reload.
@@ -2624,6 +2800,41 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     [draft, linkedJob],
   );
 
+  // Spine-ranked alternative bullets for the Replace picker (M11). All ranked work
+  // bullets across every role, deterministic from the saved spine inputs — no AI.
+  const bulletAlternatives = useMemo<AlternativeBullet[]>(() => {
+    if (!draft || !linkedJob) return [];
+    const collated = buildActiveCollatedInventory(inventory);
+    const acceptedWordingByBulletKey = buildAcceptedWordingByBulletKey(inventory.enrichment);
+    const companyCtx =
+      companyContext ??
+      buildCompanyContext({
+        companyName: linkedJob.companyName ?? "Company",
+        country: "Singapore",
+        jobDescriptionText: linkedJob.rawText,
+        roleTitle: linkedJob.roleTitle,
+      });
+    const spine = buildEvidenceSpine({
+      collated,
+      enrichment: inventory.enrichment,
+      jdText: linkedJob.rawText,
+      roleTitle: linkedJob.roleTitle ?? draft.content.targetRoleTitle,
+      maxWorkBullets: MAX_RESUME_DRAFT_BULLETS,
+      regenerationControls: draft.inputSnapshot?.regenerationControls,
+      companyContext: companyCtx,
+      acceptedWordingByBulletKey,
+    });
+    return spine.ranked
+      .filter((item) => item.sourceType === "work_bullet")
+      .map((item) => ({
+        id: item.id,
+        text: (item.editedText ?? item.originalText).trim(),
+        label: item.displayLabel,
+        score: item.relevanceScore,
+      }))
+      .filter((alt) => alt.text.length > 0);
+  }, [draft, linkedJob, inventory, companyContext]);
+
   function toggleDraftExperience(key: string) {
     setExcludedDraftKeys((prev) => {
       const next = new Set(prev);
@@ -2691,6 +2902,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
     });
     setDraft(saved);
     setValidationFailure(null);
+    // M11 gate: any new content edit re-locks Layout + Approve until re-confirmed.
+    setContentConfirmed(false);
   }
 
   async function handleRevisionQueueAccepted(updatedContent: ResumeDraftContent) {
@@ -2767,6 +2980,11 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
       setDraft(updated);
       setExcludedDraftKeys(new Set());
       setIncludedExtraKeys(new Set());
+      // Full regenerate is new content — re-lock the content gate (M11) and clear
+      // any staged resume picks that referenced the previous document.
+      setContentConfirmed(false);
+      setResumeStage(new Map());
+      setResumeStageInstruction("");
     } catch (regenError) {
       setError(
         regenError instanceof Error ? regenError.message : "Resume regeneration failed.",
@@ -3064,14 +3282,64 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                 })}
               </div>
 
+              {/* ── Content gate (M11, UI-only) — confirm content → unlock layout ── */}
+              <div
+                className="mb-3 rounded-xl border border-folio-sage-border bg-folio-surface-container-low p-3"
+                data-testid="output-content-gate"
+              >
+                {contentConfirmed ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-folio-olive-text">
+                      <span className="rounded-full bg-folio-mint-surface px-2 py-0.5 text-[11px]">
+                        Content confirmed
+                      </span>
+                      Layout and approve are unlocked.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setContentConfirmed(false)}
+                      className={GHOST_BUTTON}
+                      data-testid="output-edit-content-again"
+                    >
+                      Edit content again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[12px] text-folio-outline">
+                      {resumeStage.size > 0
+                        ? "Apply or clear staged changes, then confirm content to unlock layout and approve."
+                        : "Confirm content to unlock layout adjustments and approval."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setContentConfirmed(true)}
+                      disabled={resumeStage.size > 0 || isRegenerating || isApproving}
+                      className={PRIMARY_BUTTON}
+                      data-testid="output-confirm-content"
+                    >
+                      Confirm content
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {documentView === "pdf" && pdfDocumentModel ? (
                 <div className="space-y-3">
-                  {/* Layout sliders — PDF view only; live re-render */}
+                  {/* Layout sliders — PDF view only; locked until content confirmed (M11). */}
+                  {!contentConfirmed ? (
+                    <p
+                      className="rounded-lg border border-folio-warning-border bg-folio-warning-surface px-3 py-2 text-[12px] text-folio-cta-secondary"
+                      data-testid="output-layout-locked-note"
+                    >
+                      Confirm content to adjust layout.
+                    </p>
+                  ) : null}
                   <LayoutSliders
                     settings={activeLayoutSettings}
                     onChange={updateLayoutSettings}
                     optimizationNote={optimizationNote}
-                    disabled={isRegenerating || isApproving}
+                    disabled={isRegenerating || isApproving || !contentConfirmed}
                   />
                   <ResumePdfPreview documentModel={pdfDocumentModel} data-testid="output-pdf-preview" />
                 </div>
@@ -3082,6 +3350,11 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                     linkedJob={linkedJob}
                     onApplyContentEdit={applyContentEdit}
                     disabled={isRegenerating || isApproving}
+                    alternatives={bulletAlternatives}
+                    stage={resumeStage}
+                    setStage={setResumeStage}
+                    stageInstruction={resumeStageInstruction}
+                    setStageInstruction={setResumeStageInstruction}
                   />
                 </div>
               )}
@@ -3501,12 +3774,20 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
                   <button
                     type="button"
                     onClick={() => void handleApprove()}
-                    disabled={isApproving}
+                    disabled={isApproving || !contentConfirmed}
                     data-action="approve-for-export"
                     className={`mt-2 w-full ${PRIMARY_BUTTON}`}
                   >
                     {approveLabel}
                   </button>
+                  {!contentConfirmed ? (
+                    <p
+                      className="mt-1 text-xs text-folio-outline"
+                      data-testid="output-approve-locked-note"
+                    >
+                      Confirm content above to enable approval.
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-folio-outline/70">
@@ -3533,6 +3814,8 @@ export function OutputEditorPageClient({ draftId }: OutputEditorPageClientProps)
           companyContext={companyContext}
           inventory={inventory}
           jobDescriptions={jobDescriptions}
+          stage={clStage}
+          setStage={setClStage}
         />
       )}
     </div>

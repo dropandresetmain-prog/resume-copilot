@@ -225,10 +225,10 @@ function main() {
         outputEditor.includes('data-action="bullet-remove"'),
     ],
     [
-      "output editor Replace uses staged single_bullet regeneration",
+      "output editor Replace picks a spine alternative then tailors via single_bullet (M11)",
       outputEditor.includes("requestResumeSingleBulletRevision") &&
         outputEditor.includes('scope: "single_bullet"') &&
-        outputEditor.includes('data-testid="bullet-replace-regenerate"'),
+        outputEditor.includes('data-testid="apply-resume-changes"'),
     ],
     [
       "output editor in-document edits use the M5a invalidation path",
@@ -347,12 +347,12 @@ function main() {
         outputEditor.includes("hasCoverLetterEvidenceControls"),
     ],
     [
-      "CL evidence controls passed to regeneration",
-      outputEditor.includes("evidenceControls: normalizeCoverLetterEvidenceControls(pendingEvidenceControls)"),
+      "CL staged evidence controls passed to regeneration (M11)",
+      outputEditor.includes("evidenceControls: normalizeCoverLetterEvidenceControls(stage.evidenceControls)"),
     ],
     [
-      "CL evidence controls cleared after regeneration",
-      outputEditor.includes("setPendingEvidenceControls({ forcedEvidenceIds: [], excludedEvidenceIds: [] })"),
+      "CL staging bucket cleared after apply (M11)",
+      outputEditor.includes("setStage(createEmptyCoverLetterStage())"),
     ],
     [
       "CL export gate blocks download on overLimit",
@@ -363,9 +363,41 @@ function main() {
       "CL download buttons gated on exportBlocked",
       outputEditor.includes("disabled={isBusy || !body.trim() || exportBlocked}"),
     ],
+    // ── M11: staged (not immediate-AI) chips/tone + custom instruction + apply ──
     [
-      "CL quick-action chips disabled in edit mode",
-      outputEditor.includes("isBusy || clIsEditMode"),
+      "CL quick-action chips are staged, not immediate-AI (M11)",
+      outputEditor.includes('data-action="stage-cl-chip"') &&
+        outputEditor.includes("function toggleChipAction") &&
+        !outputEditor.includes("function applyRevision"),
+    ],
+    [
+      "CL tone is staged via the bucket (M11)",
+      outputEditor.includes("function handleSelectTone") &&
+        outputEditor.includes("setStage((prev) => ({ ...prev, tone: next }))"),
+    ],
+    [
+      "CL custom instruction input staged (M11)",
+      outputEditor.includes('data-testid="cl-custom-instruction"') &&
+        outputEditor.includes("customInstruction: e.target.value"),
+    ],
+    [
+      "CL Apply button folds staged changes into one regenerate (M11)",
+      outputEditor.includes('data-testid="apply-cover-letter-changes"') &&
+        outputEditor.includes("composeCoverLetterInstructions"),
+    ],
+    [
+      "Content gate present: confirm content unlocks layout + approve (M11)",
+      outputEditor.includes('data-testid="output-content-gate"') &&
+        outputEditor.includes('data-testid="output-confirm-content"') &&
+        outputEditor.includes('data-testid="output-layout-locked-note"'),
+    ],
+    [
+      "Approve button gated on contentConfirmed (M11)",
+      outputEditor.includes("disabled={isApproving || !contentConfirmed}"),
+    ],
+    [
+      "Content edit re-locks the gate (M11)",
+      outputEditor.includes("setContentConfirmed(false)"),
     ],
   ];
 

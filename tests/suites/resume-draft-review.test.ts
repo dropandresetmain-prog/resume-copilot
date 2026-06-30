@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { generateMockResumeDraft } from "../../src/lib/ai/resume-draft-mock";
 import { reviseMockResumeRoleCustom, reviseMockResumeSummary, reviseMockResumeBatch, reviseMockResumeSingleBullets } from "../../src/lib/ai/revise-resume-scope-mock";
 import { buildCollatedInventory } from "../../src/lib/inventory/collation";
@@ -343,7 +346,43 @@ function main() {
     }),
   );
 
+  // M11 resume staging is UI behaviour in the Output editor — assert its wiring.
+  const outputEditor = readFileSync(
+    join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
+    "utf8",
+  );
+
   const checks: [string, boolean][] = [
+    // ── M11: Replace = pick spine alternative → stage → apply via single_bullet ──
+    [
+      "Replace opens a spine-ranked alternatives picker (M11)",
+      outputEditor.includes('data-testid="bullet-replace-picker"') &&
+        outputEditor.includes('data-testid="bullet-replace-option"') &&
+        outputEditor.includes("function pickAlternative"),
+    ],
+    [
+      "Picker is fed by spine-ranked work bullets (M11)",
+      outputEditor.includes("bulletAlternatives") &&
+        outputEditor.includes("buildEvidenceSpine") &&
+        outputEditor.includes('item.sourceType === "work_bullet"'),
+    ],
+    [
+      "Apply changes to Resume tailors only staged picks via single_bullet (M11)",
+      outputEditor.includes('data-testid="apply-resume-changes"') &&
+        outputEditor.includes("function applyResumeStage") &&
+        outputEditor.includes('scope: "single_bullet"') &&
+        outputEditor.includes("currentText: entry.pickedText"),
+    ],
+    [
+      "Resume custom instruction staged at bucket level (M11)",
+      outputEditor.includes('data-testid="resume-custom-instruction"') &&
+        outputEditor.includes("stageInstruction"),
+    ],
+    [
+      "Resume apply persists via the M5a invalidation path (M11)",
+      outputEditor.includes("applyResumeSingleBulletRevisions(content, response.bulletCandidates)") &&
+        outputEditor.includes("await onApplyContentEdit(next)"),
+    ],
     ["initial review state pending summary", initialReview.professionalSummary.status === "pending"],
     ["edited bullet in preview", editedBullet.includes("Edited bullet")],
     ["rejected summary omitted from preview", summaryOmitted],

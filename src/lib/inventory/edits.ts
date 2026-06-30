@@ -163,6 +163,30 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
       ? edits.projectInventoryCleanupAt.trim()
       : undefined;
 
+  // ── Structured overlay for non-Work sections (M11) ──────────────────────────
+  const normalizeIdList = (ids: string[] | undefined): string[] => [
+    ...new Set((ids ?? []).filter((id) => typeof id === "string" && id.trim())),
+  ];
+  const normalizeTextById = (
+    map: Record<string, string> | undefined,
+  ): Record<string, string> => {
+    const next: Record<string, string> = {};
+    for (const [key, value] of Object.entries(map ?? {})) {
+      const trimmed = typeof value === "string" ? value.trim() : "";
+      if (key.trim() && trimmed) {
+        next[key] = trimmed;
+      }
+    }
+    return next;
+  };
+
+  const hiddenEducationIds = normalizeIdList(edits.hiddenEducationIds);
+  const editedEducationTextById = normalizeTextById(edits.editedEducationTextById);
+  const hiddenSkillIds = normalizeIdList(edits.hiddenSkillIds);
+  const editedSkillTextById = normalizeTextById(edits.editedSkillTextById);
+  const hiddenAdditionalIds = normalizeIdList(edits.hiddenAdditionalIds);
+  const editedAdditionalTextById = normalizeTextById(edits.editedAdditionalTextById);
+
   return {
     hiddenBulletKeys,
     editedBulletTextByBulletKey,
@@ -175,6 +199,12 @@ export function normalizeInventoryEdits(edits: InventoryEdits | undefined): Inve
     dismissedProjectOverlayCleanupIds,
     keptProjectLikeWorkExperienceIds,
     projectInventoryCleanupAt,
+    hiddenEducationIds,
+    editedEducationTextById,
+    hiddenSkillIds,
+    editedSkillTextById,
+    hiddenAdditionalIds,
+    editedAdditionalTextById,
   };
 }
 
@@ -227,6 +257,98 @@ export function getEffectiveBulletDescription(
   originalDescription: string,
 ): string {
   return edits.editedBulletTextByBulletKey[bulletKey] ?? originalDescription;
+}
+
+// ── Structured overlay editing for non-Work sections (M11) ───────────────────
+// Education / Skills / Additional experience get the same non-destructive
+// hide / edit / revert contract as work bullets, keyed by collated item id.
+// "Add" for these sections is deferred to a later milestone (see roadmap M11).
+
+function toggleIdInList(list: string[] | undefined, id: string, present: boolean): string[] {
+  const current = new Set(list ?? []);
+  if (present) current.add(id);
+  else current.delete(id);
+  return [...current];
+}
+
+function setTextOverride(
+  map: Record<string, string> | undefined,
+  id: string,
+  text: string | null,
+): Record<string, string> {
+  const next = { ...(map ?? {}) };
+  if (!text?.trim()) delete next[id];
+  else next[id] = text.trim();
+  return next;
+}
+
+export function hideInventoryEducation(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return { ...normalized, hiddenEducationIds: toggleIdInList(normalized.hiddenEducationIds, id, true) };
+}
+
+export function restoreInventoryEducation(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return { ...normalized, hiddenEducationIds: toggleIdInList(normalized.hiddenEducationIds, id, false) };
+}
+
+export function setInventoryEducationEdit(
+  edits: InventoryEdits,
+  id: string,
+  text: string | null,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return {
+    ...normalized,
+    editedEducationTextById: setTextOverride(normalized.editedEducationTextById, id, text),
+  };
+}
+
+export function hideInventorySkill(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return { ...normalized, hiddenSkillIds: toggleIdInList(normalized.hiddenSkillIds, id, true) };
+}
+
+export function restoreInventorySkill(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return { ...normalized, hiddenSkillIds: toggleIdInList(normalized.hiddenSkillIds, id, false) };
+}
+
+export function setInventorySkillEdit(
+  edits: InventoryEdits,
+  id: string,
+  text: string | null,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return {
+    ...normalized,
+    editedSkillTextById: setTextOverride(normalized.editedSkillTextById, id, text),
+  };
+}
+
+export function hideInventoryAdditional(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return { ...normalized, hiddenAdditionalIds: toggleIdInList(normalized.hiddenAdditionalIds, id, true) };
+}
+
+export function restoreInventoryAdditional(edits: InventoryEdits, id: string): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return {
+    ...normalized,
+    hiddenAdditionalIds: toggleIdInList(normalized.hiddenAdditionalIds, id, false),
+  };
+}
+
+export function setInventoryAdditionalEdit(
+  edits: InventoryEdits,
+  id: string,
+  text: string | null,
+): InventoryEdits {
+  const normalized = normalizeInventoryEdits(edits);
+  return {
+    ...normalized,
+    editedAdditionalTextById: setTextOverride(normalized.editedAdditionalTextById, id, text),
+  };
 }
 
 /**
@@ -330,14 +452,39 @@ export function applyInventoryEditsToCollated(
     sourceCitations: [TEXT_IMPORT_CITATION],
   }));
 
+  // ── Structured overlay for non-Work sections (M11) ──────────────────────────
+  // Hide drops the item from the active view (unless includeHidden, for the edit
+  // UI); an edit override replaces the displayed/generated text. Source untouched.
+  const hiddenEducation = new Set(edits.hiddenEducationIds ?? []);
+  const educationItems = collated.educationItems
+    .filter((item) => includeHidden || !hiddenEducation.has(item.id))
+    .map((item) => {
+      const override = edits.editedEducationTextById?.[item.id];
+      return override ? { ...item, institution: override } : item;
+    });
+
+  const hiddenSkills = new Set(edits.hiddenSkillIds ?? []);
+  const baseSkills = collated.skillItems
+    .filter((item) => includeHidden || !hiddenSkills.has(item.id))
+    .map((item) => {
+      const override = edits.editedSkillTextById?.[item.id];
+      return override ? { ...item, text: override } : item;
+    });
+
+  const hiddenAdditional = new Set(edits.hiddenAdditionalIds ?? []);
+  const baseAdditional = collated.additionalExperienceItems
+    .filter((item) => includeHidden || !hiddenAdditional.has(item.id))
+    .map((item) => {
+      const override = edits.editedAdditionalTextById?.[item.id];
+      return override ? { ...item, text: override } : item;
+    });
+
   return {
     ...collated,
     experiences,
-    skillItems: [...collated.skillItems, ...addedSkills],
-    additionalExperienceItems: [
-      ...collated.additionalExperienceItems,
-      ...addedAdditional,
-    ],
+    educationItems,
+    skillItems: [...baseSkills, ...addedSkills],
+    additionalExperienceItems: [...baseAdditional, ...addedAdditional],
   };
 }
 
@@ -523,6 +670,18 @@ function serializeInventoryEditsForCompare(edits: InventoryEdits): string {
     ].sort(),
     keptProjectLikeWorkExperienceIds: [...(edits.keptProjectLikeWorkExperienceIds ?? [])].sort(),
     projectInventoryCleanupAt: edits.projectInventoryCleanupAt ?? null,
+    hiddenEducationIds: [...(edits.hiddenEducationIds ?? [])].sort(),
+    editedEducationTextById: Object.fromEntries(
+      Object.entries(edits.editedEducationTextById ?? {}).sort(([l], [r]) => l.localeCompare(r)),
+    ),
+    hiddenSkillIds: [...(edits.hiddenSkillIds ?? [])].sort(),
+    editedSkillTextById: Object.fromEntries(
+      Object.entries(edits.editedSkillTextById ?? {}).sort(([l], [r]) => l.localeCompare(r)),
+    ),
+    hiddenAdditionalIds: [...(edits.hiddenAdditionalIds ?? [])].sort(),
+    editedAdditionalTextById: Object.fromEntries(
+      Object.entries(edits.editedAdditionalTextById ?? {}).sort(([l], [r]) => l.localeCompare(r)),
+    ),
   });
 }
 

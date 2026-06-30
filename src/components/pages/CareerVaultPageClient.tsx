@@ -18,12 +18,22 @@ import {
 } from "@/components/ui/dialog";
 import {
   buildCollatedBulletKey,
+  hideInventoryAdditional,
   hideInventoryBullet,
+  hideInventoryEducation,
+  hideInventorySkill,
   inventoryEditsEqual,
   isBulletHidden,
+  restoreInventoryAdditional,
   restoreInventoryBullet,
+  restoreInventoryEducation,
+  restoreInventorySkill,
+  setInventoryAdditionalEdit,
   setInventoryBulletEdit,
+  setInventoryEducationEdit,
+  setInventorySkillEdit,
 } from "@/lib/inventory/edits";
+import { buildCollatedInventoryForEditing } from "@/lib/inventory/active-collated";
 import { createEmptyInventoryEdits, type InventoryEdits } from "@/types/inventory-edits";
 
 // Parse result after a DOCX upload batch completes.
@@ -294,6 +304,67 @@ export function CareerVaultPageClient() {
     const next = setInventoryBulletEdit(draftEdits, bulletKey, null);
     await persistEdits(next);
   }
+
+  // ── Structured overlay for Education / Skills / Additional (M11) ────────────
+  // Same non-destructive hide/edit/revert contract as work bullets, keyed by the
+  // collated item id. Source resumes are never mutated. A single edit-state pair
+  // is shared across the three sections (one item edits at a time).
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemText, setEditItemText] = useState("");
+
+  function startItemEdit(id: string, currentText: string) {
+    setEditingItemId(id);
+    setEditItemText(currentText);
+  }
+
+  function cancelItemEdit() {
+    setEditingItemId(null);
+    setEditItemText("");
+  }
+
+  type SectionEditOps = {
+    setEdit: (edits: InventoryEdits, id: string, text: string | null) => InventoryEdits;
+    hide: (edits: InventoryEdits, id: string) => InventoryEdits;
+    restore: (edits: InventoryEdits, id: string) => InventoryEdits;
+  };
+
+  const educationOps: SectionEditOps = {
+    setEdit: setInventoryEducationEdit,
+    hide: hideInventoryEducation,
+    restore: restoreInventoryEducation,
+  };
+  const skillOps: SectionEditOps = {
+    setEdit: setInventorySkillEdit,
+    hide: hideInventorySkill,
+    restore: restoreInventorySkill,
+  };
+  const additionalOps: SectionEditOps = {
+    setEdit: setInventoryAdditionalEdit,
+    hide: hideInventoryAdditional,
+    restore: restoreInventoryAdditional,
+  };
+
+  async function commitItemEdit(ops: SectionEditOps, id: string) {
+    const next = ops.setEdit(draftEdits, id, editItemText);
+    setEditingItemId(null);
+    setEditItemText("");
+    await persistEdits(next);
+  }
+
+  async function revertItemEdit(ops: SectionEditOps, id: string) {
+    await persistEdits(ops.setEdit(draftEdits, id, null));
+  }
+
+  async function toggleItemHidden(ops: SectionEditOps, id: string, currentlyHidden: boolean) {
+    await persistEdits(currentlyHidden ? ops.restore(draftEdits, id) : ops.hide(draftEdits, id));
+  }
+
+  // Editing view of the three non-Work sections INCLUDES hidden items so they
+  // can be shown/restored (the provider's `collated` drops hidden items).
+  const editingCollated = buildCollatedInventoryForEditing(inventory);
+  const hiddenEducation = new Set(draftEdits.hiddenEducationIds ?? []);
+  const hiddenSkills = new Set(draftEdits.hiddenSkillIds ?? []);
+  const hiddenAdditional = new Set(draftEdits.hiddenAdditionalIds ?? []);
 
   // ── Import dialog handlers ────────────────────────────────────────────────
   // Snapshot resume/failure counts before upload so we can compute the diff.
@@ -583,86 +654,313 @@ export function CareerVaultPageClient() {
             })
           ))}
 
-        {/* ── Skills ── */}
+        {/* ── Skills ── (M11: per-item edit / hide / revert overlay) */}
         {activeTab === "skills" &&
-          (collated.skillItems.length === 0 ? (
+          (editingCollated.skillItems.length === 0 ? (
             <EmptyTabState message="No skills yet. Upload a resume to populate skills." />
           ) : (
             <div className="rounded-xl border border-folio-sage-border bg-white p-4">
               {Object.entries(
-                collated.skillItems.reduce<Record<string, string[]>>((acc, item) => {
-                  if (!acc[item.category]) acc[item.category] = [];
-                  acc[item.category].push(item.text);
-                  return acc;
-                }, {}),
-              ).map(([category, skills]) => (
+                editingCollated.skillItems.reduce<Record<string, typeof editingCollated.skillItems>>(
+                  (acc, item) => {
+                    (acc[item.category] ??= []).push(item);
+                    return acc;
+                  },
+                  {},
+                ),
+              ).map(([category, items]) => (
                 <div key={category} className="mt-4 first:mt-0">
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-folio-outline">
                     {category}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full border border-folio-sage-border px-3 py-1 text-[13px] text-folio-on-surface"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {items.map((item) => {
+                      const isHidden = hiddenSkills.has(item.id);
+                      const hasOverride =
+                        draftEdits.editedSkillTextById?.[item.id] !== undefined;
+                      if (editingItemId === item.id) {
+                        return (
+                          <span key={item.id} className="inline-flex items-center gap-1">
+                            <input
+                              autoFocus
+                              value={editItemText}
+                              onChange={(e) => setEditItemText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void commitItemEdit(skillOps, item.id);
+                                if (e.key === "Escape") cancelItemEdit();
+                              }}
+                              className="rounded-lg border border-folio-outline-variant px-2 py-1 text-[13px] focus:border-folio-primary-container focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void commitItemEdit(skillOps, item.id)}
+                              className="rounded-lg bg-folio-primary-container px-2.5 py-1 text-[11px] font-medium text-white"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelItemEdit}
+                              className="rounded-lg border border-folio-outline-variant px-2.5 py-1 text-[11px] font-medium text-folio-outline"
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        );
+                      }
+                      return (
+                        <span
+                          key={item.id}
+                          className={`group inline-flex items-center gap-1 rounded-full border border-folio-sage-border px-3 py-1 text-[13px] text-folio-on-surface ${
+                            isHidden ? "opacity-40" : ""
+                          }`}
+                        >
+                          <span>{item.text}</span>
+                          {hasOverride && (
+                            <span className="rounded-full bg-folio-mint-surface px-1 text-[9px] font-medium text-folio-olive-text">
+                              edited
+                            </span>
+                          )}
+                          <span className="ml-0.5 hidden items-center gap-1 group-hover:inline-flex">
+                            <button
+                              type="button"
+                              onClick={() => startItemEdit(item.id, item.text)}
+                              aria-label="Edit skill"
+                              className="text-folio-outline hover:text-folio-on-surface"
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void toggleItemHidden(skillOps, item.id, isHidden)}
+                              className="text-[11px] text-folio-outline hover:text-folio-on-surface"
+                            >
+                              {isHidden ? "Show" : "Hide"}
+                            </button>
+                            {hasOverride && (
+                              <button
+                                type="button"
+                                onClick={() => void revertItemEdit(skillOps, item.id)}
+                                className="text-[11px] text-folio-outline hover:text-folio-on-surface"
+                              >
+                                Revert
+                              </button>
+                            )}
+                          </span>
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
             </div>
           ))}
 
-        {/* ── Education ── */}
+        {/* ── Education ── (M11: edit institution / hide / revert; add deferred) */}
         {activeTab === "education" &&
-          (collated.educationItems.length === 0 ? (
+          (editingCollated.educationItems.length === 0 ? (
             <EmptyTabState message="No education yet. Upload a resume to populate education." />
           ) : (
-            collated.educationItems.map((edu) => (
-              <div
-                key={edu.id}
-                className="rounded-xl border border-folio-sage-border bg-white p-4"
-              >
-                <p className="text-[15px] font-semibold text-folio-on-surface">
-                  {edu.institution}
-                </p>
-                {edu.programmes.length > 0 && (
-                  <p className="mt-0.5 text-[13px] text-folio-outline">
-                    {edu.programmes.join(", ")}
-                  </p>
-                )}
-                {edu.dateRange && (
-                  <p className="mt-0.5 text-[13px] text-folio-outline">{edu.dateRange}</p>
-                )}
-                {edu.bullets.length > 0 && (
-                  <ul className="mt-3 space-y-1">
-                    {edu.bullets.map((b, i) => (
-                      <li key={i} className="flex gap-2 text-[14px] text-folio-on-surface">
-                        <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))
+            editingCollated.educationItems.map((edu) => {
+              const isHidden = hiddenEducation.has(edu.id);
+              const hasOverride = draftEdits.editedEducationTextById?.[edu.id] !== undefined;
+              const isEditing = editingItemId === edu.id;
+              return (
+                <div
+                  key={edu.id}
+                  className={`group rounded-xl border border-folio-sage-border bg-white p-4 ${
+                    isHidden ? "opacity-40" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      {isEditing ? (
+                        <div className="flex gap-2">
+                          <input
+                            autoFocus
+                            value={editItemText}
+                            onChange={(e) => setEditItemText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void commitItemEdit(educationOps, edu.id);
+                              if (e.key === "Escape") cancelItemEdit();
+                            }}
+                            className="flex-1 rounded-lg border border-folio-outline-variant px-2 py-1 text-[14px] focus:border-folio-primary-container focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void commitItemEdit(educationOps, edu.id)}
+                            className="rounded-lg bg-folio-primary-container px-3 py-1.5 text-xs font-medium text-white"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelItemEdit}
+                            className="rounded-lg border border-folio-outline-variant px-3 py-1.5 text-xs font-medium text-folio-outline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-[15px] font-semibold text-folio-on-surface">
+                          {edu.institution}
+                          {hasOverride && (
+                            <span className="ml-1.5 rounded-full bg-folio-mint-surface px-1.5 py-0.5 text-[10px] font-medium text-folio-olive-text">
+                              edited
+                            </span>
+                          )}
+                        </p>
+                      )}
+                      {edu.programmes.length > 0 && (
+                        <p className="mt-0.5 text-[13px] text-folio-outline">
+                          {edu.programmes.join(", ")}
+                        </p>
+                      )}
+                      {edu.dateRange && (
+                        <p className="mt-0.5 text-[13px] text-folio-outline">{edu.dateRange}</p>
+                      )}
+                      {edu.bullets.length > 0 && (
+                        <ul className="mt-3 space-y-1">
+                          {edu.bullets.map((b, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-2 text-[14px] text-folio-on-surface"
+                            >
+                              <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    {!isEditing && (
+                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => startItemEdit(edu.id, edu.institution)}
+                          aria-label="Edit institution"
+                          className="rounded p-1 text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                        >
+                          <PencilIcon />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void toggleItemHidden(educationOps, edu.id, isHidden)}
+                          className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                        >
+                          {isHidden ? "Show" : "Hide"}
+                        </button>
+                        {hasOverride && (
+                          <button
+                            type="button"
+                            onClick={() => void revertItemEdit(educationOps, edu.id)}
+                            className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                            title="Revert to original source text"
+                          >
+                            Revert
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           ))}
 
-        {/* ── Additional ── */}
+        {/* ── Additional ── (M11: per-item edit / hide / revert overlay) */}
         {activeTab === "additional" &&
-          (collated.additionalExperienceItems.length === 0 ? (
+          (editingCollated.additionalExperienceItems.length === 0 ? (
             <EmptyTabState message="No additional experience yet." />
           ) : (
             <div className="rounded-xl border border-folio-sage-border bg-white p-4">
               <ul className="space-y-2">
-                {collated.additionalExperienceItems.map((item) => (
-                  <li key={item.id} className="flex gap-2 text-[14px] text-folio-on-surface">
-                    <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
-                    {item.text}
-                  </li>
-                ))}
+                {editingCollated.additionalExperienceItems.map((item) => {
+                  const isHidden = hiddenAdditional.has(item.id);
+                  const hasOverride =
+                    draftEdits.editedAdditionalTextById?.[item.id] !== undefined;
+                  const isEditing = editingItemId === item.id;
+                  return (
+                    <li
+                      key={item.id}
+                      className={`group border-t border-folio-surface-container pt-2 first:border-t-0 first:pt-0 ${
+                        isHidden ? "opacity-40" : ""
+                      }`}
+                    >
+                      {isEditing ? (
+                        <div className="flex gap-2">
+                          <textarea
+                            autoFocus
+                            rows={2}
+                            value={editItemText}
+                            onChange={(e) => setEditItemText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
+                                void commitItemEdit(additionalOps, item.id);
+                              if (e.key === "Escape") cancelItemEdit();
+                            }}
+                            className="flex-1 rounded-lg border border-folio-outline-variant p-2 text-[14px] focus:border-folio-primary-container focus:outline-none"
+                          />
+                          <div className="flex shrink-0 flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => void commitItemEdit(additionalOps, item.id)}
+                              className="rounded-lg bg-folio-primary-container px-3 py-1.5 text-xs font-medium text-white"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelItemEdit}
+                              className="rounded-lg border border-folio-outline-variant px-3 py-1.5 text-xs font-medium text-folio-outline"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-folio-outline">•</span>
+                          <span className="flex-1 text-[14px] text-folio-on-surface">
+                            {item.text}
+                            {hasOverride && (
+                              <span className="ml-1.5 rounded-full bg-folio-mint-surface px-1.5 py-0.5 text-[10px] font-medium text-folio-olive-text">
+                                edited
+                              </span>
+                            )}
+                          </span>
+                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => startItemEdit(item.id, item.text)}
+                              aria-label="Edit item"
+                              className="rounded p-1 text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void toggleItemHidden(additionalOps, item.id, isHidden)}
+                              className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                            >
+                              {isHidden ? "Show" : "Hide"}
+                            </button>
+                            {hasOverride && (
+                              <button
+                                type="button"
+                                onClick={() => void revertItemEdit(additionalOps, item.id)}
+                                className="rounded px-2 py-0.5 text-[11px] text-folio-outline hover:bg-folio-surface-container hover:text-folio-on-surface"
+                                title="Revert to original source text"
+                              >
+                                Revert
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

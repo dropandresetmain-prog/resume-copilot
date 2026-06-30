@@ -1,5 +1,15 @@
 # Known Issues
 
+## Output Editor v2 + Vault structured editing (M11)
+
+- **Education "add item" is deferred** — M11 ships edit (institution) / hide / revert for Education, Skills, and Additional. Adding a brand-new Education item, and richer per-field Education editing (programmes, dates, bullets), are deferred to a later milestone (candidate: MX). The `InventoryEdits` Education fields (`hiddenEducationIds`, `editedEducationTextById`) are forward-compatible with a future `addedEducationItems`.
+- **Staging is in-memory for the mounted session** — the resume bucket (picked replacements + custom instruction) and the CL bucket (tone + chips + evidence use/avoid + custom instruction) survive Resume↔Cover-letter view switches but are cleared on a hard page reload. By design (no sessionStorage).
+- **Content gate is UI-only** — "Confirm content" unlocks Layout sliders and the Step-1 Approve button; any content edit/apply/regenerate re-locks it. This sits in front of, and does not replace, the server one-page 422 export gate (still the export truth). Already-approved drafts load pre-confirmed.
+- **"Apply changes to Resume" tailors only staged bullets** — it sends only the picked/changed bullets through the additive `single_bullet` `revise-resume-scope` branch; it never regenerates or re-touches the rest of the resume. A full "Regenerate resume" is a separate, explicit action that re-locks the content gate.
+- **Replace alternatives = all ranked work bullets (any role)** — per the approved decision, the picker shows the full spine-ranked work-bullet pool, not just the selected bullet's role. Alternatives are deterministic from the saved spine inputs (no extra AI on open).
+- **Vault overlay item ids** — Education/Skills/Additional edits/hides are keyed by collated item `id`; like the existing add-from-text overlays, an override can become orphaned if a re-parse changes the item id. Accepted, consistent with prior overlay behavior.
+- **Independent Opus review still required before merge** (same standard as M4/M10b).
+
 ## Output Editor redesign (M10b)
 
 - **`single_bullet` Replace is batched, not per-bullet** — staged bullets regenerate together in one AI call (one revised statement per staged target), per the agreed UX. The scope is additive on `/api/ai/revise-resume-scope`; existing scopes and the generation/repair engine are untouched.

@@ -8,8 +8,11 @@ import { buildCollatedInventory } from "../../src/lib/inventory/collation";
 import {
   applyInventoryEditsToCollated,
   hideInventoryBullet,
+  hideInventorySkill,
   inventoryEditsEqual,
+  restoreInventorySkill,
   setInventoryBulletEdit,
+  setInventorySkillEdit,
 } from "../../src/lib/inventory/edits";
 import { buildResumeDraftGenerationInput } from "../../src/lib/resume-draft/payload";
 import { selectGenerationBullets } from "../../src/lib/resume-draft/bullet-payload";
@@ -156,6 +159,21 @@ function main() {
 
   const prompt = buildResumeDraftPrompt(generationInput);
 
+  // ── M11: structured overlay for non-Work sections (Skills exercised here; the
+  // Education/Additional helpers share the identical generic implementation). ──
+  const skillId = rawCollated.skillItems[0]?.id ?? "";
+  const skillEditEdits = setInventorySkillEdit(createEmptyInventoryEdits(), skillId, "Advanced SQL");
+  const skillEditedCollated = applyInventoryEditsToCollated(rawCollated, skillEditEdits);
+  const skillRevertedEdits = setInventorySkillEdit(skillEditEdits, skillId, null);
+  const skillHiddenEdits = hideInventorySkill(createEmptyInventoryEdits(), skillId);
+  const skillHiddenCollated = applyInventoryEditsToCollated(rawCollated, skillHiddenEdits);
+  const skillHiddenIncludeCollated = applyInventoryEditsToCollated(rawCollated, skillHiddenEdits, {
+    includeHidden: true,
+  });
+  const skillRestoredEdits = restoreInventorySkill(skillHiddenEdits, skillId);
+  const skillSourceJson = JSON.stringify(inventory.resumes);
+  applyInventoryEditsToCollated(rawCollated, skillEditEdits);
+
   const checks: [string, boolean][] = [
     ["source resumes unchanged after edits overlay", JSON.stringify(inventoryWithEdits.resumes) === originalResumeJson],
     ["hidden bullets removed from active collated", activeCollated.experiences[0]?.bullets.length === 1],
@@ -229,6 +247,58 @@ function main() {
         setInventoryBulletEdit(editsWithOverride, keyCrm, null);
         return JSON.stringify(inventory.resumes) === originalJson;
       })(),
+    ],
+    // ── M11: Education / Skills / Additional structured overlay ───────────────
+    [
+      "skill edit override appears in active collated (M11)",
+      skillEditedCollated.skillItems.some((item) => item.text === "Advanced SQL"),
+    ],
+    [
+      "skill revert clears the override (M11)",
+      skillRevertedEdits.editedSkillTextById?.[skillId] === undefined,
+    ],
+    [
+      "hidden skill removed from active collated (M11)",
+      !skillHiddenCollated.skillItems.some((item) => item.id === skillId),
+    ],
+    [
+      "includeHidden keeps hidden skill for edit UI (M11)",
+      skillHiddenIncludeCollated.skillItems.some((item) => item.id === skillId),
+    ],
+    [
+      "restore un-hides the skill (M11)",
+      (skillRestoredEdits.hiddenSkillIds ?? []).length === 0,
+    ],
+    [
+      "section overlay never mutates source resumes (M11)",
+      JSON.stringify(inventory.resumes) === skillSourceJson,
+    ],
+    [
+      "inventoryEditsEqual detects section overlay changes (M11)",
+      !inventoryEditsEqual(skillEditEdits, createEmptyInventoryEdits()),
+    ],
+    // ── M11: Vault wires edit/hide/revert controls for all three sections ─────
+    [
+      "vault wires education overlay helpers (M11)",
+      vaultPage.includes("hideInventoryEducation") &&
+        vaultPage.includes("setInventoryEducationEdit") &&
+        vaultPage.includes("restoreInventoryEducation"),
+    ],
+    [
+      "vault wires skill overlay helpers (M11)",
+      vaultPage.includes("hideInventorySkill") &&
+        vaultPage.includes("setInventorySkillEdit") &&
+        vaultPage.includes("restoreInventorySkill"),
+    ],
+    [
+      "vault wires additional overlay helpers (M11)",
+      vaultPage.includes("hideInventoryAdditional") &&
+        vaultPage.includes("setInventoryAdditionalEdit") &&
+        vaultPage.includes("restoreInventoryAdditional"),
+    ],
+    [
+      "vault editing view includes hidden items for restore (M11)",
+      vaultPage.includes("buildCollatedInventoryForEditing"),
     ],
   ];
 

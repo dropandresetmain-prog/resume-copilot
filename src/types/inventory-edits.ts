@@ -58,6 +58,22 @@ export type InventoryEdits = {
   keptProjectLikeWorkExperienceIds?: string[];
   /** Set when project overlay cleanup is applied — prompts draft regeneration (v0.9.16D). */
   projectInventoryCleanupAt?: string;
+  // ── Structured overlay editing for non-Work sections (M11) ──────────────────
+  // Same non-destructive contract as work bullets: hide/edit/revert by collated
+  // item id. Source resumes are never mutated. "Add" for these sections is
+  // deferred to a later milestone (Education add especially) — see roadmap M11.
+  /** Education item IDs hidden from generation/output (M11). */
+  hiddenEducationIds?: string[];
+  /** Education item id → edited institution text override (M11). */
+  editedEducationTextById?: Record<string, string>;
+  /** Skill item IDs hidden from generation/output (M11). */
+  hiddenSkillIds?: string[];
+  /** Skill item id → edited text override (M11). */
+  editedSkillTextById?: Record<string, string>;
+  /** Additional experience item IDs hidden from generation/output (M11). */
+  hiddenAdditionalIds?: string[];
+  /** Additional experience item id → edited text override (M11). */
+  editedAdditionalTextById?: Record<string, string>;
 };
 
 export function createEmptyInventoryEdits(): InventoryEdits {

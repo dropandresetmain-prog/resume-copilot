@@ -573,6 +573,7 @@ Parity = a returning authenticated user with existing data can run the full job-
 - **Independent review:** required before merge (same standard as M4/M10b).
 - **Model:** Opus. **Effort:** High.
 - **Dependencies:** M10b, M10c.
+- **Scope adjustment (user decision, 2026-06-30):** For the structured non-Work overlay, M11 ships **edit + hide + revert** for Education, Skills, and Additional (Skills/Additional already had add-from-text; Education had no overlay at all). **"Add Education item" is explicitly deferred** to a later milestone (candidate: MX Career Vault overhaul or a dedicated follow-up) — the `InventoryEdits` Education fields added in M11 (`hiddenEducationIds`, `editedEducationTextById`) are forward-compatible with a future `addedEducationItems`. Education edit currently overrides the institution string; richer per-field education editing (programmes, dates, bullets) is also deferred with "add".
 
 ---
 
@@ -612,6 +613,8 @@ Parity = a returning authenticated user with existing data can run the full job-
 | MX — Career Vault overhaul | Sonnet | Medium | Restyle + layout reorganization + feature ports; wiring and data contracts unchanged |
 | M10a — Output Editor redesign: design session | Opus | Medium | UX architecture decisions; wrong choices cascade; no code produced |
 | M10b — Output Editor redesign: implementation | Opus | High | Highest-complexity redesign; selectable bullets + layout controls + export UX consolidation; independent review required |
+| M10c — Output Editor + Vault quick fixes | Sonnet | Low | Low-risk display/interaction fixes; no engine, gate, or data-wiring changes |
+| M11 — Output Editor v2: unified staging + batched apply + content/layout gate; Vault structured editing | Opus | High | Replace pick-from-spine + one-shot AI tailor; two Apply buttons (resume targeted / CL full regen); structured overlay for Education/Skills/Additional; staged-changes model; UI content-lock gate; independent review required |
 
 ---
 
@@ -1359,6 +1362,106 @@ OUTPUT (at the end): files changed, behavior changed, tests/checks run, known ri
 Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
 ```
 
+### M11 Opening Prompt
+
+```
+Implement Milestone M11 — Output Editor v2: Unified Staging + Batched Apply + Content/Layout Gate; Vault Structured Editing — for Resume Copilot (Folio).
+
+CONTEXT: Read docs/FOLIO_RECOVERY_ROADMAP.md in full before doing anything else. It is the source of truth. M1–M10c are complete. M10b is pending independent Opus review before merge — but M11 implementation may proceed on folio-recovery in parallel. Read the M10b and M10c Milestone Completion Log rows and §9 "M11 — Output Editor v2".
+
+WHAT IS COMPLETE (do not redo):
+- M10c: Vault tab order (Work→Education→Skills→Additional), Keywords tab (5th tab replacing the uncollapsed block), "Professional summary" heading removed from Output text view, export buttons on one row, PDF-view-only layout declutter.
+- M10b: fit summary banner, Text|PDF dual view, selectable bullets (Edit/Replace/Remove with single_bullet scope), layout sliders (PDF-view-only), export & delivery card at bottom, right column = controls only, CL "Other formats", SecondaryCommunicationsPanel Folio-native. single_bullet revision scope additive to POST /api/ai/revise-resume-scope.
+- M5a: structured editor (Work Experience only), dirty/beforeunload, re-approval invalidation, revision queue, PDF-on-approve two-mode preview.
+
+REPO: C:\Dev\AIAP\resume-copilot
+BRANCH: folio-recovery. Confirm with `git branch --show-current`. Do NOT touch main (a4d17e3, production).
+
+NON-NEGOTIABLE: OutputEditorPageClient stays mounted at /output/[draftId]. CareerVaultPageClient stays mounted at /inventory. Never swap an active route to a legacy page client. No active page.tsx may import InventoryPageClient, RecordsPageClient, GeneratePageClient, ResumePreviewPageClient, or CoverLetterPreviewPageClient. The forbidden-remount rule is enforced by tests/suites/app-shell.test.ts — keep it green.
+
+DESIGN: All UI must follow docs/DESIGN.md. Sentence case; no shadows (hairline borders + tonal surfaces); folio-* tokens; rounded-xl cards; rounded-lg controls.
+
+PROTOCOL: Ask clarifying questions before writing any code. State what you plan to do and wait for confirmation.
+
+APPROVED DESIGN DECISIONS (from user, 2026-06-30 — do not re-derive or re-open):
+
+1. BULLET REPLACE: When the user clicks Replace on a selectable bullet, show spine-ranked alternative bullets for that role (from buildEvidenceSpine — already run at generation time). The user picks from alternatives. The picked set is sent to AI one-shot via the existing single_bullet scope to tailor to JD context. Not instant-swap, not blind-AI — pick-then-tailor.
+
+2. TWO APPLY BUTTONS (resume and CL separate):
+   - "Apply changes to Resume" button: sends ONLY the changed/added bullets through single_bullet-style targeted tailoring. MUST NOT regenerate or re-touch the rest of the already-generated resume. Never a full regenerate.
+   - "Apply changes to Cover Letter" button: full CL regenerate that folds in all staged CL changes (tone + chips + evidence use/avoid + custom instruction) in one call. Reuses the existing CL regenerate path.
+   - These are separate buttons, not one combined call and not a new combined endpoint.
+
+3. VAULT + OUTPUT SECTION EDITING: Structured overlay (same model as Work Experience: per-item add / edit / hide / revert in the InventoryEdits overlay) extended to Education, Skills, Additional Experience. Source resumes never mutated. The same structured editing flows into the Output text view for those sections (no more inline-only weak edit).
+
+4. STAGING PERSISTENCE: Staged changes (resume bucket + CL bucket) persist while the user picks across both Resume and Cover Letter views in the session, until applied or cleared.
+
+5. STATE GATE (UI-level only — server gate unchanged):
+   Stage changes → Apply with AI (resume and/or CL) → Confirm content (resume) → confirming content unlocks Layout (PDF sliders) → Approve for export (existing server one-page 422 gate) → download.
+   "Confirm content" and "layout locked until confirmed" are added as UI locks in front of the existing server gate. The server 422 gate is the unchanged export truth.
+
+6. CUSTOM INSTRUCTIONS: Add a custom instruction input to BOTH the resume staging bucket and the CL staging bucket. CL custom instruction is currently missing.
+
+7. CL CHIPS/TONE: Must be staged, not immediate-AI. Today applyRevision/handleSelectTone call Gemini on click — fix this. Chips, tone, evidence use/avoid, and custom instruction all stage into the CL bucket; they apply only on the CL "Apply" button.
+
+SCOPE (only this — do not implement anything beyond these items):
+1. Structured overlay editing for Education, Skills, Additional Experience in CareerVaultPageClient (same InventoryEdits model as Work Experience: per-item add/edit/hide/revert, source resumes never mutated). Extend to the Output text view for those sections.
+2. Bullet Replace mechanic: spine-ranked alternatives picker → pick → single_bullet one-shot AI tailor. Wire buildEvidenceSpine spine output for the relevant role to the Replace action.
+3. Resume staging bucket: accumulate changed/added bullets (replace selections, custom instruction). "Apply changes to Resume" button sends ONLY those bullets via single_bullet tailoring. Bucket persists until applied or cleared.
+4. CL staging bucket: move chips (applyRevision), tone (handleSelectTone), evidence use/avoid, and custom instruction from immediate-AI to staged. "Apply changes to Cover Letter" button sends all staged CL changes to the existing CL regenerate path. Bucket persists until applied or cleared.
+5. Content/layout/approve UI gate: after content edits are applied, add "Confirm content" action; confirming unlocks Layout sliders; Layout confirmed → Approve (existing server gate unchanged) → download.
+
+STAYS MOUNTED: OutputEditorPageClient, CareerVaultPageClient.
+
+REFERENCES (read only — behavioral reference, never mount): InventoryEdits overlay wiring for Work Experience (template for extending to Education/Skills/Additional); existing single_bullet scope in POST /api/ai/revise-resume-scope (additive — do not change existing branches); existing CL regenerate path (POST /api/ai/generate-cover-letter); buildEvidenceSpine (already run at generation time; spine data available in draft.rationale or computed deterministically).
+
+BACKEND BOUNDARY: Prefer reusing existing endpoints (single_bullet scope, CL regenerate). Only additive changes if strictly required — no new combined resume+CL endpoint, no changes to generation/repair engine internals.
+
+MUST NOT CHANGE: export engine, page-count truth, filename scheme, generation/repair engine internals, model IDs, evidence spine itself; M4/M5a approval & export gate semantics (server one-page 422 hard gate; resolveDraftStatusAfterContentEdit invalidation; areExportLayoutSettingsEqual). The UI content gate must not weaken the server gate.
+
+CHECKS: npm run test, npm run lint, npm run build. Extend existing suites only — resume-draft-review (staged replace, apply), application-package-ux (CL staging, content gate), inventory-edits (Education/Skills/Additional structured overlay); keep app-shell route-contract green. Update docs under /docs only.
+
+KNOWN PRE-EXISTING RED (NOT introduced by you; do NOT fix): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx; 1 TS error in application-records.test.ts. Report if they block verification but do not expand scope.
+
+INDEPENDENT REVIEW: required before merge (same standard as M4/M10b). After implementation and verification, open a fresh Opus chat with the review brief + diff only — no implementation history.
+
+After completing M11, update docs/FOLIO_RECOVERY_ROADMAP.md:
+- Mark M11 complete in the Milestone Completion Log.
+- Write the next milestone opening prompt into the Chat Prompts section.
+- Record any remaining known issues in docs/KNOWN_ISSUES.md.
+
+OUTPUT (at the end): files changed, behavior changed, tests/checks run, known risks, next steps, copy-paste git commands.
+
+Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and confirm this is one focused milestone.
+```
+
+### Next chat opening prompt — M11 independent review (Opus, fresh session)
+
+```
+You are performing the INDEPENDENT review of Milestone M11 — Output Editor v2 (unified staging + batched apply + content/layout gate; Vault structured editing) for Resume Copilot (Folio). Same standard as the M4 / M10b independent reviews: fresh context, review brief + diff only, NO implementation history.
+
+REPO: C:\Dev\AIAP\resume-copilot   BRANCH: folio-recovery   Do NOT touch main.
+
+INPUTS: (1) the M11 spec + approved user decisions in docs/FOLIO_RECOVERY_ROADMAP.md §9 "M11"; (2) the M11 Milestone Completion Log row in §14; (3) the diff of the M11 commit(s) on folio-recovery.
+
+REVIEW CHECKLIST (verify against the diff — do not assume):
+1. NON-NEGOTIABLE route contract: OutputEditorPageClient still mounted at /output/[draftId]; CareerVaultPageClient at /inventory; no active page.tsx imports a forbidden legacy client; tests/suites/app-shell.test.ts green.
+2. Source-of-truth safety: new InventoryEdits Education/Skills/Additional fields are additive JSON only (no migration); source resumes never mutated; applyInventoryEditsToCollated hide/edit/revert correct; dirty-detection (serializeInventoryEditsForCompare) includes the new fields so autosave fires.
+3. Resume "Apply changes to Resume": tailors ONLY staged bullets via the single_bullet branch — confirm it never triggers a full regenerate or re-touches unstaged bullets; picked text → currentText; persists via applyContentEdit (M5a invalidation).
+4. Replace picker: bulletAlternatives is deterministic (no page-load AI beyond the existing spine build); picks stage, don't auto-apply.
+5. CL staging: chips/tone/evidence/custom-instruction are STAGED (no Gemini on click — confirm applyRevision/handleSelectTone no longer call AI); "Apply changes to Cover Letter" folds all into ONE regenerate via the existing CL path; bucket cleared after.
+6. Staging persistence: both buckets lifted to the parent so they survive Resume↔CL view switches (in-memory, mounted session — confirm no sessionStorage was added).
+7. UI content gate: contentConfirmed locks Layout sliders + Step-1 Approve; any content edit/apply/regenerate re-locks; already-approved drafts load pre-confirmed. CONFIRM the server one-page 422 gate, resolveDraftStatusAfterContentEdit, areExportLayoutSettingsEqual, filename scheme, and export engine are all UNCHANGED — the UI gate must not weaken the server gate.
+8. MUST-NOT-CHANGE: export engine, page-count truth, model IDs, generation/repair internals, evidence spine. Confirm none changed.
+9. Checks: npm run test (affected suites green when run directly — run-all halts at the known pre-existing resume-generation-validation red), npm run lint (only the pre-existing ProfilePageClient error), npm run build green.
+
+KNOWN PRE-EXISTING RED (not introduced by M11; do not flag as regressions): resume-generation-validation.test.ts (3 fails); draft-inventory-safety.test.ts (2 fails); 1 lint error in ProfilePageClient.tsx; 1 TS error in application-records.test.ts.
+
+DEFERRED (approved, not a defect): Education "add item" overlay + richer per-field education editing are deferred to a later milestone; M11 ships Education edit (institution) / hide / revert only.
+
+OUTPUT: a pass/fail verdict per checklist item, any defects with file:line, and a merge recommendation (approve / approve-with-fixes / block). Do not implement changes unless asked.
+```
+
 ---
 
 ## 14. Milestone Completion Log
@@ -1382,7 +1485,7 @@ Before coding, complete the 10-point Build Plan Checklist in docs/HANDOFF.md and
 | M10a — Output Editor redesign: design session | ✅ Complete | 2026-06-30 | Design-only milestone (no application code). Read current `OutputEditorPageClient` (3,039 lines) + legacy references. Agreed 8-topic layout proposal recorded in `docs/OUTPUT_EDITOR_DESIGN.md`. User decisions: (1) fit summary = full-width banner with numeric score via `calculateFitScore` (currently never wired); (2) view = segmented `Text \| PDF`, PDF on demand (no approval needed); (3) selectable bullets with Edit/Replace/Remove — **Replace uses a NEW approved `single_bullet` revision scope/endpoint** (additive; existing scopes unchanged); (4) layout sliders Folio-native, PDF-view-only, live re-render; (5) single Export & delivery card at the **bottom**, topbar export buttons removed; (6) **"Mark as sent" removed** (duplicate of Applications M6); (7) right column = controls only (experience inclusion, custom revision, shape-next-regeneration, diagnostics); (8) CL secondary formats = collapsible "Other formats" below CL body from `coverLetter.rationale`. **Key code findings:** numeric fit score is available deterministically (no AI) but not currently surfaced; `ResumePdfPreview` needs no approval to render; no single-bullet endpoint exists today (hence the approved additive scope). MX parked per user. |
 | M10b — Output Editor redesign: implementation | ✅ Complete (pending independent review) | 2026-06-30 | Implemented the agreed M10a design in `OutputEditorPageClient.tsx` + the one approved additive backend change. `OutputEditorPageClient` stays mounted at `/output/[draftId]`; no forbidden legacy client imported; `app-shell` route-contract green. **(1) Fit banner:** full-width card under the header (`output-fit-summary-banner`) — wires `calculateFitScore(draft.content, draft.rationale)` (deterministic, no page-load AI) and passes **both** `rationale` + `fitAssessment` into `buildPackageFitSummary`; surfaces an `NN/100 · verdict` chip (`output-fit-score-chip`, `fitScoreToVerdict`) + prose strengths/gaps; right-column fit disclosure removed; `needs_review` stays a top banner. **(2) Dual view:** segmented `Text | PDF` control (`document-view-toggle`); Text = editable `ResumeTextDocument` (default), PDF = `ResumePdfPreview` built from `buildExportResumeDocumentModel` **on demand — no approval required** (dropped the `exportReady` coupling). **(3) Selectable bullets:** per-bullet **Edit** (inline, immediate) / **Remove** (immediate) reuse content mutators; **Replace** stages bullets and regenerates them together in **one** AI call via the NEW `single_bullet` revision scope, inline preview → accept. Header/summary/skills/education/additional + role details get per-section inline edit reveals. Whole-panel `StructuredResumeEditor` toggle retired. Every content mutation routes through `applyContentEdit` → `resolveDraftStatusAfterContentEdit` (M5a invalidation). **(4) Layout sliders:** Folio-native strip (`output-layout-sliders`) shown only in PDF view; slider → `manualSettings` → rebuilt `documentModel` → live preview; optimizer note surfaced; post-approval layout change downgrades to `layout_changed` (debounced) + `areExportLayoutSettingsEqual` keeps export honest. **(5) Export consolidation:** one full-width **Export & delivery** card at the BOTTOM (`output-approve-export`, Step 1 Approve → Step 2 Export, `output-one-page-block` 422 gate, re-approve notice, exports gated on `exportReady`); topbar export buttons removed. **(6) Mark as sent removed** (handler/CTA/state). **(7) Right panel = controls only:** experience inclusion (visible), Custom AI revision (disclosure), **Shape next regeneration** (renamed from "Bullet controls", labeled "affects regeneration, not the current document", keeps `lineLevel*` + `buildMergedControls`), Tailoring diagnostics (disclosure). **(8) CL "Other formats":** collapsible section (`cl-other-formats`) reading precomputed `coverLetter.rationale` strings, no generation; `SecondaryCommunicationsPanel` rebuilt Folio-native (dropped `SetupCard`/slate), hidden when empty. **Restyled** `ResumePdfPreview` wrapper chrome to folio tokens (iframe print HTML untouched). **Backend (only permitted additive change):** new `single_bullet` `ResumeCustomRevisionScope` + branch in `POST /api/ai/revise-resume-scope` (`handleSingleBulletRevision`) accepting an array of `{roleIndex,bulletIndex,currentText,instruction?}`, returning revised bullet text per target; `applyResumeSingleBulletRevisions` swaps only `.text` (preserves sourceRefs/confidence, clears serverPdfValidation). Existing scopes + generation/repair engine internals unchanged. **Tests:** 9 single_bullet checks added to `resume-draft-review.test.ts` (prompt/mock/apply/validate/parse); `application-package-ux.test.ts` updated (fit→top banner, bullet-controls→shape-next-regeneration) + 8 new M10b checks; `app-shell` + `forced-bullet-regeneration` green. **Pre-existing red carried forward (not M10b):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`; 1 TS error in `application-records.test.ts`. `npm run build` green. **Independent Opus review required before merge.** |
 | M10c — Output Editor + Vault quick fixes | ✅ Complete | 2026-06-30 | Low-risk display/interaction fixes (no engine/gate changes). **Vault** (`CareerVaultPageClient.tsx`): (1) tab order → Work experience → Education → Skills → Additional; (2) Keyword Bank moved from an uncollapsed block under the vault-health card into a 5th "Keywords" tab. **Output Editor** (`OutputEditorPageClient.tsx`): (3) removed the redundant "Professional summary" heading in the Resume text view (kept the Edit affordance, right-aligned); (4) Export & delivery — Export PDF / Export DOCX / Re-approve now on one row; (5) PDF view declutter — the right controls column (Included experience, Custom revision, Shape next regeneration, diagnostics) is hidden in PDF view and the document column goes full width, leaving only the Layout sliders + preview; controls remain in Text view. **Tests:** `app-shell` (route-contract) + `application-package-ux` green; `npm run build` green. Pre-existing red unchanged. |
-| M11 — Output Editor v2: unified staging + batched apply + content/layout gate; Vault structured editing | Not started | — | Spec + approved user decisions in §9 "M11". Replace = pick spine-ranked alternatives then one-shot AI tailor; two Apply buttons (resume = targeted only-changed tailoring, NOT whole-resume regen; CL = full regen with staged changes); structured overlay editing for Education/Skills/Additional; staged changes persist across Resume+CL; UI content→layout→approve gate in front of the unchanged server gate; custom-instruction inputs for both buckets; CL chips/tone staged not immediate. Independent review required. **Opus, High.** Depends on M10b, M10c. |
+| M11 — Output Editor v2: unified staging + batched apply + content/layout gate; Vault structured editing | ✅ Complete (pending independent review) | 2026-06-30 | All surfacing in `OutputEditorPageClient.tsx` + `CareerVaultPageClient.tsx`; overlay model extended in `src/types/inventory-edits.ts` + `src/lib/inventory/edits.ts` (additive JSON only — no migration, source resumes never mutated). `OutputEditorPageClient` stays at `/output/[draftId]`, `CareerVaultPageClient` at `/inventory`; `app-shell` route-contract green. **(1) Vault structured overlay for Education / Skills / Additional:** new optional `InventoryEdits` fields (`hidden{Education,Skill,Additional}Ids`, `edited{Education,Skill,Additional}TextById`) + `hide/restore/setEdit` helpers, applied in `applyInventoryEditsToCollated` (hide drops from active view unless `includeHidden`; edit overrides text — Education edits the institution). Vault tabs render from `buildCollatedInventoryForEditing` (includes hidden so they can be shown/restored) with per-item pencil-edit / hide-show / revert, mirroring the work-bullet contract. **Education "add item" is deferred to a later milestone** (see §9 M11 deferral note); edit/hide/revert only for now. **(2) Bullet Replace = pick-then-tailor:** clicking Replace opens a spine-ranked alternatives picker (`bullet-replace-picker`) fed by `bulletAlternatives` (all ranked work bullets across every role, from `buildEvidenceSpine`, deterministic, no AI); picking stages the chosen text. **(3) Resume staging bucket:** lifted to the parent (survives Resume↔CL view switches); per-bullet picked replacement + per-bullet instruction + bucket-level custom instruction (`resume-custom-instruction`). **"Apply changes to Resume"** (`apply-resume-changes`) tailors ONLY the staged bullets via the additive `single_bullet` `revise-resume-scope` branch (picked text → `currentText`), then persists through `applyContentEdit` (M5a invalidation). Never a full regenerate. **(4) CL staging bucket:** lifted to the parent; quick-action chips (`toggleChipAction`, staged not immediate-AI — `applyRevision` removed), tone (`handleSelectTone` sets bucket), evidence use/avoid, and a new custom-instruction input (`cl-custom-instruction`) all stage. **"Apply changes to Cover Letter"** (`apply-cover-letter-changes`) folds them into one CL regenerate via `composeCoverLetterInstructions` + staged `evidenceControls`, then clears the bucket. **(5) Content→Layout→Approve UI gate:** session `contentConfirmed` flag (`output-content-gate`); Layout sliders + Step-1 Approve locked until **Confirm content** (`output-confirm-content`, blocked while resume picks are unapplied); any content edit / apply / full regenerate re-locks via `setContentConfirmed(false)`; already-approved drafts load pre-confirmed. Server one-page 422 gate, filename scheme, export engine, `resolveDraftStatusAfterContentEdit`, `areExportLayoutSettingsEqual` all unchanged — the UI gate only sits in front. **Tests:** 5 new M11 checks in `resume-draft-review.test.ts`; 11 updated/new in `application-package-ux.test.ts`; 11 new in `inventory-edits.test.ts`; `app-shell` route-contract green. **Pre-existing red carried forward (not M11):** `resume-generation-validation.test.ts` (3 fails); `draft-inventory-safety.test.ts` (2 fails); 1 lint error in `ProfilePageClient.tsx`; 1 TS error in `application-records.test.ts`. `npm run build` green; affected suites green when run directly. **Independent Opus review required before merge.** |
 
 ---
 

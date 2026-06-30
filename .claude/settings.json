@@ -7,7 +7,9 @@
       "Bash(grep -n \"// ── Structured editor\\\\|^const INPUT_CLASS\\\\|^const REMOVE_BULLET_CLASS\\\\|StructuredResumeEditor\\\\|// ── Revision queue \\(Folio-native\\)\" src/components/pages/OutputEditorPageClient.tsx)",
       "Bash(grep -n \"const fitVerdict = fitScore\\\\|^  return \\(\\\\|^}$\" src/components/pages/OutputEditorPageClient.tsx)",
       "Bash(echo \"exit=$?\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(ls -dt ~/.claude/projects/*/ 2>/dev/null | head -50)",
+      "Read(//c/Users/sethl/.claude/projects/**)"
     ]
   }
 }
