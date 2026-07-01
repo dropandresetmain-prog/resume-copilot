@@ -32,7 +32,6 @@ export type ResumeRepairAction =
   | "dropped_excess_role"
   | "trimmed_role_bullets"
   | "trimmed_total_bullets"
-  | "moved_role_to_additional_experience"
   | "stripped_professional_summary"
   | "allowed_underfilled_work_experience"
   | "marked_needs_review"
@@ -139,20 +138,6 @@ function sortBulletsByRelevance(
       return a.index - b.index;
     })
     .map((entry) => entry.bullet);
-}
-
-function roleToAdditionalExperienceItem(
-  role: ResumeDraftExperienceSection,
-): ResumeDraftContent["additionalExperience"][number] {
-  const bullets = role.bullets.map((bullet) => bullet.text.trim()).filter(Boolean);
-  const detailParts = [role.role, role.dateRange?.trim(), bullets.slice(0, 2).join("; ")]
-    .filter(Boolean)
-    .join(" — ");
-
-  return {
-    text: `${role.company}: ${detailParts}`,
-    riskFlags: ["Auto-repair: role moved from Work Experience"],
-  };
 }
 
 function trimRoleBulletsToMax(
@@ -325,20 +310,19 @@ export function repairGeneratedResumeContent(
 
     experience = kept.map((entry) => entry.role);
     for (const entry of dropped) {
-      additionalExperience.push(roleToAdditionalExperienceItem(entry.role));
       for (const key of collectForcedKeysFromBullets(entry.role.bullets, [...forcedKeys])) {
         forcedBulletsRemovedDuringRepair.add(key);
         unableToPreserveForcedBullets.add(key);
       }
     }
 
-    repairActions.push("dropped_excess_role", "moved_role_to_additional_experience");
+    repairActions.push("dropped_excess_role");
     repairMessages.push(
       `Reduced Work Experience from ${ranked.length} roles to ${MAX_WORK_EXPERIENCE_ROLES}`,
     );
     for (const entry of dropped) {
       repairMessages.push(
-        `Moved ${entry.role.company} (${entry.role.role}) to Additional Experience`,
+        `Omitted ${entry.role.company} (${entry.role.role}) because Work Experience is limited to ${MAX_WORK_EXPERIENCE_ROLES} roles`,
       );
     }
   }

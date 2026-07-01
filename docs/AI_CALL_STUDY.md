@@ -217,7 +217,7 @@ Built by `buildResumeDraftPrompt(input)`:
 |------|--------|
 | Parse JSON | `parse.ts` |
 | Normalize additional experience | `generation-validation.ts` |
-| Structure repair | `repair-generated-content.ts` (trim roles/bullets, early-career moves) |
+| Structure repair | `repair-generated-content.ts` (trim/omit excess roles and bullets; never move Work roles into Additional Experience) |
 | Forced bullet audit | `forced-bullets.ts` |
 | Tailoring warnings | `tailoring-quality.ts` — **non-blocking** |
 | Hard blocks | empty work exp, skills groups, additional format |

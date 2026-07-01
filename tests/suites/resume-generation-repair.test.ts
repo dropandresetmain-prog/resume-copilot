@@ -186,8 +186,9 @@ function main() {
         repairedFiveRoles.content.experience.length === MAX_WORK_EXPERIENCE_ROLES,
     ],
     [
-      "dropped role moved to additional experience",
-      additionalHasBaycurrent,
+      "dropped work role is not moved into additional experience",
+      !additionalHasBaycurrent &&
+        repairedFiveRoles.repairMessages.some((message) => message.includes("Omitted Baycurrent")),
     ],
     [
       "6 bullets in one role repaired to 4",

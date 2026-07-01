@@ -54,7 +54,8 @@ One-page discipline:
 Work Experience selection (structure enforced in output validation):
 - at most 4 roles; 2–4 bullets per role; target 12–13 total Work Experience bullets.
 - More JD-relevant / recent roles: up to 4 bullets each; less relevant roles: 2 bullets.
-- Early-career, internship, co-op, or short-tenure roles → Additional Experience unless the JD makes them highly relevant.
+- Additional Experience may use only entries from the input additionalExperience array. Never move or convert a Work Experience role into Additional Experience.
+- Early-career, internship, co-op, or short-tenure roles that do not make the Work Experience cut must be omitted and recorded in rationale.omissions.
 - For senior-target JDs, do not displace stronger senior-relevant roles with internships by default.
 
 Rationale quality (required — populate saved rationale fields):
@@ -273,6 +274,13 @@ export function promptIncludesSeniorRoleSelectionRules(prompt: string): boolean 
     prompt.includes("senior-relevant roles") &&
     prompt.includes("internships") &&
     prompt.includes("Additional Experience")
+  );
+}
+
+export function promptRestrictsAdditionalExperienceToVault(prompt: string): boolean {
+  return (
+    prompt.includes("only entries from the input additionalExperience array") &&
+    prompt.includes("Never move or convert a Work Experience role into Additional Experience")
   );
 }
 

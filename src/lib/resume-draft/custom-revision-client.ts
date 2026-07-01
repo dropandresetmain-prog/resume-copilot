@@ -1,3 +1,4 @@
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type {
   ResumeBatchRevisionRequest,
   ResumeBatchRevisionResponse,
@@ -7,14 +8,31 @@ import type {
   ResumeSingleBulletRevisionResponse,
 } from "@/types/resume-draft";
 
+async function requestAuthorizedResumeRevision(body: unknown): Promise<Response> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(error.message);
+  }
+  const accessToken = data.session?.access_token;
+  if (!accessToken) {
+    throw new Error("You must be signed in to revise your resume.");
+  }
+
+  return fetch("/api/ai/revise-resume-scope", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function requestResumeSingleBulletRevision(
   request: ResumeSingleBulletRevisionRequest,
 ): Promise<ResumeSingleBulletRevisionResponse> {
-  const response = await fetch("/api/ai/revise-resume-scope", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
+  const response = await requestAuthorizedResumeRevision(request);
 
   const payload = (await response.json().catch(() => null)) as
     | (ResumeSingleBulletRevisionResponse & { error?: string; validationIssues?: string[] })
@@ -33,11 +51,7 @@ export async function requestResumeSingleBulletRevision(
 export async function requestResumeBatchRevision(
   request: ResumeBatchRevisionRequest,
 ): Promise<ResumeBatchRevisionResponse> {
-  const response = await fetch("/api/ai/revise-resume-scope", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
+  const response = await requestAuthorizedResumeRevision(request);
 
   const payload = (await response.json().catch(() => null)) as
     | (ResumeBatchRevisionResponse & { error?: string; validationIssues?: string[] })
@@ -56,11 +70,7 @@ export async function requestResumeBatchRevision(
 export async function requestResumeCustomRevision(
   request: ResumeCustomRevisionRequest,
 ): Promise<ResumeCustomRevisionResponse> {
-  const response = await fetch("/api/ai/revise-resume-scope", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
+  const response = await requestAuthorizedResumeRevision(request);
 
   const payload = (await response.json().catch(() => null)) as
     | (ResumeCustomRevisionResponse & ResumeBatchRevisionResponse & {

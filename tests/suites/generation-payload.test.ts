@@ -21,6 +21,7 @@ import {
   promptIncludesRationaleQualityRules,
   promptIncludesResumeCompanyContextRules,
   promptIncludesSeniorRoleSelectionRules,
+  promptRestrictsAdditionalExperienceToVault,
   promptIncludesSourceRefsRules,
   promptUsesCompactJsonPayload,
 } from "../../src/lib/resume-draft/prompt";
@@ -338,6 +339,10 @@ function main() {
     ["prompt includes anti-generic language rules", promptIncludesAntiGenericLanguageRules(prompt)],
     ["prompt includes rationale quality rules", promptIncludesRationaleQualityRules(prompt)],
     ["prompt includes senior role selection rules", promptIncludesSeniorRoleSelectionRules(prompt)],
+    [
+      "prompt restricts Additional Experience to the dedicated Vault section",
+      promptRestrictsAdditionalExperienceToVault(prompt),
+    ],
     ["prompt includes accepted wording rules", promptIncludesAcceptedWordingRules(prompt)],
     ["prompt includes keyword distinction rules", promptIncludesKeywordDistinctionRules(prompt)],
     ["prompt includes sourceRefs rules", promptIncludesSourceRefsRules(prompt)],

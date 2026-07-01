@@ -2,6 +2,7 @@
 
 ## Output Editor v2 + Vault structured editing (M11)
 
+- **Additional Experience is Vault-section scoped** — generation may use only the dedicated Additional Experience input. Work Experience roles that lose the four-role selection are omitted and recorded in repair messages, never moved into Additional Experience.
 - **Education "add item" is deferred** — M11 ships edit (institution) / hide / revert for Education, Skills, and Additional. Adding a brand-new Education item, and richer per-field Education editing (programmes, dates, bullets), are deferred to a later milestone (candidate: MX). The `InventoryEdits` Education fields (`hiddenEducationIds`, `editedEducationTextById`) are forward-compatible with a future `addedEducationItems`.
 - **Staging is in-memory for the mounted session** — the resume bucket (picked replacements + custom instruction) and the CL bucket (tone + chips + evidence use/avoid + custom instruction) survive Resume↔Cover-letter view switches but are cleared on a hard page reload. By design (no sessionStorage).
 - **Content gate is UI-only** — "Confirm content" unlocks Layout sliders and the Step-1 Approve button; any content edit/apply/regenerate re-locks it. This sits in front of, and does not replace, the server one-page 422 export gate (still the export truth). Already-approved drafts load pre-confirmed.

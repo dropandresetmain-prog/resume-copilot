@@ -388,6 +388,10 @@ function main() {
     join(process.cwd(), "src/components/pages/OutputEditorPageClient.tsx"),
     "utf8",
   );
+  const customRevisionClient = readFileSync(
+    join(process.cwd(), "src/lib/resume-draft/custom-revision-client.ts"),
+    "utf8",
+  );
   const applyResumeStageSource = outputEditor.slice(
     outputEditor.indexOf("async function applyResumeStage()"),
     outputEditor.indexOf("const docDisabled"),
@@ -442,6 +446,12 @@ function main() {
         outputEditor.includes("function applyResumeStage") &&
         outputEditor.includes('scope: "single_bullet"') &&
         outputEditor.includes("currentText: entry.pickedText"),
+    ],
+    [
+      "all scoped resume revision actions send the authenticated session",
+      customRevisionClient.includes("supabase.auth.getSession()") &&
+        customRevisionClient.includes("Authorization: `Bearer ${accessToken}`") &&
+        customRevisionClient.match(/requestAuthorizedResumeRevision\(request\)/g)?.length === 3,
     ],
     [
       "Resume custom instruction staged at bucket level (M11)",
