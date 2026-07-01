@@ -50,6 +50,10 @@ design-ref/
 # local manual QA artifacts (screenshots, notes — not for CI)
 /local-tests/
 
+# local Claude Code / IDE settings (not shared)
+.claude/settings.json
+.claude/settings.local.json
+
 
 # typescript
 *.tsbuildinfo

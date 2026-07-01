@@ -6,7 +6,7 @@ Folio helps you tailor one-page resumes from a career vault and job descriptions
 
 Supabase is the source of truth for inventory, applications, drafts, and exported files.
 
-> **UI redesign:** The app shell, navigation, and primary pages were rebuilt on the `folio-redesign` branch using the Folio Grove design system. See [`docs/FOLIO_REDESIGN.md`](docs/FOLIO_REDESIGN.md) for phase status, routes, and remaining work. Repo folder name remains `resume-copilot`.
+> **UI architecture:** The Folio Grove shell and recovery work are complete on `main`. See [`docs/FOLIO_REDESIGN.md`](docs/FOLIO_REDESIGN.md) for the route contract and UI rules. The repo folder name remains `resume-copilot`.
 
 ## Product flow
 
@@ -19,10 +19,9 @@ Landing / Onboarding → Upload resume → Career vault → Paste JD → Generat
 2. **Career vault** — collated experience, education, skills; add experience from pasted text; import additional resumes.
 3. **Generate** (`/generate`) — paste JD; combined flow can research company website via **Firecrawl** when configured; generates resume and cover letter.
 4. **Output editor** (`/output/[draftId]`) — unified resume + cover letter review (new shell).
-5. **Application package** (`/resume-preview/[draftId]`) — legacy full package (fit summary, evidence diagnostics, approve/export) — still used by Generate navigation until route migration.
-6. **Applications** (`/records`) — application status, notes, linked drafts.
-7. **Profile** (`/profile`) — Application Communication Profile for cover letter tone.
-8. **Settings** (`/settings`) — account preferences (shell).
+5. **Applications** (`/records`) — application status, notes, and linked output drafts.
+6. **Profile** (`/profile`) — Application Communication Profile for cover-letter tone.
+7. **Settings** (`/settings`) — account/preferences shell.
 
 ## What is built
 
@@ -65,8 +64,9 @@ Landing / Onboarding → Upload resume → Career vault → Paste JD → Generat
 | `/profile` | Communication profile |
 | `/settings` | Settings |
 | `/output/[draftId]` | **Output editor** (resume + cover letter tabs) |
-| `/resume-preview/[draftId]` | Legacy application package |
-| `/cover-letter-preview/[draftId]` | Cover letter editor |
+| `/resume-preview/[draftId]` | Retired; returns 404 |
+| `/resume-preview/[draftId]/edit` | Retired; returns 404 |
+| `/cover-letter-preview/[draftId]` | Retired; returns 404 |
 | `/setup` | Legacy uploads route |
 | `/dev-tools` | Dev utilities (local only) |
 
@@ -116,11 +116,12 @@ npm run build
 
 | Doc | Contents |
 |-----|----------|
-| [`docs/FOLIO_REDESIGN.md`](docs/FOLIO_REDESIGN.md) | Redesign phases, routes, remaining tasks |
+| [`docs/README.md`](docs/README.md) | Active-document index and archive guide |
+| [`docs/FOLIO_REDESIGN.md`](docs/FOLIO_REDESIGN.md) | UI architecture, routes, and route contract |
 | [`docs/FOLIO_DESIGN_TOKENS.md`](docs/FOLIO_DESIGN_TOKENS.md) | Grove colour tokens and usage rules |
 | [`docs/CAREER_VAULT.md`](docs/CAREER_VAULT.md) | Vault data flow, app counts, panel patterns |
-| [`docs/HANDOFF.md`](docs/HANDOFF.md) | Milestone history + run instructions |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Planned work |
+| [`docs/HANDOFF.md`](docs/HANDOFF.md) | Current state, settled behavior, and run instructions |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Forward priorities and parked work |
 | [`docs/PROJECT_FILE_MAP.md`](docs/PROJECT_FILE_MAP.md) | Route and module map |
 
 ## Known limitations

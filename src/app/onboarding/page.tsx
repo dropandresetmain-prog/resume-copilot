@@ -147,7 +147,7 @@ export default function OnboardingPage() {
 
       {/* ── Step 1 ── */}
       {step === 1 && (
-        <div className="flex gap-4 w-full max-w-[760px]">
+        <div className="flex w-full max-w-[760px] flex-col gap-4 sm:flex-row">
           <OptionCard
             selected={method === "upload"}
             onClick={() => handleMethodSelect("upload")}

@@ -1,5 +1,7 @@
 # Folio Recovery Roadmap
 
+> Archived completed recovery log. Recovery milestones M1–M11 have shipped to `main`; this is retained for decision and implementation history.
+
 **Status:** Planning complete — no code has been changed.
 **Production main:** `a4d17e3` (v0.9.19B) — untouched throughout Folio work.
 **Active development branch:** `folio-recovery` (from `folio-claude-stable` `7aec1d0`).

@@ -10,6 +10,7 @@ import { ResumePdfPreview } from "@/components/resume-drafts/ResumePdfPreview";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
 import { buildCompanyContext } from "@/lib/company-context/build-company-context";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { detectBannedPhrases } from "@/lib/cover-letter/banned-phrases";
 import {
   hasCoverLetterEvidenceControls,
@@ -2553,12 +2554,85 @@ function LayoutSliders({
   optimizationNote?: string;
   disabled: boolean;
 }) {
+  const isMobile = useIsMobile();
   const bodyFontSteps = Math.round(
     (PREVIEW_BODY_FONT_MAX_PX - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX,
   );
   function update(patch: Partial<ResumeLayoutSettings>) {
     onChange({ ...settings, ...patch });
   }
+
+  const slidersGrid = (
+    <div className="grid grid-cols-1 gap-3">
+      <label className={SLIDER_LABEL_CLASS}>
+        Body font ({settings.bodyFontPx}px)
+        <input
+          type="range"
+          min={0}
+          max={bodyFontSteps}
+          step={1}
+          disabled={disabled}
+          value={Math.round((settings.bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
+          onChange={(e) =>
+            update({
+              bodyFontPx: clampPreviewBodyFontPx(
+                PREVIEW_BODY_FONT_MIN_PX + Number(e.target.value) * PREVIEW_BODY_FONT_STEP_PX,
+              ),
+            })
+          }
+          className={SLIDER_CLASS}
+        />
+      </label>
+      <label className={SLIDER_LABEL_CLASS}>
+        Side margins ({settings.marginMm}mm)
+        <input
+          type="range"
+          min={PREVIEW_MARGIN_MIN_MM}
+          max={PREVIEW_MARGIN_MAX_MM}
+          disabled={disabled}
+          value={settings.marginMm}
+          onChange={(e) => update({ marginMm: Number(e.target.value) })}
+          className={SLIDER_CLASS}
+        />
+      </label>
+      <label className={SLIDER_LABEL_CLASS}>
+        Top margin ({settings.marginTopMm}mm)
+        <input
+          type="range"
+          min={PREVIEW_MARGIN_TOP_MIN_MM}
+          max={PREVIEW_MARGIN_TOP_MAX_MM}
+          disabled={disabled}
+          value={settings.marginTopMm}
+          onChange={(e) => update({ marginTopMm: Number(e.target.value) })}
+          className={SLIDER_CLASS}
+        />
+      </label>
+      <label className={SLIDER_LABEL_CLASS}>
+        Line spacing ({settings.lineSpacing.toFixed(2)})
+        <input
+          type="range"
+          min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
+          max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
+          disabled={disabled}
+          value={Math.round(settings.lineSpacing * 100)}
+          onChange={(e) => update({ lineSpacing: Number(e.target.value) / 100 })}
+          className={SLIDER_CLASS}
+        />
+      </label>
+      <label className={SLIDER_LABEL_CLASS}>
+        Section spacing ({settings.sectionSpacing.toFixed(2)}rem)
+        <input
+          type="range"
+          min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
+          max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
+          disabled={disabled}
+          value={Math.round(settings.sectionSpacing * 100)}
+          onChange={(e) => update({ sectionSpacing: Number(e.target.value) / 100 })}
+          className={SLIDER_CLASS}
+        />
+      </label>
+    </div>
+  );
 
   return (
     <div
@@ -2569,75 +2643,18 @@ function LayoutSliders({
       <p className="mt-0.5 text-[11px] leading-snug text-folio-outline">
         Fine-tune the PDF. Server validation remains the export gate.
       </p>
-      <div className="mt-3 grid grid-cols-1 gap-3">
-        <label className={SLIDER_LABEL_CLASS}>
-          Body font ({settings.bodyFontPx}px)
-          <input
-            type="range"
-            min={0}
-            max={bodyFontSteps}
-            step={1}
-            disabled={disabled}
-            value={Math.round((settings.bodyFontPx - PREVIEW_BODY_FONT_MIN_PX) / PREVIEW_BODY_FONT_STEP_PX)}
-            onChange={(e) =>
-              update({
-                bodyFontPx: clampPreviewBodyFontPx(
-                  PREVIEW_BODY_FONT_MIN_PX + Number(e.target.value) * PREVIEW_BODY_FONT_STEP_PX,
-                ),
-              })
-            }
-            className={SLIDER_CLASS}
-          />
-        </label>
-        <label className={SLIDER_LABEL_CLASS}>
-          Side margins ({settings.marginMm}mm)
-          <input
-            type="range"
-            min={PREVIEW_MARGIN_MIN_MM}
-            max={PREVIEW_MARGIN_MAX_MM}
-            disabled={disabled}
-            value={settings.marginMm}
-            onChange={(e) => update({ marginMm: Number(e.target.value) })}
-            className={SLIDER_CLASS}
-          />
-        </label>
-        <label className={SLIDER_LABEL_CLASS}>
-          Top margin ({settings.marginTopMm}mm)
-          <input
-            type="range"
-            min={PREVIEW_MARGIN_TOP_MIN_MM}
-            max={PREVIEW_MARGIN_TOP_MAX_MM}
-            disabled={disabled}
-            value={settings.marginTopMm}
-            onChange={(e) => update({ marginTopMm: Number(e.target.value) })}
-            className={SLIDER_CLASS}
-          />
-        </label>
-        <label className={SLIDER_LABEL_CLASS}>
-          Line spacing ({settings.lineSpacing.toFixed(2)})
-          <input
-            type="range"
-            min={Math.round(PREVIEW_LINE_SPACING_MIN * 100)}
-            max={Math.round(PREVIEW_LINE_SPACING_MAX * 100)}
-            disabled={disabled}
-            value={Math.round(settings.lineSpacing * 100)}
-            onChange={(e) => update({ lineSpacing: Number(e.target.value) / 100 })}
-            className={SLIDER_CLASS}
-          />
-        </label>
-        <label className={SLIDER_LABEL_CLASS}>
-          Section spacing ({settings.sectionSpacing.toFixed(2)}rem)
-          <input
-            type="range"
-            min={Math.round(PREVIEW_SECTION_SPACING_MIN * 100)}
-            max={Math.round(PREVIEW_SECTION_SPACING_MAX * 100)}
-            disabled={disabled}
-            value={Math.round(settings.sectionSpacing * 100)}
-            onChange={(e) => update({ sectionSpacing: Number(e.target.value) / 100 })}
-            className={SLIDER_CLASS}
-          />
-        </label>
-      </div>
+      {isMobile ? (
+        // Collapsed by default on mobile so the PDF preview is reachable without
+        // scrolling past 5 full-width sliders first; always expanded on desktop.
+        <details className="mt-3">
+          <summary className="cursor-pointer text-[12px] font-medium text-folio-primary-container">
+            Layout adjustments
+          </summary>
+          <div className="mt-3">{slidersGrid}</div>
+        </details>
+      ) : (
+        <div className="mt-3">{slidersGrid}</div>
+      )}
       {optimizationNote ? (
         <p
           className="mt-3 rounded-lg border border-folio-sage-border bg-white px-3 py-2 text-[12px] text-folio-outline"

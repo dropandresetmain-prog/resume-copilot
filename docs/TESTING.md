@@ -1,6 +1,6 @@
 # Testing
 
-**v0.9.8G** — verification suites live under `tests/suites/`; `npm run test` runs `tests/run-all.ts`.
+Verification suites live under `tests/suites/`; `npm run test` runs all registered suites through `tests/run-all.ts`.
 
 ## Running tests
 
@@ -10,6 +10,13 @@ npx tsx tests/suites/parser.test.ts   # single suite
 ```
 
 No Vitest/Jest — each suite is a standalone `tsx` script with `PASS`/`FAIL` checks and `process.exit(1)` on failure.
+
+On Windows, if the global `npm`/`npx` shim is broken, run the checked-in local binary directly:
+
+```powershell
+.\node_modules\.bin\tsx.cmd tests\run-all.ts
+.\node_modules\.bin\tsx.cmd tests\suites\parser.test.ts
+```
 
 ## Build plan checklist
 

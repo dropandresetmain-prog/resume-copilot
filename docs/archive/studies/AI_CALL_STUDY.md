@@ -1,5 +1,7 @@
 # AI Call & Prompt Study
 
+> Archived point-in-time study. Its recommendations fed the completed v0.9.17–v0.9.19 evidence work.
+
 **Milestone:** Matching/Tailoring Engine Upgrade (planning)  
 **Version at study:** v0.9.16E  
 **Purpose:** Inventory every Gemini touchpoint before adding evidence-spine work. **No new AI calls** unless this study justifies them.

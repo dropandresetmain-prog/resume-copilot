@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { useWorkspace } from "@/components/app/WorkspaceProvider";
+import { ApplicationCard, ApplicationDetails, type ApplicationDetailsProps } from "@/components/pages/ApplicationCard";
 import { formatApplicationStatusLabel } from "@/lib/application/labels";
 import { buildDraftListDisplays } from "@/lib/resume-draft/draft-labels";
 import {
@@ -15,7 +16,6 @@ import { listGeneratedCoverLetterDraftsFromCloud } from "@/lib/supabase/generate
 import { listGeneratedResumeDraftsFromCloud } from "@/lib/supabase/generated-resume-drafts";
 import { listJobDescriptionsFromCloud } from "@/lib/supabase/job-descriptions";
 import {
-  EDITABLE_APPLICATION_RECORD_STATUSES,
   type ApplicationRecordStatus,
   type StoredApplicationRecord,
 } from "@/types/application-record";
@@ -61,7 +61,7 @@ function filterApplications(
   return applications;
 }
 
-function statusBadgeClass(status: string): string {
+export function statusBadgeClass(status: string): string {
   switch (status) {
     /* status colours — intentional */
     case "resume_generated":
@@ -79,7 +79,7 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-function CompanyAvatar({ name }: { name: string }) {
+export function CompanyAvatar({ name }: { name: string }) {
   const initials = name
     .trim()
     .split(/\s+/)
@@ -238,6 +238,28 @@ export function ApplicationsPageClient() {
     }
   }
 
+  // Shared by the desktop table's expanded row and the mobile card's expanded
+  // section — same underlying <ApplicationDetails /> either way.
+  function buildDetailsProps(
+    app: StoredApplicationRecord,
+    latestDraft: GeneratedResumeDraftRecord | undefined,
+    latestCoverLetter: GeneratedCoverLetterDraftRecord | undefined,
+  ): ApplicationDetailsProps {
+    return {
+      app,
+      latestDraft,
+      latestCoverLetter,
+      jobDescription: app.jobDescriptionId ? jobById.get(app.jobDescriptionId) : undefined,
+      notesDraft: notesDraftById[app.id] ?? "",
+      onNotesChange: (value) =>
+        setNotesDraftById((prev) => ({ ...prev, [app.id]: value })),
+      onSaveNotes: () => void handleSaveNotes(app),
+      savingNotes: savingNotesId === app.id,
+      onStatusChange: (status) => void handleStatusChange(app, status),
+      savingStatus: savingStatusId === app.id,
+    };
+  }
+
   return (
     <div className="max-w-[860px]">
       <h1 className="text-[22px] font-medium tracking-[-0.01em] text-folio-on-surface">
@@ -301,348 +323,237 @@ export function ApplicationsPageClient() {
             ))}
           </div>
 
-          {/* Applications table */}
-          <div className="mt-5 overflow-hidden rounded-xl border border-folio-sage-border bg-white">
-            {filteredApplications.length === 0 ? (
-              <div className="px-6 py-16 text-center text-sm text-folio-outline">
-                {emptyMessageForFilter(activeFilter)}
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-folio-sage-border">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Company
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Role
-                    </th>
-                    <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline sm:table-cell">
-                      Date added
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Resume
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Cover letter
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredApplications.map((app, i) => {
-                    const company = app.companyName ?? "Company";
-                    const role = app.roleTitle ?? "—";
-                    const dateAdded = new Date(app.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-                    const latestDraft = latestDraftByApplicationId.get(app.id);
-                    const latestCoverLetter = latestCoverLetterByApplicationId.get(app.id);
-const isLast = i === filteredApplications.length - 1;
-                    const isExpanded = expandedAppId === app.id;
+          {/* Applications: table at md+, stacked cards below md */}
+          {filteredApplications.length === 0 ? (
+            <div className="mt-5 rounded-xl border border-folio-sage-border bg-white px-6 py-16 text-center text-sm text-folio-outline">
+              {emptyMessageForFilter(activeFilter)}
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 hidden overflow-hidden rounded-xl border border-folio-sage-border bg-white md:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-folio-sage-border">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Company
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Role
+                      </th>
+                      <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline sm:table-cell">
+                        Date added
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Resume
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Cover letter
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-folio-outline">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredApplications.map((app, i) => {
+                      const company = app.companyName ?? "Company";
+                      const role = app.roleTitle ?? "—";
+                      const dateAdded = new Date(app.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                      const latestDraft = latestDraftByApplicationId.get(app.id);
+                      const latestCoverLetter = latestCoverLetterByApplicationId.get(app.id);
+                      const isLast = i === filteredApplications.length - 1;
+                      const isExpanded = expandedAppId === app.id;
 
-                    return (
-                      <>
-                        <tr
-                          key={app.id}
-                          className={isLast && !isExpanded ? "" : "border-b border-folio-surface-container"}
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <CompanyAvatar name={company} />
-                              <span className="font-medium text-folio-on-surface">{company}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-folio-on-surface-variant">{role}</td>
-                          <td className="hidden px-4 py-3 text-folio-outline sm:table-cell">
-                            {dateAdded}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(app.status)}`}
-                            >
-                              {formatApplicationStatusLabel(app.status)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs" data-testid="artifact-resume">
-                            {Boolean(latestDraft) ? (
-                              <span className="font-semibold text-[#016147]">✓</span>
-                            ) : (
-                              <span className="text-folio-outline-variant">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-xs" data-testid="artifact-cover-letter">
-                            {Boolean(latestCoverLetter) ? (
-                              <span className="font-semibold text-[#016147]">✓</span>
-                            ) : (
-                              <span className="text-folio-outline-variant">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1">
-                              {latestDraft ? (
-                                <Link
-                                  href={`/output/${latestDraft.id}`}
-                                  title="Open package"
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
-                                  data-testid="open-package-link"
-                                >
-                                  {/* Eye icon */}
-                                  <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={1.75}
-                                    strokeLinecap="round"
-                                    aria-hidden="true"
-                                  >
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                  </svg>
-                                </Link>
-                              ) : (
-                                <span
-                                  title="No draft yet"
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline-variant"
-                                >
-                                  <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={1.75}
-                                    strokeLinecap="round"
-                                    aria-hidden="true"
-                                  >
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                  </svg>
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                title={isExpanded ? "Hide details" : "Details"}
-                                onClick={() =>
-                                  setExpandedAppId(isExpanded ? null : app.id)
-                                }
-                                aria-expanded={isExpanded}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
-                              >
-                                {/* Chevron icon */}
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={1.75}
-                                  strokeLinecap="round"
-                                  aria-hidden="true"
-                                  style={{ transform: isExpanded ? "rotate(180deg)" : undefined }}
-                                >
-                                  <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                              </button>
-                              <button
-                                type="button"
-                                title="Archive"
-                                disabled={archivingId === app.id}
-                                onClick={() => void handleArchive(app)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface disabled:opacity-40"
-                              >
-                                {/* Archive/box icon */}
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={1.75}
-                                  strokeLinecap="round"
-                                  aria-hidden="true"
-                                >
-                                  <polyline points="21 8 21 21 3 21 3 8" />
-                                  <rect x="1" y="3" width="22" height="5" />
-                                  <line x1="10" y1="12" x2="14" y2="12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-
-                        {isExpanded ? (
+                      return (
+                        <Fragment key={app.id}>
                           <tr
-                            key={`${app.id}-details`}
-                            className={isLast ? "" : "border-b border-folio-surface-container"}
+                            className={isLast && !isExpanded ? "" : "border-b border-folio-surface-container"}
                           >
-                            <td
-                              colSpan={7}
-                              className="bg-folio-surface-container-low px-4 pb-4 pt-3"
-                            >
-                              <div
-                                className="grid gap-4 sm:grid-cols-2"
-                                data-testid="app-details"
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <CompanyAvatar name={company} />
+                                <span className="font-medium text-folio-on-surface">{company}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-folio-on-surface-variant">{role}</td>
+                            <td className="hidden px-4 py-3 text-folio-outline sm:table-cell">
+                              {dateAdded}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass(app.status)}`}
                               >
-                                {/* Status select */}
-                                <div>
-                                  <label
-                                    htmlFor={`status-${app.id}`}
-                                    className="mb-1 block text-xs font-semibold text-folio-outline"
+                                {formatApplicationStatusLabel(app.status)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs" data-testid="artifact-resume">
+                              {Boolean(latestDraft) ? (
+                                <span className="font-semibold text-[#016147]">✓</span>
+                              ) : (
+                                <span className="text-folio-outline-variant">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-xs" data-testid="artifact-cover-letter">
+                              {Boolean(latestCoverLetter) ? (
+                                <span className="font-semibold text-[#016147]">✓</span>
+                              ) : (
+                                <span className="text-folio-outline-variant">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                {latestDraft ? (
+                                  <Link
+                                    href={`/output/${latestDraft.id}`}
+                                    title="Open package"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
+                                    data-testid="open-package-link"
                                   >
-                                    Status
-                                  </label>
-                                  <select
-                                    id={`status-${app.id}`}
-                                    value={app.status}
-                                    disabled={savingStatusId === app.id}
-                                    onChange={(e) =>
-                                      void handleStatusChange(
-                                        app,
-                                        e.target.value as ApplicationRecordStatus,
-                                      )
-                                    }
-                                    data-testid="status-select"
-                                    className="w-full rounded-lg border border-folio-outline-variant bg-white px-3 py-2 text-sm text-folio-on-surface focus:border-folio-primary focus:outline-none"
+                                    {/* Eye icon */}
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={1.75}
+                                      strokeLinecap="round"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                      <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                  </Link>
+                                ) : (
+                                  <span
+                                    title="No draft yet"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline-variant"
                                   >
-                                    {EDITABLE_APPLICATION_RECORD_STATUSES.map((s) => (
-                                      <option key={s} value={s}>
-                                        {formatApplicationStatusLabel(s)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  {savingStatusId === app.id ? (
-                                    <p className="mt-1 text-xs text-folio-outline">Saving…</p>
-                                  ) : null}
-                                </div>
-
-                                {/* Artifact links */}
-                                <div>
-                                  <p className="mb-1 text-xs font-semibold text-folio-outline">
-                                    Artifacts
-                                  </p>
-                                  <div className="space-y-1 text-sm">
-                                    {latestDraft ? (
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[#016147]">✓</span>
-                                        <Link
-                                          href={`/output/${latestDraft.id}`}
-                                          className="text-folio-primary underline underline-offset-2"
-                                          data-testid="resume-draft-link"
-                                        >
-                                          Resume draft
-                                        </Link>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-2 text-folio-outline">
-                                        <span>—</span>
-                                        <span>No resume draft yet</span>
-                                      </div>
-                                    )}
-                                    {latestCoverLetter ? (
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[#016147]">✓</span>
-                                        {latestDraft ? (
-                                          <Link
-                                            href={`/output/${latestDraft.id}`}
-                                            className="text-folio-primary underline underline-offset-2"
-                                            data-testid="cover-letter-link"
-                                          >
-                                            Cover letter
-                                          </Link>
-                                        ) : (
-                                          <span>Cover letter</span>
-                                        )}
-                                      </div>
-                                    ) : latestDraft ? (
-                                      <div className="flex items-center gap-2 text-folio-outline">
-                                        <span>✗</span>
-                                        <span>No cover letter yet</span>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </div>
-
-                                {/* Notes */}
-                                <div className="sm:col-span-2">
-                                  <label
-                                    htmlFor={`notes-${app.id}`}
-                                    className="mb-1 block text-xs font-semibold text-folio-outline"
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={1.75}
+                                      strokeLinecap="round"
+                                      aria-hidden="true"
+                                    >
+                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                      <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  title={isExpanded ? "Hide details" : "Details"}
+                                  onClick={() =>
+                                    setExpandedAppId(isExpanded ? null : app.id)
+                                  }
+                                  aria-expanded={isExpanded}
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface"
+                                >
+                                  {/* Chevron icon */}
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={1.75}
+                                    strokeLinecap="round"
+                                    aria-hidden="true"
+                                    style={{ transform: isExpanded ? "rotate(180deg)" : undefined }}
                                   >
-                                    Notes
-                                  </label>
-                                  <textarea
-                                    id={`notes-${app.id}`}
-                                    value={notesDraftById[app.id] ?? ""}
-                                    onChange={(e) =>
-                                      setNotesDraftById((prev) => ({
-                                        ...prev,
-                                        [app.id]: e.target.value,
-                                      }))
-                                    }
-                                    rows={3}
-                                    data-testid="notes-textarea"
-                                    placeholder="Interview prep, recruiter contact, follow-up reminders…"
-                                    className="w-full rounded-lg border border-folio-outline-variant bg-white px-3 py-2 text-sm text-folio-on-surface placeholder:text-folio-outline focus:border-folio-primary focus:outline-none"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleSaveNotes(app)}
-                                    disabled={savingNotesId === app.id}
-                                    data-testid="save-notes-button"
-                                    className="mt-2 rounded-lg border border-folio-outline-variant px-4 py-1.5 text-sm text-folio-on-surface transition hover:bg-folio-surface-container disabled:opacity-40"
+                                    <polyline points="6 9 12 15 18 9" />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Archive"
+                                  disabled={archivingId === app.id}
+                                  onClick={() => void handleArchive(app)}
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-folio-outline transition hover:bg-folio-surface-container hover:text-folio-on-surface disabled:opacity-40"
+                                >
+                                  {/* Archive/box icon */}
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={1.75}
+                                    strokeLinecap="round"
+                                    aria-hidden="true"
                                   >
-                                    {savingNotesId === app.id ? "Saving…" : "Save notes"}
-                                  </button>
-                                </div>
-
-                                {/* Saved job link */}
-                                {app.jobDescriptionId && jobById.has(app.jobDescriptionId) ? (
-                                  <div className="sm:col-span-2">
-                                    <p className="mb-1 text-xs font-semibold text-folio-outline">
-                                      Saved job
-                                    </p>
-                                    <div className="rounded-lg border border-folio-outline-variant bg-white px-3 py-2 text-sm">
-                                      {(() => {
-                                        const jd = jobById.get(app.jobDescriptionId!)!;
-                                        return (
-                                          <>
-                                            <p className="text-folio-on-surface-variant line-clamp-2">
-                                              {jd.summary ?? jd.rawText.slice(0, 200)}
-                                            </p>
-                                            <Link
-                                              href={`/generate?jobId=${app.jobDescriptionId}`}
-                                              className="mt-2 inline-block text-xs text-folio-primary underline underline-offset-2"
-                                              data-testid="saved-job-generate-link"
-                                            >
-                                              Re-use this job on Generate →
-                                            </Link>
-                                          </>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-                                ) : null}
+                                    <polyline points="21 8 21 21 3 21 3 8" />
+                                    <rect x="1" y="3" width="22" height="5" />
+                                    <line x1="10" y1="12" x2="14" y2="12" />
+                                  </svg>
+                                </button>
                               </div>
                             </td>
                           </tr>
-                        ) : null}
-                      </>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+
+                          {isExpanded ? (
+                            <tr className={isLast ? "" : "border-b border-folio-surface-container"}>
+                              <td
+                                colSpan={7}
+                                className="bg-folio-surface-container-low px-4 pb-4 pt-3"
+                              >
+                                <ApplicationDetails
+                                  {...buildDetailsProps(app, latestDraft, latestCoverLetter)}
+                                />
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-5 space-y-3 md:hidden">
+                {filteredApplications.map((app) => {
+                  const company = app.companyName ?? "Company";
+                  const role = app.roleTitle ?? "—";
+                  const dateAdded = new Date(app.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                  const latestDraft = latestDraftByApplicationId.get(app.id);
+                  const latestCoverLetter = latestCoverLetterByApplicationId.get(app.id);
+                  const isExpanded = expandedAppId === app.id;
+
+                  return (
+                    <ApplicationCard
+                      key={app.id}
+                      app={app}
+                      company={company}
+                      role={role}
+                      dateAdded={dateAdded}
+                      latestDraft={latestDraft}
+                      latestCoverLetter={latestCoverLetter}
+                      isExpanded={isExpanded}
+                      onToggleExpand={() => setExpandedAppId(isExpanded ? null : app.id)}
+                      onArchive={() => void handleArchive(app)}
+                      archiving={archivingId === app.id}
+                      detailsProps={buildDetailsProps(app, latestDraft, latestCoverLetter)}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* Saved-job management PD section */}
           {applications.some((a) => a.status !== "archived" && a.jobDescriptionId && jobById.has(a.jobDescriptionId)) ? (

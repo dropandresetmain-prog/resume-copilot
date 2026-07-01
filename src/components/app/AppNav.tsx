@@ -1,7 +1,9 @@
 "use client";
 
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 import { NavIcon } from "@/components/app/NavIcon";
 import {
@@ -9,6 +11,7 @@ import {
   APP_UTILITY_ITEMS,
   isAppNavActive,
 } from "@/components/app/nav";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { signOut } from "@/lib/supabase/auth";
 
 function NavItem({
@@ -38,23 +41,15 @@ function NavItem({
   );
 }
 
-export function AppNav() {
-  const pathname = usePathname();
-
-  async function handleSignOut() {
-    try {
-      await signOut();
-    } finally {
-      // Full navigation so middleware sees the cleared session cookie
-      window.location.assign("/auth/login");
-    }
-  }
-
+function NavContent({
+  pathname,
+  onSignOut,
+}: {
+  pathname: string;
+  onSignOut: () => void;
+}) {
   return (
-    <aside
-      aria-label="Main navigation"
-      className="fixed inset-y-0 left-0 flex w-[220px] flex-col bg-folio-sidebar"
-    >
+    <>
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 pt-6 pb-8">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-xs font-bold text-white">
@@ -114,7 +109,7 @@ export function AppNav() {
         <div className="mt-2 border-t border-white/10 pt-3">
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={onSignOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white/80"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -126,6 +121,54 @@ export function AppNav() {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function AppNav({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const pathname = usePathname();
+
+  async function handleSignOut() {
+    try {
+      await signOut();
+    } finally {
+      // Full navigation so middleware sees the cleared session cookie
+      window.location.assign("/auth/login");
+    }
+  }
+
+  // Close the mobile drawer whenever the route changes, so navigating never
+  // leaves it open over the new page.
+  useEffect(() => {
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  return (
+    <>
+      {/* Desktop: always-visible fixed sidebar, unchanged from before */}
+      <aside
+        aria-label="Main navigation"
+        className="fixed inset-y-0 left-0 hidden w-[220px] flex-col bg-folio-sidebar md:flex"
+      >
+        <NavContent pathname={pathname} onSignOut={handleSignOut} />
+      </aside>
+
+      {/* Mobile (<md): same nav content in a slide-in drawer */}
+      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent aria-label="Main navigation" className="md:hidden">
+          <DialogPrimitive.Title className="sr-only">
+            Main navigation
+          </DialogPrimitive.Title>
+          <NavContent pathname={pathname} onSignOut={handleSignOut} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

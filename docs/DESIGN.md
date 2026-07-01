@@ -93,6 +93,12 @@ spacing:
   card_padding: 16px
   stack_gap: 12px
   section_gap: 32px
+breakpoints:
+  sm: 640px
+  md: 768px
+  lg: 1024px
+  xl: 1280px
+  2xl: 1536px
 ---
 
 ## Brand & Style
@@ -111,9 +117,12 @@ This design system utilizes **Inter** for its neutral, highly legible character.
 Line heights are intentionally generous (1.7 for body text) to promote readability and provide a sense of "air" within data-heavy career documents.
 
 ## Layout & Spacing
-The layout uses a **Fixed-Fluid hybrid model**. A permanent 220px left sidebar anchors the navigation, while the main content area is capped at a readable 860px max-width and centered. This prevents line lengths from becoming too long on ultra-wide monitors and mimics the feel of a physical "folio" or document.
+The layout uses a **Fixed-Fluid hybrid model**. At `md` (768px) and above, a 220px left sidebar anchors the navigation, while the main content area is capped at a readable 860px max-width and centered. This prevents line lengths from becoming too long on ultra-wide monitors and mimics the feel of a physical "folio" or document. Below `md`, navigation collapses into a slide-in drawer triggered from the top bar, and content takes the full viewport width (see Breakpoints below).
 
-Vertical rhythm is driven by a 4px baseline, with standard increments of 8px, 16px, and 32px for grouping. Generous whitespace around the central container is mandatory to maintain the "considered" aesthetic.
+Vertical rhythm is driven by a 4px baseline, with standard increments of 8px, 16px, and 32px for grouping. Generous whitespace around the central container is mandatory to maintain the "considered" aesthetic; below `md`, container padding steps down (40px → 16px) so it doesn't dominate a phone-width screen.
+
+### Breakpoints
+Tailwind v4 defaults are used as-is — no custom breakpoint values (see `breakpoints` in the frontmatter). The one app-specific convention: **navigation collapses to a drawer below `md` (768px)**. Any new layout should treat `md` as the primary mobile/desktop split, and only introduce `lg`/`xl` breakpoints for further refinement within the desktop layout (as the Output Editor does for its multi-column views).
 
 ## Elevation & Depth
 This design system rejects the use of shadows and blurs. Depth is purely structural:
@@ -137,3 +146,8 @@ The shape language is "Soft-Modern." We use a tiered rounding system to differen
 - **Input Fields:** 8px radius, White background, Text Muted for placeholders. Focus state uses a 1px Primary Teal border.
 - **Sidebar Items:** Clear text on the dark Forest background. Active states should use a subtle opacity shift or a small left-aligned Teal "accent" bar.
 - **Lists:** Flat, separated by 0.5px horizontal rules in the Text Muted color at 20% opacity.
+- **Sheet (mobile drawer):** Below `md`, the sidebar's nav content renders inside a left-anchored slide-in drawer instead of the fixed sidebar, opened via a hamburger button in the top bar. Same dark Forest surface and nav item styling as the desktop sidebar — only the container changes. Use `Sheet` for mobile-only navigation/overlay needs; use the centered `Dialog` for everything else.
+- **Dialogs on narrow viewports:** `Dialog`'s width is a cap, not a fixed value (`max-w-[min(<size>,calc(100%-2rem))]`), so it always keeps a 1rem margin on each side below its cap width instead of touching the viewport edges. Any per-dialog width override should follow the same `min(...)` pattern rather than a bare `max-w-*` value.
+- **Data tables on narrow viewports:** Below `md`, a data table (e.g. Applications) renders as a list of stacked cards instead of table rows — same fields, same actions, larger (~44px) tap targets. The table and card renderings share their expandable-detail content rather than duplicating it.
+- **Hover-reveal row/card actions:** Actions that reveal on hover (edit/delete icons in Career Vault) are always-visible below `md` and hover-revealed at `md` and above, since touch has no hover state. New list/card actions should follow the same `<mobile-visible> md:opacity-0 md:group-hover:opacity-100` convention rather than hover-only.
+- **Collapsible controls panels:** Dense control clusters that are only useful once content is in view (the Output Editor's layout sliders) collapse behind a disclosure on mobile and stay expanded on desktop, so the primary content isn't pushed below the fold.

@@ -1,4 +1,4 @@
-**Folio redesign** — See [`docs/FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for current milestone. v0.9.19B AI/evidence notes in [`HANDOFF.md`](HANDOFF.md).
+**Current architecture** — See [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) for the route contract and [`HANDOFF.md`](HANDOFF.md) for current product state.
 
 ## App routes
 
@@ -7,6 +7,9 @@
 | `/` | `src/app/page.tsx` | Landing page (`LandingHero`) |
 | `/auth/login` | `src/app/auth/login/page.tsx` | Sign in |
 | `/auth/signup` | `src/app/auth/signup/page.tsx` | Sign up |
+| `/auth/confirm-email` | `src/app/auth/confirm-email/page.tsx` | Email confirmation instructions |
+| `/auth/forgot-password` | `src/app/auth/forgot-password/page.tsx` | Request password reset |
+| `/auth/reset-password` | `src/app/auth/reset-password/page.tsx` | Complete password reset |
 | `/onboarding` | `src/app/onboarding/page.tsx` | First-run upload + profile setup |
 | `/dashboard` | `src/app/(workspace)/dashboard/page.tsx` | Dashboard (`DashboardPageClient`) |
 | `/inventory` | `src/app/(workspace)/inventory/page.tsx` | **Career vault** (`CareerVaultPageClient`) |
@@ -15,16 +18,20 @@
 | `/profile` | `src/app/(workspace)/profile/page.tsx` | Application Communication Profile |
 | `/settings` | `src/app/(workspace)/settings/page.tsx` | Settings shell |
 | `/output/[draftId]` | `src/app/(workspace)/output/[draftId]/page.tsx` | **Output editor** — unified resume + cover letter (`OutputEditorPageClient`) |
-| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | Legacy application package (`ResumePreviewPageClient`) |
-| `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | Draft review/edit workspace |
-| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | Cover letter editor + export |
+| `/resume-preview/[draftId]` | `src/app/(workspace)/resume-preview/[draftId]/page.tsx` | **Retired** — returns `notFound()` |
+| `/resume-preview/[draftId]/edit` | `src/app/(workspace)/resume-preview/[draftId]/edit/page.tsx` | **Retired** — returns `notFound()` |
+| `/cover-letter-preview/[draftId]` | `src/app/(workspace)/cover-letter-preview/[draftId]/page.tsx` | **Retired** — returns `notFound()` |
 | `/setup` | `src/app/(workspace)/setup/page.tsx` | Legacy Manage Uploads (`ManageUploadsPageClient`) |
 | `/dev-tools` | `src/app/(workspace)/dev-tools/page.tsx` | Dev utilities — **404 in production** |
 | `/api/ai/enrich` | `src/app/api/ai/enrich/route.ts` | Server-side AI enrichment |
+| `/api/ai/extract-inventory-from-text` | `src/app/api/ai/extract-inventory-from-text/route.ts` | Extract reviewable inventory suggestions from pasted text |
 | `/api/ai/generate-resume` | `src/app/api/ai/generate-resume/route.ts` | Resume draft generation |
 | `/api/ai/generate-company-context` | `src/app/api/ai/generate-company-context/route.ts` | Company context generation (v0.9.3+) |
 | `/api/ai/generate-cover-letter` | `src/app/api/ai/generate-cover-letter/route.ts` | Cover letter generation (v0.9.0) |
 | `/api/ai/revise-cover-letter` | `src/app/api/ai/revise-cover-letter/route.ts` | Cover letter quick revision (v0.9.2) |
+| `/api/ai/revise-resume-scope` | `src/app/api/ai/revise-resume-scope/route.ts` | Scoped resume revision, including exact-count staged bullet replacement |
+| `/api/ai/rewrite-resume-role` | `src/app/api/ai/rewrite-resume-role/route.ts` | Targeted role rewrite for staged evidence |
+| `/api/company/discover-website` | `src/app/api/company/discover-website/route.ts` | Authenticated company website discovery and confidence result |
 | `/api/approve/resume-draft` | `src/app/api/approve/resume-draft/route.ts` | Approve + server PDF validation (v0.7.0) |
 | `/api/validate/resume-pdf` | `src/app/api/validate/resume-pdf/route.ts` | Server PDF page-count check |
 | `/api/export/resume-pdf` | `src/app/api/export/resume-pdf/route.ts` | Approved resume → PDF |
@@ -53,12 +60,13 @@ Workspace routes share `src/app/(workspace)/layout.tsx` (`WorkspaceProvider` + `
 |------|-------|
 | `src/components/pages/DashboardPageClient.tsx` | `/dashboard` |
 | `src/components/pages/CareerVaultPageClient.tsx` | `/inventory` — Career vault (FAB, extraction, upload dialog, app counts) |
-| `src/components/pages/GeneratePageClient.tsx` | `/generate` |
+| `src/components/pages/NewApplicationPageClient.tsx` | `/generate` |
 | `src/components/pages/ApplicationsPageClient.tsx` | `/records` — Applications table |
 | `src/components/pages/OutputEditorPageClient.tsx` | `/output/[draftId]` — unified output editor |
 | `src/components/pages/ProfilePageClient.tsx` | `/profile` |
-| `src/components/pages/ResumePreviewPageClient.tsx` | `/resume-preview/[draftId]` — legacy application package |
-| `src/components/pages/CoverLetterPreviewPageClient.tsx` | `/cover-letter-preview/[draftId]` |
+| `src/components/pages/ResumePreviewPageClient.tsx` | *(unmounted)* — legacy application-package reference |
+| `src/components/pages/ResumeDraftEditPageClient.tsx` | *(unmounted)* — legacy draft-editor reference |
+| `src/components/pages/CoverLetterPreviewPageClient.tsx` | *(unmounted)* — legacy cover-letter editor reference |
 | `src/components/pages/ManageUploadsPageClient.tsx` | `/setup` — legacy uploads |
 | `src/components/pages/InventoryPageClient.tsx` | *(unmounted)* — pre-redesign inventory reference |
 | `src/components/pages/DevToolsPageClient.tsx` | `/dev-tools` |
@@ -334,14 +342,15 @@ Utility scripts (not tests): `scripts/pull-gemini-analysis.ts`, `scripts/build-g
 | File | Purpose |
 |------|---------|
 | `README.md` | Project overview (root) |
-| `docs/FOLIO_REDESIGN.md` | Folio UI redesign phases, routes, remaining tasks |
+| `docs/README.md` | Active-document index and archive guide |
+| `docs/FOLIO_REDESIGN.md` | Folio UI architecture and locked route/client contract |
 | `docs/FOLIO_DESIGN_TOKENS.md` | Grove design tokens (`globals.css`) |
 | `docs/CAREER_VAULT.md` | Career vault data flow, app counts, panel patterns |
 | `docs/FIT_SCORE_RUBRIC.md` | Target fit-score rubric (`fit-rubric-v1`) — product IP |
-| `docs/HANDOFF.md` | Current milestone and run instructions |
-| `docs/ROADMAP.md` | Planned milestones |
+| `docs/HANDOFF.md` | Current state, settled behavior, and run instructions |
+| `docs/ROADMAP.md` | Forward priorities and parked work |
 | `docs/PROJECT_FILE_MAP.md` | This file — route and module map |
 | `docs/KNOWN_ISSUES.md` | Known limitations |
 | `docs/TEST_CHECKLIST.md` | Manual QA checklist |
 | `docs/TESTING.md` | Automated test layout, policy, source-grep audit |
-| `AUDIT_CLAUDE.md` | Phase 0 pre-redesign audit (historical) |
+| `docs/archive/` | Historical audits, recovery logs, studies, completed plans, and superseded docs |

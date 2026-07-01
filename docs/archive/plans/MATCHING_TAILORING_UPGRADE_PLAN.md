@@ -1,7 +1,9 @@
 # Matching / Tailoring Engine Upgrade — Implementation Plan
 
+> Archived completed plan. The evidence spine, cover-letter story spine, and evidence-control milestones have shipped.
+
 **Planning milestone:** v0.9.17x (proposed)  
-**Prerequisite:** [`AI_CALL_STUDY.md`](AI_CALL_STUDY.md)  
+**Prerequisite:** [`AI_CALL_STUDY.md`](../studies/AI_CALL_STUDY.md)  
 **Goal:** Boring, explainable evidence selection before Gemini; sharper cover-letter hiring story; no new AI calls.
 
 ---
@@ -322,7 +324,7 @@ Story assembly is 100% deterministic. Same single `generate_cover_letter` Gemini
 
 ## Suggested implementation order
 
-0. **Phase 0 — Prompt & payload hygiene** — **done in v0.9.17A** (see [`docs/archive/PHASE0_PROMPT_HYGIENE.md`](archive/PHASE0_PROMPT_HYGIENE.md)).
+0. **Phase 0 — Prompt & payload hygiene** — **done in v0.9.17A** (see [`PHASE0_PROMPT_HYGIENE.md`](../milestones/PHASE0_PROMPT_HYGIENE.md)).
 1. **M1 backend** — types, collect, score, rank, tests (no UI).
 2. **M1 wire** — payload + snapshot + fit summary.
 3. **M2** — story spine + cover letter prompt + tests.

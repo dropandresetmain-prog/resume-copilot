@@ -1,8 +1,10 @@
 # Prompt Quality, Input Usefulness, and Latency Study
 
+> Archived point-in-time study. Revalidate measurements and call paths before using its conclusions for new work.
+
 **Planning pass:** Matching/Tailoring Engine Upgrade (pre–Milestone 1)  
 **Version at study:** v0.9.16E  
-**Prerequisite docs:** [`AI_CALL_STUDY.md`](AI_CALL_STUDY.md), [`MATCHING_TAILORING_UPGRADE_PLAN.md`](MATCHING_TAILORING_UPGRADE_PLAN.md)  
+**Prerequisite docs:** [`AI_CALL_STUDY.md`](AI_CALL_STUDY.md), [`MATCHING_TAILORING_UPGRADE_PLAN.md`](../plans/MATCHING_TAILORING_UPGRADE_PLAN.md)  
 **Scope:** Prompt/input quality and cost/latency — **no product code changes**.
 
 ---

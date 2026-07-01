@@ -12,7 +12,7 @@ Product name: **Folio** — a resume tailoring tool. The repo folder remains `re
 | AI | Gemini (mock provider for local dev) |
 | Hosting | Vercel |
 
-Branch workflow: **`folio-redesign`** — merge to `main` at the end of each phase.
+**Status:** redesign and recovery complete on `main`. This document remains active because its route contract and Folio UI rules protect the current architecture.
 
 ## How we work
 
@@ -25,7 +25,7 @@ Branch workflow: **`folio-redesign`** — merge to `main` at the end of each pha
 
 ### Phase 0 — Audit (read-only)
 
-Map existing routes, AI calls, and data models before touching UI. Output: [`AUDIT_CLAUDE.md`](../AUDIT_CLAUDE.md) (pre-redesign snapshot). Use [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) + [`PROJECT_FILE_MAP.md`](PROJECT_FILE_MAP.md) for current state.
+Map existing routes, AI calls, and data models before touching UI. Output: [`archive/audits/AUDIT_CLAUDE.md`](archive/audits/AUDIT_CLAUDE.md) (pre-redesign snapshot). Use [`FOLIO_REDESIGN.md`](FOLIO_REDESIGN.md) + [`PROJECT_FILE_MAP.md`](PROJECT_FILE_MAP.md) for current state.
 
 ### Phase 1 — Foundation & design system ✅
 
@@ -48,7 +48,7 @@ Map existing routes, AI calls, and data models before touching UI. Output: [`AUD
 - Panel/upload state connected to Supabase via `WorkspaceProvider`
 - Reference pattern in legacy `InventoryPageClient.tsx` (superseded by `CareerVaultPageClient.tsx` at `/inventory`)
 
-### Phase 4 — Polish & correctness (mostly ✅)
+### Phase 4 — Polish & correctness ✅
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -59,9 +59,9 @@ Map existing routes, AI calls, and data models before touching UI. Output: [`AUD
 | 5 — Gemini model tier IDs | ✅ | Non-issue / already resolved |
 | 6 — Cover letter only mode | **Deferred** | Touches generation logic; scope carefully |
 | 7 — Enable cover letter only in Generate | ✅ | Non-issue / already resolved |
-| 8 — Redirect `/resume-preview` → `/output` | **Partial** | `/output/[draftId]` exists; generate flow still navigates to `/resume-preview` |
+| 8 — Migrate output navigation | ✅ | Generate and Applications target `/output/[draftId]`; retired preview routes return `notFound()` |
 | 9 — Gate `/dev-tools` in production | ✅ | `notFound()` when `NODE_ENV === "production"` |
-| 10 — E2E flow test | **Pending** | Full journey: upload → vault → generate → output |
+| 10 — E2E flow test | ✅ | Authenticated recovery E2E completed in M8; current manual regression checklist remains in `TEST_CHECKLIST.md` |
 
 ## Navigation & routes (current)
 
@@ -163,7 +163,7 @@ swapping a route or importing a legacy client, stop and re-scope.
 1. **Token discipline** — new components must use Folio CSS tokens only
 2. **Dialog pattern** — new modals follow `src/components/ui/dialog.tsx`
 3. **App count linkage** — `reference_resume_id` → `sourceCitations[].resumeId` → count map (see Career Vault doc)
-4. **Route migration** — prefer `/output/[draftId]` for new links; update Generate + Applications when redirect task is picked up
+4. **Canonical output links** — all new output links must target `/output/[draftId]`; never revive the retired preview routes
 5. **AI engines unchanged** — redesign remounted existing generation/export logic; behaviour docs in [`HANDOFF.md`](HANDOFF.md) v0.9.x notes still apply
 
 ## Related docs
@@ -173,12 +173,11 @@ swapping a route or importing a legacy client, stop and re-scope.
 | [`FOLIO_DESIGN_TOKENS.md`](FOLIO_DESIGN_TOKENS.md) | Token naming, palette, usage rules |
 | [`CAREER_VAULT.md`](CAREER_VAULT.md) | Vault data flow, app counts, panel/modal patterns |
 | [`PROJECT_FILE_MAP.md`](PROJECT_FILE_MAP.md) | Full route and module map |
-| [`HANDOFF.md`](HANDOFF.md) | AI/generation milestone history + run instructions |
-| [`AUDIT_CLAUDE.md`](../AUDIT_CLAUDE.md) | Phase 0 pre-redesign inventory (historical) |
+| [`HANDOFF.md`](HANDOFF.md) | Current state, settled behavior, and run instructions |
+| [`archive/audits/AUDIT_CLAUDE.md`](archive/audits/AUDIT_CLAUDE.md) | Phase 0 pre-redesign inventory (historical) |
 
-## Next steps
+## Forward use
 
-1. **Task 10** — E2E flow test (Playwright recommended): upload → vault → generate → output; pay special attention to app count linkage
-2. **Task 6** — Cover letter only mode (generation + UI flag decision)
-3. **Route migration** — wire Generate/Applications to `/output/[draftId]`; add redirect from `/resume-preview/[draftId]`
-4. **Settings page** — flesh out account/preferences shell
+- Preserve the route/client contract and Folio token discipline in every change.
+- Use [`TEST_CHECKLIST.md`](TEST_CHECKLIST.md) for current manual regression coverage.
+- Treat cover-letter-only mode, deeper Career Vault work, and Settings implementation as optional roadmap items, not unfinished redesign work.

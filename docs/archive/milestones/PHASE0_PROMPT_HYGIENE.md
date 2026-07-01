@@ -1,8 +1,10 @@
 # Phase 0: Prompt & Payload Hygiene
 
+> Archived completed milestone note.
+
 **Version:** v0.9.17A  
 **Status:** Implemented in code  
-**Next:** M1 Unified Evidence Spine — see [`MATCHING_TAILORING_UPGRADE_PLAN.md`](MATCHING_TAILORING_UPGRADE_PLAN.md)
+**Next:** M1 Unified Evidence Spine — see [`MATCHING_TAILORING_UPGRADE_PLAN.md`](../plans/MATCHING_TAILORING_UPGRADE_PLAN.md)
 
 ## Purpose
 

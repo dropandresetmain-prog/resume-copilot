@@ -451,8 +451,8 @@ export function CareerVaultPageClient() {
         </div>
       )}
 
-      {/* Tab nav */}
-      <div className="mt-6 flex border-b border-folio-sage-border">
+      {/* Tab nav — horizontally scrollable so 5 tabs never force the page to overflow on narrow viewports */}
+      <div className="mt-6 flex overflow-x-auto border-b border-folio-sage-border">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -460,7 +460,7 @@ export function CareerVaultPageClient() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`mb-[-1px] px-4 pb-3 pt-1 text-sm font-medium transition-colors ${
+              className={`mb-[-1px] shrink-0 whitespace-nowrap px-4 pb-3 pt-1 text-sm font-medium transition-colors ${
                 active
                   ? "border-b-2 border-folio-primary-container text-folio-primary-container"
                   : "text-folio-outline hover:text-folio-on-surface"
@@ -472,8 +472,10 @@ export function CareerVaultPageClient() {
         })}
       </div>
 
-      {/* Tab content */}
-      <div className="mt-4 space-y-3 pb-8">
+      {/* Tab content — extra bottom padding below sm clears the fixed
+          "Import from resume"/"Paste career text" buttons, which overlap
+          full-width content on narrow viewports */}
+      <div className="mt-4 space-y-3 pb-28 sm:pb-8">
         {/* ── Work experience ── */}
         {activeTab === "work" &&
           (collated.experiences.length === 0 ? (
@@ -600,7 +602,7 @@ export function CareerVaultPageClient() {
                                       </span>
                                     )}
                                   </span>
-                                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                                     <button
                                       type="button"
                                       onClick={() => startEdit(bKey, displayText)}
@@ -723,7 +725,7 @@ export function CareerVaultPageClient() {
                               edited
                             </span>
                           )}
-                          <span className="ml-0.5 hidden items-center gap-1 group-hover:inline-flex">
+                          <span className="ml-0.5 inline-flex items-center gap-1 md:hidden md:group-hover:inline-flex">
                             <button
                               type="button"
                               onClick={() => startItemEdit(overlayKey, item.text)}
@@ -841,7 +843,7 @@ export function CareerVaultPageClient() {
                       )}
                     </div>
                     {!isEditing && (
-                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={() => startItemEdit(overlayKey, edu.institution)}
@@ -939,7 +941,7 @@ export function CareerVaultPageClient() {
                               </span>
                             )}
                           </span>
-                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                             <button
                               type="button"
                               onClick={() => startItemEdit(overlayKey, item.text)}
@@ -1098,7 +1100,7 @@ export function CareerVaultPageClient() {
           if (!open) closeImportDialog();
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-[min(36rem,calc(100%-2rem))]">
           <DialogHeader>
             <DialogTitle>Import from resume</DialogTitle>
             <DialogDescription>

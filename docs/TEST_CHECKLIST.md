@@ -1,80 +1,56 @@
-# Test Checklist — v0.9.19B
+# Current manual test checklist
 
-Run `npm run test`, `npm run lint`, and `npm run build` before manual QA.
+Run the automated gate first:
 
-Older milestone checklists were removed during repo cleanup. Completed phase docs live under [`docs/archive/`](archive/). Live Gemini tailoring comparison: [`docs/archive/PHASE0_MANUAL_QA.md`](archive/PHASE0_MANUAL_QA.md).
+```bash
+npm run test
+npm run lint
+npm run build
+```
 
----
+## Canonical authenticated journey
 
-## Automated gate
+- [ ] Sign up or sign in; auth redirects settle on the intended Folio route.
+- [ ] Onboarding accepts a `.docx` resume and persists the parsed inventory.
+- [ ] Career Vault shows the uploaded evidence and allows safe overlay edits.
+- [ ] Generate accepts Company, Target role, and a job description.
+- [ ] Company discovery is visible and confidence-checked; confidential/recruitment mode stays JD-only.
+- [ ] Resume-only generation performs one logical AI step.
+- [ ] Resume + cover-letter generation reports the expected logical steps and lands on `/output/[draftId]`.
+- [ ] Partial cover-letter failure preserves the generated resume and offers an honest recovery path.
+- [ ] Applications links the job to the same `/output/[draftId]` draft.
 
-- [ ] `npm run test` — verification suites pass
-- [ ] `npm run lint` — no errors
-- [ ] `npm run build` — succeeds
+## Output Editor
 
----
+- [ ] Resume and cover-letter tabs load the linked persisted drafts.
+- [ ] Text/PDF view switching preserves in-session staged changes.
+- [ ] Selecting N resume bullets for replacement returns exactly N replacements.
+- [ ] Staged resume changes affect only the selected targets.
+- [ ] Resume and cover-letter staging remain separate.
+- [ ] Content edits re-lock content confirmation and invalidate prior approval.
+- [ ] Layout controls unlock only after content confirmation.
+- [ ] PDF preview updates when layout controls change.
+- [ ] Approve uses server validation and visibly reports one-page failures.
+- [ ] PDF export remains blocked until server validation passes.
+- [ ] PDF and DOCX downloads use the expected filenames.
+- [ ] Cover-letter export enforces its word-limit gate.
 
-## Evidence controls + tailoring (live QA — v0.9.18 / v0.9.19)
+## Career Vault and Applications
 
-- [ ] **Additional Experience on full regenerate** — stage include on full regeneration in Fix resume evidence → Apply saves controls → Regenerate full resume adds item (not targeted rewrite)
-- [ ] **Cover-letter Use/Avoid staging** — Edit cover letter → stage proof evidence → Regenerate cover letter applies choices (1 AI step); staging does not save until regenerate
-- [ ] **Resume vs cover letter separation** — resume evidence changes do not alter cover letter body until cover-letter regenerate; cover-letter staging does not change resume draft
-- [ ] **Evidence tailoring panel** — selected / omitted / cover-letter proof sections render; omitted copy is advisory
-- [ ] **Tailoring next actions** — Fix resume evidence opens package fix mode; Edit cover letter evidence opens editor; Accept risk scrolls to Approve
-- [ ] **Legacy draft fallback** — older draft without `evidenceSpine` shows thinner diagnostics + legacy empty-state copy (no crash)
-- [ ] **Export after evidence changes** — re-approve if layout unchanged but content regenerated; export resume PDF + cover letter after intentional accept-risk path
+- [ ] Work, Skills, Education, and Additional tabs render persisted inventory.
+- [ ] Edit/hide/revert saves through the overlay without mutating source resume parses.
+- [ ] Add-from-text routes personal projects to Additional Experience.
+- [ ] Project cleanup decisions persist and explain that existing drafts require regeneration.
+- [ ] Application counts are plausible for the source resumes used by generated drafts.
+- [ ] Application status and notes persist after reload.
+- [ ] Archived applications leave linked drafts intact and disappear from the default list.
 
----
+## Route and shell regression
 
-## Evidence spine + cover letter story (M1 / M2)
+- [ ] `/dashboard`, `/inventory`, `/generate`, `/records`, and `/output/[draftId]` mount their Folio page clients.
+- [ ] `/resume-preview/[draftId]`, its edit route, and `/cover-letter-preview/[draftId]` return 404.
+- [ ] `/dev-tools` returns 404 in production.
+- [ ] Desktop and mobile layouts have no horizontal overflow or clipped primary actions.
+- [ ] New UI uses Folio tokens and preserves readable focus, loading, error, and disabled states.
 
-- [ ] Combined generate uses inventory-ranked evidence (not resume-draft-only) for cover letter
-- [ ] Cover letter cites company-specific facts from research when website provided
-- [ ] Resume draft `selectionAudit` includes spine snapshot when present
-- [ ] Add Evidence ranked list includes Work + Additional categories; Additional is full-regenerate-only
-
----
-
-## Canonical Generate → Output
-
-- [ ] Combined generation lands on `/output/{resumeDraftId}`
-- [ ] Resume-only generation lands on `/output/{resumeDraftId}`
-- [ ] Resume success + cover-letter failure preserves the resume and offers cover-letter-only retry
-- [ ] Direct `/output/{resumeDraftId}` reload loads persisted resume, application, and cover-letter state
-- [ ] Missing cover letter is shown honestly; a failed lookup is not treated as confirmed absence
-
----
-
-## Legacy application package
-
-- [ ] `/resume-preview/{id}` remains reachable for legacy drafts
-- [ ] Evidence tailoring panel below AI fit summary
-- [ ] Review-first layout: fit summary and review rail before prominent preview
-- [ ] Approve → export sequence in review center (no duplicate approve on resume card)
-- [ ] Cover letter inline on package; staged revision saves on Accept only
-- [ ] Archive application hides from list; linked drafts remain reachable
-
----
-
-## Generate + research
-
-- [ ] Generate readiness strip reflects missing uploads/JD/base resume
-- [ ] Confidential posting skips website research
-- [ ] Website discovery requires user confirmation at medium confidence
-- [ ] Progress panel shows combined research + generation stages
-
----
-
-## Export
-
-- [ ] Server PDF page count matches export gate (one-page A4)
-- [ ] Re-approve required after layout slider change post-approval
-- [ ] Cover letter export blocked above 420 words
-
----
-
-## Inventory
-
-- [ ] Unsaved inventory edits warn on navigation
-- [ ] Project cleanup panel moves misclassified projects out of work experience
-- [ ] Draft edit paths do not auto-save inventory
+Record failures with route, account state, input, expected result, actual result, and whether persistence or a billable AI call occurred.

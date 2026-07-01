@@ -1,5 +1,7 @@
 # Output Editor Redesign — Agreed Design (M10a)
 
+> Archived implemented design brief. Use the live Output Editor and current product docs for present behavior.
+
 **Status:** Approved design. Source of truth for M10b implementation.
 **Date agreed:** 2026-06-30
 **Scope client:** `src/components/pages/OutputEditorPageClient.tsx` (stays mounted at `/output/[draftId]`).

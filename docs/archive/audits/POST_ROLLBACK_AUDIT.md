@@ -1,5 +1,7 @@
 # Post-Rollback Capability Audit
 
+> Archived historical snapshot. This audit informed the completed Folio recovery work and is not a current capability map.
+
 No application code or Git state was changed during this audit.
 
 ## Executive diagnosis

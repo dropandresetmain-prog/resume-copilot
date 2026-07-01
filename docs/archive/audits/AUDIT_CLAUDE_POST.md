@@ -1,5 +1,7 @@
 # AUDIT_CLAUDE_POST.md — Post-Redesign Codebase Audit
 
+> Archived historical snapshot. Findings were inputs to the completed recovery program and may no longer describe live behavior.
+
 > Generated: 2026-06-27. Audited against baseline in `AUDIT_CLAUDE.md` (pre-Folio redesign).
 >
 > **Purpose:** Pre-debugging-sprint snapshot. Maps what changed, what broke, what's stubbed, and what's dead.

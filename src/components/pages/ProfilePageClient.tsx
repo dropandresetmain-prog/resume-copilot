@@ -191,7 +191,7 @@ export function ProfilePageClient() {
           <h2 className="text-[15px] font-semibold text-folio-on-surface">Your details</h2>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-folio-on-surface-variant">Full name</label>
             <input

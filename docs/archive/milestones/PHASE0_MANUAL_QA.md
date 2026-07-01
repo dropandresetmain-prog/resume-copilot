@@ -1,5 +1,7 @@
 # Phase 0 Manual QA Checklist
 
+> Archived milestone checklist. It is not the current release QA checklist.
+
 **Milestone:** v0.9.17A Prompt & Payload Hygiene  
 **Type:** Live Gemini quality comparison (optional but recommended)  
 **Note:** Automated suites verify prompt contracts only. This checklist validates tailoring behavior.

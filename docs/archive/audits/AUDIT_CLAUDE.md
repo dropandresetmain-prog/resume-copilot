@@ -1,8 +1,10 @@
 # AUDIT_CLAUDE.md — Resume Copilot UI/UX Redesign Audit
 
+> Archived historical snapshot. This one-time pre-redesign audit is not current product documentation.
+
 > Generated: 2026-06-27. **Phase 0 snapshot** — pre-Folio redesign. Do not use as current route map.
 >
-> **Current state:** See [`docs/FOLIO_REDESIGN.md`](docs/FOLIO_REDESIGN.md), [`docs/PROJECT_FILE_MAP.md`](docs/PROJECT_FILE_MAP.md), and [`docs/CAREER_VAULT.md`](docs/CAREER_VAULT.md).
+> **Current state:** See [`docs/FOLIO_REDESIGN.md`](../../FOLIO_REDESIGN.md), [`docs/PROJECT_FILE_MAP.md`](../../PROJECT_FILE_MAP.md), and [`docs/CAREER_VAULT.md`](../../CAREER_VAULT.md).
 
 ---
 
